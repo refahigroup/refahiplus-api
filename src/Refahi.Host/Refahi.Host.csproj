@@ -5,16 +5,19 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\Modules\Identity\Identity.Api\Identity.Api.csproj" />
-		<ProjectReference Include="..\Modules\Organizations\Organizations.Api\Organizations.Api.csproj" />
-		<ProjectReference Include="..\Modules\Wallets\Wallets.Api\Wallets.Api.csproj" />
-		<ProjectReference Include="..\Modules\Catalog\Catalog.Api\Catalog.Api.csproj" />
-		<ProjectReference Include="..\Modules\Orders\Orders.Api\Orders.Api.csproj" />
-	</ItemGroup>
-	<ItemGroup>
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.11" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\Refahi.Modules.Catalog.Api\Refahi.Modules.Catalog.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.Hotels.Api\Refahi.Modules.Hotels.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.Identity.Api\Refahi.Modules.Identity.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.Orders.Api\Refahi.Modules.Orders.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.Organizations.Api\Refahi.Modules.Organizations.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.Wallets.Api\Refahi.Modules.Wallets.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>
 </Project>

@@ -1,11 +1,15 @@
-using Catalog.Api;
-using Identity.Api;
 using MediatR;
 using Microsoft.OpenApi;
-using Orders.Api;
-using Organizations.Api;
+using Microsoft.Extensions.Configuration;
 using Refahi.Host;
-using Wallets.Api;
+using Refahi.Host.Services.Notification;
+using Refahi.Modules.Catalog.Api;
+using Refahi.Modules.Hotels.Api;
+using Refahi.Modules.Identity.Api;
+using Refahi.Modules.Orders.Api;
+using Refahi.Modules.Organizations.Api;
+using Refahi.Modules.Wallets.Api;
+using Refahi.Host.Services.Chaching;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +25,12 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+
+// Register Shared services
+builder.Services
+    .RegisterCachingService(builder.Configuration, builder.Environment.IsDevelopment())
+    .RegisterNotificationService(builder.Configuration);
+
 // Register modules
 try
 {
@@ -29,7 +39,8 @@ try
         .RegisterOrganizationsModule(builder.Configuration)
         .RegisterWalletsModule(builder.Configuration)
         .RegisterCatalogModule(builder.Configuration)
-        .RegisterOrdersModule(builder.Configuration);
+        .RegisterOrdersModule(builder.Configuration)
+        .RegisterHotelsModule(builder.Configuration);
 }
 catch 
 { 
@@ -57,10 +68,11 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 try
 {
     app.UseIdentityModule("/api/auth")
-        .MapOrganizationsEndpoints("/api/organizations")
-        .UseWalletsModule("/api/wallets")
-        .UseCatalogModule("/api/catalog")
-        .UseOrdersModule("/api/orders");
+       .MapOrganizationsEndpoints("/api/organizations")
+       .UseWalletsModule("/api/wallets")
+       .UseCatalogModule("/api/catalog")
+       .UseOrdersModule("/api/orders")
+       .UseHotelModule("/api/hotels");
 }
 catch 
 { 

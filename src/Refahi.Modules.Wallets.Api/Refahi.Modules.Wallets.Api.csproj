@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Refahi.Modules.Wallets.Application\Refahi.Modules.Wallets.Application.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Wallets.Application.Contracts\Refahi.Modules.Wallets.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Wallets.Infrastructure\Refahi.Modules.Wallets.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

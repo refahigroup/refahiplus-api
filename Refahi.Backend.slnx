@@ -1,39 +1,51 @@
 <Solution>
-  <Folder Name="/Modules/" />
-  <Folder Name="/Modules/Catalog/">
-    <Project Path="src/Modules/Catalog/Catalog.Api/Catalog.Api.csproj" />
-    <Project Path="src/Modules/Catalog/Catalog.Application.Contracts/Catalog.Application.Contracts.csproj" />
-    <Project Path="src/Modules/Catalog/Catalog.Application/Catalog.Application.csproj" />
-    <Project Path="src/Modules/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
-    <Project Path="src/Modules/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/Modules/Identity/">
-    <Project Path="src/Modules/Identity/Identity.Api/Identity.Api.csproj" />
-    <Project Path="src/Modules/Identity/Identity.Application.Contracts/Identity.Application.Contracts.csproj" />
-    <Project Path="src/Modules/Identity/Identity.Application/Identity.Application.csproj" />
-    <Project Path="src/Modules/Identity/Identity.Domain/Identity.Domain.csproj" />
-    <Project Path="src/Modules/Identity/Identity.Infrastructure/Identity.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/Modules/Orders/">
-    <Project Path="src/Modules/Orders/Orders.Api/Orders.Api.csproj" />
-    <Project Path="src/Modules/Orders/Orders.Application.Contracts/Orders.Application.Contracts.csproj" />
-    <Project Path="src/Modules/Orders/Orders.Application/Orders.Application.csproj" />
-    <Project Path="src/Modules/Orders/Orders.Domain/Orders.Domain.csproj" />
-    <Project Path="src/Modules/Orders/Orders.Infrastructure/Orders.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/Modules/Organizations/">
-    <Project Path="src/Modules/Organizations/Organizations.Api/Organizations.Api.csproj" />
-    <Project Path="src/Modules/Organizations/Organizations.Application.Contracts/Organizations.Application.Contracts.csproj" />
-    <Project Path="src/Modules/Organizations/Organizations.Application/Organizations.Application.csproj" />
-    <Project Path="src/Modules/Organizations/Organizations.Domain/Organizations.Domain.csproj" />
-    <Project Path="src/Modules/Organizations/Organizations.Infrastructure/Organizations.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/Modules/Wallets/">
-    <Project Path="src/Modules/Wallets/Wallets.Api/Wallets.Api.csproj" />
-    <Project Path="src/Modules/Wallets/Wallets.Application.Contracts/Wallets.Application.Contracts.csproj" />
-    <Project Path="src/Modules/Wallets/Wallets.Application/Wallets.Application.csproj" />
-    <Project Path="src/Modules/Wallets/Wallets.Domain/Wallets.Domain.csproj" />
-    <Project Path="src/Modules/Wallets/Wallets.Infrastructure/Wallets.Infrastructure.csproj" />
-  </Folder>
-  <Project Path="src/Refahi.Host/Refahi.Host.csproj" />
+	<Folder Name="/00_Shared/">
+		<Project Path="src/Refahi.Shared/Refahi.Shared.csproj" Id="9bf2215a-84d1-4879-85da-ff00b1fdae64" />
+	</Folder>
+	<Folder Name="/01_Modules/" />
+	<Folder Name="/01_Modules/Catalog/">
+		<Project Path="src/Refahi.Modules.Catalog.Api/Refahi.Modules.Catalog.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Catalog.Application.Contracts/Refahi.Modules.Catalog.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Catalog.Application/Refahi.Modules.Catalog.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Catalog.Domain/Refahi.Modules.Catalog.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Catalog.Infrastructure/Refahi.Modules.Catalog.Infrastructure.csproj" />
+	</Folder>
+	<Folder Name="/01_Modules/Hotels/" >	
+		<Project Path="src/Refahi.Modules.Hotels.Api/Refahi.Modules.Hotels.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Hotels.Application.Contracts/Refahi.Modules.Hotels.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Hotels.Application/Refahi.Modules.Hotels.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Hotels.Domain/Refahi.Modules.Hotels.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Hotels.Infrastructure/Refahi.Modules.Hotels.Infrastructure.csproj" />
+	</Folder>
+	<Folder Name="/01_Modules/Identity/">
+		<Project Path="src/Refahi.Modules.Identity.Api/Refahi.Modules.Identity.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Identity.Application.Contracts/Refahi.Modules.Identity.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Identity.Application/Refahi.Modules.Identity.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Identity.Domain/Refahi.Modules.Identity.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Identity.Infrastructure/Refahi.Modules.Identity.Infrastructure.csproj" />
+	</Folder>
+	<Folder Name="/01_Modules/Orders/">
+		<Project Path="src/Refahi.Modules.Orders.Api/Refahi.Modules.Orders.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Orders.Application.Contracts/Refahi.Modules.Orders.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Orders.Application/Refahi.Modules.Orders.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Orders.Domain/Refahi.Modules.Orders.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Orders.Infrastructure/Refahi.Modules.Orders.Infrastructure.csproj" />
+	</Folder>
+	<Folder Name="/01_Modules/Organizations/">
+		<Project Path="src/Refahi.Modules.Organizations.Api/Refahi.Modules.Organizations.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Organizations.Application.Contracts/Refahi.Modules.Organizations.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Organizations.Application/Refahi.Modules.Organizations.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Organizations.Domain/Refahi.Modules.Organizations.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Organizations.Infrastructure/Refahi.Modules.Organizations.Infrastructure.csproj" />
+	</Folder>
+	<Folder Name="/01_Modules/Wallets/">
+		<Project Path="src/Refahi.Modules.Wallets.Api/Refahi.Modules.Wallets.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Wallets.Application.Contracts/Refahi.Modules.Wallets.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Wallets.Application/Refahi.Modules.Wallets.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Wallets.Domain/Refahi.Modules.Wallets.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Wallets.Infrastructure/Refahi.Modules.Wallets.Infrastructure.csproj" />
+	</Folder>
+
+	<Project Path="src/Refahi.Host/Refahi.Host.csproj" />
+
 </Solution>
