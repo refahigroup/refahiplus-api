@@ -1,17 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Polly;
-using Polly.Extensions.Http;
 using Refahi.Modules.Identity.Domain.Repositories;
-using Refahi.Modules.Identity.Infrastructure.Persistence;
+using Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 using Refahi.Modules.Identity.Infrastructure.Repositories;
-using Refahi.Shared.Services.Notification;
 using System;
-using System.Linq;
-using System.Net.Http;
+using Refahi.Shared.Extensions;
 
 namespace Refahi.Modules.Identity.Infrastructure;
 
@@ -21,8 +15,7 @@ public static class DI
 
     public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration, bool isDevelopment = false)
     {
-        var connectionStringName = configuration.GetValue<string>("ConnectionString");
-        var connectionString = configuration.GetConnectionString(connectionStringName);
+        string connectionString = configuration.GetConnectionString();
 
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseNpgsql(connectionString));

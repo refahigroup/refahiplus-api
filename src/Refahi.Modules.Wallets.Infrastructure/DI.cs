@@ -8,6 +8,7 @@ using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Atomic;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Context;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Repositories;
+using Refahi.Shared.Extensions;
 using System;
 
 namespace Refahi.Modules.Wallets.Infrastructure;
@@ -16,13 +17,7 @@ public static class DI
 {
     public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionStringName = configuration.GetSection("ConnectionString").Value;
-        var connectionString = configuration.GetConnectionString(connectionStringName);
-
-        //var conn = configuration.GetConnectionString("Default") ?? configuration["ConnectionStrings:Default"];
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw new InvalidOperationException("Connection string is required.");
+        string connectionString = configuration.GetConnectionString();
 
         services.AddDbContext<WalletsDbContext>(options =>
             options.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(WalletsDbContext).Assembly.FullName)));

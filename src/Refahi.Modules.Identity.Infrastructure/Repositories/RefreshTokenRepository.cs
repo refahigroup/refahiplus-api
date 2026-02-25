@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Identity.Domain.Entities;
 using Refahi.Modules.Identity.Domain.Repositories;
 using Refahi.Modules.Identity.Infrastructure.Persistence;
+using Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 
 namespace Refahi.Modules.Identity.Infrastructure.Repositories;
 

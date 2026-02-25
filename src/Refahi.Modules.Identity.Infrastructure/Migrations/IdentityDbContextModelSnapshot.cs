@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Refahi.Modules.Identity.Infrastructure.Persistence;
+using Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 
 #nullable disable
 
-namespace Identity.Infrastructure.Migrations
+namespace Refahi.Modules.Identity.Infrastructure.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
     partial class IdentityDbContextModelSnapshot : ModelSnapshot
@@ -23,7 +23,7 @@ namespace Identity.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Identity.Domain.Aggregates.User", b =>
+            modelBuilder.Entity("Refahi.Modules.Identity.Domain.Aggregates.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -106,7 +106,7 @@ namespace Identity.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Identity.Domain.Entities.RefreshToken", b =>
+            modelBuilder.Entity("Refahi.Modules.Identity.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -171,7 +171,7 @@ namespace Identity.Infrastructure.Migrations
                     b.ToTable("refresh_tokens", "identity");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Entities.UserProfile", b =>
+            modelBuilder.Entity("Refahi.Modules.Identity.Domain.Entities.UserProfile", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -233,7 +233,7 @@ namespace Identity.Infrastructure.Migrations
                     b.ToTable("user_profiles", "identity");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Entities.UserRole", b =>
+            modelBuilder.Entity("Refahi.Modules.Identity.Domain.Entities.UserRole", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -272,20 +272,20 @@ namespace Identity.Infrastructure.Migrations
                     b.ToTable("user_roles", "identity");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Entities.UserProfile", b =>
+            modelBuilder.Entity("Refahi.Modules.Identity.Domain.Entities.UserProfile", b =>
                 {
-                    b.HasOne("Identity.Domain.Aggregates.User", "User")
+                    b.HasOne("Refahi.Modules.Identity.Domain.Aggregates.User", "User")
                         .WithOne("Profile")
-                        .HasForeignKey("Identity.Domain.Entities.UserProfile", "UserId")
+                        .HasForeignKey("Refahi.Modules.Identity.Domain.Entities.UserProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Entities.UserRole", b =>
+            modelBuilder.Entity("Refahi.Modules.Identity.Domain.Entities.UserRole", b =>
                 {
-                    b.HasOne("Identity.Domain.Aggregates.User", "User")
+                    b.HasOne("Refahi.Modules.Identity.Domain.Aggregates.User", "User")
                         .WithMany("Roles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -294,7 +294,7 @@ namespace Identity.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Aggregates.User", b =>
+            modelBuilder.Entity("Refahi.Modules.Identity.Domain.Aggregates.User", b =>
                 {
                     b.Navigation("Profile");
 

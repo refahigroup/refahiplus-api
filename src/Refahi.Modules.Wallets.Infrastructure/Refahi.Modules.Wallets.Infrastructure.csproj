@@ -17,4 +17,7 @@
 		<ProjectReference Include="..\Refahi.Modules.Wallets.Domain\Refahi.Modules.Wallets.Domain.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Wallets.Application.Contracts\Refahi.Modules.Wallets.Application.Contracts.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Migrations\" />
+	</ItemGroup>
 </Project>

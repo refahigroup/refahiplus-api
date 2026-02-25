@@ -7,17 +7,17 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Hotels_Init : Migration
+    public partial class HotelsInit : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "Hotels");
+                name: "hotels");
 
             migrationBuilder.CreateTable(
                 name: "hotel_bookings",
-                schema: "Hotels",
+                schema: "hotels",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -49,7 +49,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
             migrationBuilder.CreateTable(
                 name: "hotel_booking_guests",
-                schema: "Hotels",
+                schema: "hotels",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -65,7 +65,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_hotel_booking_guests_hotel_bookings_BookingId",
                         column: x => x.BookingId,
-                        principalSchema: "Hotels",
+                        principalSchema: "hotels",
                         principalTable: "hotel_bookings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -73,7 +73,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_hotel_booking_guests_BookingId",
-                schema: "Hotels",
+                schema: "hotels",
                 table: "hotel_booking_guests",
                 column: "BookingId");
         }
@@ -83,11 +83,11 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
         {
             migrationBuilder.DropTable(
                 name: "hotel_booking_guests",
-                schema: "Hotels");
+                schema: "hotels");
 
             migrationBuilder.DropTable(
                 name: "hotel_bookings",
-                schema: "Hotels");
+                schema: "hotels");
         }
     }
 }

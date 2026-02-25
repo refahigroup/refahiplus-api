@@ -32,8 +32,8 @@ builder.Services
     .RegisterNotificationService(builder.Configuration);
 
 // Register modules
-try
-{
+//try
+//{
     builder.Services
         .RegisterIdentityModule(builder.Configuration, builder.Environment)
         .RegisterOrganizationsModule(builder.Configuration)
@@ -41,11 +41,12 @@ try
         .RegisterCatalogModule(builder.Configuration)
         .RegisterOrdersModule(builder.Configuration)
         .RegisterHotelsModule(builder.Configuration);
-}
-catch 
-{ 
-    /* ignore if compile-time linking not present yet */ 
-}
+//}
+//catch(Exception ex) 
+//{
+    /* ignore if compile-time linking not present yet */
+//    int a = 0;
+//}
 
 // Register cross-cutting pipeline behaviors after modules register their MediatR/Validators
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
@@ -65,18 +66,18 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 // Map module endpoints
-try
-{
+//try
+//{
     app.UseIdentityModule("/api/auth")
        .MapOrganizationsEndpoints("/api/organizations")
        .UseWalletsModule("/api/wallets")
        .UseCatalogModule("/api/catalog")
        .UseOrdersModule("/api/orders")
        .UseHotelModule("/api/hotels");
-}
-catch 
-{ 
+//}
+//catch 
+//{ 
     /* endpoints will be available once modules compiled */ 
-}
+//}
 
 app.Run();

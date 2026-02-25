@@ -5,22 +5,47 @@ using Refahi.Modules.Identity.Infrastructure.Persistence.Configurations;
 
 namespace Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 
+
 public class IdentityDbContext : DbContext
 {
     public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options)
     {
     }
 
-    public DbSet<User> Users { get; set; } = null!;
-    public DbSet<UserProfile> UserProfiles { get; set; } = null!;
-    public DbSet<UserRole> UserRoles { get; set; } = null!;
+    public DbSet<User> Users => Set<User>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.HasDefaultSchema("identity");
+
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new UserProfileConfiguration());
         modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
+        modelBuilder.ApplyConfiguration(new RefreshTokenConfiguration());
     }
 }
+
+//public class IdentityDbContext : DbContext
+//{
+//    public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options)
+//    {
+//    }
+
+//    public DbSet<User> Users { get; set; } = null!;
+//    public DbSet<UserProfile> UserProfiles { get; set; } = null!;
+//    public DbSet<UserRole> UserRoles { get; set; } = null!;
+
+//    protected override void OnModelCreating(ModelBuilder modelBuilder)
+//    {
+//        base.OnModelCreating(modelBuilder);
+
+//        modelBuilder.ApplyConfiguration(new UserConfiguration());
+//        modelBuilder.ApplyConfiguration(new UserProfileConfiguration());
+//        modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
+//    }
+//}

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Refahi.Modules.Identity.Infrastructure.Persistence;
+namespace Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 
 /// <summary>
 /// Design-time factory for creating IdentityDbContext instances for EF Core tools (migrations, etc.)

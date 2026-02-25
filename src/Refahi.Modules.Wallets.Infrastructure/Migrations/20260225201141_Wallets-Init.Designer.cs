@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Context;
@@ -11,9 +12,11 @@ using Refahi.Modules.Wallets.Infrastructure.Persistence.Context;
 namespace Refahi.Modules.Wallets.Infrastructure.Migrations
 {
     [DbContext(typeof(WalletsDbContext))]
-    partial class WalletsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260225201141_Wallets-Init")]
+    partial class WalletsInit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -11,9 +11,9 @@ public sealed record Money
     /// <summary>
     /// Amount in minor units (e.g., cents, fils, rials).
     /// </summary>
-    public long AmountMinor { get; }
+    public long AmountMinor { get; private set; }
 
-    public Currency Currency { get; }
+    public Currency Currency { get; private set; }
 
     private Money(long amountMinor, Currency currency)
     {
@@ -23,6 +23,9 @@ public sealed record Money
         AmountMinor = amountMinor;
         Currency = currency ?? throw new ArgumentNullException(nameof(currency));
     }
+
+    // Parameterless ctor for EF Core
+    private Money() { }
 
     /// <summary>
     /// Factory: Create money with validation.

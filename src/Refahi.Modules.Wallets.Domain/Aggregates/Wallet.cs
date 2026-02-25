@@ -20,12 +20,15 @@ namespace Refahi.Modules.Wallets.Domain.Aggregates;
 /// </summary>
 public sealed class Wallet : EntityBase
 {
-    public Guid Id { get; }
+    // Parameterless ctor for EF Core
+    private Wallet() { }
+
+    public Guid Id { get; private set; }
     //public WalletOwnerType OwnerType { get; }
-    public Guid OwnerId { get; }
-    public WalletType WalletType { get; }
+    public Guid OwnerId { get; private set; }
+    public WalletType WalletType { get; private set; }
     public WalletStatus Status { get; private set; }
-    public Currency Currency { get; }
+    public Currency Currency { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
 

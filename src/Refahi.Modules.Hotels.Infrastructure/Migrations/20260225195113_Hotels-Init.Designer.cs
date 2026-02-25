@@ -12,16 +12,16 @@ using Refahi.Modules.Hotels.Infrastructure.Persistence;
 namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 {
     [DbContext(typeof(HotelsDbContext))]
-    [Migration("20251202215125_Hotels_Init")]
-    partial class Hotels_Init
+    [Migration("20260225195113_Hotels-Init")]
+    partial class HotelsInit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("Hotels")
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasDefaultSchema("hotels")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -76,7 +76,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("hotel_bookings", "Hotels");
+                    b.ToTable("hotel_bookings", "hotels");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Booking", b =>
@@ -98,7 +98,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
                             b1.HasKey("BookingId");
 
-                            b1.ToTable("hotel_bookings", "Hotels");
+                            b1.ToTable("hotel_bookings", "hotels");
 
                             b1.WithOwner()
                                 .HasForeignKey("BookingId");
@@ -121,7 +121,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
                             b1.HasKey("BookingId");
 
-                            b1.ToTable("hotel_bookings", "Hotels");
+                            b1.ToTable("hotel_bookings", "hotels");
 
                             b1.WithOwner()
                                 .HasForeignKey("BookingId");
@@ -144,7 +144,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
                             b1.HasKey("BookingId");
 
-                            b1.ToTable("hotel_bookings", "Hotels");
+                            b1.ToTable("hotel_bookings", "hotels");
 
                             b1.WithOwner()
                                 .HasForeignKey("BookingId");
@@ -165,7 +165,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
                             b1.HasKey("BookingId");
 
-                            b1.ToTable("hotel_bookings", "Hotels");
+                            b1.ToTable("hotel_bookings", "hotels");
 
                             b1.WithOwner()
                                 .HasForeignKey("BookingId");
@@ -200,7 +200,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
                             b1.HasIndex("BookingId");
 
-                            b1.ToTable("hotel_booking_guests", "Hotels");
+                            b1.ToTable("hotel_booking_guests", "hotels");
 
                             b1.WithOwner()
                                 .HasForeignKey("BookingId");
@@ -223,7 +223,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
 
                             b1.HasKey("BookingId");
 
-                            b1.ToTable("hotel_bookings", "Hotels");
+                            b1.ToTable("hotel_bookings", "hotels");
 
                             b1.WithOwner()
                                 .HasForeignKey("BookingId");

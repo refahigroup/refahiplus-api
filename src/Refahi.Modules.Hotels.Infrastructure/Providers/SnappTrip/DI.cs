@@ -12,17 +12,15 @@ internal static class DI
 {
     public static IServiceCollection UseSnappTripProvider(this IServiceCollection services, IConfiguration config)
     {
-        // Register SnappTripOptions configuration
-        services.Configure<SnappTripOptions>(config.GetSection("SnappTrip"));
+        services.Configure<SnappTripOptions>(config.GetSection("Hotels:Providers:SnappTrip"));
 
-        // Register SnappTripApiClient with HttpClient
         services.AddHttpClient<SnappTripApiClient>((sp, client) =>
         {
-            var opts = sp.GetRequiredService<IOptions<SnappTripOptions>>().Value;
+            var opts = sp.GetRequiredService<IOptions<SnappTripOptions>>();
 
-            client.BaseAddress = new Uri(opts.BaseUrl);
-            client.DefaultRequestHeaders.Add("api-key", opts.ApiKey);
-            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
+            client.BaseAddress = new Uri(opts.Value.BaseUrl);
+            client.DefaultRequestHeaders.Add("api-key", opts.Value.ApiKey);
+            client.Timeout = TimeSpan.FromSeconds(opts.Value.TimeoutSeconds);
         })
         .AddPolicyHandler((sp, _) => CreateResiliencePolicy(sp));
 
@@ -33,7 +31,7 @@ internal static class DI
 
     private static IAsyncPolicy<HttpResponseMessage> CreateResiliencePolicy(IServiceProvider sp)
     {
-        var opts = sp.GetRequiredService<IOptions<SnappTripOptions>>().Value;
+        var opts = sp.GetRequiredService<IOptionsMonitor<SnappTripOptions>>().CurrentValue;
 
         // Bulkhead: محدود کردن تعداد درخواست‌های همزمان
         var bulkhead = Policy.BulkheadAsync<HttpResponseMessage>(

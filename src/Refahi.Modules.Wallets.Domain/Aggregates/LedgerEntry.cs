@@ -14,6 +14,9 @@ namespace Refahi.Modules.Wallets.Domain.Aggregates;
 /// </summary>
 public sealed class LedgerEntry
 {
+    // Parameterless ctor for EF Core materialization
+    private LedgerEntry() { }
+
     public Guid Id { get; }
     public Guid WalletId { get; }
     public Guid OperationId { get; }

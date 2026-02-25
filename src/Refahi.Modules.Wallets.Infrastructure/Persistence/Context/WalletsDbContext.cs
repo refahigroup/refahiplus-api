@@ -21,6 +21,9 @@ public class WalletsDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+
+        modelBuilder.HasDefaultSchema("wallets");
+
         // Value Object Converters
         var currencyConverter = new ValueConverter<Currency, string>(
             v => v.Code,
@@ -28,7 +31,7 @@ public class WalletsDbContext : DbContext
 
         modelBuilder.Entity<Wallet>(b =>
         {
-            b.ToTable("wallets", "wallets");
+            b.ToTable("wallets");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("wallet_id");
 
@@ -50,7 +53,7 @@ public class WalletsDbContext : DbContext
 
         modelBuilder.Entity<LedgerEntry>(b =>
         {
-            b.ToTable("ledger_entries", "wallets");
+            b.ToTable("ledger_entries");
             b.HasKey(x => x.Id);
 
             b.Property(x => x.Id).HasColumnName("ledger_entry_id");
@@ -87,7 +90,7 @@ public class WalletsDbContext : DbContext
 
         modelBuilder.Entity<WalletBalanceRecord>(b =>
         {
-            b.ToTable("wallet_balances", "wallets");
+            b.ToTable("wallet_balances");
             b.HasKey(x => x.WalletId);
             b.Property(x => x.WalletId).HasColumnName("wallet_id");
             b.Property(x => x.AvailableMinor).HasColumnName("available_minor").IsRequired();
@@ -100,7 +103,7 @@ public class WalletsDbContext : DbContext
 
         modelBuilder.Entity<IdempotencyKeyRecord>(b =>
         {
-            b.ToTable("idempotency_keys", "wallets");
+            b.ToTable("idempotency_keys");
             b.HasKey(x => x.IdempotencyId);
             b.HasIndex(x => new { x.WalletId, x.IdempotencyKey, x.OperationType }).IsUnique().HasDatabaseName("ux_idempotency_wallet_key_optype");
 
@@ -123,6 +126,10 @@ public class WalletsDbContext : DbContext
         });
 
         // Ledger self relation
-        modelBuilder.Entity<LedgerEntry>().HasOne<LedgerEntry>().WithMany().HasForeignKey(x => x.RelatedEntryId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LedgerEntry>()
+            .HasOne<LedgerEntry>()
+            .WithMany()
+            .HasForeignKey(x => x.RelatedEntryId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -1,13 +1,10 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Refahi.Modules.Identity.Infrastructure.Persistence;
-using Refahi.Modules.Identity.Domain.Repositories;
 using Refahi.Modules.Identity.Domain.Entities;
+using Refahi.Modules.Identity.Domain.Repositories;
+using Refahi.Modules.Identity.Infrastructure.Persistence.Context;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Refahi.Modules.Identity.Infrastructure.Repositories;
 

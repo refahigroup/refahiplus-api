@@ -10,12 +10,15 @@ namespace Refahi.Modules.Wallets.Domain.ValueObjects;
 /// </summary>
 public sealed record Currency
 {
-    public string Code { get; }
+    public string Code { get; private set; }
 
     private Currency(string code)
     {
         Code = code;
     }
+
+    // Parameterless ctor for EF Core
+    private Currency() { }
 
     /// <summary>
     /// Factory: Parse and validate ISO-4217 currency code.
