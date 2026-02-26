@@ -1,6 +1,9 @@
 using MediatR;
-using Microsoft.OpenApi;
 using Microsoft.Extensions.Configuration;
+using Microsoft.OpenApi;
+using Refahi.Api;
+using Refahi.Api.Middlewares;
+using Refahi.Api.Services.Chaching;
 using Refahi.Api.Services.Notification;
 using Refahi.Modules.Catalog.Api;
 using Refahi.Modules.Hotels.Api;
@@ -8,10 +11,8 @@ using Refahi.Modules.Identity.Api;
 using Refahi.Modules.Orders.Api;
 using Refahi.Modules.Organizations.Api;
 using Refahi.Modules.Wallets.Api;
-using Refahi.Api.Services.Chaching;
-using Refahi.Api;
-using System.Reflection;
 using System.Diagnostics;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +55,15 @@ builder.Services
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
 var app = builder.Build();
+
+
+// Add global exception handling middleware (must be first)
+app.UseApiExceptionMiddleware();
+
+//// Add response wrapping middleware
+//// Add response wrapping middleware (wrap API JSON responses)
+//// Registered after exception middleware to ensure errors are handled first
+app.UseResponseWrappingMiddleware();
 
 //if (app.Environment.IsDevelopment())
 //{
