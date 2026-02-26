@@ -1,4 +1,5 @@
 stages:
+  - build
   - docker
   - notify
 
@@ -9,19 +10,21 @@ workflow:
     - when: never
 
 variables:
+  SOLUTION: "Refahi.Backend.slnx"
+  API_CSPROJ: "src/Refahi.Api/Refahi.Api.csproj"
   SERVICE_NAME: "api"
-  DOCKER_BUILDKIT: "1"
-  BUILDKIT_PROGRESS: "plain"  
 
-docker_build_push:
-  stage: docker
-  image: registry.refahi.xyz/refahi-devops/ci-cache/docker:27
+  PUBLISH_DIR: "publish/api"
 
-  # اگر runner شما docker socket mount دارد، همین کافیست.
-  # اگر ندارد، باید docker:dind اضافه کنید (پایین توضیح دادم).
-  variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
+default:
+  cache:
+    key: "nuget-${CI_PROJECT_ID}"
+    paths:
+      - .nuget/packages
 
+build_publish:
+  stage: build
+  image: registry.refahi.xyz/refahi-devops/ci-cache/dotnet-sdk:10.0
   script:
     - echo "Branch=$CI_COMMIT_BRANCH"
 
@@ -35,53 +38,53 @@ docker_build_push:
       else
         ENV="dev"
       fi
-      echo "ENV=$ENV"
-
-      BUILD_VERSION="${ENV}-${CI_PIPELINE_IID}-${CI_COMMIT_SHORT_SHA}"
-      echo "BUILD_VERSION=$BUILD_VERSION"
-
-      IMAGE_ENV="$CI_REGISTRY_IMAGE:$ENV"
-      IMAGE_VER="$CI_REGISTRY_IMAGE:$BUILD_VERSION"
-
-      echo "IMAGE_ENV=$IMAGE_ENV"
-      echo "IMAGE_VER=$IMAGE_VER"
-
-      ls -la src/Refahi.Api/Dockerfile
-      test -s src/Refahi.Api/Dockerfile
-      head -n 50 src/Refahi.Api/Dockerfile
-
-    - docker version
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-
-    - docker build -f src/Refahi.Api/Dockerfile -t "$IMAGE_ENV" -t "$IMAGE_VER" .
-    - docker push "$IMAGE_ENV"
-    - docker push "$IMAGE_VER"
-
-    - |
       echo "ENV=$ENV" > build.env
       echo "SERVICE_NAME=$SERVICE_NAME" >> build.env
+
+    - |
+      BUILD_VERSION="${ENV}-${CI_PIPELINE_IID}-${CI_COMMIT_SHORT_SHA}"
       echo "BUILD_VERSION=$BUILD_VERSION" >> build.env
-      echo "IMAGE_ENV=$IMAGE_ENV" >> build.env
-      echo "IMAGE_VER=$IMAGE_VER" >> build.env
+
+    - dotnet restore "./$SOLUTION" --packages .nuget/packages
+    - dotnet build "./$SOLUTION" -c Release --no-restore
+
+    - dotnet publish "./$API_CSPROJ" -c Release --no-build --output "./$PUBLISH_DIR"
 
   artifacts:
+    expire_in: 1 day
+    paths:
+      - $PUBLISH_DIR
     reports:
       dotenv: build.env
-    expire_in: 1 day
+
+docker_build_push:
+  stage: docker
+  image: registry.refahi.xyz/refahi-devops/ci-cache/docker:27
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"  
+  script:
+    - docker version
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - export IMAGE_ENV="$CI_REGISTRY_IMAGE:$ENV"
+    - export IMAGE_VER="$CI_REGISTRY_IMAGE:$BUILD_VERSION"
+    - docker build -f ./src/Refahi.Api/Dockerfile -t "$IMAGE_ENV" -t "$IMAGE_VER" .
+    - docker push "$IMAGE_ENV"
+    - docker push "$IMAGE_VER"
 
 notify_deploy_agent:
   stage: notify
   image: curlimages/curl:8.6.0
   needs:
-    - job: docker_build_push
+    - job: build_publish
       artifacts: true
+    - job: docker_build_push
   rules:
     - if: '$DEPLOY_AGENT_URL && $DEPLOY_AGENT_TOKEN'
       when: on_success
     - when: never
   script:
     - |
-      echo "Notify deploy-agent: service=$SERVICE_NAME env=$ENV build=$BUILD_VERSION"
+      echo "Notify deploy-agent: service=$SERVICE_NAME env=$ENV"
       curl -sS -X POST "$DEPLOY_AGENT_URL" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $DEPLOY_AGENT_TOKEN" \
