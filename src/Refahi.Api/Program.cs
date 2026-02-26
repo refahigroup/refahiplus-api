@@ -63,7 +63,7 @@ var app = builder.Build();
     });
 //}
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
 
 // Map module endpoints
 //try
