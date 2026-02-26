@@ -21,7 +21,7 @@ public static class DI
             .AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
             .ValidateDataAnnotations()
-            .Validate(o => !string.IsNullOrWhiteSpace(o.Key) && o.Key.Length >= 32, "Jwt:Key must be at least 32 chars.")
+            .Validate(o => o.IsValid(), "Jwt:Key must be at least 32 chars.")
             .ValidateOnStart();
 
         services.AddScoped<ITokenService, JwtTokenService>();
@@ -37,20 +37,24 @@ public static class DI
         services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
         {
             var jwt = configuration.GetSection("Jwt");
-            var key = jwt["Key"]!;
-            var issuer = jwt["Issuer"]!;
-            var audience = jwt["Audience"]!;
 
-            key = key.ReplaceWithEnvironmentVariables();
+            var jwtOptions = new JwtOptions
+            {
+                Key = jwt["Key"]!,
+                Issuer = jwt["Issuer"]!,
+                Audience = jwt["Audience"]!
+            };
+
+            // TODO: if jwtOptions is not Valid ...
 
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuer = issuer,
+                ValidIssuer = jwtOptions.Issuer,
                 ValidateAudience = true,
-                ValidAudience = audience,
+                ValidAudience = jwtOptions.Audience,
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.FromSeconds(int.TryParse(jwt["ClockSkewSeconds"], out var s) ? s : 30)
             };
