@@ -1,6 +1,8 @@
 ﻿using Refahi.Shared.Presentation;
 using System.Text;
 using System.Text.Json;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 namespace Refahi.Api.Middlewares;
 
@@ -11,6 +13,12 @@ namespace Refahi.Api.Middlewares;
 public sealed class ResponseWrappingMiddleware
 {
     private readonly RequestDelegate _next;
+
+    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+    {
+        // Allow non-ASCII characters (Persian, Arabic, etc.) to be written as-is
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     public ResponseWrappingMiddleware(RequestDelegate next)
     {
@@ -71,14 +79,14 @@ public sealed class ResponseWrappingMiddleware
         }
 
         // Handle empty body (e.g., 204 No Content) — respond with unified envelope
-        if (string.IsNullOrWhiteSpace(responseData))
+            if (string.IsNullOrWhiteSpace(responseData))
         {
             // Create empty success envelope for 204 or other successful but empty responses
             var emptyWrapped = ApiResponseHelper.Success<object>(null, "عملیات با موفقیت انجام شد", statusCode);
-            context.Response.ContentType = "application/json";
-            var wrappedJsonEmpty = JsonSerializer.Serialize(emptyWrapped);
-            var wrappedBytesEmpty = Encoding.UTF8.GetBytes(wrappedJsonEmpty);
-            await originalBodyStream.WriteAsync(wrappedBytesEmpty, 0, wrappedBytesEmpty.Length);
+                context.Response.ContentType = "application/json; charset=utf-8";
+                var wrappedJsonEmpty = JsonSerializer.Serialize(emptyWrapped, JsonOptions);
+                var wrappedBytesEmpty = Encoding.UTF8.GetBytes(wrappedJsonEmpty);
+                await originalBodyStream.WriteAsync(wrappedBytesEmpty, 0, wrappedBytesEmpty.Length);
             return;
         }
 
@@ -103,8 +111,8 @@ public sealed class ResponseWrappingMiddleware
         };
 
         // Write wrapped response
-        context.Response.ContentType = "application/json";
-        var wrappedJson = JsonSerializer.Serialize(wrappedResponse);
+        context.Response.ContentType = "application/json; charset=utf-8";
+        var wrappedJson = JsonSerializer.Serialize(wrappedResponse, JsonOptions);
         var wrappedBytes = Encoding.UTF8.GetBytes(wrappedJson);
 
         await originalBodyStream.WriteAsync(wrappedBytes, 0, wrappedBytes.Length);
