@@ -53,15 +53,15 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Refahi API v1");
         options.RoutePrefix = "swagger";
     });
-}
+//}
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
