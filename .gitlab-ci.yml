@@ -47,12 +47,10 @@ docker_build_push:
     - docker version
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
-    # Dockerfile در مسیر صحیح طبق tree شما
     - docker build -f src/Refahi.Api/Dockerfile -t "$IMAGE_ENV" -t "$IMAGE_VER" .
     - docker push "$IMAGE_ENV"
     - docker push "$IMAGE_VER"
 
-    # برای مرحله notify متغیرها را ذخیره می‌کنیم
     - |
       echo "ENV=$ENV" > build.env
       echo "SERVICE_NAME=$SERVICE_NAME" >> build.env
