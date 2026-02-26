@@ -1,12 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY Refahi.Backend.slnx ./
-COPY src/ ./src/
-
-RUN dotnet restore ./Refahi.Backend.slnx
-
-#COPY . .
+COPY . .
 RUN dotnet restore ./Refahi.Backend.slnx
 RUN dotnet publish ./src/Refahi.Api/Refahi.Api.csproj -c Release -o /app/publish --no-restore
 
