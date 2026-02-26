@@ -10,6 +10,8 @@ using Refahi.Modules.Organizations.Api;
 using Refahi.Modules.Wallets.Api;
 using Refahi.Api.Services.Chaching;
 using Refahi.Api;
+using System.Reflection;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,7 +69,17 @@ var app = builder.Build();
     });
 //}
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/api/health", () => {
+
+    var assembly = Assembly.GetExecutingAssembly();
+    var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+
+    return Results.Ok(new
+    {
+        status = "healthy",
+        ver = fvi.FileVersion
+    });
+});
 
 // Map module endpoints
 //try
