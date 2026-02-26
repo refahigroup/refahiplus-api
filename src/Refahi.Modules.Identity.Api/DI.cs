@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Refahi.Modules.Identity.Api.Services.Auth;
 using Refahi.Modules.Identity.Application;
 using Refahi.Modules.Identity.Infrastructure;
+using Refahi.Shared.Extensions;
 using Refahi.Shared.Presentation;
 using System.Text;
 
@@ -39,6 +40,8 @@ public static class DI
             var key = jwt["Key"]!;
             var issuer = jwt["Issuer"]!;
             var audience = jwt["Audience"]!;
+
+            key = key.ReplaceWithEnvironmentVariables();
 
             options.TokenValidationParameters = new TokenValidationParameters
             {
