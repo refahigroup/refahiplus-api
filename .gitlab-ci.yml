@@ -44,6 +44,10 @@ docker_build_push:
       echo "IMAGE_ENV=$IMAGE_ENV"
       echo "IMAGE_VER=$IMAGE_VER"
 
+      ls -la src/Refahi.Api/Dockerfile
+      test -s src/Refahi.Api/Dockerfile
+      head -n 50 src/Refahi.Api/Dockerfile
+
     - docker version
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
