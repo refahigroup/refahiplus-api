@@ -58,7 +58,7 @@ var app = builder.Build();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Refahi API v1");
+        options.SwaggerEndpoint("v1/swagger.json", "Refahi API v1");
         options.RoutePrefix = "swagger";
     });
 //}
