@@ -4,10 +4,10 @@ WORKDIR /src
 
 COPY ./Refahi.Backend.slnx ./
 
-COPY ./nuget.config ./ 2>/dev/null || true
-COPY ./global.json ./ 2>/dev/null || true
-COPY ./Directory.Build.props ./ 2>/dev/null || true
-COPY ./Directory.Build.targets ./ 2>/dev/null || true
+#COPY ./nuget.config ./ 2>/dev/null || true
+#COPY ./global.json ./ 2>/dev/null || true
+#COPY ./Directory.Build.props ./ 2>/dev/null || true
+#COPY ./Directory.Build.targets ./ 2>/dev/null || true
 
 COPY ./src/*/*.csproj ./src/
 COPY ./src/*/*/*.csproj ./src/
