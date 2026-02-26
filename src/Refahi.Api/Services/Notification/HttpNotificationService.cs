@@ -1,7 +1,7 @@
-using Refahi.Host.Services.Notification.Dtos;
+using Refahi.Api.Services.Notification.Dtos;
 using Refahi.Shared.Services.Notification;
 
-namespace Refahi.Host.Services.Notification;
+namespace Refahi.Api.Services.Notification;
 
 /// <summary>
 /// HTTP-based implementation of INotificationService using external OTP API

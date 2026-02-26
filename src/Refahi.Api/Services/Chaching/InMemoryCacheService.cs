@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Refahi.Shared.Services.Cache;
 
-namespace Refahi.Host.Services.Chaching;
+namespace Refahi.Api.Services.Chaching;
 
 public class InMemoryCacheService : ICacheService
 {

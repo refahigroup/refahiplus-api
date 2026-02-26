@@ -6,9 +6,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Refahi.Host.Services.Notification.Dtos;
+using Refahi.Api.Services.Notification.Dtos;
 
-namespace Refahi.Host.Services.Notification;
+namespace Refahi.Api.Services.Notification;
 
 /// <summary>
 /// HTTP client for OTP API

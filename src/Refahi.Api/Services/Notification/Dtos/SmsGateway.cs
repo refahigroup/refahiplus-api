@@ -1,4 +1,4 @@
-namespace Refahi.Host.Services.Notification.Dtos;
+namespace Refahi.Api.Services.Notification.Dtos;
 
 /// <summary>
 /// SMS gateway providers

@@ -3,7 +3,7 @@ using StackExchange.Redis;
 using System.Text.Json;
 
 
-namespace Refahi.Host.Services.Chaching;
+namespace Refahi.Api.Services.Chaching;
 
 public class RedisCacheService : ICacheService
 {

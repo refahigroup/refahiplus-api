@@ -2,7 +2,7 @@
 using Polly.Extensions.Http;
 using Refahi.Shared.Services.Notification;
 
-namespace Refahi.Host.Services.Notification;
+namespace Refahi.Api.Services.Notification;
 
 public static class NotificationDI
 {

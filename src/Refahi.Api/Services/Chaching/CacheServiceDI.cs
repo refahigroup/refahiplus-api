@@ -1,7 +1,7 @@
 ﻿using Refahi.Shared.Services.Cache;
 using StackExchange.Redis;
 
-namespace Refahi.Host.Services.Chaching;
+namespace Refahi.Api.Services.Chaching;
 
 public static class CacheServiceDI
 {

@@ -10,7 +10,7 @@
 		<Project Path="src/Refahi.Modules.Catalog.Domain/Refahi.Modules.Catalog.Domain.csproj" />
 		<Project Path="src/Refahi.Modules.Catalog.Infrastructure/Refahi.Modules.Catalog.Infrastructure.csproj" />
 	</Folder>
-	<Folder Name="/01_Modules/Hotels/" >	
+	<Folder Name="/01_Modules/Hotels/">
 		<Project Path="src/Refahi.Modules.Hotels.Api/Refahi.Modules.Hotels.Api.csproj" />
 		<Project Path="src/Refahi.Modules.Hotels.Application.Contracts/Refahi.Modules.Hotels.Application.Contracts.csproj" />
 		<Project Path="src/Refahi.Modules.Hotels.Application/Refahi.Modules.Hotels.Application.csproj" />
@@ -45,7 +45,6 @@
 		<Project Path="src/Refahi.Modules.Wallets.Domain/Refahi.Modules.Wallets.Domain.csproj" />
 		<Project Path="src/Refahi.Modules.Wallets.Infrastructure/Refahi.Modules.Wallets.Infrastructure.csproj" />
 	</Folder>
-
-	<Project Path="src/Refahi.Host/Refahi.Host.csproj" />
+	<Project Path="src/Refahi.Api/Refahi.Api.csproj" />
 
 </Solution>

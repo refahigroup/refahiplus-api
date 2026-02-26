@@ -1,15 +1,15 @@
 using MediatR;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Configuration;
-using Refahi.Host;
-using Refahi.Host.Services.Notification;
+using Refahi.Api.Services.Notification;
 using Refahi.Modules.Catalog.Api;
 using Refahi.Modules.Hotels.Api;
 using Refahi.Modules.Identity.Api;
 using Refahi.Modules.Orders.Api;
 using Refahi.Modules.Organizations.Api;
 using Refahi.Modules.Wallets.Api;
-using Refahi.Host.Services.Chaching;
+using Refahi.Api.Services.Chaching;
+using Refahi.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 

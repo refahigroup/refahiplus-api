@@ -1,0 +1,1485 @@
+Folder PATH listing for volume BOOTCAMP
+Volume serial number is 0246-9FF7
+C:.
+ÃÄÄÄ.github
+³   ÀÄÄÄworkflows
+ÀÄÄÄsrc
+    ÃÄÄÄModules
+    ³   ÃÄÄÄIdentity
+    ³   ³   ÃÄÄÄIdentity.Domain
+    ³   ³   ³   ÃÄÄÄAggregates
+    ³   ³   ³   ÀÄÄÄRepositories
+    ³   ³   ÀÄÄÄIdentity.Infrastructure
+    ³   ³       ÀÄÄÄPersistence
+    ³   ³           ÀÄÄÄContext
+    ³   ÀÄÄÄWallets
+    ³       ÃÄÄÄWallets.Application
+    ³       ÃÄÄÄWallets.Application.Contracts
+    ³       ³   ÀÄÄÄInfrastructure
+    ³       ÃÄÄÄWallets.Domain
+    ³       ³   ÀÄÄÄEnums
+    ³       ÀÄÄÄWallets.Infrastructure
+    ³           ÀÄÄÄPersistence
+    ³               ÀÄÄÄAtomic
+    ÃÄÄÄRefahi.Api
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-netcore
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ÃÄÄÄruntimes
+    ³   ³   ³   ³   ³   ÀÄÄÄwin
+    ³   ³   ³   ³   ³       ÀÄÄÄlib
+    ³   ³   ³   ³   ³           ÀÄÄÄnet9.0
+    ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÃÄÄÄBuildHost-netcore
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÃÄÄÄcs
+    ³   ³           ÃÄÄÄde
+    ³   ³           ÃÄÄÄes
+    ³   ³           ÃÄÄÄfr
+    ³   ³           ÃÄÄÄit
+    ³   ³           ÃÄÄÄja
+    ³   ³           ÃÄÄÄko
+    ³   ³           ÃÄÄÄpl
+    ³   ³           ÃÄÄÄpt-BR
+    ³   ³           ÃÄÄÄru
+    ³   ³           ÃÄÄÄruntimes
+    ³   ³           ³   ÀÄÄÄwin
+    ³   ³           ³       ÀÄÄÄlib
+    ³   ³           ³           ÀÄÄÄnet9.0
+    ³   ³           ÃÄÄÄtr
+    ³   ³           ÃÄÄÄzh-Hans
+    ³   ³           ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄEndpointInfo
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÃÄÄÄrefint
+    ³   ³   ³   ³   ÀÄÄÄstaticwebassets
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÃÄÄÄrefint
+    ³   ³   ³       ÀÄÄÄstaticwebassets
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÃÄÄÄrefint
+    ³   ³           ÀÄÄÄstaticwebassets
+    ³   ÃÄÄÄProperties
+    ³   ÀÄÄÄServices
+    ³       ÃÄÄÄChaching
+    ³       ÀÄÄÄNotification
+    ³           ÀÄÄÄDtos
+    ÃÄÄÄRefahi.Host
+    ÃÄÄÄRefahi.Modules.Catalog.Api
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄEndpoints
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÃÄÄÄrefint
+    ³       ³       ÀÄÄÄstaticwebassets
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Catalog.Application
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Catalog.Application.Contracts
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet9.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Catalog.Domain
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet9.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Catalog.Infrastructure
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Hotels.Api
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ÃÄÄÄEndPoints
+    ³   ³   ÃÄÄÄAvailability
+    ³   ³   ÃÄÄÄHotels
+    ³   ³   ÃÄÄÄPayment
+    ³   ³   ÃÄÄÄProvisionalBooking
+    ³   ³   ÀÄÄÄStatics
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÃÄÄÄrefint
+    ³       ³       ÀÄÄÄstaticwebassets
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet9.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Hotels.Application
+    ³   ÃÄÄÄAvailability
+    ³   ³   ÀÄÄÄGetAvailabilityByCity
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ÃÄÄÄHotels
+    ³   ³   ÃÄÄÄGetDetails
+    ³   ³   ÀÄÄÄSearch
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄPayment
+    ³   ³   ÀÄÄÄMarkFailed
+    ³   ÃÄÄÄProvisionalBooking
+    ³   ³   ÀÄÄÄCreate
+    ³   ÀÄÄÄStatics
+    ³       ÀÄÄÄCities
+    ÃÄÄÄRefahi.Modules.Hotels.Application.Contracts
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄProviders
+    ³   ³   ÃÄÄÄCommands
+    ³   ³   ÃÄÄÄDTOs
+    ³   ³   ³   ÃÄÄÄAccount
+    ³   ³   ³   ÃÄÄÄAvailability
+    ³   ³   ³   ³   ÀÄÄÄAvailabilityByCity
+    ³   ³   ³   ÃÄÄÄBooking
+    ³   ³   ³   ÀÄÄÄHotel
+    ³   ³   ÀÄÄÄQueries
+    ³   ÀÄÄÄServices
+    ³       ÃÄÄÄPayment
+    ³       ³   ÃÄÄÄMarkPaymentFailed
+    ³       ³   ÀÄÄÄMarkSucceeded
+    ³       ÃÄÄÄProvisionalBooking
+    ³       ÀÄÄÄStatics
+    ³           ÀÄÄÄCities
+    ÃÄÄÄRefahi.Modules.Hotels.Domain
+    ³   ÃÄÄÄAbstraction
+    ³   ³   ÀÄÄÄRepositories
+    ³   ÃÄÄÄAggregates
+    ³   ³   ÃÄÄÄBookingAgg
+    ³   ³   ³   ÃÄÄÄDomainEvents
+    ³   ³   ³   ÃÄÄÄEnums
+    ³   ³   ³   ÀÄÄÄValueObjects
+    ³   ³   ÀÄÄÄHotelAgg
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet9.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Hotels.Infrastructure
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ÃÄÄÄConfig
+    ³   ÃÄÄÄExtensions
+    ³   ÃÄÄÄMigrations
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet9.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄPersistence
+    ³   ³   ÃÄÄÄConfigurations
+    ³   ³   ÀÄÄÄRepositories
+    ³   ÀÄÄÄProviders
+    ³       ÀÄÄÄSnappTrip
+    ³           ÃÄÄÄApi
+    ³           ÃÄÄÄConfig
+    ³           ÃÄÄÄContract
+    ³           ÀÄÄÄExtensions
+    ÃÄÄÄRefahi.Modules.Identity.Api
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄEndpoints
+    ³   ³   ÃÄÄÄAuth
+    ³   ³   ÃÄÄÄProfile
+    ³   ³   ÃÄÄÄRoles
+    ³   ³   ÀÄÄÄSignup
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÃÄÄÄrefint
+    ³   ³   ³       ÀÄÄÄstaticwebassets
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÀÄÄÄServices
+    ³       ÀÄÄÄAuth
+    ÃÄÄÄRefahi.Modules.Identity.Application
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÃÄÄÄFeatures
+    ³   ³   ÃÄÄÄAuth
+    ³   ³   ³   ÃÄÄÄLogin
+    ³   ³   ³   ÃÄÄÄMe
+    ³   ³   ³   ÃÄÄÄRefreshToken
+    ³   ³   ³   ÃÄÄÄSetPassword
+    ³   ³   ³   ÀÄÄÄSignUp
+    ³   ³   ÃÄÄÄProfile
+    ³   ³   ³   ÃÄÄÄCreateOrUpdate
+    ³   ³   ³   ÀÄÄÄGetProfile
+    ³   ³   ÀÄÄÄRoles
+    ³   ³       ÃÄÄÄAssignRole
+    ³   ³       ÀÄÄÄRemoveRole
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Identity.Application.Contracts
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÃÄÄÄInterfaces
+    ³   ÃÄÄÄModels
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Identity.Domain
+    ³   ÃÄÄÄAggregates
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÃÄÄÄEntities
+    ³   ÃÄÄÄExceptions
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄRepositories
+    ³   ÃÄÄÄServices
+    ³   ÀÄÄÄValueObjects
+    ÃÄÄÄRefahi.Modules.Identity.Infrastructure
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄMigrations
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄPersistence
+    ³   ³   ÃÄÄÄConfigurations
+    ³   ³   ÃÄÄÄContext
+    ³   ³   ÀÄÄÄRepositories
+    ³   ÃÄÄÄRepositories
+    ³   ÀÄÄÄServices
+    ÃÄÄÄRefahi.Modules.Orders.Api
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄEndpoints
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÃÄÄÄrefint
+    ³       ³       ÀÄÄÄstaticwebassets
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Orders.Application
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Orders.Application.Contracts
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Orders.Domain
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Orders.Infrastructure
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Organizations.Api
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄEndpoints
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÃÄÄÄrefint
+    ³       ³       ÀÄÄÄstaticwebassets
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Organizations.Application
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Organizations.Application.Contracts
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Organizations.Domain
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Organizations.Infrastructure
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÀÄÄÄrefint
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Wallets.Api
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄEndpoints
+    ³   ³   ÃÄÄÄAdmin
+    ³   ³   ÀÄÄÄPayments
+    ³   ÃÄÄÄModels
+    ³   ÀÄÄÄobj
+    ³       ÃÄÄÄDebug
+    ³       ³   ÃÄÄÄnet10.0
+    ³       ³   ³   ÃÄÄÄref
+    ³       ³   ³   ÀÄÄÄrefint
+    ³       ³   ÀÄÄÄnet9.0
+    ³       ³       ÃÄÄÄref
+    ³       ³       ÃÄÄÄrefint
+    ³       ³       ÀÄÄÄstaticwebassets
+    ³       ÀÄÄÄRelease
+    ³           ÀÄÄÄnet10.0
+    ³               ÃÄÄÄref
+    ³               ÀÄÄÄrefint
+    ÃÄÄÄRefahi.Modules.Wallets.Application
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÃÄÄÄFeatures
+    ³   ³   ÃÄÄÄCapturePaymentIntent
+    ³   ³   ÃÄÄÄCreatePaymentIntent
+    ³   ³   ÃÄÄÄGetBalance
+    ³   ³   ÃÄÄÄGetTransactions
+    ³   ³   ÃÄÄÄRefundPayment
+    ³   ³   ÃÄÄÄReleasePaymentIntent
+    ³   ³   ÀÄÄÄTopUp
+    ³   ÃÄÄÄHandlers
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄServices
+    ³   ÀÄÄÄValidators
+    ÃÄÄÄRefahi.Modules.Wallets.Application.Contracts
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÃÄÄÄCommands
+    ³   ÃÄÄÄExceptions
+    ³   ³   ÀÄÄÄAbstraction
+    ³   ÃÄÄÄFeatures
+    ³   ³   ÃÄÄÄCapturePaymentIntent
+    ³   ³   ÃÄÄÄCreatePaymentIntent
+    ³   ³   ÃÄÄÄGetBalance
+    ³   ³   ÃÄÄÄGetTransactions
+    ³   ³   ÃÄÄÄRefundPayment
+    ³   ³   ÃÄÄÄReleasePaymentIntent
+    ³   ³   ÀÄÄÄTopUp
+    ³   ÃÄÄÄInfrastructure
+    ³   ÃÄÄÄInterfaces
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄQueries
+    ³   ÃÄÄÄRepositories
+    ³   ÃÄÄÄResponses
+    ³   ÀÄÄÄUsecases
+    ÃÄÄÄRefahi.Modules.Wallets.Domain
+    ³   ÃÄÄÄAggregates
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ÃÄÄÄCommon
+    ³   ÃÄÄÄEnums
+    ³   ÃÄÄÄEvents
+    ³   ÃÄÄÄExceptions
+    ³   ³   ÀÄÄÄAbstraction
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÀÄÄÄValueObjects
+    ÃÄÄÄRefahi.Modules.Wallets.Infrastructure
+    ³   ÃÄÄÄbin
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄBuildHost-net472
+    ³   ³   ³   ³   ³   ÃÄÄÄcs
+    ³   ³   ³   ³   ³   ÃÄÄÄde
+    ³   ³   ³   ³   ³   ÃÄÄÄes
+    ³   ³   ³   ³   ³   ÃÄÄÄfr
+    ³   ³   ³   ³   ³   ÃÄÄÄit
+    ³   ³   ³   ³   ³   ÃÄÄÄja
+    ³   ³   ³   ³   ³   ÃÄÄÄko
+    ³   ³   ³   ³   ³   ÃÄÄÄpl
+    ³   ³   ³   ³   ³   ÃÄÄÄpt-BR
+    ³   ³   ³   ³   ³   ÃÄÄÄru
+    ³   ³   ³   ³   ³   ÃÄÄÄtr
+    ³   ³   ³   ³   ³   ÃÄÄÄzh-Hans
+    ³   ³   ³   ³   ³   ÀÄÄÄzh-Hant
+    ³   ³   ³   ³   ÀÄÄÄBuildHost-netcore
+    ³   ³   ³   ³       ÃÄÄÄcs
+    ³   ³   ³   ³       ÃÄÄÄde
+    ³   ³   ³   ³       ÃÄÄÄes
+    ³   ³   ³   ³       ÃÄÄÄfr
+    ³   ³   ³   ³       ÃÄÄÄit
+    ³   ³   ³   ³       ÃÄÄÄja
+    ³   ³   ³   ³       ÃÄÄÄko
+    ³   ³   ³   ³       ÃÄÄÄpl
+    ³   ³   ³   ³       ÃÄÄÄpt-BR
+    ³   ³   ³   ³       ÃÄÄÄru
+    ³   ³   ³   ³       ÃÄÄÄtr
+    ³   ³   ³   ³       ÃÄÄÄzh-Hans
+    ³   ³   ³   ³       ÀÄÄÄzh-Hant
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄBuildHost-net472
+    ³   ³           ³   ÃÄÄÄcs
+    ³   ³           ³   ÃÄÄÄde
+    ³   ³           ³   ÃÄÄÄes
+    ³   ³           ³   ÃÄÄÄfr
+    ³   ³           ³   ÃÄÄÄit
+    ³   ³           ³   ÃÄÄÄja
+    ³   ³           ³   ÃÄÄÄko
+    ³   ³           ³   ÃÄÄÄpl
+    ³   ³           ³   ÃÄÄÄpt-BR
+    ³   ³           ³   ÃÄÄÄru
+    ³   ³           ³   ÃÄÄÄtr
+    ³   ³           ³   ÃÄÄÄzh-Hans
+    ³   ³           ³   ÀÄÄÄzh-Hant
+    ³   ³           ÀÄÄÄBuildHost-netcore
+    ³   ³               ÃÄÄÄcs
+    ³   ³               ÃÄÄÄde
+    ³   ³               ÃÄÄÄes
+    ³   ³               ÃÄÄÄfr
+    ³   ³               ÃÄÄÄit
+    ³   ³               ÃÄÄÄja
+    ³   ³               ÃÄÄÄko
+    ³   ³               ÃÄÄÄpl
+    ³   ³               ÃÄÄÄpt-BR
+    ³   ³               ÃÄÄÄru
+    ³   ³               ÃÄÄÄtr
+    ³   ³               ÃÄÄÄzh-Hans
+    ³   ³               ÀÄÄÄzh-Hant
+    ³   ÃÄÄÄMigrations
+    ³   ÃÄÄÄobj
+    ³   ³   ÃÄÄÄDebug
+    ³   ³   ³   ÃÄÄÄnet10.0
+    ³   ³   ³   ³   ÃÄÄÄref
+    ³   ³   ³   ³   ÀÄÄÄrefint
+    ³   ³   ³   ÀÄÄÄnet9.0
+    ³   ³   ³       ÃÄÄÄref
+    ³   ³   ³       ÀÄÄÄrefint
+    ³   ³   ÀÄÄÄRelease
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ÃÄÄÄref
+    ³   ³           ÀÄÄÄrefint
+    ³   ÃÄÄÄPersistence
+    ³   ³   ÃÄÄÄAtomic
+    ³   ³   ÃÄÄÄContext
+    ³   ³   ÃÄÄÄModels
+    ³   ³   ÀÄÄÄRepositories
+    ³   ÀÄÄÄUsecases
+    ³       ÀÄÄÄTopUp
+    ÀÄÄÄRefahi.Shared
+        ÃÄÄÄbin
+        ³   ÃÄÄÄDebug
+        ³   ³   ÀÄÄÄnet10.0
+        ³   ÀÄÄÄRelease
+        ³       ÀÄÄÄnet10.0
+        ÃÄÄÄDomain
+        ÃÄÄÄExtensions
+        ÃÄÄÄobj
+        ³   ÃÄÄÄDebug
+        ³   ³   ÀÄÄÄnet10.0
+        ³   ³       ÃÄÄÄref
+        ³   ³       ÀÄÄÄrefint
+        ³   ÀÄÄÄRelease
+        ³       ÀÄÄÄnet10.0
+        ³           ÃÄÄÄref
+        ³           ÀÄÄÄrefint
+        ÃÄÄÄPresentation
+        ÀÄÄÄServices
+            ÃÄÄÄCache
+            ÀÄÄÄNotification

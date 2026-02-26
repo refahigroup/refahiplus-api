@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Refahi.Shared.Services.Notification;
 
-namespace Refahi.Host.Services.Notification;
+namespace Refahi.Api.Services.Notification;
 
 /// <summary>
 /// In-memory implementation of INotificationService for development/testing

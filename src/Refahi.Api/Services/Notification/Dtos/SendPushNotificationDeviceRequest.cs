@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Refahi.Host.Services.Notification.Dtos;
+namespace Refahi.Api.Services.Notification.Dtos;
 
 /// <summary>
 /// Push notification target device configuration

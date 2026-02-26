@@ -1,0 +1,85 @@
+stages:
+  - docker
+  - notify
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "staging" || $CI_COMMIT_BRANCH == "dev"'
+      when: always
+    - when: never
+
+variables:
+  SERVICE_NAME: "webapp"
+
+docker_build_push:
+  stage: docker
+  image: registry.refahi.xyz/refahi-devops/ci-cache/docker:27
+
+  # اگر runner شما docker socket mount دارد، همین کافیست.
+  # اگر ندارد، باید docker:dind اضافه کنید (پایین توضیح دادم).
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+
+  script:
+    - echo "Branch=$CI_COMMIT_BRANCH"
+
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        ENV="prod"
+      elif [ "$CI_COMMIT_BRANCH" = "staging" ]; then
+        ENV="stage"
+      elif [ "$CI_COMMIT_BRANCH" = "dev" ]; then
+        ENV="dev"
+      else
+        ENV="dev"
+      fi
+      echo "ENV=$ENV"
+
+      BUILD_VERSION="${ENV}-${CI_PIPELINE_IID}-${CI_COMMIT_SHORT_SHA}"
+      echo "BUILD_VERSION=$BUILD_VERSION"
+
+      IMAGE_ENV="$CI_REGISTRY_IMAGE:$ENV"
+      IMAGE_VER="$CI_REGISTRY_IMAGE:$BUILD_VERSION"
+
+      echo "IMAGE_ENV=$IMAGE_ENV"
+      echo "IMAGE_VER=$IMAGE_VER"
+
+    - docker version
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+    # Dockerfile در مسیر صحیح طبق tree شما
+    - docker build -f src/Refahi.Api/Dockerfile -t "$IMAGE_ENV" -t "$IMAGE_VER" .
+    - docker push "$IMAGE_ENV"
+    - docker push "$IMAGE_VER"
+
+    # برای مرحله notify متغیرها را ذخیره می‌کنیم
+    - |
+      echo "ENV=$ENV" > build.env
+      echo "SERVICE_NAME=$SERVICE_NAME" >> build.env
+      echo "BUILD_VERSION=$BUILD_VERSION" >> build.env
+      echo "IMAGE_ENV=$IMAGE_ENV" >> build.env
+      echo "IMAGE_VER=$IMAGE_VER" >> build.env
+
+  artifacts:
+    reports:
+      dotenv: build.env
+    expire_in: 1 day
+
+notify_deploy_agent:
+  stage: notify
+  image: curlimages/curl:8.6.0
+  needs:
+    - job: docker_build_push
+      artifacts: true
+  rules:
+    - if: '$DEPLOY_AGENT_URL && $DEPLOY_AGENT_TOKEN'
+      when: on_success
+    - when: never
+  script:
+    - |
+      echo "Notify deploy-agent: service=$SERVICE_NAME env=$ENV build=$BUILD_VERSION"
+      curl -sS -X POST "$DEPLOY_AGENT_URL" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $DEPLOY_AGENT_TOKEN" \
+        --data "{\"service\":\"$SERVICE_NAME\",\"env\":\"$ENV\"}" \
+        --max-time 180
