@@ -9,7 +9,9 @@ workflow:
     - when: never
 
 variables:
-  SERVICE_NAME: "webapp"
+  SERVICE_NAME: "api"
+  DOCKER_BUILDKIT: "1"
+  BUILDKIT_PROGRESS: "plain"  
 
 docker_build_push:
   stage: docker
