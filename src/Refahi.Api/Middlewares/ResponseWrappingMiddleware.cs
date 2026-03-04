@@ -27,7 +27,7 @@ public sealed class ResponseWrappingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         // Only apply to API endpoints (avoid swagger, static files, UI)
-        if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase) || context.Request.Path.StartsWithSegments("/api/swagger"))
+        if (context.Request.Path.StartsWithSegments("/swagger"))
         {
             await _next(context);
             return;
@@ -54,6 +54,7 @@ public sealed class ResponseWrappingMiddleware
                 responseBody.Seek(0, SeekOrigin.Begin);
                 await responseBody.CopyToAsync(originalBodyStream);
             }
+
         }
         finally
         {

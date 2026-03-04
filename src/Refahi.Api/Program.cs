@@ -24,7 +24,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Refahi API",
         Version = "v1",
-        Description = "Refahi - Modular Monolith API with Clean Architecture & DDD"
+        Description = "Refahi Plus API"
     });
 });
 
@@ -69,17 +69,17 @@ app.UseResponseWrappingMiddleware();
 //{
     app.UseSwagger(c =>
     {
-        c.RouteTemplate = "api/swagger/{documentName}/swagger.json";
+        c.RouteTemplate = "swagger/{documentName}/swagger.json";
     });
 
     app.UseSwaggerUI(options =>
     {
-        options.RoutePrefix = "api/swagger";
+        options.RoutePrefix = "swagger";
         options.SwaggerEndpoint("v1/swagger.json", "Refahi API v1");
     });
 //}
 
-app.MapGet("/api/health", () => {
+app.MapGet("/health", () => {
 
     var assembly = Assembly.GetExecutingAssembly();
     var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
@@ -94,12 +94,12 @@ app.MapGet("/api/health", () => {
 // Map module endpoints
 //try
 //{
-    app.UseIdentityModule("/api/auth")
-       .MapOrganizationsEndpoints("/api/organizations")
-       .UseWalletsModule("/api/wallets")
-       .UseCatalogModule("/api/catalog")
-       .UseOrdersModule("/api/orders")
-       .UseHotelModule("/api/hotels");
+    app.UseIdentityModule("/auth")
+       .MapOrganizationsEndpoints("/organizations")
+       .UseWalletsModule("/wallets")
+       .UseCatalogModule("/catalog")
+       .UseOrdersModule("/orders")
+       .UseHotelModule("/hotels");
 //}
 //catch 
 //{ 
