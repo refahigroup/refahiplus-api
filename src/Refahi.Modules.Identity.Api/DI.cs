@@ -40,7 +40,7 @@ public static class DI
 
             var jwtOptions = new JwtOptions
             {
-                Key = jwt["Key"]!,
+                Key = jwt["Key"]!.ReplaceWithEnvironmentVariables(),
                 Issuer = jwt["Issuer"]!,
                 Audience = jwt["Audience"]!
             };

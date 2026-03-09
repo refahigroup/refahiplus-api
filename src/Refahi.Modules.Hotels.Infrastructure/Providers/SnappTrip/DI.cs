@@ -5,6 +5,7 @@ using Polly;
 using Polly.Extensions.Http;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Api;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Config;
+using Refahi.Shared.Extensions;
 
 namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip;
 
@@ -13,6 +14,12 @@ internal static class DI
     public static IServiceCollection UseSnappTripProvider(this IServiceCollection services, IConfiguration config)
     {
         services.Configure<SnappTripOptions>(config.GetSection("Hotels:Providers:SnappTrip"));
+
+        // Replace environment variables in ApiKey
+        services.PostConfigure<SnappTripOptions>(options =>
+        {
+            options.ApiKey = options.ApiKey.ReplaceWithEnvironmentVariables();
+        });
 
         services.AddHttpClient<SnappTripApiClient>((sp, client) =>
         {
