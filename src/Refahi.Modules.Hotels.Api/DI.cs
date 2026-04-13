@@ -18,7 +18,7 @@ public static class DI
         return services;
     }
 
-    public static IApplicationBuilder UseHotelModule(this WebApplication app, string endPointsPrefix)
+    public static WebApplication UseHotelModule(this WebApplication app, string endPointsPrefix)
     {
         app.Services.UseHotelInfrastructure(app.Environment.IsDevelopment());
 

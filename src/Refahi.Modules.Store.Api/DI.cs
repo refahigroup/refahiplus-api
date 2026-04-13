@@ -1,27 +1,27 @@
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Refahi.Modules.Orders.Application;
-using Refahi.Modules.Orders.Infrastructure;
 using Refahi.Shared.Presentation;
+using Refahi.Modules.Store.Application;
+using Refahi.Modules.Store.Infrastructure;
 
-namespace Refahi.Modules.Orders.Api;
+namespace Refahi.Modules.Store.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterOrdersModule(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
+    public static IServiceCollection RegisterStoreModule(this IServiceCollection services, IConfiguration configuration)
     {
         services
             .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration, environment?.IsDevelopment() ?? false);
+            .RegisterInfrastructure(configuration);
 
         return services;
     }
 
-    public static WebApplication UseOrdersModule(this WebApplication app, string endPointsPrefix)
+    public static WebApplication UseStoreModule(this WebApplication app, string endPointsPrefix)
     {
         MapEndPoints(app, endPointsPrefix);
+
         return app;
     }
 

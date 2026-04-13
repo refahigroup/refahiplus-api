@@ -13,6 +13,7 @@ using Refahi.Modules.Organizations.Api;
 using Refahi.Modules.Wallets.Api;
 using System.Diagnostics;
 using System.Reflection;
+using Refahi.Modules.Store.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,7 +44,8 @@ builder.Services
         .RegisterWalletsModule(builder.Configuration)
         .RegisterCatalogModule(builder.Configuration)
         .RegisterOrdersModule(builder.Configuration)
-        .RegisterHotelsModule(builder.Configuration);
+        .RegisterHotelsModule(builder.Configuration)
+        .RegisterStoreModule(builder.Configuration);
 //}
 //catch(Exception ex) 
 //{
@@ -69,17 +71,17 @@ app.UseResponseWrappingMiddleware();
 //{
     app.UseSwagger(c =>
     {
-        c.RouteTemplate = "swagger/{documentName}/swagger.json";
+        c.RouteTemplate = "api/swagger/{documentName}/swagger.json";
     });
 
     app.UseSwaggerUI(options =>
     {
-        options.RoutePrefix = "swagger";
+        options.RoutePrefix = "api/swagger";
         options.SwaggerEndpoint("v1/swagger.json", "Refahi API v1");
     });
 //}
 
-app.MapGet("/health", () => {
+app.MapGet("/api/health", () => {
 
     var assembly = Assembly.GetExecutingAssembly();
     var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
@@ -94,12 +96,13 @@ app.MapGet("/health", () => {
 // Map module endpoints
 //try
 //{
-    app.UseIdentityModule("/auth")
-       .MapOrganizationsEndpoints("/organizations")
-       .UseWalletsModule("/wallets")
-       .UseCatalogModule("/catalog")
-       .UseOrdersModule("/orders")
-       .UseHotelModule("/hotels");
+    app.UseIdentityModule("/api/auth")
+       .MapOrganizationsEndpoints("/api/organizations")
+       .UseWalletsModule("/api/wallets")
+       .UseCatalogModule("/api/catalog")
+       .UseOrdersModule("/api/orders")
+       .UseHotelModule("/api/hotels")
+       .UseStoreModule("/api/store");
 //}
 //catch 
 //{ 
