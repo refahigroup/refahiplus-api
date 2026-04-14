@@ -14,7 +14,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Refahi.Modules.Store.Application.Contract\Refahi.Modules.Store.Application.Contract.csproj" />
+		<ProjectReference Include="..\Refahi.Modules.Store.Application.Contracts\Refahi.Modules.Store.Application.Contracts.csproj" />
+		<ProjectReference Include="..\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Store.Domain\Refahi.Modules.Store.Domain.csproj" />
 		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>

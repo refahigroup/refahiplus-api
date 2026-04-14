@@ -10,4 +10,8 @@
 		<PackageReference Include="MediatR.Contracts" Version="2.0.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<ProjectReference Include="..\Refahi.Modules.Store.Domain\Refahi.Modules.Store.Domain.csproj" />
+	</ItemGroup>
+
 </Project>

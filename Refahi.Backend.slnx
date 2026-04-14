@@ -23,8 +23,10 @@
 		<Project Path="src/Refahi.Modules.Identity.Application/Refahi.Modules.Identity.Application.csproj" />
 		<Project Path="src/Refahi.Modules.Identity.Domain/Refahi.Modules.Identity.Domain.csproj" />
 		<Project Path="src/Refahi.Modules.Identity.Infrastructure/Refahi.Modules.Identity.Infrastructure.csproj" />
-	</Folder>
 	<Folder Name="/01_Modules/Orders/">
+	</Folder>
+	</Folder>
+	<Folder Name="/01_Modules/Order/">
 		<Project Path="src/Refahi.Modules.Orders.Api/Refahi.Modules.Orders.Api.csproj" />
 		<Project Path="src/Refahi.Modules.Orders.Application.Contracts/Refahi.Modules.Orders.Application.Contracts.csproj" />
 		<Project Path="src/Refahi.Modules.Orders.Application/Refahi.Modules.Orders.Application.csproj" />
@@ -40,7 +42,7 @@
 	</Folder>
 	<Folder Name="/01_Modules/Store/">
 		<Project Path="src/Refahi.Modules.Store.Api/Refahi.Modules.Store.Api.csproj" Id="b56fb814-6674-44fc-a494-bd1a7e2a7b9e" />
-		<Project Path="src/Refahi.Modules.Store.Application.Contract/Refahi.Modules.Store.Application.Contract.csproj" Id="74c380f8-77bc-4ac6-b0d2-95ed8ed7cc5d" />
+		<Project Path="src/Refahi.Modules.Store.Application.Contracts/Refahi.Modules.Store.Application.Contracts.csproj" Id="74c380f8-77bc-4ac6-b0d2-95ed8ed7cc5d" />
 		<Project Path="src/Refahi.Modules.Store.Application/Refahi.Modules.Store.Application.csproj" />
 		<Project Path="src/Refahi.Modules.Store.Domain/Refahi.Modules.Store.Domain.csproj" Id="1b4ee9de-068b-4d64-990e-4f3c09c4a11a" />
 		<Project Path="src/Refahi.Modules.Store.Infrastructure/Refahi.Modules.Store.Infrastructure.csproj" Id="11638e20-cb63-4aa3-99ee-d8876a0782e7" />
