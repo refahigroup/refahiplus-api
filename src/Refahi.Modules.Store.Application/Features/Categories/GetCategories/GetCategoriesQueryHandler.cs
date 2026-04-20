@@ -20,16 +20,42 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
             ? await _categoryRepository.GetAllAsync(cancellationToken)
             : await _categoryRepository.GetAllActiveAsync(cancellationToken);
 
-        return categories.Select(MapToDto).ToList();
+        if (request.ModuleId.HasValue)
+            categories = categories.Where(c => c.ModuleId == request.ModuleId.Value).ToList();
+
+        // Build parent-only list (top level) and attach children
+        var lookup = categories.ToLookup(c => c.ParentId);
+        var roots = lookup[null].ToList();
+
+        if (request.ParentId.HasValue)
+        {
+            // Return only children of the specified parent
+            return lookup[request.ParentId].Select(c => MapToDto(c, lookup)).ToList();
+        }
+
+        return roots.Select(c => MapToDto(c, lookup)).ToList();
     }
 
-    private static CategoryDto MapToDto(StoreCategory c) => new(
-        c.Id,
-        c.Name,
-        c.Slug,
-        c.CategoryCode,
-        c.ImageUrl,
-        c.ParentId,
-        c.SortOrder,
-        c.IsActive);
+    private static CategoryDto MapToDto(StoreCategory c, ILookup<int?, StoreCategory>? lookup = null)
+    {
+        List<CategoryDto>? children = null;
+        if (lookup is not null)
+        {
+            var childList = lookup[c.Id].ToList();
+            if (childList.Count > 0)
+                children = childList.Select(ch => MapToDto(ch, null)).ToList();
+        }
+
+        return new CategoryDto(
+            c.Id,
+            c.ModuleId,
+            c.Name,
+            c.Slug,
+            c.CategoryCode,
+            c.ImageUrl,
+            c.ParentId,
+            c.SortOrder,
+            c.IsActive,
+            children);
+    }
 }

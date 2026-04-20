@@ -39,7 +39,7 @@ public class RefreshTokenEndpoint : IEndpoint
             var userIdentity = new UserIdentity(
                 Id: result.UserId.ToString()!,
                 Username: result.Username!,
-                Role: result.Roles?.Split(',').FirstOrDefault() ?? "User"
+                Role: result.Roles ?? "User"
             );
 
             var tokenResult = tokenService.CreateTokens(userIdentity);
@@ -48,7 +48,7 @@ public class RefreshTokenEndpoint : IEndpoint
             var newRefreshToken = Domain.Entities.RefreshToken.Create(
                 userId: result.UserId!.Value,
                 token: tokenResult.RefreshToken,
-                expiresAt: tokenResult.RefreshTokenExpiresAtUtc.HasValue ? tokenResult.RefreshTokenExpiresAtUtc.Value.DateTime : DateTime.UtcNow.AddDays(7)
+                expiresAt: tokenResult.RefreshTokenExpiresAtUtc.HasValue ? tokenResult.RefreshTokenExpiresAtUtc.Value.UtcDateTime : DateTime.UtcNow.AddDays(7)
             );
 
             await refreshTokenRepository.AddAsync(newRefreshToken, default);
@@ -58,9 +58,9 @@ public class RefreshTokenEndpoint : IEndpoint
                 access_token = tokenResult.AccessToken,
                 token_type = "Bearer",
                 expires_in = (int)(tokenResult.AccessTokenExpiresAtUtc - DateTimeOffset.UtcNow).TotalSeconds,
-                expires_at_utc = tokenResult.AccessTokenExpiresAtUtc.DateTime,
+                expires_at_utc = tokenResult.AccessTokenExpiresAtUtc.UtcDateTime,
                 refresh_token = tokenResult.RefreshToken,
-                refresh_expires_at_utc = tokenResult.RefreshTokenExpiresAtUtc.HasValue ? tokenResult.RefreshTokenExpiresAtUtc.Value.DateTime : (DateTime?)null
+                refresh_expires_at_utc = tokenResult.RefreshTokenExpiresAtUtc.HasValue ? tokenResult.RefreshTokenExpiresAtUtc.Value.UtcDateTime : (DateTime?)null
             });
         })
         .WithName("Identity.RefreshToken")

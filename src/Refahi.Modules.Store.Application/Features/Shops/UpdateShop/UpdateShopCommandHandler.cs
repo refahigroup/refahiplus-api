@@ -21,8 +21,15 @@ public class UpdateShopCommandHandler : IRequestHandler<UpdateShopCommand, Updat
         shop.UpdateInfo(
             request.Name,
             request.Description,
-            request.City,
+            request.ProvinceId,
+            request.CityId,
             request.Address,
+            request.Latitude,
+            request.Longitude,
+            request.ManagerName,
+            request.ManagerPhone,
+            request.RepresentativeName,
+            request.RepresentativePhone,
             request.ContactPhone,
             request.LogoUrl,
             request.CoverImageUrl);

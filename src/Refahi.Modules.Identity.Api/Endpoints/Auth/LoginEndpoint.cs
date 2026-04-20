@@ -43,7 +43,7 @@ public class LoginEndpoint : IEndpoint
             var refreshToken = Domain.Entities.RefreshToken.Create(
                 userId: user.Id,
                 token: tokens.RefreshToken,
-                expiresAt: tokens.RefreshTokenExpiresAtUtc.HasValue ? tokens.RefreshTokenExpiresAtUtc.Value.DateTime : DateTime.UtcNow.AddDays(7)
+                expiresAt: tokens.RefreshTokenExpiresAtUtc.HasValue ? tokens.RefreshTokenExpiresAtUtc.Value.UtcDateTime : DateTime.UtcNow.AddDays(7)
             );
 
             await refreshTokenRepository.AddAsync(refreshToken);

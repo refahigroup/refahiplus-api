@@ -23,8 +23,13 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         if (await _productRepo.SlugExistsAsync(request.Slug.Trim().ToLower(), cancellationToken))
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
 
-        _ = await _categoryRepo.GetByIdAsync(request.CategoryId, cancellationToken)
+        var category = await _categoryRepo.GetByIdAsync(request.CategoryId, cancellationToken)
             ?? throw new StoreDomainException("دسته‌بندی یافت نشد", "CATEGORY_NOT_FOUND");
+
+        if (!string.Equals(category.CategoryCode, request.CategoryCode, StringComparison.OrdinalIgnoreCase))
+            throw new StoreDomainException(
+                $"CategoryCode ورودی با دسته‌بندی انتخاب‌شده مطابقت ندارد. مقدار صحیح: '{category.CategoryCode}'",
+                "CATEGORY_CODE_MISMATCH");
 
         var product = Product.Create(
             request.ShopId,
@@ -36,9 +41,11 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             (Domain.Enums.SalesModel)request.SalesModel,
             request.CategoryId,
             request.CategoryCode,
+            request.CommissionPercent,
             request.Description,
             request.StockCount,
-            request.City,
+            request.CityId,
+            city: null,
             request.Area);
 
         await _productRepo.AddAsync(product, cancellationToken);

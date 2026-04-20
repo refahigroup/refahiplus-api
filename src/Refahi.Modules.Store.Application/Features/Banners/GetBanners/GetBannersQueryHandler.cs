@@ -17,9 +17,13 @@ public class GetBannersQueryHandler : IRequestHandler<GetBannersQuery, List<Bann
     {
         var banners = await _bannerRepo.GetActiveAsync(cancellationToken);
 
-        var filtered = request.BannerType.HasValue
-            ? banners.Where(b => (short)b.BannerType == request.BannerType.Value).ToList()
-            : banners;
+        var filtered = banners.AsEnumerable();
+
+        if (request.ModuleId.HasValue)
+            filtered = filtered.Where(b => b.ModuleId == request.ModuleId.Value);
+
+        if (request.BannerType.HasValue)
+            filtered = filtered.Where(b => (short)b.BannerType == request.BannerType.Value);
 
         return filtered
             .OrderBy(b => b.SortOrder)

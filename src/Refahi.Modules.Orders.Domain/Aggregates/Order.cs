@@ -1,6 +1,8 @@
 using Refahi.Modules.Orders.Domain.Entities;
 using Refahi.Modules.Orders.Domain.Enums;
+using Refahi.Modules.Orders.Domain.Events;
 using Refahi.Modules.Orders.Domain.Exceptions;
+using Refahi.Shared.Domain;
 
 namespace Refahi.Modules.Orders.Domain.Aggregates;
 
@@ -11,7 +13,7 @@ namespace Refahi.Modules.Orders.Domain.Aggregates;
 /// </summary>
 public sealed class Order
 {
-    private Order() { _items = new List<OrderItem>(); }
+    private Order() { _items = new List<OrderItem>(); _domainEvents = new List<IDomainEvent>(); }
 
     public Guid Id { get; private set; }
     public string OrderNumber { get; private set; } = string.Empty;    // شماره سفارش یکتا (مثل "ORD-240413-XXXX")
@@ -42,9 +44,20 @@ public sealed class Order
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    // --- Optimistic Concurrency (PostgreSQL xmin) ---
+    public uint RowVersion { get; private set; }
+
     // --- آیتم‌ها ---
     private readonly List<OrderItem> _items;
     public IReadOnlyList<OrderItem> Items => _items.AsReadOnly();
+
+    // --- Domain Events ---
+    private readonly List<IDomainEvent> _domainEvents;
+    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    private void AddDomainEvent(IDomainEvent evt) => _domainEvents.Add(evt);
 
     // =========================================================
     // Factory Method
@@ -92,6 +105,16 @@ public sealed class Order
         }
 
         order.RecalculateAmounts();
+
+        order.AddDomainEvent(new OrderCreatedEvent(
+            OrderId: order.Id,
+            OrderNumber: order.OrderNumber,
+            UserId: order.UserId,
+            SourceModule: order.SourceModule,
+            SourceReferenceId: order.SourceReferenceId,
+            FinalAmountMinor: order.FinalAmountMinor,
+            OccurredAt: DateTimeOffset.UtcNow));
+
         return order;
     }
 
@@ -124,6 +147,14 @@ public sealed class Order
         PaymentState = PaymentState.Paid;
         Status = OrderStatus.Confirmed;
         UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new OrderPaidEvent(
+            OrderId: Id,
+            OrderNumber: OrderNumber,
+            UserId: UserId,
+            PaymentId: paymentId,
+            AmountMinor: FinalAmountMinor,
+            OccurredAt: DateTimeOffset.UtcNow));
     }
 
     /// <summary>
@@ -185,8 +216,27 @@ public sealed class Order
                 $"تغییر وضعیت از {Status} به {newStatus} مجاز نیست",
                 "INVALID_STATUS_TRANSITION");
 
+        var oldStatus = Status.ToString();
         Status = newStatus;
         UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new OrderStatusChangedEvent(
+            OrderId: Id,
+            OrderNumber: OrderNumber,
+            OldStatus: oldStatus,
+            NewStatus: newStatus.ToString(),
+            OccurredAt: DateTimeOffset.UtcNow));
+
+        if (newStatus == OrderStatus.Delivered)
+        {
+            AddDomainEvent(new OrderDeliveredEvent(
+                OrderId: Id,
+                OrderNumber: OrderNumber,
+                UserId: UserId,
+                SourceModule: SourceModule,
+                SourceReferenceId: SourceReferenceId,
+                OccurredAt: DateTimeOffset.UtcNow));
+        }
     }
 
     // =========================================================

@@ -13,6 +13,7 @@ public class StoreCategoryConfiguration : IEntityTypeConfiguration<StoreCategory
         builder.HasKey(c => c.Id);
         builder.Property(c => c.Id).ValueGeneratedOnAdd();
 
+        builder.Property(c => c.ModuleId).IsRequired();
         builder.Property(c => c.Name).HasMaxLength(200).IsRequired();
         builder.Property(c => c.Slug).HasMaxLength(200).IsRequired();
         builder.Property(c => c.CategoryCode).HasMaxLength(100).IsRequired();
@@ -23,6 +24,14 @@ public class StoreCategoryConfiguration : IEntityTypeConfiguration<StoreCategory
 
         builder.HasIndex(c => c.Slug).IsUnique();
         builder.HasIndex(c => c.CategoryCode).IsUnique();
+        builder.HasIndex(c => c.ModuleId);
         builder.HasIndex(c => c.ParentId);
+
+        // Self-referencing navigation for Children (loaded explicitly when needed)
+        builder.HasMany(c => c.Children)
+            .WithOne()
+            .HasForeignKey(c => c.ParentId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(c => c.Children).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

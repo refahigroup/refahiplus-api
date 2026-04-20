@@ -30,10 +30,17 @@ public class CreateShopCommandHandler : IRequestHandler<CreateShopCommand, Creat
             request.Slug,
             shopType,
             request.ProviderId,
-            request.City,
+            request.ProvinceId,
+            request.CityId,
             request.Address,
-            request.Description,
-            request.ContactPhone);
+            request.Latitude,
+            request.Longitude,
+            request.ManagerName,
+            request.ManagerPhone,
+            request.RepresentativeName,
+            request.RepresentativePhone,
+            request.ContactPhone,
+            request.Description);
 
         await _shopRepository.AddAsync(shop, cancellationToken);
 

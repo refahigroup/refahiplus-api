@@ -47,7 +47,7 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
                 if (variant.StockCount < request.Quantity)
                     throw new StoreDomainException("موجودی کافی نیست", "INSUFFICIENT_STOCK");
 
-                unitPrice += variant.PriceAdjustment;
+                unitPrice = variant.EffectivePriceMinor;
             }
             else
             {
@@ -72,11 +72,11 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
             unitPrice += session.PriceAdjustment;
         }
 
-        var cart = await _cartRepo.GetByUserIdAsync(request.UserId, cancellationToken);
+        var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken);
 
         if (cart is null)
         {
-            cart = CartAggregate.Create(request.UserId);
+            cart = CartAggregate.Create(request.UserId, request.ModuleId);
             cart.AddItem(request.ProductId, request.VariantId, request.SessionId, request.Quantity, unitPrice);
             await _cartRepo.AddAsync(cart, cancellationToken);
         }

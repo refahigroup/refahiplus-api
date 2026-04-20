@@ -3,6 +3,7 @@ using Refahi.Modules.Identity.Domain.Aggregates;
 using Refahi.Modules.Identity.Domain.Repositories;
 using Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -103,5 +104,42 @@ public class UserRepository : IUserRepository
     {
         _db.Users.Update(user);
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<(List<User> Items, int Total)> GetPagedAsync(
+        string? search, string? role, bool? isActive,
+        int page, int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var q = _db.Users
+            .Include(u => u.Profile)
+            .Include(u => u.Roles)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lower = search.Trim().ToLower();
+            q = q.Where(u =>
+                (u.MobileNumber != null && u.MobileNumber.Contains(search)) ||
+                (u.Email != null && u.Email.Contains(lower)) ||
+                (u.Profile != null &&
+                    (u.Profile.FirstName.ToLower().Contains(lower) ||
+                     u.Profile.LastName.ToLower().Contains(lower))));
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+            q = q.Where(u => u.Roles.Any(r => r.Role == role));
+
+        if (isActive.HasValue)
+            q = q.Where(u => u.IsActive == isActive.Value);
+
+        var total = await q.CountAsync(cancellationToken);
+        var items = await q
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
     }
 }

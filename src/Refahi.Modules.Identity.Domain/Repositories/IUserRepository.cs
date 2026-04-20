@@ -13,6 +13,10 @@ public interface IUserRepository
     Task<bool> ExistsByMobileNumberAsync(string mobileNumber, CancellationToken cancellationToken = default);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<bool> ExistsByUsernameAsync(string username, CancellationToken cancellationToken = default);
+    Task<(List<User> Items, int Total)> GetPagedAsync(
+        string? search, string? role, bool? isActive,
+        int page, int pageSize,
+        CancellationToken cancellationToken = default);
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     Task UpdateAsync(User user, CancellationToken cancellationToken = default);
 }

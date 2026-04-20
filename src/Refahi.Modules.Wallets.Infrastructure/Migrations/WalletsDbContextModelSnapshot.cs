@@ -93,6 +93,15 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("wallet_id");
 
+                    b.Property<string>("AllowedCategoryCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("allowed_category_code");
+
+                    b.Property<DateTimeOffset?>("ContractExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("contract_expires_at");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");

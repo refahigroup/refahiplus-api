@@ -9,7 +9,7 @@ public sealed record UpdateProductCommand(
     long? DiscountedPriceMinor,
     int? DiscountPercent,
     string? Description,
-    string? City,
+    int? CityId,
     string? Area,
     bool IsAvailable
 ) : IRequest<UpdateProductResponse>;

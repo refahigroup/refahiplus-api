@@ -24,7 +24,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
     public async Task<CartDto> Handle(GetCartQuery request, CancellationToken cancellationToken)
     {
-        var cart = await _cartRepo.GetByUserIdAsync(request.UserId, cancellationToken);
+        var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken);
 
         if (cart is null)
             return new CartDto(Guid.Empty, new List<CartItemDto>(), 0, 0);
@@ -59,12 +59,15 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 var variant = product.Variants.FirstOrDefault(v => v.Id == item.VariantId.Value);
                 if (variant is not null)
                 {
-                    var parts = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(variant.Size))
-                        parts.Add($"سایز {variant.Size}");
-                    if (!string.IsNullOrWhiteSpace(variant.Color))
-                        parts.Add(variant.Color);
-                    variantLabel = parts.Count > 0 ? string.Join(" - ", parts) : null;
+                    // Build label from SKU or combination values
+                    variantLabel = !string.IsNullOrWhiteSpace(variant.SKU)
+                        ? variant.SKU
+                        : string.Join(" / ", variant.Combinations.Select(c =>
+                        {
+                            var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
+                            var val = attr?.Values.FirstOrDefault(v => v.Id == c.VariantAttributeValueId);
+                            return val?.Value ?? string.Empty;
+                        }).Where(s => !string.IsNullOrEmpty(s)));
                     isAvailable = variant.IsAvailable && variant.StockCount >= item.Quantity;
                 }
                 else

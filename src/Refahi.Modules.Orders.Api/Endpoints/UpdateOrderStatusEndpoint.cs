@@ -7,7 +7,7 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Orders.Api.Endpoints;
 
-public record UpdateOrderStatusRequest(short NewStatus);
+public record UpdateOrderStatusRequest(OrderStatusInput NewStatus);
 
 public class UpdateOrderStatusEndpoint : IEndpoint
 {

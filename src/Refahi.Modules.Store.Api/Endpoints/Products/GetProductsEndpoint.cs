@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 using Refahi.Modules.Store.Application.Contracts.Queries.Products;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Store.Api.Endpoints.Products;
@@ -14,7 +15,8 @@ public class GetProductsEndpoint : IEndpoint
     {
         if (app is not IEndpointRouteBuilder routes) return;
 
-        routes.MapGet("/products", async (
+        routes.MapGet("/{moduleSlug}/products", async (
+            string moduleSlug,
             int? categoryId,
             Guid? shopId,
             long? minPrice,
@@ -22,9 +24,14 @@ public class GetProductsEndpoint : IEndpoint
             short? salesModel,
             int pageNumber,
             int pageSize,
+            IModuleResolver moduleResolver,
             IMediator mediator,
             CancellationToken ct) =>
         {
+            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+            if (moduleId is null)
+                return Results.NotFound();
+
             var query = new GetProductsQuery(
                 CategoryId: categoryId,
                 ShopId: shopId,
@@ -43,7 +50,8 @@ public class GetProductsEndpoint : IEndpoint
         })
         .WithName("Store.GetProducts")
         .WithTags("Store.Products")
-        .Produces<PaginatedResponse<ProductSummaryDto>>(StatusCodes.Status200OK);
+        .Produces<PaginatedResponse<ProductSummaryDto>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
         // Public endpoint
     }
 }

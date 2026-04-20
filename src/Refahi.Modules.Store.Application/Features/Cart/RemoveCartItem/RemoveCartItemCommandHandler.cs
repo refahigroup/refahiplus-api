@@ -14,7 +14,7 @@ public class RemoveCartItemCommandHandler : IRequestHandler<RemoveCartItemComman
 
     public async Task<RemoveCartItemResponse> Handle(RemoveCartItemCommand request, CancellationToken cancellationToken)
     {
-        var cart = await _cartRepo.GetByUserIdAsync(request.UserId, cancellationToken)
+        var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken)
             ?? throw new StoreDomainException("سبد خرید یافت نشد", "CART_NOT_FOUND");
 
         cart.RemoveItem(request.CartItemId);

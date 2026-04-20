@@ -11,6 +11,11 @@ public class CartRepository : ICartRepository
 
     public CartRepository(StoreDbContext db) => _db = db;
 
+    public Task<Cart?> GetByUserAndModuleIdAsync(Guid userId, int moduleId, CancellationToken ct = default)
+        => _db.Carts
+            .Include(c => c.Items)
+            .FirstOrDefaultAsync(c => c.UserId == userId && c.ModuleId == moduleId, ct);
+
     public Task<Cart?> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         => _db.Carts
             .Include(c => c.Items)

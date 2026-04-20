@@ -9,6 +9,7 @@ public sealed class Cart
 
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
+    public int ModuleId { get; private set; }                           // FK → StoreModule — per-module cart
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
@@ -18,11 +19,12 @@ public sealed class Cart
     public long TotalMinor => _items.Sum(i => i.UnitPriceMinor * i.Quantity);
 
     // --- Factory ---
-    public static Cart Create(Guid userId)
+    public static Cart Create(Guid userId, int moduleId)
         => new()
         {
             Id = Guid.NewGuid(),
             UserId = userId,
+            ModuleId = moduleId,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };

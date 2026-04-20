@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Commands.Cart;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Shared.Presentation;
 using System.Security.Claims;
 
@@ -14,9 +15,11 @@ public class RemoveCartItemEndpoint : IEndpoint
     {
         if (app is not IEndpointRouteBuilder routes) return;
 
-        routes.MapDelete("/cart/items/{id:guid}", async (
+        routes.MapDelete("/{moduleSlug}/cart/items/{id:guid}", async (
+            string moduleSlug,
             Guid id,
             HttpContext httpContext,
+            IModuleResolver moduleResolver,
             IMediator mediator,
             CancellationToken ct) =>
         {
@@ -26,7 +29,11 @@ public class RemoveCartItemEndpoint : IEndpoint
             if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
                 return Results.Unauthorized();
 
-            var command = new RemoveCartItemCommand(userId, id);
+            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+            if (moduleId is null)
+                return Results.NotFound();
+
+            var command = new RemoveCartItemCommand(userId, moduleId.Value, id);
             var result = await mediator.Send(command, ct);
             return Results.Ok(ApiResponseHelper.Success(result, "آیتم از سبد خرید حذف شد"));
         })
@@ -34,6 +41,7 @@ public class RemoveCartItemEndpoint : IEndpoint
         .WithTags("Store.Cart")
         .RequireAuthorization("UserOrAdmin")
         .Produces<ApiResponse<RemoveCartItemResponse>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized);
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status404NotFound);
     }
 }

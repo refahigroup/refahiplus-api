@@ -44,6 +44,7 @@ public class GetShopsQueryHandler : IRequestHandler<GetShopsQuery, ShopsPagedRes
         s.LogoUrl,
         s.ShopType.ToString(),
         s.Status.ToString(),
-        s.City,
+        s.ProvinceId,
+        s.CityId,
         s.IsPopular);
 }

@@ -15,5 +15,6 @@ public sealed record CreatePaymentIntentCommand(
     string Currency,
     List<AllocationRequest> Allocations,
     string IdempotencyKey,
-    string? MetadataJson = null)
+    string? MetadataJson = null,
+    IReadOnlyList<string>? OrderItemCategoryCode = null)
     : IRequest<CommandResponse<CreatePaymentIntentResponse>>;

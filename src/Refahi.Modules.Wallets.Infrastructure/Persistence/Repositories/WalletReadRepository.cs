@@ -1,11 +1,15 @@
 using Dapper;
 using Npgsql;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetBalance;
+using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetTransactions;
+using Refahi.Modules.Wallets.Application.Contracts.Features.GetWalletInfo;
 using Refahi.Modules.Wallets.Application.Contracts.Repositories;
+using Refahi.Modules.Wallets.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Refahi.Modules.Wallets.Infrastructure.Persistence.Repositories;
@@ -92,5 +96,71 @@ public sealed class WalletReadRepository : IWalletReadRepository
             new { WalletId = walletId, Take = take });
 
         return rows.ToList().AsReadOnly();
+    }
+
+    public async Task<List<WalletSummaryDto>> GetByOwnerIdAsync(Guid ownerId, CancellationToken ct = default)
+    {
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync(ct);
+
+        var rows = await conn.QueryAsync<(Guid WalletId, short WalletType, string Currency, long AvailableMinor, long PendingMinor, string? AllowedCategoryCode, DateTimeOffset? ContractExpiresAt)>(
+            """
+            SELECT w.wallet_id, w.wallet_type, w.currency,
+                   COALESCE(wb.available_minor, 0) AS available_minor,
+                   COALESCE(wb.pending_minor, 0) AS pending_minor,
+                   w.allowed_category_code,
+                   w.contract_expires_at
+            FROM wallets.wallets w
+            LEFT JOIN wallets.wallet_balances wb ON wb.wallet_id = w.wallet_id
+            WHERE w."OwnerId" = @OwnerId
+            ORDER BY w.created_at
+            """,
+            new { OwnerId = ownerId });
+
+        return rows.Select(r => new WalletSummaryDto(
+            WalletId: r.WalletId,
+            WalletType: r.WalletType == (short)WalletType.User ? "REFAHI" : ((WalletType)r.WalletType).ToString(),
+            Currency: r.Currency,
+            AvailableBalanceMinor: r.AvailableMinor,
+            TotalBalanceMinor: r.AvailableMinor + r.PendingMinor,
+            HeldAmountMinor: r.PendingMinor,
+            AllowedCategoryCode: r.AllowedCategoryCode,
+            ContractExpiresAt: r.ContractExpiresAt
+        )).ToList();
+    }
+
+    public async Task<bool> ExistsByOwnerAndTypeAsync(Guid ownerId, short walletType, CancellationToken ct = default)
+    {
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync(ct);
+
+        return await conn.ExecuteScalarAsync<bool>(
+            "SELECT EXISTS(SELECT 1 FROM wallets.wallets WHERE \"OwnerId\" = @OwnerId AND wallet_type = @WalletType)",
+            new { OwnerId = ownerId, WalletType = walletType });
+    }
+
+    public async Task<WalletInfoDto?> GetByIdAsync(Guid walletId, CancellationToken ct = default)
+    {
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync(ct);
+
+        var row = await conn.QuerySingleOrDefaultAsync<(Guid WalletId, short WalletType, short Status, string Currency, string? AllowedCategoryCode, DateTimeOffset? ContractExpiresAt)>(
+            """
+            SELECT wallet_id, wallet_type, status, currency, allowed_category_code, contract_expires_at
+            FROM wallets.wallets
+            WHERE wallet_id = @WalletId
+            """,
+            new { WalletId = walletId });
+
+        if (row == default)
+            return null;
+
+        return new WalletInfoDto(
+            WalletId: row.WalletId,
+            WalletType: row.WalletType,
+            Status: row.Status,
+            Currency: row.Currency,
+            AllowedCategoryCode: row.AllowedCategoryCode,
+            ContractExpiresAt: row.ContractExpiresAt);
     }
 }

@@ -19,6 +19,11 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
         var order = await _orderRepository.GetByIdWithItemsAsync(request.OrderId, cancellationToken);
         if (order is null) return null;
 
+        // Ownership check: User role can only see their own orders
+        // Return null (404) instead of Forbidden to prevent GUID enumeration
+        if (request.CallerRole == "User" && order.UserId != request.CallerUserId)
+            return null;
+
         var items = order.Items.Select(i => new OrderItemDto(
             Id: i.Id,
             Title: i.Title,

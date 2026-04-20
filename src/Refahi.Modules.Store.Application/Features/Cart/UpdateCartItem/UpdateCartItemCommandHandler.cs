@@ -14,7 +14,7 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
 
     public async Task<UpdateCartItemResponse> Handle(UpdateCartItemCommand request, CancellationToken cancellationToken)
     {
-        var cart = await _cartRepo.GetByUserIdAsync(request.UserId, cancellationToken)
+        var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken)
             ?? throw new StoreDomainException("سبد خرید یافت نشد", "CART_NOT_FOUND");
 
         var item = cart.Items.FirstOrDefault(i => i.Id == request.CartItemId)

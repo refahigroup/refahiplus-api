@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Orders.Application.Contracts.Dtos;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Shared.Presentation;
+using System.Security.Claims;
 
 namespace Refahi.Modules.Orders.Api.Endpoints;
 
@@ -16,10 +17,19 @@ public class GetOrderByIdEndpoint : IEndpoint
 
         routes.MapGet("/{orderId:guid}", async (
             Guid orderId,
+            HttpContext httpContext,
             IMediator mediator,
             CancellationToken ct) =>
         {
-            var result = await mediator.Send(new GetOrderByIdQuery(orderId), ct);
+            var userIdClaim = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? httpContext.User.FindFirstValue("sub");
+
+            if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var callerId))
+                return Results.Unauthorized();
+
+            var callerRole = httpContext.User.FindFirstValue(ClaimTypes.Role) ?? "User";
+
+            var result = await mediator.Send(new GetOrderByIdQuery(orderId, callerId, callerRole), ct);
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponseHelper.Success(result));

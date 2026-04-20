@@ -6,6 +6,7 @@ namespace Refahi.Modules.Wallets.Domain.Enums;
 public enum WalletType : short
 {
     System = 1,
-    User = 2,
-    Provider = 3
+    User = 2,       // REFAHI — personal wallet
+    Provider = 3,
+    OrgCredit = 4   // ORG_CREDIT — organisation credit wallet
 }

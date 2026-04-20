@@ -13,6 +13,7 @@ public class BannerConfiguration : IEntityTypeConfiguration<Banner>
         builder.HasKey(b => b.Id);
         builder.Property(b => b.Id).ValueGeneratedOnAdd();
 
+        builder.Property(b => b.ModuleId).IsRequired();
         builder.Property(b => b.Title).HasMaxLength(200).IsRequired();
         builder.Property(b => b.ImageUrl).HasMaxLength(500).IsRequired();
         builder.Property(b => b.LinkUrl).HasMaxLength(500);
@@ -22,6 +23,7 @@ public class BannerConfiguration : IEntityTypeConfiguration<Banner>
         builder.Property(b => b.StartDate);
         builder.Property(b => b.EndDate);
 
+        builder.HasIndex(b => b.ModuleId);
         builder.HasIndex(b => b.IsActive);
     }
 }

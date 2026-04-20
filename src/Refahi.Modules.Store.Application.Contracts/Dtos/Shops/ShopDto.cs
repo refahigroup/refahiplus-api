@@ -9,10 +9,17 @@ public sealed record ShopDto(
     string ShopType,
     string Status,
     Guid ProviderId,
-    string? City,
+    int? ProvinceId,
+    int? CityId,
     string? Address,
-    string? Description,
+    double? Latitude,
+    double? Longitude,
+    string? ManagerName,
+    string? ManagerPhone,
+    string? RepresentativeName,
+    string? RepresentativePhone,
     string? ContactPhone,
+    string? Description,
     bool IsPopular,
     DateTimeOffset CreatedAt);
 
@@ -23,5 +30,6 @@ public sealed record ShopSummaryDto(
     string? LogoUrl,
     string ShopType,
     string Status,
-    string? City,
+    int? ProvinceId,
+    int? CityId,
     bool IsPopular);

@@ -90,6 +90,12 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired()
             .HasColumnName("updated_at");
 
+        // Optimistic Concurrency via PostgreSQL system column xmin (no migration needed — system column)
+        builder.Property(o => o.RowVersion)
+            .HasColumnName("xmin")
+            .HasColumnType("xid")
+            .IsRowVersion();
+
         // Indexes
         builder.HasIndex(o => o.UserId)
             .HasDatabaseName("ix_orders_user_id");
@@ -108,5 +114,8 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Navigation(o => o.Items)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // DomainEvents is an in-memory collection — EF must not map it
+        builder.Ignore(o => o.DomainEvents);
     }
 }

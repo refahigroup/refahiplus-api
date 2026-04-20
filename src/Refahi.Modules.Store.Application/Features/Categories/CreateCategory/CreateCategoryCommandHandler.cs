@@ -30,6 +30,7 @@ public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryComman
         }
 
         var category = StoreCategory.Create(
+            request.ModuleId,
             request.Name,
             request.Slug,
             request.CategoryCode,

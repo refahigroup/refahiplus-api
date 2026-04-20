@@ -1,0 +1,6 @@
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="PardisMirror" value="https://mirrors.pardisco.co/nugetv3/index.json" />
+  </packageSources>
+</configuration>

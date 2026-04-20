@@ -18,7 +18,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         product.UpdatePrice(request.PriceMinor, request.DiscountedPriceMinor, request.DiscountPercent);
-        product.UpdateInfo(request.Title, request.Description, request.City, request.Area, request.IsAvailable);
+        product.UpdateInfo(request.Title, request.Description, request.CityId, city: null, request.Area, request.IsAvailable);
 
         await _productRepo.UpdateAsync(product, cancellationToken);
 

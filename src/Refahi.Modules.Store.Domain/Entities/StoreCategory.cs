@@ -2,22 +2,27 @@ namespace Refahi.Modules.Store.Domain.Entities;
 
 public sealed class StoreCategory
 {
-    private StoreCategory() { }
+    private StoreCategory() { _children = new List<StoreCategory>(); }
 
     public int Id { get; private set; }
+    public int ModuleId { get; private set; }                           // FK → StoreModule
     public string Name { get; private set; } = string.Empty;            // "مد و پوشاک"
     public string Slug { get; private set; } = string.Empty;
     public string CategoryCode { get; private set; } = string.Empty;   // "store.clothing"
     public string? ImageUrl { get; private set; }
-    public int? ParentId { get; private set; }                          // Self-referencing
+    public int? ParentId { get; private set; }                          // Self-referencing (max 1 level)
     public int SortOrder { get; private set; }
     public bool IsActive { get; private set; }
 
+    private readonly List<StoreCategory> _children;
+    public IReadOnlyList<StoreCategory> Children => _children.AsReadOnly();
+
     public static StoreCategory Create(
-        string name, string slug, string categoryCode,
+        int moduleId, string name, string slug, string categoryCode,
         string? imageUrl = null, int? parentId = null, int sortOrder = 0)
         => new()
         {
+            ModuleId = moduleId,
             Name = name,
             Slug = slug.ToLower(),
             CategoryCode = categoryCode,

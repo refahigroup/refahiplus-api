@@ -1,7 +1,10 @@
 using Refahi.Modules.Wallets.Application.Contracts;
+using Refahi.Modules.Wallets.Application.Contracts.Exceptions;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CreatePaymentIntent;
 using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
+using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using Refahi.Modules.Wallets.Domain.Aggregates;
+using Refahi.Modules.Wallets.Domain.Enums;
 using System;
 using System.Linq;
 using System.Threading;
@@ -21,10 +24,12 @@ namespace Refahi.Modules.Wallets.Application.Services;
 public sealed class CreatePaymentIntentApplicationService
 {
     private readonly IPaymentAtomicWriter _atomicWriter;
+    private readonly IWalletReadRepository _walletReadRepo;
 
-    public CreatePaymentIntentApplicationService(IPaymentAtomicWriter atomicWriter)
+    public CreatePaymentIntentApplicationService(IPaymentAtomicWriter atomicWriter, IWalletReadRepository walletReadRepo)
     {
         _atomicWriter = atomicWriter;
+        _walletReadRepo = walletReadRepo;
     }
 
     public async Task<CommandResponse<CreatePaymentIntentResponse>> CreateIntentAsync(
@@ -48,12 +53,38 @@ public sealed class CreatePaymentIntentApplicationService
                 throw new InvalidOperationException($"Allocation amount must be positive: {alloc.WalletId}");
         }
 
-        // 3) Convert to Infrastructure input
+        // 3) OrgCredit wallet validation: check contract validity and category code restriction
+        foreach (var alloc in command.Allocations)
+        {
+            var walletInfo = await _walletReadRepo.GetByIdAsync(alloc.WalletId, ct)
+                ?? throw new WalletNotFoundException(alloc.WalletId);
+
+            if (walletInfo.WalletType != (short)WalletType.OrgCredit)
+                continue;
+
+            // Contract expiry check
+            if (walletInfo.ContractExpiresAt.HasValue && walletInfo.ContractExpiresAt < DateTimeOffset.UtcNow)
+                throw new WalletOperationNotAllowedException(alloc.WalletId, "قرارداد کیف پول سازمانی منقضی شده است.");
+
+            // Category restriction check
+            if (walletInfo.AllowedCategoryCode is not null && command.OrderItemCategoryCode?.Count > 0)
+            {
+                var allowed = walletInfo.AllowedCategoryCode;
+                bool allMatch = command.OrderItemCategoryCode.All(code =>
+                    code.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)
+                    || allowed.StartsWith(code, StringComparison.OrdinalIgnoreCase));
+
+                if (!allMatch)
+                    throw new WalletOperationNotAllowedException(alloc.WalletId, "این کیف پول سازمانی برای دسته‌بندی کالاهای سفارش مجاز نیست.");
+            }
+        }
+
+        // 4) Convert to Infrastructure input
         var allocInput = command.Allocations
             .Select(a => new AllocationInput(a.WalletId, a.AmountMinor))
             .ToList();
 
-        // 4) Delegate atomic execution to Infrastructure
+        // 5) Delegate atomic execution to Infrastructure
         var atomicResult = await _atomicWriter.ExecuteCreateIntentAsync(
             orderId: command.OrderId,
             idempotencyKey: command.IdempotencyKey,
@@ -63,7 +94,7 @@ public sealed class CreatePaymentIntentApplicationService
             metadataJson: command.MetadataJson,
             ct: ct);
 
-        // 5) Interpret outcome and build response
+        // 6) Interpret outcome and build response
         return atomicResult.Outcome switch
         {
             CreateIntentOutcome.Created or CreateIntentOutcome.CreatedCached => BuildCompletedResponse(atomicResult),

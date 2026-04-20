@@ -7,10 +7,17 @@ public sealed record CreateShopCommand(
     string Slug,
     short ShopType,
     Guid ProviderId,
-    string? City,
+    int? ProvinceId,
+    int? CityId,
     string? Address,
-    string? Description,
-    string? ContactPhone
+    double? Latitude,
+    double? Longitude,
+    string? ManagerName,
+    string? ManagerPhone,
+    string? RepresentativeName,
+    string? RepresentativePhone,
+    string? ContactPhone,
+    string? Description
 ) : IRequest<CreateShopResponse>;
 
 public sealed record CreateShopResponse(Guid Id, string Name, string Slug, string Status);

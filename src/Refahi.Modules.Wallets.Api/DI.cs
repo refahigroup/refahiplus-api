@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Refahi.Modules.Wallets.Application;
 using Refahi.Modules.Wallets.Infrastructure;
 using Refahi.Shared.Presentation;
@@ -20,6 +22,8 @@ public static class DI
 
     public static WebApplication UseWalletsModule(this WebApplication app, string endPointsPrefix)
     {
+        app.Services.UseInfrastructure(app.Environment.IsDevelopment());
+
         MapEndPoints(app, endPointsPrefix);
 
         return app;
@@ -41,5 +45,7 @@ public static class DI
                 endpoint.Map(group);
             }
         }
+
+        group.MapGet("/ping", () => Results.Ok(new { module = "Wallets Module" }));
     }
 }

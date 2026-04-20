@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Orders.Domain.Aggregates;
+using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Orders.Infrastructure.Persistence.Context;
 
@@ -23,7 +24,7 @@ public class OrderRepository : IOrderRepository
     public async Task<Order?> GetByIdWithItemsAsync(Guid orderId, CancellationToken ct = default)
     {
         return await _context.Orders
-            .Include("_items")
+            .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == orderId, ct);
     }
 
@@ -36,7 +37,7 @@ public class OrderRepository : IOrderRepository
     public async Task<List<Order>> GetByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken ct = default)
     {
         return await _context.Orders
-            .Include("_items")
+            .Include(o => o.Items)
             .Where(o => o.UserId == userId)
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -48,6 +49,58 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.Orders
             .CountAsync(o => o.UserId == userId, ct);
+    }
+
+    public async Task<List<Order>> GetAllAsync(int page, int pageSize, string? status, Guid? userId, string? sourceModule, CancellationToken ct = default)
+    {
+        var query = _context.Orders.AsQueryable();
+
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var parsedStatus))
+            query = query.Where(o => o.Status == parsedStatus);
+
+        if (userId.HasValue)
+            query = query.Where(o => o.UserId == userId.Value);
+
+        if (!string.IsNullOrEmpty(sourceModule))
+            query = query.Where(o => o.SourceModule == sourceModule);
+
+        return await query
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> CountAllAsync(string? status, Guid? userId, string? sourceModule, CancellationToken ct = default)
+    {
+        var query = _context.Orders.AsQueryable();
+
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var parsedStatus))
+            query = query.Where(o => o.Status == parsedStatus);
+
+        if (userId.HasValue)
+            query = query.Where(o => o.UserId == userId.Value);
+
+        if (!string.IsNullOrEmpty(sourceModule))
+            query = query.Where(o => o.SourceModule == sourceModule);
+
+        return await query.CountAsync(ct);
+    }
+
+    public async Task<List<Order>> GetBySourceAsync(string sourceModule, Guid sourceReferenceId, int page, int pageSize, CancellationToken ct = default)
+    {
+        return await _context.Orders
+            .Where(o => o.SourceModule == sourceModule && o.SourceReferenceId == sourceReferenceId)
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> CountBySourceAsync(string sourceModule, Guid sourceReferenceId, CancellationToken ct = default)
+    {
+        return await _context.Orders
+            .CountAsync(o => o.SourceModule == sourceModule && o.SourceReferenceId == sourceReferenceId, ct);
     }
 
     public async Task AddAsync(Order order, CancellationToken ct = default)

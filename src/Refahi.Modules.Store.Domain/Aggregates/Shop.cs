@@ -16,11 +16,24 @@ public sealed class Shop
     public ShopType ShopType { get; private set; }
     public ShopStatus Status { get; private set; }
     public Guid ProviderId { get; private set; }                       // FK → Providers (via Contract)
-    public string? City { get; private set; }
+    
+    // Location (replaced string City with CityId + ProvinceId FKs)
+    public int? ProvinceId { get; private set; }                       // FK → References.Province
+    public int? CityId { get; private set; }                           // FK → References.City
     public string? Address { get; private set; }
-    public string? Description { get; private set; }
+    public double? Latitude { get; private set; }                      // GPS latitude
+    public double? Longitude { get; private set; }                     // GPS longitude
+    
+    // Contact info
+    public string? ManagerName { get; private set; }
+    public string? ManagerPhone { get; private set; }
+    public string? RepresentativeName { get; private set; }
+    public string? RepresentativePhone { get; private set; }
     public string? ContactPhone { get; private set; }
+    
+    public string? Description { get; private set; }
     public bool IsPopular { get; private set; }
+    public int DeliveredOrdersCount { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
@@ -30,8 +43,11 @@ public sealed class Shop
     // --- Factory ---
     public static Shop Create(
         string name, string slug, ShopType shopType, Guid providerId,
-        string? city = null, string? address = null,
-        string? description = null, string? contactPhone = null)
+        int? provinceId = null, int? cityId = null,
+        string? address = null, double? latitude = null, double? longitude = null,
+        string? managerName = null, string? managerPhone = null,
+        string? representativeName = null, string? representativePhone = null,
+        string? contactPhone = null, string? description = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new StoreDomainException("نام فروشگاه الزامی است", "SHOP_NAME_REQUIRED");
@@ -44,10 +60,17 @@ public sealed class Shop
             ShopType = shopType,
             Status = ShopStatus.PendingApproval,
             ProviderId = providerId,
-            City = city,
+            ProvinceId = provinceId,
+            CityId = cityId,
             Address = address,
-            Description = description,
+            Latitude = latitude,
+            Longitude = longitude,
+            ManagerName = managerName,
+            ManagerPhone = managerPhone,
+            RepresentativeName = representativeName,
+            RepresentativePhone = representativePhone,
             ContactPhone = contactPhone,
+            Description = description,
             IsPopular = false,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -59,14 +82,26 @@ public sealed class Shop
     public void Suspend() { Status = ShopStatus.Suspended; UpdatedAt = DateTimeOffset.UtcNow; }
     public void Close() { Status = ShopStatus.Closed; UpdatedAt = DateTimeOffset.UtcNow; }
     public void SetPopular(bool isPopular) { IsPopular = isPopular; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void RecordDelivery() { DeliveredOrdersCount++; UpdatedAt = DateTimeOffset.UtcNow; }
 
-    public void UpdateInfo(string name, string? description, string? city,
-        string? address, string? contactPhone, string? logoUrl, string? coverImageUrl)
+    public void UpdateInfo(string name, string? description,
+        int? provinceId, int? cityId, string? address,
+        double? latitude, double? longitude,
+        string? managerName, string? managerPhone,
+        string? representativeName, string? representativePhone,
+        string? contactPhone, string? logoUrl, string? coverImageUrl)
     {
         Name = name.Trim();
         Description = description;
-        City = city;
+        ProvinceId = provinceId;
+        CityId = cityId;
         Address = address;
+        Latitude = latitude;
+        Longitude = longitude;
+        ManagerName = managerName;
+        ManagerPhone = managerPhone;
+        RepresentativeName = representativeName;
+        RepresentativePhone = representativePhone;
         ContactPhone = contactPhone;
         LogoUrl = logoUrl;
         CoverImageUrl = coverImageUrl;

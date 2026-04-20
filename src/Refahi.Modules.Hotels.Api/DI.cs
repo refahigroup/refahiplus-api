@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +13,7 @@ public static class DI
 {
     public static IServiceCollection RegisterHotelsModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddHotelsInfrastructure(configuration);
+        services.AddInfrastructure(configuration);
         services.AddHotelsApplication(configuration);
 
         return services;
@@ -20,7 +21,7 @@ public static class DI
 
     public static WebApplication UseHotelModule(this WebApplication app, string endPointsPrefix)
     {
-        app.Services.UseHotelInfrastructure(app.Environment.IsDevelopment());
+        app.Services.UseInfrastructure(app.Environment.IsDevelopment());
 
         MapEndPoints(app, endPointsPrefix);
 
@@ -43,6 +44,8 @@ public static class DI
                 endpoint.Map(group);
             }
         }
+
+        group.MapGet("/ping", () => Results.Ok(new { module = "Hotels Module" }));
     }
 
 }

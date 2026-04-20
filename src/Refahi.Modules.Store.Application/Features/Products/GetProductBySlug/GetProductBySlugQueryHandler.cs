@@ -39,7 +39,24 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             .ToList();
 
         var variants = product.Variants
-            .Select(v => new ProductVariantDto(v.Id, v.Size, v.Color, v.ColorHex, v.ImageUrl, v.StockCount, v.PriceAdjustment, v.IsAvailable))
+            .Select(v => new ProductVariantDto(
+                v.Id,
+                v.SKU,
+                v.ImageUrl,
+                v.StockCount,
+                v.PriceMinor,
+                v.DiscountedPriceMinor,
+                v.IsAvailable,
+                v.Combinations.Select(c =>
+                {
+                    var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
+                    var val = attr?.Values.FirstOrDefault(vv => vv.Id == c.VariantAttributeValueId);
+                    return new VariantCombinationDto(
+                        c.VariantAttributeId,
+                        attr?.Name ?? string.Empty,
+                        c.VariantAttributeValueId,
+                        val?.Value ?? string.Empty);
+                }).ToList()))
             .ToList();
 
         var specifications = product.Specifications

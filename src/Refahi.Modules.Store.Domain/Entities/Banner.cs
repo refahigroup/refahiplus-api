@@ -7,6 +7,7 @@ public sealed class Banner
     private Banner() { }
 
     public int Id { get; private set; }
+    public int ModuleId { get; private set; }                           // FK → StoreModule
     public string Title { get; private set; } = string.Empty;
     public string ImageUrl { get; private set; } = string.Empty;
     public string? LinkUrl { get; private set; }
@@ -17,11 +18,12 @@ public sealed class Banner
     public DateTimeOffset? EndDate { get; private set; }
 
     public static Banner Create(
-        string title, string imageUrl, BannerType type,
+        int moduleId, string title, string imageUrl, BannerType type,
         string? linkUrl = null, int sortOrder = 0,
         DateTimeOffset? startDate = null, DateTimeOffset? endDate = null)
         => new()
         {
+            ModuleId = moduleId,
             Title = title,
             ImageUrl = imageUrl,
             BannerType = type,

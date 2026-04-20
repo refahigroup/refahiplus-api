@@ -31,16 +31,41 @@ public sealed class Wallet : EntityBase
     public Currency Currency { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
+    // ORG_CREDIT fields (null for REFAHI wallets)
+    public string? AllowedCategoryCode { get; private set; }
+    public DateTimeOffset? ContractExpiresAt { get; private set; }
 
-    public Wallet(Guid walletId, Guid ownerId, WalletType walletType, WalletStatus status, string currency)
+
+    public Wallet(Guid walletId, Guid ownerId, WalletType walletType, WalletStatus status, string currency,
+        string? allowedCategoryCode = null, DateTimeOffset? contractExpiresAt = null)
     {
         Id = walletId;
         OwnerId = ownerId;
         WalletType = walletType;
         Status = status;
-
         Currency = ValueObjects.Currency.Of(currency);
+        AllowedCategoryCode = allowedCategoryCode;
+        ContractExpiresAt = contractExpiresAt;
     }
+
+    /// <summary>
+    /// Returns true if this wallet is allowed to pay for the given category.
+    /// REFAHI wallets have no restriction. ORG_CREDIT wallets are restricted by prefix matching.
+    /// </summary>
+    public bool IsAllowedForCategory(string categoryCode)
+    {
+        if (WalletType != WalletType.OrgCredit) return true;
+        if (AllowedCategoryCode is null) return true;
+
+        // Prefix match: AllowedCategoryCode="store" allows "store.clothing"
+        // Exact or sub-prefix: AllowedCategoryCode="store.clothing" only allows "store.clothing"
+        return categoryCode.StartsWith(AllowedCategoryCode, StringComparison.OrdinalIgnoreCase)
+            || AllowedCategoryCode.StartsWith(categoryCode, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Returns true if the contract has not expired.</summary>
+    public bool IsContractValid() =>
+        ContractExpiresAt is null || ContractExpiresAt > DateTimeOffset.UtcNow;
 
 
     /// <summary>

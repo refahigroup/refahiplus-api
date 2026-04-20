@@ -1,4 +1,5 @@
 using MediatR;
+using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Commands.Reviews;
 using Refahi.Modules.Store.Domain.Entities;
 using Refahi.Modules.Store.Domain.Exceptions;
@@ -10,17 +11,28 @@ public class CreateReviewCommandHandler : IRequestHandler<CreateReviewCommand, C
 {
     private readonly IReviewRepository _reviewRepo;
     private readonly IProductRepository _productRepo;
+    private readonly IMediator _mediator;
 
-    public CreateReviewCommandHandler(IReviewRepository reviewRepo, IProductRepository productRepo)
+    public CreateReviewCommandHandler(IReviewRepository reviewRepo, IProductRepository productRepo, IMediator mediator)
     {
         _reviewRepo = reviewRepo;
         _productRepo = productRepo;
+        _mediator = mediator;
     }
 
     public async Task<CreateReviewResponse> Handle(CreateReviewCommand request, CancellationToken cancellationToken)
     {
         var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
+
+        // Verify the user has a delivered order from this product's shop
+        var hasPurchased = await _mediator.Send(new HasUserPurchasedQuery(
+            UserId: request.UserId,
+            SourceModule: "Store",
+            SourceReferenceId: product.ShopId), cancellationToken);
+
+        if (!hasPurchased)
+            throw new StoreDomainException("فقط خریداران می‌توانند نظر ثبت کنند", "PURCHASE_REQUIRED");
 
         var alreadyReviewed = await _reviewRepo.UserHasReviewedAsync(request.ProductId, request.UserId, cancellationToken);
         if (alreadyReviewed)
@@ -33,3 +45,4 @@ public class CreateReviewCommandHandler : IRequestHandler<CreateReviewCommand, C
         return new CreateReviewResponse(review.Id);
     }
 }
+

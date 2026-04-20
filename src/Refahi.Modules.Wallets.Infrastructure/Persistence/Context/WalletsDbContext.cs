@@ -47,6 +47,15 @@ public class WalletsDbContext : DbContext
 
             b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
+            b.Property(x => x.AllowedCategoryCode)
+                .HasColumnName("allowed_category_code")
+                .HasMaxLength(100)
+                .IsRequired(false);
+
+            b.Property(x => x.ContractExpiresAt)
+                .HasColumnName("contract_expires_at")
+                .IsRequired(false);
+
             b.HasIndex(x => x.OwnerId).HasDatabaseName("idx_wallets_owner");
             b.Ignore(x => x.DomainEvents);
         });

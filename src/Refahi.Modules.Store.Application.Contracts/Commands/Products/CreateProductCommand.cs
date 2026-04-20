@@ -12,9 +12,10 @@ public sealed record CreateProductCommand(
     short SalesModel,
     int CategoryId,
     string CategoryCode,
+    decimal CommissionPercent,
     string? Description,
     int StockCount,
-    string? City,
+    int? CityId,
     string? Area
 ) : IRequest<CreateProductResponse>;
 

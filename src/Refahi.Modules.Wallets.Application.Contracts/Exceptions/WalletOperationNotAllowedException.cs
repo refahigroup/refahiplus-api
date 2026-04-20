@@ -1,4 +1,5 @@
 using Refahi.Modules.Wallets.Application.Contracts.Exceptions.Abstraction;
+using System;
 
 namespace Refahi.Modules.Wallets.Application.Contracts.Exceptions;
 
@@ -6,4 +7,7 @@ public sealed class WalletOperationNotAllowedException : WalletApplicationExcept
 {
     public WalletOperationNotAllowedException(string status)
         : base("WALLET_OPERATION_NOT_ALLOWED", $"Operation is not allowed when wallet status is {status}.") { }
+
+    public WalletOperationNotAllowedException(Guid walletId, string reason)
+        : base("WALLET_OPERATION_NOT_ALLOWED", reason) { }
 }

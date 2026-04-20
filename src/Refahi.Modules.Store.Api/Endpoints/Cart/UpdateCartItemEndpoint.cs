@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Commands.Cart;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Shared.Presentation;
 using System.Security.Claims;
 
@@ -15,10 +16,12 @@ public class UpdateCartItemEndpoint : IEndpoint
     {
         if (app is not IEndpointRouteBuilder routes) return;
 
-        routes.MapPut("/cart/items/{id:guid}", async (
+        routes.MapPut("/{moduleSlug}/cart/items/{id:guid}", async (
+            string moduleSlug,
             Guid id,
             [FromBody] UpdateCartItemCommand command,
             HttpContext httpContext,
+            IModuleResolver moduleResolver,
             IMediator mediator,
             CancellationToken ct) =>
         {
@@ -28,7 +31,11 @@ public class UpdateCartItemEndpoint : IEndpoint
             if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
                 return Results.Unauthorized();
 
-            var adjustedCommand = command with { UserId = userId, CartItemId = id };
+            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+            if (moduleId is null)
+                return Results.NotFound();
+
+            var adjustedCommand = command with { UserId = userId, ModuleId = moduleId.Value, CartItemId = id };
             var result = await mediator.Send(adjustedCommand, ct);
             return Results.Ok(ApiResponseHelper.Success(result, "سبد خرید بروزرسانی شد"));
         })
@@ -37,6 +44,7 @@ public class UpdateCartItemEndpoint : IEndpoint
         .RequireAuthorization("UserOrAdmin")
         .Produces<ApiResponse<UpdateCartItemResponse>>(StatusCodes.Status200OK)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status404NotFound);
     }
 }

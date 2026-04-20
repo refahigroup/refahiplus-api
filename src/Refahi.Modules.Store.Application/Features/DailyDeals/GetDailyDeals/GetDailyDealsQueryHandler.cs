@@ -25,9 +25,14 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
     {
         var activeDeals = await _dealRepo.GetCurrentlyActiveAsync(cancellationToken);
 
+        IEnumerable<Domain.Entities.DailyDeal> deals = activeDeals;
+
+        if (request.ModuleId.HasValue)
+            deals = deals.Where(d => d.ModuleId == request.ModuleId.Value);
+
         var result = new List<DailyDealDto>();
 
-        foreach (var deal in activeDeals)
+        foreach (var deal in deals)
         {
             var product = await _productRepo.GetByIdAsync(deal.ProductId, cancellationToken);
             if (product is null || product.IsDeleted)

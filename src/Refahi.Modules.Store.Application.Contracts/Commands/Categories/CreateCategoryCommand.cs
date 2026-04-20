@@ -3,6 +3,7 @@ using MediatR;
 namespace Refahi.Modules.Store.Application.Contracts.Commands.Categories;
 
 public sealed record CreateCategoryCommand(
+    int ModuleId,
     string Name,
     string Slug,
     string CategoryCode,

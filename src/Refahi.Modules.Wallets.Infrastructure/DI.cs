@@ -9,7 +9,9 @@ using Refahi.Modules.Wallets.Infrastructure.Persistence.Atomic;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Context;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Repositories;
 using Refahi.Shared.Extensions;
+using Refahi.Shared.Infrastructure;
 using System;
+using System.Linq;
 
 namespace Refahi.Modules.Wallets.Infrastructure;
 
@@ -20,11 +22,16 @@ public static class DI
         string connectionString = configuration.GetConnectionString();
 
         services.AddDbContext<WalletsDbContext>(options =>
-            options.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(WalletsDbContext).Assembly.FullName)));
+        {
+            options.UseNpgsql(connectionString);
+        });
 
         // Read repositories (Dapper-based queries)
         services.AddScoped<IWalletReadRepository>(sp => new WalletReadRepository(connectionString));
         services.AddScoped<IPaymentReadRepository>(sp => new PaymentReadRepository(connectionString));
+
+        // Write repositories
+        services.AddScoped<IWalletWriteRepository>(sp => new WalletWriteRepository(connectionString));
 
         // Atomic writers (explicit SQL transaction execution)
         services.AddScoped<IWalletAtomicWriter>(sp => new WalletAtomicWriter(connectionString));
@@ -35,5 +42,17 @@ public static class DI
             new BalanceRebuilder(connectionString, sp.GetRequiredService<ILogger<BalanceRebuilder>>()));
 
         return services;
+    }
+
+    public static void UseInfrastructure(this IServiceProvider provider, bool IsDevelopment)
+    {
+        //if (!IsDevelopment)
+        //    return;
+
+        using var scope = provider.CreateScope();
+        var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
+
+        tools.ApplyMigrations<WalletsDbContext>();
+
     }
 }

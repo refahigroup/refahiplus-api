@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,7 +16,7 @@ namespace Refahi.Modules.Identity.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterIdentityModule(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    public static IServiceCollection RegisterIdentityModule(this IServiceCollection services, IConfiguration configuration)
     {
         services
             .AddOptions<JwtOptions>()
@@ -29,7 +30,7 @@ public static class DI
    
         services
             .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration, environment.IsDevelopment());
+            .RegisterInfrastructure(configuration);
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer();
@@ -85,6 +86,8 @@ public static class DI
         app.UseAuthentication();
         app.UseAuthorization();
 
+        app.Services.UseInfrastructure(app.Environment.IsDevelopment());
+
         return app;
     }
 
@@ -104,5 +107,7 @@ public static class DI
                 endpoint.Map(group);
             }
         }
+
+        group.MapGet("/ping", () => Results.Ok(new { module = "Identity Module" }));
     }
 }

@@ -39,6 +39,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Cre
             items: items);
 
         await _orderRepository.AddAsync(order, cancellationToken);
+        // Domain events are captured to Outbox by SaveChangesAsync override in OrdersDbContext
 
         return new CreateOrderResponse(order.Id, order.OrderNumber, order.FinalAmountMinor);
     }

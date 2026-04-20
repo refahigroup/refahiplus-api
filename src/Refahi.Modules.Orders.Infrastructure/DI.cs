@@ -1,16 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Refahi.Modules.Orders.Application.Contracts.Repositories;
 using Refahi.Modules.Orders.Domain.Repositories;
+using Refahi.Modules.Orders.Infrastructure.Outbox;
 using Refahi.Modules.Orders.Infrastructure.Persistence.Context;
 using Refahi.Modules.Orders.Infrastructure.Repositories;
 using Refahi.Shared.Extensions;
+using Refahi.Shared.Infrastructure;
 
 namespace Refahi.Modules.Orders.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration, bool isDevelopment = false)
+    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         string connectionString = configuration.GetConnectionString();
 
@@ -18,19 +21,21 @@ public static class DI
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IOrderRepository, OrderRepository>();
-
-        ApplyMigrations(isDevelopment, services.BuildServiceProvider());
+        services.AddScoped<IOrderQueryService, OrderQueryService>();
+        services.AddHostedService<ProcessOutboxMessagesJob>();
 
         return services;
     }
 
-    private static void ApplyMigrations(bool isDevelopment, IServiceProvider serviceProvider)
+    public static void UseInfrastructure(this IServiceProvider provider, bool IsDevelopment)
     {
-        if (!isDevelopment)
-            return;
+        //if (!IsDevelopment)
+        //    return;
 
-        using var scope = serviceProvider.CreateScope();
-        var ctx = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
-        ctx.Database.Migrate();
+        using var scope = provider.CreateScope();
+        var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
+
+        tools.ApplyMigrations<OrdersDbContext>();
+
     }
 }

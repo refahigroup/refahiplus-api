@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Refahi.Modules.SupplyChain.Infrastructure\Refahi.Modules.SupplyChain.Infrastructure.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.SupplyChain.Application.Contracts\Refahi.Modules.SupplyChain.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.SupplyChain.Application\Refahi.Modules.SupplyChain.Application.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.SupplyChain.Domain\Refahi.Modules.SupplyChain.Domain.csproj" />
+    <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Endpoints\" />
+  </ItemGroup>
+</Project>

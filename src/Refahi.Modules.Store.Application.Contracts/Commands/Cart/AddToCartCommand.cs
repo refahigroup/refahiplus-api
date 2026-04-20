@@ -4,6 +4,7 @@ namespace Refahi.Modules.Store.Application.Contracts.Commands.Cart;
 
 public sealed record AddToCartCommand(
     Guid UserId,
+    int ModuleId,
     Guid ProductId,
     Guid? VariantId,
     Guid? SessionId,

@@ -1,19 +1,19 @@
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi;
 using Refahi.Api;
 using Refahi.Api.Middlewares;
+using Refahi.Api.Services;
 using Refahi.Api.Services.Chaching;
 using Refahi.Api.Services.Notification;
-using Refahi.Modules.Catalog.Api;
 using Refahi.Modules.Hotels.Api;
 using Refahi.Modules.Identity.Api;
 using Refahi.Modules.Orders.Api;
 using Refahi.Modules.Organizations.Api;
+using Refahi.Modules.References.Api;
+using Refahi.Modules.Store.Api;
 using Refahi.Modules.Wallets.Api;
 using System.Diagnostics;
 using System.Reflection;
-using Refahi.Modules.Store.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,8 +27,29 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "Refahi Plus API"
     });
+
+    // JWT Bearer authentication for Swagger UI
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "توکن JWT را وارد کنید. مثال: eyJhbGciOiJIUzI1NiIs..."
+    });
+
+    // Global security requirement — Swagger UI sends Bearer header for all operations
+    // Must pass `doc` so the reference serializes correctly as {"Bearer": []} not {}
+    options.AddSecurityRequirement(doc =>
+        new OpenApiSecurityRequirement
+        {
+            { new OpenApiSecuritySchemeReference("Bearer", doc), new List<string>() }
+        });
 });
 
+
+builder.Services.RegisterDbTools();
 
 // Register Shared services
 builder.Services
@@ -39,10 +60,10 @@ builder.Services
 //try
 //{
     builder.Services
-        .RegisterIdentityModule(builder.Configuration, builder.Environment)
+        .RegisterReferencesModule(builder.Configuration)
+        .RegisterIdentityModule(builder.Configuration)
         .RegisterOrganizationsModule(builder.Configuration)
         .RegisterWalletsModule(builder.Configuration)
-        .RegisterCatalogModule(builder.Configuration)
         .RegisterOrdersModule(builder.Configuration)
         .RegisterHotelsModule(builder.Configuration)
         .RegisterStoreModule(builder.Configuration);
@@ -66,6 +87,9 @@ app.UseApiExceptionMiddleware();
 //// Add response wrapping middleware (wrap API JSON responses)
 //// Registered after exception middleware to ensure errors are handled first
 app.UseResponseWrappingMiddleware();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 //if (app.Environment.IsDevelopment())
 //{
@@ -96,10 +120,10 @@ app.MapGet("/api/health", () => {
 // Map module endpoints
 //try
 //{
-    app.UseIdentityModule("/api/auth")
-       .MapOrganizationsEndpoints("/api/organizations")
+    app.UseReferencesModule("/api/references")
+       .UseIdentityModule("/api/auth")
+       .UseOrganizationsModule("/api/organizations")
        .UseWalletsModule("/api/wallets")
-       .UseCatalogModule("/api/catalog")
        .UseOrdersModule("/api/orders")
        .UseHotelModule("/api/hotels")
        .UseStoreModule("/api/store");

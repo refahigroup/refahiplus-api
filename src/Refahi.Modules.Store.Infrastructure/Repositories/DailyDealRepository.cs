@@ -30,6 +30,14 @@ public class DailyDealRepository : IDailyDealRepository
             .ToListAsync(ct);
     }
 
+    public Task<List<DailyDeal>> GetAllAsync(int? moduleId = null, CancellationToken ct = default)
+    {
+        var query = _db.DailyDeals.AsQueryable();
+        if (moduleId.HasValue)
+            query = query.Where(d => d.ModuleId == moduleId.Value);
+        return query.OrderByDescending(d => d.StartTime).ToListAsync(ct);
+    }
+
     public async Task AddAsync(DailyDeal deal, CancellationToken ct = default)
     {
         await _db.DailyDeals.AddAsync(deal, ct);

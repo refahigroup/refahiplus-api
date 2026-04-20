@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,13 +15,15 @@ public static class DI
     {
         services
             .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration, environment?.IsDevelopment() ?? false);
+            .RegisterInfrastructure(configuration);
 
         return services;
     }
 
     public static WebApplication UseOrdersModule(this WebApplication app, string endPointsPrefix)
     {
+        app.Services.UseInfrastructure(app.Environment.IsDevelopment());
+
         MapEndPoints(app, endPointsPrefix);
         return app;
     }
@@ -41,5 +44,7 @@ public static class DI
                 endpoint.Map(group);
             }
         }
+
+        group.MapGet("/ping", () => Results.Ok(new { module = "Order Module" }));
     }
 }

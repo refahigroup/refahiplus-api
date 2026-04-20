@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Refahi.Modules.Identity.Application.Contracts.Models;
 using Refahi.Modules.Identity.Domain.Aggregates;
 using Refahi.Modules.Identity.Domain.Repositories;
+using Refahi.Modules.Wallets.Application.Contracts.Features.CreateWallet;
 using Refahi.Shared.Services.Notification;
 using DomainRoles = Refahi.Modules.Identity.Domain.ValueObjects.Roles;
 
@@ -16,15 +17,18 @@ public class ValidateOtpAndCreateUserCommandHandler : IRequestHandler<ValidateOt
     private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
     private readonly ILogger<ValidateOtpAndCreateUserCommandHandler> _logger;
+    private readonly IMediator _mediator;
 
     public ValidateOtpAndCreateUserCommandHandler(
         IUserRepository userRepository,
         INotificationService notificationService,
-        ILogger<ValidateOtpAndCreateUserCommandHandler> logger)
+        ILogger<ValidateOtpAndCreateUserCommandHandler> logger,
+        IMediator mediator)
     {
         _userRepository = userRepository;
         _notificationService = notificationService;
         _logger = logger;
+        _mediator = mediator;
     }
 
     public async Task<ValidateOtpResult> Handle(ValidateOtpAndCreateUserCommand request, CancellationToken cancellationToken)
@@ -73,6 +77,16 @@ public class ValidateOtpAndCreateUserCommandHandler : IRequestHandler<ValidateOt
 
         // Save user
         await _userRepository.AddAsync(user, cancellationToken);
+
+        // Auto-provision REFAHI wallet for new user
+        try
+        {
+            await _mediator.Send(new CreateWalletCommand(user.Id, "REFAHI", "IRR"), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to auto-provision wallet for user {UserId}", user.Id);
+        }
 
         // Send welcome SMS notification if mobile number is available
         if (!string.IsNullOrWhiteSpace(mobileNumber))

@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Refahi.Modules.Store.Application.Services;
 
 namespace Refahi.Modules.Store.Application;
 
@@ -12,7 +13,8 @@ public static class DI
 
         services
             .AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly))
-            .AddValidatorsFromAssembly(assembly);
+            .AddValidatorsFromAssembly(assembly)
+            .AddScoped<IModuleResolver, ModuleResolver>();
 
         return services;
     }

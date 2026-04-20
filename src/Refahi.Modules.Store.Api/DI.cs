@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Refahi.Shared.Presentation;
+using Microsoft.Extensions.Hosting;
 using Refahi.Modules.Store.Application;
 using Refahi.Modules.Store.Infrastructure;
+using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Store.Api;
 
@@ -20,6 +22,8 @@ public static class DI
 
     public static WebApplication UseStoreModule(this WebApplication app, string endPointsPrefix)
     {
+        app.Services.UseInfrastructure(app.Environment.IsDevelopment());
+
         MapEndPoints(app, endPointsPrefix);
 
         return app;
@@ -41,5 +45,7 @@ public static class DI
                 endpoint.Map(group);
             }
         }
+
+        group.MapGet("/ping", () => Results.Ok(new { module = "Store Module" }));
     }
 }

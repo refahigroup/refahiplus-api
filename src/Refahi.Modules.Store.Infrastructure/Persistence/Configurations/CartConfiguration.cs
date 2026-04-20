@@ -13,12 +13,14 @@ public class CartConfiguration : IEntityTypeConfiguration<Cart>
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.UserId).IsRequired();
+        builder.Property(c => c.ModuleId).IsRequired();
         builder.Property(c => c.CreatedAt).IsRequired();
         builder.Property(c => c.UpdatedAt).IsRequired();
 
         builder.Ignore(c => c.TotalMinor);
 
-        builder.HasIndex(c => c.UserId).IsUnique();
+        // Each user has one cart per module
+        builder.HasIndex(c => new { c.UserId, c.ModuleId }).IsUnique();
 
         builder.HasMany(c => c.Items)
             .WithOne()

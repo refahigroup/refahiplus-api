@@ -13,12 +13,14 @@ public class DailyDealConfiguration : IEntityTypeConfiguration<DailyDeal>
         builder.HasKey(d => d.Id);
         builder.Property(d => d.Id).ValueGeneratedOnAdd();
 
+        builder.Property(d => d.ModuleId).IsRequired();
         builder.Property(d => d.ProductId).IsRequired();
         builder.Property(d => d.DiscountPercent).IsRequired();
         builder.Property(d => d.StartTime).IsRequired();
         builder.Property(d => d.EndTime).IsRequired();
         builder.Property(d => d.IsActive).IsRequired();
 
+        builder.HasIndex(d => d.ModuleId);
         builder.HasIndex(d => d.ProductId);
         builder.HasIndex(d => d.IsActive);
     }

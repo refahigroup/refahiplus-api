@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Refahi.Modules.Organizations.Application;
 using Refahi.Modules.Organizations.Infrastructure;
 using Refahi.Shared.Presentation;
@@ -19,12 +20,11 @@ public static class DI
         return services;
     }
 
-    public static WebApplication MapOrganizationsEndpoints(this WebApplication app, string endPointsPrefix)
+    public static WebApplication UseOrganizationsModule(this WebApplication app, string endPointsPrefix)
     {
-        MapEndPoints(app, endPointsPrefix);
+        app.Services.UseInfrastructure(app.Environment.IsDevelopment());
 
-        var group = app.MapGroup("/organizations");
-        group.MapGet("/ping", () => Results.Ok(new { module = "organizations" }));
+        MapEndPoints(app, endPointsPrefix);
 
         return app;
     }
@@ -45,5 +45,7 @@ public static class DI
                 endpoint.Map(group);
             }
         }
+
+        group.MapGet("/ping", () => Results.Ok(new { module = "Organizations Module" }));
     }
 }

@@ -17,8 +17,17 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
         var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        product.AddVariant(request.Size, request.Color, request.ColorHex,
-            request.ImageUrl, request.StockCount, request.PriceAdjustment);
+        var combinations = request.Combinations
+            .Select(c => (c.AttributeId, c.ValueId))
+            .ToList();
+
+        product.AddVariant(
+            combinations,
+            request.StockCount,
+            request.PriceMinor,
+            request.DiscountedPriceMinor,
+            request.ImageUrl,
+            request.Sku);
 
         await _productRepo.UpdateAsync(product, cancellationToken);
 
@@ -26,3 +35,4 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
         return new AddProductVariantResponse(addedVariant.Id);
     }
 }
+

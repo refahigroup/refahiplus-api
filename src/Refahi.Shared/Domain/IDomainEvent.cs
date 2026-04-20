@@ -1,6 +1,8 @@
-﻿namespace Refahi.Shared.Domain;
+﻿using MediatR;
 
-public interface IDomainEvent
+namespace Refahi.Shared.Domain;
+
+public interface IDomainEvent : INotification
 {
     DateTimeOffset OccurredAt { get; }
 }

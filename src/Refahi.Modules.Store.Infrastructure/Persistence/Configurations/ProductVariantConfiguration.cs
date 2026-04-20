@@ -13,14 +13,19 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.HasKey(v => v.Id);
 
         builder.Property(v => v.ProductId).IsRequired();
-        builder.Property(v => v.Size).HasMaxLength(20);
-        builder.Property(v => v.Color).HasMaxLength(100);
-        builder.Property(v => v.ColorHex).HasMaxLength(10);
+        builder.Property(v => v.SKU).HasMaxLength(50);
         builder.Property(v => v.ImageUrl).HasMaxLength(500);
         builder.Property(v => v.StockCount).IsRequired();
-        builder.Property(v => v.PriceAdjustment).IsRequired();
+        builder.Property(v => v.PriceMinor).IsRequired();
+        builder.Property(v => v.DiscountedPriceMinor);
         builder.Property(v => v.IsAvailable).IsRequired();
 
         builder.HasIndex(v => v.ProductId);
+
+        builder.HasMany(v => v.Combinations)
+            .WithOne()
+            .HasForeignKey("ProductVariantId")
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(v => v.Combinations).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

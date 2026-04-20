@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 using Refahi.Modules.Store.Application.Contracts.Queries.Products;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Store.Api.Endpoints.Products;
@@ -14,13 +15,19 @@ public class SearchProductsEndpoint : IEndpoint
     {
         if (app is not IEndpointRouteBuilder routes) return;
 
-        routes.MapGet("/products/search", async (
+        routes.MapGet("/{moduleSlug}/products/search", async (
+            string moduleSlug,
             string q,
             int pageNumber,
             int pageSize,
+            IModuleResolver moduleResolver,
             IMediator mediator,
             CancellationToken ct) =>
         {
+            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+            if (moduleId is null)
+                return Results.NotFound();
+
             var query = new SearchProductsQuery(
                 Query: q ?? string.Empty,
                 PageNumber: pageNumber > 0 ? pageNumber : 1,
@@ -35,7 +42,8 @@ public class SearchProductsEndpoint : IEndpoint
         })
         .WithName("Store.SearchProducts")
         .WithTags("Store.Products")
-        .Produces<PaginatedResponse<ProductSummaryDto>>(StatusCodes.Status200OK);
+        .Produces<PaginatedResponse<ProductSummaryDto>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
         // Public endpoint
     }
 }

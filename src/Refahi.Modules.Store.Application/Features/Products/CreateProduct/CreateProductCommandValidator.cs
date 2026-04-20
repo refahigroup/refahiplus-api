@@ -32,10 +32,12 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
             .GreaterThan(0).WithMessage("دسته‌بندی الزامی است");
 
         RuleFor(x => x.CategoryCode)
-            .NotEmpty().WithMessage("کد دسته‌بندی الزامی است")
-            .Must(c => c.StartsWith("store.")).WithMessage("کد دسته‌بندی باید با 'store.' شروع شود");
+            .NotEmpty().WithMessage("کد دسته‌بندی الزامی است");
 
         RuleFor(x => x.StockCount)
             .GreaterThanOrEqualTo(0).WithMessage("تعداد موجودی نمی‌تواند منفی باشد");
+
+        RuleFor(x => x.CommissionPercent)
+            .InclusiveBetween(0, 100).WithMessage("درصد کمیسیون باید بین ۰ تا ۱۰۰ باشد");
     }
 }

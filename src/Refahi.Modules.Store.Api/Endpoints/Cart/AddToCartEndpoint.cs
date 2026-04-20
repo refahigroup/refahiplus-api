@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Commands.Cart;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Shared.Presentation;
 using System.Security.Claims;
 
@@ -15,9 +16,11 @@ public class AddToCartEndpoint : IEndpoint
     {
         if (app is not IEndpointRouteBuilder routes) return;
 
-        routes.MapPost("/cart/items", async (
+        routes.MapPost("/{moduleSlug}/cart/items", async (
+            string moduleSlug,
             [FromBody] AddToCartCommand command,
             HttpContext httpContext,
+            IModuleResolver moduleResolver,
             IMediator mediator,
             CancellationToken ct) =>
         {
@@ -27,7 +30,11 @@ public class AddToCartEndpoint : IEndpoint
             if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
                 return Results.Unauthorized();
 
-            var adjustedCommand = command with { UserId = userId };
+            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+            if (moduleId is null)
+                return Results.NotFound();
+
+            var adjustedCommand = command with { UserId = userId, ModuleId = moduleId.Value };
             var result = await mediator.Send(adjustedCommand, ct);
             return Results.Ok(ApiResponseHelper.Success(result, "محصول به سبد خرید اضافه شد"));
         })
@@ -36,6 +43,7 @@ public class AddToCartEndpoint : IEndpoint
         .RequireAuthorization("UserOrAdmin")
         .Produces<ApiResponse<AddToCartResponse>>(StatusCodes.Status200OK)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status404NotFound);
     }
 }
