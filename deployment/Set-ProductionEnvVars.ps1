@@ -47,7 +47,16 @@ Write-Host ""
 Write-Host "Connecting to server..." -ForegroundColor Yellow
 
 try {
-    $session = New-PSSession -ComputerName $ServerIP -Credential $credential
+    # Pre-check: TrustedHosts must include the server IP
+    $trustedHosts = (Get-Item WSMan:\localhost\Client\TrustedHosts -ErrorAction SilentlyContinue).Value
+    if ($trustedHosts -ne "*" -and $trustedHosts -notlike "*$ServerIP*") {
+        Write-Host "[ERROR] Server IP ($ServerIP) is not in TrustedHosts!" -ForegroundColor Red
+        Write-Host "Fix: Run Setup-DevMachine.ps1 as Administrator and add the server IP." -ForegroundColor Yellow
+        exit 1
+    }
+
+    # Use Negotiate (NTLM) explicitly; Kerberos does not work for standalone servers
+    $session = New-PSSession -ComputerName $ServerIP -Credential $credential -Authentication Negotiate
     
     Write-Host "Updating web.config..." -ForegroundColor Yellow
     

@@ -23,7 +23,7 @@ public class CreateCityCommandHandler : IRequestHandler<CreateCityCommand, Creat
         var province = await _provinceRepository.GetByIdAsync(request.ProvinceId, cancellationToken)
             ?? throw new ReferencesDomainException("استان یافت نشد", "PROVINCE_NOT_FOUND");
 
-        if (await _cityRepository.SlugExistsAsync(request.Slug.Trim().ToLowerInvariant(), null, cancellationToken))
+        if (await _cityRepository.SlugExistsAsync(request.Slug.Trim().ToLowerInvariant(), request.ProvinceId, null, cancellationToken))
             throw new ReferencesDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
 
         var city = City.Create(request.Name, request.Slug, request.ProvinceId, request.SortOrder);

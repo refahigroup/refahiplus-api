@@ -14,6 +14,7 @@ public class ProvinceConfiguration : IEntityTypeConfiguration<Province>
         builder.Property(p => p.Id).ValueGeneratedOnAdd();
 
         builder.Property(p => p.Name).HasMaxLength(200).IsRequired();
+        builder.Property(p => p.NameEn).HasMaxLength(200).IsRequired();
         builder.Property(p => p.Slug).HasMaxLength(200).IsRequired();
         builder.Property(p => p.SortOrder).IsRequired();
         builder.Property(p => p.IsActive).IsRequired();

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refahi.Modules.References.Domain.Repositories;
+using Refahi.Modules.References.Infrastructure.Persistence;
 using Refahi.Modules.References.Infrastructure.Persistence.Context;
 using Refahi.Modules.References.Infrastructure.Repositories;
 using Refahi.Shared.Extensions;
@@ -39,5 +40,7 @@ public static class DI
 
         tools.ApplyMigrations<ReferencesDbContext>();
 
+        //var context = scope.ServiceProvider.GetRequiredService<ReferencesDbContext>();
+        //ReferencesDataSeeder.Seed(context);
     }
 }

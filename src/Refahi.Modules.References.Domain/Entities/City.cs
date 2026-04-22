@@ -11,6 +11,7 @@ public sealed class City
 
     public int Id { get; private set; }
     public string Name { get; private set; } = null!;
+    public string NameEn { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
     public int ProvinceId { get; private set; }
     public int SortOrder { get; private set; }

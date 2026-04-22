@@ -96,11 +96,46 @@ try {
 Write-Host ""
 Write-Host "5. Testing connection to server..." -ForegroundColor Yellow
 
+# --- Pre-check: TCP port 5985 reachable ---
+Write-Host "  Checking port 5985 on $serverIP ..." -ForegroundColor Gray
+$tcpOk = Test-NetConnection -ComputerName $serverIP -Port 5985 -WarningAction SilentlyContinue -InformationLevel Quiet
+if (-not $tcpOk) {
+    Write-Host "  [ERROR] Port 5985 (WinRM HTTP) is NOT reachable on $serverIP !" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  Root cause: server firewall is blocking port 5985, or the server is offline." -ForegroundColor Yellow
+    Write-Host "  Fix on server (run as Admin):" -ForegroundColor Yellow
+    Write-Host "    netsh advfirewall firewall add rule name='WinRM-HTTP' protocol=TCP dir=in localport=5985 action=allow" -ForegroundColor Cyan
+    Write-Host "  OR run: deployment\Setup-Server.ps1 (section 5 configures the firewall rule)" -ForegroundColor Cyan
+    exit 1
+}
+Write-Host "  [OK] Port 5985 is reachable" -ForegroundColor Green
+
+# --- Pre-check: WinRM service responds ---
+Write-Host "  Testing WinRM service response..." -ForegroundColor Gray
+try {
+    Test-WSMan -ComputerName $serverIP -ErrorAction Stop | Out-Null
+    Write-Host "  [OK] WinRM service is responding" -ForegroundColor Green
+} catch {
+    Write-Host "  [ERROR] WinRM service on $serverIP is NOT responding correctly!" -ForegroundColor Red
+    Write-Host "  Error: $_" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  Root cause: WinRM is running (port 5985 open) but service auth is misconfigured." -ForegroundColor Yellow
+    Write-Host "  Fix: Log in to server and run deployment\Setup-Server.ps1 as Administrator." -ForegroundColor Yellow
+    Write-Host "  That script enables Negotiate auth and AllowUnencrypted on the WinRM service." -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Manual fix (run on server as Admin):" -ForegroundColor Yellow
+    Write-Host "    winrm quickconfig -force" -ForegroundColor Cyan
+    Write-Host "    Set-Item WSMan:\localhost\Service\AllowUnencrypted -Value `$true -Force" -ForegroundColor Cyan
+    Write-Host "    Set-Item WSMan:\localhost\Service\Auth\Negotiate -Value `$true -Force" -ForegroundColor Cyan
+    Write-Host "    Restart-Service WinRM" -ForegroundColor Cyan
+    exit 1
+}
+
 Write-Host "  Enter server credentials:" -ForegroundColor Cyan
-$credential = Get-Credential -Message "Server credentials"
+$credential = Get-Credential -Message "Server credentials (e.g. Administrator)"
 
 try {
-    $result = Invoke-Command -ComputerName $serverIP -Credential $credential -ScriptBlock {
+    $result = Invoke-Command -ComputerName $serverIP -Credential $credential -Authentication Negotiate -ScriptBlock {
         $env:COMPUTERNAME
     } -ErrorAction Stop
     
@@ -109,10 +144,15 @@ try {
     Write-Host "  [ERROR] Cannot connect to server!" -ForegroundColor Red
     Write-Host "  Error: $_" -ForegroundColor Red
     Write-Host ""
-    Write-Host "  Troubleshooting steps:" -ForegroundColor Yellow
-    Write-Host "    1. Make sure WinRM is enabled on server (it should be from SetupIIS.ps1)" -ForegroundColor Gray
-    Write-Host "    2. Make sure port 5985 is open on server firewall" -ForegroundColor Gray
-    Write-Host "    3. Make sure you entered correct credentials" -ForegroundColor Gray
+    Write-Host "  Diagnosis:" -ForegroundColor Yellow
+    Write-Host "    - Port 5985 is open (checked above)" -ForegroundColor Gray
+    Write-Host "    - WinRM service is responding (checked above)" -ForegroundColor Gray
+    Write-Host "    - This is likely an authentication failure (wrong username/password," -ForegroundColor Gray
+    Write-Host "      or the account doesn't have remote PS access)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Fix on server (run as Admin):" -ForegroundColor Yellow
+    Write-Host "    Set-Item WSMan:\localhost\Service\Auth\Negotiate -Value `$true -Force" -ForegroundColor Cyan
+    Write-Host "    Restart-Service WinRM" -ForegroundColor Cyan
     exit 1
 }
 

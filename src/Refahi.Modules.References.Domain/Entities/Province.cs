@@ -11,6 +11,7 @@ public sealed class Province
 
     public int Id { get; private set; }
     public string Name { get; private set; } = null!;
+    public string NameEn { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
     public int SortOrder { get; private set; }
     public bool IsActive { get; private set; }

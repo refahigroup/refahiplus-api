@@ -20,6 +20,7 @@ public class GetCitiesQueryHandler : IRequestHandler<GetCitiesQuery, GetCitiesRe
         var dtos = cities.Select(c => new CityDto(
             c.Id,
             c.Name,
+            c.NameEn,
             c.Slug,
             c.ProvinceId,
             c.Province.Name,

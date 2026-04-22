@@ -130,9 +130,27 @@ Write-Host ""
 Write-Host "Step 5: Deploying..." -ForegroundColor Yellow
 
 try {
-    # Create PSSession (like FirstDeploy-Manual.ps1)
+    # Pre-check 1: TrustedHosts must include the server IP
+    $trustedHosts = (Get-Item WSMan:\localhost\Client\TrustedHosts -ErrorAction SilentlyContinue).Value
+    if ($trustedHosts -ne "*" -and $trustedHosts -notlike "*$ServerIP*") {
+        Write-Host "  [ERROR] Server IP ($ServerIP) is not in TrustedHosts!" -ForegroundColor Red
+        Write-Host "  Current TrustedHosts: '$trustedHosts'" -ForegroundColor Yellow
+        Write-Host "  Fix: Run deployment\Setup-DevMachine.ps1 as Administrator and add the server IP." -ForegroundColor Yellow
+        exit 1
+    }
+
+    # Pre-check 2: WinRM port (5985) must be reachable
+    Write-Host "  Checking WinRM connectivity (port 5985)..." -ForegroundColor Gray
+    $tcpTest = Test-NetConnection -ComputerName $ServerIP -Port 5985 -WarningAction SilentlyContinue -InformationLevel Quiet
+    if (-not $tcpTest) {
+        Write-Host "  [ERROR] Cannot reach $ServerIP on port 5985 (WinRM HTTP)!" -ForegroundColor Red
+        Write-Host "  Check: server is online, firewall allows port 5985, server IP is correct." -ForegroundColor Yellow
+        exit 1
+    }
+
+    # Create PSSession — use Negotiate (NTLM) explicitly; Kerberos does not work for standalone servers
     Write-Host "  Connecting to server..." -ForegroundColor Gray
-    $session = New-PSSession -ComputerName $ServerIP -Credential $credential
+    $session = New-PSSession -ComputerName $ServerIP -Credential $credential -Authentication Negotiate
     
     # Upload ZIP using Copy-Item -ToSession (no byte array, no size limit issues)
     $remoteTempZip = Invoke-Command -Session $session -ScriptBlock {

@@ -123,7 +123,7 @@ if (Test-Path $ancmPath) {
 }
 
 # =============================================================================
-# 4. Enable PowerShell Remoting
+# 4. Enable PowerShell Remoting and Configure WinRM
 # =============================================================================
 
 Write-Host ""
@@ -134,6 +134,43 @@ try {
     Write-Host "  [OK] PowerShell Remoting enabled" -ForegroundColor Green
 } catch {
     Write-Host "  [WARNING] Error enabling: $_" -ForegroundColor Yellow
+}
+
+# Ensure the HTTP listener (port 5985) exists - Enable-PSRemoting may skip it if HTTPS exists
+$httpListener = Get-ChildItem WSMan:\localhost\Listener | Where-Object { $_.Keys -contains 'Transport=HTTP' }
+if (-not $httpListener) {
+    try {
+        New-Item WSMan:\localhost\Listener -Transport HTTP -Address * -Force | Out-Null
+        Write-Host "  [OK] WinRM HTTP listener created on port 5985" -ForegroundColor Green
+    } catch {
+        Write-Host "  [WARNING] Could not create HTTP listener: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "  [OK] WinRM HTTP listener exists" -ForegroundColor Green
+}
+
+# --- CRITICAL: Service-side auth settings ---
+# Without these, clients get HTTP 12152 (invalid/unrecognized response) even with correct creds
+try {
+    # Allow HTTP transport (non-TLS); required for remote management over plain port 5985
+    Set-Item WSMan:\localhost\Service\AllowUnencrypted -Value $true -Force
+    Write-Host "  [OK] WinRM Service AllowUnencrypted = true" -ForegroundColor Green
+} catch {
+    Write-Host "  [WARNING] AllowUnencrypted: $_" -ForegroundColor Yellow
+}
+try {
+    # Enable Negotiate (NTLM/Kerberos) authentication on the service
+    Set-Item WSMan:\localhost\Service\Auth\Negotiate -Value $true -Force
+    Write-Host "  [OK] WinRM Service Auth\Negotiate = true" -ForegroundColor Green
+} catch {
+    Write-Host "  [WARNING] Auth\Negotiate: $_" -ForegroundColor Yellow
+}
+try {
+    # Increase envelope size limit to handle large payloads (default 500KB is too small)
+    Set-Item WSMan:\localhost\MaxEnvelopeSizekb -Value 8192 -Force
+    Write-Host "  [OK] WinRM MaxEnvelopeSizekb = 8192" -ForegroundColor Green
+} catch {
+    Write-Host "  [WARNING] MaxEnvelopeSizekb: $_" -ForegroundColor Yellow
 }
 
 try {

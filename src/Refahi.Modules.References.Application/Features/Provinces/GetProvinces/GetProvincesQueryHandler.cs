@@ -20,6 +20,7 @@ public class GetProvincesQueryHandler : IRequestHandler<GetProvincesQuery, GetPr
         var dtos = provinces.Select(p => new ProvinceDto(
             p.Id,
             p.Name,
+            p.NameEn,
             p.Slug,
             p.SortOrder,
             p.IsActive

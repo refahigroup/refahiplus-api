@@ -14,12 +14,13 @@ public class CityConfiguration : IEntityTypeConfiguration<City>
         builder.Property(c => c.Id).ValueGeneratedOnAdd();
 
         builder.Property(c => c.Name).HasMaxLength(200).IsRequired();
+        builder.Property(c => c.NameEn).HasMaxLength(200).IsRequired();
         builder.Property(c => c.Slug).HasMaxLength(200).IsRequired();
         builder.Property(c => c.ProvinceId).IsRequired();
         builder.Property(c => c.SortOrder).IsRequired();
         builder.Property(c => c.IsActive).IsRequired();
 
-        builder.HasIndex(c => c.Slug).IsUnique();
+        builder.HasIndex(c => new { c.ProvinceId, c.Slug }).IsUnique();
         builder.HasIndex(c => c.ProvinceId);
         builder.HasIndex(c => c.SortOrder);
 

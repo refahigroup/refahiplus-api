@@ -21,5 +21,8 @@
 		<ProjectReference Include="..\Refahi.Modules.References.Domain\Refahi.Modules.References.Domain.csproj" />
 		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Migrations\" />
+	</ItemGroup>
 
 </Project>

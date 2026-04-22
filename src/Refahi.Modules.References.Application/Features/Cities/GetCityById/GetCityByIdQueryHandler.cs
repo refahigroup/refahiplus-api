@@ -23,6 +23,7 @@ public class GetCityByIdQueryHandler : IRequestHandler<GetCityByIdQuery, CityDto
         return new CityDto(
             city.Id,
             city.Name,
+            city.NameEn,
             city.Slug,
             city.ProvinceId,
             city.Province.Name,

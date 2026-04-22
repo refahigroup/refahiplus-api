@@ -18,7 +18,7 @@ public class UpdateCityCommandHandler : IRequestHandler<UpdateCityCommand, Updat
         var city = await _cityRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new ReferencesDomainException("شهر یافت نشد", "CITY_NOT_FOUND");
 
-        if (await _cityRepository.SlugExistsAsync(request.Slug.Trim().ToLowerInvariant(), request.Id, cancellationToken))
+        if (await _cityRepository.SlugExistsAsync(request.Slug.Trim().ToLowerInvariant(), city.ProvinceId, request.Id, cancellationToken))
             throw new ReferencesDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
 
         city.UpdateInfo(request.Name, request.Slug, request.SortOrder);
