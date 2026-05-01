@@ -10,6 +10,13 @@
 		<Project Path="src/Refahi.Modules.Hotels.Domain/Refahi.Modules.Hotels.Domain.csproj" />
 		<Project Path="src/Refahi.Modules.Hotels.Infrastructure/Refahi.Modules.Hotels.Infrastructure.csproj" />
 	</Folder>
+	<Folder Name="/01_Modules/Media/">
+		<Project Path="src/Refahi.Modules.Media.Api/Refahi.Modules.Media.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Media.Application.Contracts/Refahi.Modules.Media.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Media.Application/Refahi.Modules.Media.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Media.Domain/Refahi.Modules.Media.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Media.Infrastructure/Refahi.Modules.Media.Infrastructure.csproj" />
+	</Folder>
 	<Folder Name="/01_Modules/Identity/">
 	<Folder Name="/01_Modules/Orders/">
 	</Folder>

@@ -20,7 +20,7 @@ public class CreateShopCommandHandler : IRequestHandler<CreateShopCommand, Creat
         if (await _shopRepository.SlugExistsAsync(request.Slug.Trim().ToLower(), cancellationToken))
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
 
-        if (await _shopRepository.ProviderHasShopAsync(request.ProviderId, cancellationToken))
+        if (await _shopRepository.ProviderHasShopAsync(request.SupplierId, cancellationToken))
             throw new StoreDomainException("این تامین‌کننده قبلاً فروشگاه ثبت کرده است", "PROVIDER_ALREADY_HAS_SHOP");
 
         var shopType = (ShopType)request.ShopType;
@@ -29,7 +29,7 @@ public class CreateShopCommandHandler : IRequestHandler<CreateShopCommand, Creat
             request.Name,
             request.Slug,
             shopType,
-            request.ProviderId,
+            request.SupplierId,
             request.ProvinceId,
             request.CityId,
             request.Address,

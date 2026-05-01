@@ -1,4 +1,9 @@
 ﻿using FluentValidation;
+using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
+using Refahi.Modules.Orders.Domain.Exceptions;
+using Refahi.Modules.References.Domain.Exceptions;
+using Refahi.Modules.Store.Domain.Exceptions;
+using Refahi.Modules.SupplyChain.Domain.Exceptions;
 using Refahi.Shared.Presentation;
 using System.Net;
 
@@ -26,6 +31,31 @@ public sealed class ApiExceptionMiddleware
             _logger.LogWarning(ex, "Validation error occurred");
             await HandleValidationExceptionAsync(context, ex);
         }
+        catch (StoreDomainException ex)
+        {
+            _logger.LogWarning(ex, "Store domain rule violation");
+            await HandleDomainExceptionAsync(context, ex.Message);
+        }
+        catch (OrderDomainException ex)
+        {
+            _logger.LogWarning(ex, "Order domain rule violation");
+            await HandleDomainExceptionAsync(context, ex.Message);
+        }
+        catch (ReferencesDomainException ex)
+        {
+            _logger.LogWarning(ex, "References domain rule violation");
+            await HandleDomainExceptionAsync(context, ex.Message);
+        }
+        catch (SupplyChainDomainException ex)
+        {
+            _logger.LogWarning(ex, "SupplyChain domain rule violation");
+            await HandleDomainExceptionAsync(context, ex.Message);
+        }
+        catch (DomainException ex)
+        {
+            _logger.LogWarning(ex, "Domain rule violation");
+            await HandleDomainExceptionAsync(context, ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception occurred");
@@ -49,6 +79,17 @@ public sealed class ApiExceptionMiddleware
             );
 
         var response = ApiResponseHelper.ValidationError(errors);
+        return context.Response.WriteAsJsonAsync(response);
+    }
+
+    /// <summary>
+    /// Handle domain exceptions — returns 400 Bad Request with the domain message
+    /// </summary>
+    private static Task HandleDomainExceptionAsync(HttpContext context, string message)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        var response = ApiResponseHelper.Error(message, statusCode: (int)HttpStatusCode.BadRequest);
         return context.Response.WriteAsJsonAsync(response);
     }
 

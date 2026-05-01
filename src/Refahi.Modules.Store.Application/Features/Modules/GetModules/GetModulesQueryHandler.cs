@@ -21,5 +21,5 @@ public class GetModulesQueryHandler : IRequestHandler<GetModulesQuery, List<Modu
     }
 
     internal static ModuleDto MapToDto(StoreModule m) => new(
-        m.Id, m.Name, m.Slug, m.Description, m.IconUrl, m.IsActive, m.SortOrder);
+        m.Id, m.Name, m.Slug, m.Description, m.IconUrl, m.IsActive, m.SortOrder, m.CategoryId);
 }

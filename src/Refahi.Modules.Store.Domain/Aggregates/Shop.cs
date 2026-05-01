@@ -6,7 +6,7 @@ namespace Refahi.Modules.Store.Domain.Aggregates;
 
 public sealed class Shop
 {
-    private Shop() { _products = new List<Product>(); }
+    private Shop() { }
 
     public Guid Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
@@ -15,7 +15,7 @@ public sealed class Shop
     public string? CoverImageUrl { get; private set; }
     public ShopType ShopType { get; private set; }
     public ShopStatus Status { get; private set; }
-    public Guid ProviderId { get; private set; }                       // FK → Providers (via Contract)
+    public Guid SupplierId { get; private set; }
     
     // Location (replaced string City with CityId + ProvinceId FKs)
     public int? ProvinceId { get; private set; }                       // FK → References.Province
@@ -37,12 +37,9 @@ public sealed class Shop
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
-    private readonly List<Product> _products;
-    public IReadOnlyList<Product> Products => _products.AsReadOnly();
-
     // --- Factory ---
     public static Shop Create(
-        string name, string slug, ShopType shopType, Guid providerId,
+        string name, string slug, ShopType shopType, Guid supplierId,
         int? provinceId = null, int? cityId = null,
         string? address = null, double? latitude = null, double? longitude = null,
         string? managerName = null, string? managerPhone = null,
@@ -59,7 +56,7 @@ public sealed class Shop
             Slug = slug.Trim().ToLower(),
             ShopType = shopType,
             Status = ShopStatus.PendingApproval,
-            ProviderId = providerId,
+            SupplierId = supplierId,
             ProvinceId = provinceId,
             CityId = cityId,
             Address = address,

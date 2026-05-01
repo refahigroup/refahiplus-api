@@ -19,7 +19,7 @@ public class ShopRepository : IShopRepository
         => _db.Shops.FirstOrDefaultAsync(s => s.Slug == slug, ct);
 
     public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default)
-        => _db.Shops.FirstOrDefaultAsync(s => s.ProviderId == providerId, ct);
+        => _db.Shops.FirstOrDefaultAsync(s => s.SupplierId == providerId, ct);
 
     public async Task<(List<Shop> Items, int Total)> GetPagedAsync(
         ShopType? shopType, ShopStatus? status, int page, int size, CancellationToken ct = default)
@@ -46,7 +46,28 @@ public class ShopRepository : IShopRepository
         => _db.Shops.AnyAsync(s => s.Slug == slug, ct);
 
     public Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default)
-        => _db.Shops.AnyAsync(s => s.ProviderId == providerId, ct);
+        => _db.Shops.AnyAsync(s => s.SupplierId == providerId, ct);
+
+    public async Task<(List<Shop> Items, int Total)> GetPagedByIdsAsync(
+        IEnumerable<Guid> ids, int page, int size, CancellationToken ct = default)
+    {
+        var idList = ids as ICollection<Guid> ?? ids.ToList();
+        if (idList.Count == 0)
+            return ([], 0);
+
+        var query = _db.Shops
+            .Where(s => idList.Contains(s.Id) && s.Status == ShopStatus.Active);
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(s => s.IsPopular)
+            .ThenByDescending(s => s.DeliveredOrdersCount)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
 
     public async Task AddAsync(Shop shop, CancellationToken ct = default)
     {

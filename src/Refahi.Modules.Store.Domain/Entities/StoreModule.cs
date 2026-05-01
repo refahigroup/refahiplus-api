@@ -18,10 +18,11 @@ public sealed class StoreModule
     public string? IconUrl { get; private set; }
     public bool IsActive { get; private set; }
     public int SortOrder { get; private set; }
+    public int? CategoryId { get; private set; }                    // FK → References.Category
 
     public static StoreModule Create(
         string name, string slug,
-        string? description = null, string? iconUrl = null, int sortOrder = 0)
+        string? description = null, string? iconUrl = null, int sortOrder = 0, int? categoryId = null)
     {
         var normalizedSlug = slug.Trim().ToLower();
         if (ReservedSlugs.Contains(normalizedSlug))
@@ -36,18 +37,20 @@ public sealed class StoreModule
             Description = description,
             IconUrl = iconUrl,
             IsActive = true,
-            SortOrder = sortOrder
+            SortOrder = sortOrder,
+            CategoryId = categoryId
         };
     }
 
     public void Activate() { IsActive = true; }
     public void Deactivate() { IsActive = false; }
 
-    public void UpdateInfo(string name, string? description, string? iconUrl, int sortOrder)
+    public void UpdateInfo(string name, string? description, string? iconUrl, int sortOrder, int? categoryId)
     {
         Name = name.Trim();
         Description = description;
         IconUrl = iconUrl;
         SortOrder = sortOrder;
+        CategoryId = categoryId;
     }
 }

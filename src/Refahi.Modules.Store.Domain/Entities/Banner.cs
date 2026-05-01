@@ -14,6 +14,7 @@ public sealed class Banner
     public BannerType BannerType { get; private set; }
     public int SortOrder { get; private set; }
     public bool IsActive { get; private set; }
+    public bool IsDeleted { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? EndDate { get; private set; }
 
@@ -46,4 +47,8 @@ public sealed class Banner
         StartDate = startDate;
         EndDate = endDate;
     }
+
+    public void Activate() => IsActive = true;
+    public void Deactivate() => IsActive = false;
+    public void Delete() => IsDeleted = true;
 }

@@ -12,32 +12,18 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasKey(p => p.Id);
 
-        builder.Property(p => p.ShopId).IsRequired();
+        builder.Property(p => p.AgreementProductId).IsRequired();
         builder.Property(p => p.Title).HasMaxLength(300).IsRequired();
         builder.Property(p => p.Slug).HasMaxLength(300).IsRequired();
         builder.Property(p => p.Description).HasMaxLength(5000);
-        builder.Property(p => p.PriceMinor).IsRequired();
-        builder.Property(p => p.DiscountedPriceMinor);
-        builder.Property(p => p.DiscountPercent);
-        builder.Property(p => p.CommissionPercent).HasPrecision(5, 2).IsRequired().HasDefaultValue(0);
-        builder.Property(p => p.ProductType).IsRequired();
-        builder.Property(p => p.DeliveryType).IsRequired();
-        builder.Property(p => p.SalesModel).IsRequired();
         builder.Property(p => p.StockCount).IsRequired();
         builder.Property(p => p.IsAvailable).IsRequired();
-        builder.Property(p => p.CityId);
-        builder.Property(p => p.City).HasMaxLength(100);
-        builder.Property(p => p.Area).HasMaxLength(100);
-        builder.Property(p => p.CategoryId).IsRequired();
-        builder.Property(p => p.CategoryCode).HasMaxLength(100).IsRequired();
         builder.Property(p => p.IsDeleted).IsRequired();
         builder.Property(p => p.CreatedAt).IsRequired();
         builder.Property(p => p.UpdatedAt).IsRequired();
 
         builder.HasIndex(p => p.Slug).IsUnique();
-        builder.HasIndex(p => p.ShopId);
-        builder.HasIndex(p => p.CategoryId);
-        builder.HasIndex(p => p.CityId);
+        builder.HasIndex(p => p.AgreementProductId);
         builder.HasIndex(p => p.IsDeleted);
 
         // Optimistic concurrency using PostgreSQL xmin system column

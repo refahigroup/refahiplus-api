@@ -22,6 +22,55 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Refahi.Modules.References.Domain.Entities.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryCode")
+                        .IsUnique();
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("categories", "references");
+                });
+
             modelBuilder.Entity("Refahi.Modules.References.Domain.Entities.City", b =>
                 {
                     b.Property<int>("Id")
@@ -58,10 +107,10 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
 
                     b.HasIndex("ProvinceId");
 
+                    b.HasIndex("SortOrder");
+
                     b.HasIndex("ProvinceId", "Slug")
                         .IsUnique();
-
-                    b.HasIndex("SortOrder");
 
                     b.ToTable("cities", "references");
                 });
@@ -105,6 +154,14 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
                     b.ToTable("provinces", "references");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.References.Domain.Entities.Category", b =>
+                {
+                    b.HasOne("Refahi.Modules.References.Domain.Entities.Category", null)
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Refahi.Modules.References.Domain.Entities.City", b =>
                 {
                     b.HasOne("Refahi.Modules.References.Domain.Entities.Province", "Province")
@@ -114,6 +171,11 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Province");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.References.Domain.Entities.Category", b =>
+                {
+                    b.Navigation("Children");
                 });
 #pragma warning restore 612, 618
         }

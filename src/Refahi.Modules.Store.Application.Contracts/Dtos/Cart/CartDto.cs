@@ -8,6 +8,7 @@ public sealed record CartDto(
 
 public sealed record CartItemDto(
     Guid Id,
+    Guid ShopId,
     Guid ProductId,
     string ProductTitle,
     string? ProductImageUrl,

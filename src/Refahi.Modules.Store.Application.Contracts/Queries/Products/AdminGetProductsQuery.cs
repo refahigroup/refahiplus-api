@@ -4,7 +4,6 @@ using Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 namespace Refahi.Modules.Store.Application.Contracts.Queries.Products;
 
 public sealed record AdminGetProductsQuery(
-    int? CategoryId = null,
     Guid? ShopId = null,
     bool? IsDeleted = null,
     int PageNumber = 1,

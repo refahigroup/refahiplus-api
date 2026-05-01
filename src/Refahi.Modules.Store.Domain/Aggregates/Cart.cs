@@ -30,7 +30,7 @@ public sealed class Cart
         };
 
     // --- Behaviors ---
-    public void AddItem(Guid productId, Guid? variantId, Guid? sessionId,
+    public void AddItem(Guid shopId, Guid productId, Guid? variantId, Guid? sessionId,
         int quantity, long unitPriceMinor)
     {
         if (quantity <= 0)
@@ -39,6 +39,7 @@ public sealed class Cart
             throw new StoreDomainException("قیمت واحد باید بیشتر از صفر باشد", "INVALID_PRICE");
 
         var existing = _items.FirstOrDefault(i =>
+            i.ShopId == shopId &&
             i.ProductId == productId &&
             i.VariantId == variantId &&
             i.SessionId == sessionId);
@@ -49,7 +50,7 @@ public sealed class Cart
         }
         else
         {
-            _items.Add(CartItem.Create(Id, productId, variantId, sessionId, quantity, unitPriceMinor));
+            _items.Add(CartItem.Create(Id, shopId, productId, variantId, sessionId, quantity, unitPriceMinor));
         }
 
         UpdatedAt = DateTimeOffset.UtcNow;

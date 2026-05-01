@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Refahi.Modules.Hotels.Infrastructure.Persistence;
 using Refahi.Shared.Infrastructure;
 
 namespace Refahi.Api.Services;
@@ -31,9 +30,9 @@ public class DbTools : IDbTools
 
             if (pending.Any())
             {
-                Console.WriteLine($"Applying EF migrations for {typeof(HotelsDbContext).Name}...");
+                Console.WriteLine($"Applying EF migrations for {typeof(T).Name}...");
                 context.Database.Migrate();
-                Console.WriteLine("EF migrations applied successfully.");
+                Console.WriteLine($"EF migrations for {typeof(T).Name} applied successfully.");
             }
         }
         catch (Exception ex)

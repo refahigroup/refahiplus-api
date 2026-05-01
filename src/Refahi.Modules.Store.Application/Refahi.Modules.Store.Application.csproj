@@ -18,7 +18,7 @@
 		<ProjectReference Include="..\Refahi.Modules.Store.Application.Contracts\Refahi.Modules.Store.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Wallets.Application.Contracts\Refahi.Modules.Wallets.Application.Contracts.csproj" />
-		<ProjectReference Include="..\Refahi.Modules.Store.Domain\Refahi.Modules.Store.Domain.csproj" />
+		<ProjectReference Include="..\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />		<ProjectReference Include="..\Refahi.Modules.SupplyChain.Application.Contracts\Refahi.Modules.SupplyChain.Application.Contracts.csproj" />		<ProjectReference Include="..\Refahi.Modules.Store.Domain\Refahi.Modules.Store.Domain.csproj" />
 		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>
 

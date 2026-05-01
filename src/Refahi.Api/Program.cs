@@ -7,15 +7,27 @@ using Refahi.Api.Services.Chaching;
 using Refahi.Api.Services.Notification;
 using Refahi.Modules.Hotels.Api;
 using Refahi.Modules.Identity.Api;
+using Refahi.Modules.Media.Api;
 using Refahi.Modules.Orders.Api;
 using Refahi.Modules.Organizations.Api;
 using Refahi.Modules.References.Api;
 using Refahi.Modules.Store.Api;
+using Refahi.Modules.SupplyChain.Api;
 using Refahi.Modules.Wallets.Api;
 using System.Diagnostics;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// تنظیم Kestrel و IIS برای پشتیبانی از آپلود فایل‌های بزرگ (ویدیو تا ۲۰۰MB، batch تا ۱GB)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = MediaConstants.MaxBatchBodyBytes;
+});
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = MediaConstants.MaxBatchBodyBytes;
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -61,12 +73,14 @@ builder.Services
 //{
     builder.Services
         .RegisterReferencesModule(builder.Configuration)
+        .RegisterMediaModule(builder.Configuration)
         .RegisterIdentityModule(builder.Configuration)
         .RegisterOrganizationsModule(builder.Configuration)
         .RegisterWalletsModule(builder.Configuration)
         .RegisterOrdersModule(builder.Configuration)
         .RegisterHotelsModule(builder.Configuration)
-        .RegisterStoreModule(builder.Configuration);
+        .RegisterStoreModule(builder.Configuration)
+        .RegisterSupplyChainModule(builder.Configuration);
 //}
 //catch(Exception ex) 
 //{
@@ -121,12 +135,14 @@ app.MapGet("/api/health", () => {
 //try
 //{
     app.UseReferencesModule("/api/references")
+       .UseMediaModule("/api/media")
        .UseIdentityModule("/api/auth")
        .UseOrganizationsModule("/api/organizations")
        .UseWalletsModule("/api/wallets")
        .UseOrdersModule("/api/orders")
        .UseHotelModule("/api/hotels")
-       .UseStoreModule("/api/store");
+       .UseStoreModule("/api/store")
+       .UseSupplyChainModule("/api/supply-chain");
 //}
 //catch 
 //{ 

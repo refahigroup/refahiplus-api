@@ -1,10 +1,11 @@
 using System.Text.Json;
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
+using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Commands.Checkout;
-using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
 
 namespace Refahi.Modules.Store.Application.Features.Checkout.PlaceStoreOrder;
 
@@ -41,31 +42,47 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         // STEP 2: Validate all products and build order items
         Guid? shopId = null;
         var orderItems = new List<CreateOrderItemInput>();
-
-        // Track items for stock/session updates after payment
         var stockUpdates = new List<(Guid ProductId, Guid? VariantId, int Quantity)>();
         var sessionUpdates = new List<(Guid ProductId, Guid SessionId, int Quantity)>();
 
+        // Cache agreement products per unique AgreementProductId
+        var agreementProductCache = new Dictionary<Guid, Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?>();
+
         foreach (var cartItem in cart.Items)
         {
-            var product = await _productRepo.GetByIdAsync(cartItem.ProductId, cancellationToken);
+            // Single-shop rule (via CartItem.ShopId)
+            if (shopId.HasValue && cartItem.ShopId != shopId.Value)
+                throw new StoreDomainException("تمامی محصولات باید از یک فروشگاه باشند", "MIXED_SHOP_ITEMS");
+            shopId = cartItem.ShopId;
 
+            var product = await _productRepo.GetByIdAsync(cartItem.ProductId, cancellationToken);
             if (product is null || product.IsDeleted)
                 throw new StoreDomainException($"محصول '{cartItem.ProductId}' یافت نشد یا حذف شده است", "PRODUCT_NOT_FOUND");
 
-            // Single-shop rule
-            if (shopId.HasValue && product.ShopId != shopId.Value)
-                throw new StoreDomainException("تمامی محصولات باید از یک فروشگاه باشند", "MIXED_SHOP_ITEMS");
+            // Get AgreementProduct (cached)
+            if (!agreementProductCache.TryGetValue(product.AgreementProductId, out var ap))
+            {
+                ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
+                agreementProductCache[product.AgreementProductId] = ap;
+            }
 
-            shopId = product.ShopId;
+            // CategoryCode via References
+            string? categoryCode = null;
+            if (ap?.CategoryId.HasValue == true)
+            {
+                var category = await _mediator.Send(new GetCategoryByIdQuery(ap.CategoryId.Value), cancellationToken);
+                categoryCode = category?.CategoryCode;
+            }
 
-            long unitPrice = product.EffectivePriceMinor;
+            // Build metadata from AgreementProduct
             string itemTitle;
             string metadataJson;
 
-            if (product.SalesModel == SalesModel.StockBased)
+            // Use CartItem.ShopId for shop name lookup
+            var shopForTitle = await _shopRepo.GetByIdAsync(cartItem.ShopId, cancellationToken);
+
+            if (!cartItem.SessionId.HasValue) // StockBased
             {
-                // Validate stock
                 if (cartItem.VariantId.HasValue)
                 {
                     var variant = product.Variants.FirstOrDefault(v => v.Id == cartItem.VariantId.Value)
@@ -74,9 +91,6 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                     if (!variant.IsAvailable || variant.StockCount < cartItem.Quantity)
                         throw new StoreDomainException($"موجودی کافی برای '{product.Title}' وجود ندارد", "INSUFFICIENT_STOCK");
 
-                    unitPrice = variant.EffectivePriceMinor;
-
-                    var shopForTitle = shopId.HasValue ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken) : null;
                     var variantLabel = !string.IsNullOrWhiteSpace(variant.SKU)
                         ? variant.SKU
                         : string.Join("/", variant.Combinations.Select(c =>
@@ -85,17 +99,8 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                             var val = attr?.Values.FirstOrDefault(v => v.Id == c.VariantAttributeValueId);
                             return val?.Value ?? string.Empty;
                         }).Where(s => !string.IsNullOrEmpty(s)));
+
                     itemTitle = $"{product.Title}{(string.IsNullOrEmpty(variantLabel) ? string.Empty : $" - {variantLabel}")} - {shopForTitle?.Name ?? string.Empty}";
-
-                    metadataJson = JsonSerializer.Serialize(new
-                    {
-                        shop_id = product.ShopId.ToString(),
-                        product_type = product.ProductType.ToString(),
-                        sales_model = product.SalesModel.ToString(),
-                        delivery_type = product.DeliveryType.ToString(),
-                        variant_id = cartItem.VariantId.Value.ToString()
-                    });
-
                     stockUpdates.Add((product.Id, cartItem.VariantId, cartItem.Quantity));
                 }
                 else
@@ -103,43 +108,36 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                     if (product.StockCount < cartItem.Quantity)
                         throw new StoreDomainException($"موجودی کافی برای '{product.Title}' وجود ندارد", "INSUFFICIENT_STOCK");
 
-                    var shopForTitle = shopId.HasValue ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken) : null;
                     itemTitle = $"{product.Title} - {shopForTitle?.Name ?? string.Empty}";
-
-                    metadataJson = JsonSerializer.Serialize(new
-                    {
-                        shop_id = product.ShopId.ToString(),
-                        product_type = product.ProductType.ToString(),
-                        sales_model = product.SalesModel.ToString(),
-                        delivery_type = product.DeliveryType.ToString()
-                    });
-
                     stockUpdates.Add((product.Id, null, cartItem.Quantity));
                 }
+
+                metadataJson = JsonSerializer.Serialize(new
+                {
+                    shop_id = cartItem.ShopId.ToString(),
+                    product_type = ap?.ProductType.ToString(),
+                    sales_model = ap?.SalesModel.ToString(),
+                    delivery_type = ap?.DeliveryType.ToString(),
+                    variant_id = cartItem.VariantId?.ToString()
+                });
             }
             else // SessionBased
             {
-                if (!cartItem.SessionId.HasValue)
-                    throw new StoreDomainException($"سانس برای محصول '{product.Title}' مشخص نشده است", "SESSION_REQUIRED");
-
                 var session = product.Sessions.FirstOrDefault(s => s.Id == cartItem.SessionId.Value)
                     ?? throw new StoreDomainException($"سانس محصول '{product.Title}' یافت نشد", "SESSION_NOT_FOUND");
 
                 if (!session.IsAvailable || session.RemainingCapacity < cartItem.Quantity)
                     throw new StoreDomainException($"ظرفیت کافی برای سانس '{product.Title}' وجود ندارد", "INSUFFICIENT_CAPACITY");
 
-                unitPrice += session.PriceAdjustment;
-
-                var shopForTitle = shopId.HasValue ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken) : null;
                 var sessionTitlePart = !string.IsNullOrWhiteSpace(session.Title) ? $" {session.Title}" : string.Empty;
                 itemTitle = $"{product.Title}{sessionTitlePart} {session.Date:yyyy-MM-dd} - {shopForTitle?.Name ?? string.Empty}";
 
                 metadataJson = JsonSerializer.Serialize(new
                 {
-                    shop_id = product.ShopId.ToString(),
-                    product_type = product.ProductType.ToString(),
-                    sales_model = product.SalesModel.ToString(),
-                    delivery_type = product.DeliveryType.ToString(),
+                    shop_id = cartItem.ShopId.ToString(),
+                    product_type = ap?.ProductType.ToString(),
+                    sales_model = ap?.SalesModel.ToString(),
+                    delivery_type = ap?.DeliveryType.ToString(),
                     session_id = cartItem.SessionId.Value.ToString(),
                     date = session.Date.ToString("yyyy-MM-dd"),
                     start_time = session.StartTime.ToString("HH:mm"),
@@ -151,11 +149,11 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
             orderItems.Add(new CreateOrderItemInput(
                 Title: itemTitle,
-                UnitPriceMinor: unitPrice,
+                UnitPriceMinor: cartItem.UnitPriceMinor,
                 Quantity: cartItem.Quantity,
                 DiscountAmountMinor: 0,
                 SourceItemId: cartItem.ProductId,
-                CategoryCode: product.CategoryCode,
+                CategoryCode: categoryCode ?? string.Empty,
                 Tags: null,
                 MetadataJson: metadataJson));
         }
@@ -200,10 +198,8 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 }
                 catch (StoreConcurrencyException) when (attempt < 3)
                 {
-                    // Entity was detached by repo; re-fetch fresh from DB before retrying
                     product = await _productRepo.GetByIdAsync(productId, cancellationToken)
                         ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
-
                     await Task.Delay(50 * attempt, cancellationToken);
                 }
                 catch (StoreConcurrencyException)

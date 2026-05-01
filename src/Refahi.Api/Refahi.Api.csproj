@@ -18,10 +18,12 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Refahi.Modules.Hotels.Api\Refahi.Modules.Hotels.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Identity.Api\Refahi.Modules.Identity.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.Media.Api\Refahi.Modules.Media.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Orders.Api\Refahi.Modules.Orders.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Organizations.Api\Refahi.Modules.Organizations.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.References.Api\Refahi.Modules.References.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Store.Api\Refahi.Modules.Store.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.SupplyChain.Api\Refahi.Modules.SupplyChain.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Wallets.Api\Refahi.Modules.Wallets.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>

@@ -22,8 +22,8 @@ public static class DI
 
         services.AddScoped<IShopRepository, ShopRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IShopProductRepository, ShopProductRepository>();
         services.AddScoped<IProductSessionRepository, ProductSessionRepository>();
-        services.AddScoped<IStoreCategoryRepository, StoreCategoryRepository>();
         services.AddScoped<IBannerRepository, BannerRepository>();
         services.AddScoped<IDailyDealRepository, DailyDealRepository>();
         services.AddScoped<IReviewRepository, ReviewRepository>();

@@ -16,9 +16,17 @@ public class BannerRepository : IBannerRepository
 
     public Task<List<Banner>> GetActiveAsync(CancellationToken ct = default)
         => _db.Banners
-            .Where(b => b.IsActive)
+            .Where(b => b.IsActive && !b.IsDeleted)
             .OrderBy(b => b.SortOrder)
             .ToListAsync(ct);
+
+    public Task<List<Banner>> GetAllAsync(int? moduleId = null, CancellationToken ct = default)
+    {
+        var query = _db.Banners.Where(b => !b.IsDeleted);
+        if (moduleId.HasValue)
+            query = query.Where(b => b.ModuleId == moduleId.Value);
+        return query.OrderBy(b => b.SortOrder).ToListAsync(ct);
+    }
 
     public async Task AddAsync(Banner banner, CancellationToken ct = default)
     {
@@ -34,7 +42,8 @@ public class BannerRepository : IBannerRepository
 
     public async Task DeleteAsync(Banner banner, CancellationToken ct = default)
     {
-        _db.Banners.Remove(banner);
+        banner.Delete();
+        _db.Banners.Update(banner);
         await _db.SaveChangesAsync(ct);
     }
 }

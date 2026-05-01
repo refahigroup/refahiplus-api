@@ -12,9 +12,6 @@ public class UpdateProductCommandValidator : AbstractValidator<UpdateProductComm
 
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("عنوان محصول الزامی است")
-            .MaximumLength(500).WithMessage("عنوان محصول نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد");
-
-        RuleFor(x => x.PriceMinor)
-            .GreaterThan(0).WithMessage("قیمت محصول باید بیشتر از صفر باشد");
+            .MaximumLength(300).WithMessage("عنوان محصول نمی‌تواند بیشتر از ۳۰۰ کاراکتر باشد");
     }
 }

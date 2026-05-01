@@ -17,11 +17,7 @@ public class GetProductsEndpoint : IEndpoint
 
         routes.MapGet("/{moduleSlug}/products", async (
             string moduleSlug,
-            int? categoryId,
             Guid? shopId,
-            long? minPrice,
-            long? maxPrice,
-            short? salesModel,
             int pageNumber,
             int pageSize,
             IModuleResolver moduleResolver,
@@ -33,11 +29,8 @@ public class GetProductsEndpoint : IEndpoint
                 return Results.NotFound();
 
             var query = new GetProductsQuery(
-                CategoryId: categoryId,
+                ModuleId: moduleId.Value,
                 ShopId: shopId,
-                MinPriceMinor: minPrice,
-                MaxPriceMinor: maxPrice,
-                SalesModel: salesModel,
                 PageNumber: pageNumber > 0 ? pageNumber : 1,
                 PageSize: pageSize > 0 ? pageSize : 20);
 

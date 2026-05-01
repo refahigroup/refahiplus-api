@@ -35,19 +35,16 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
 
         builder.Property(s => s.ShopType).IsRequired();
         builder.Property(s => s.Status).IsRequired();
-        builder.Property(s => s.ProviderId).IsRequired();
+        builder.Property(s => s.SupplierId).IsRequired();
         builder.Property(s => s.IsPopular).IsRequired();
         builder.Property(s => s.DeliveredOrdersCount).IsRequired().HasDefaultValue(0);
         builder.Property(s => s.CreatedAt).IsRequired();
         builder.Property(s => s.UpdatedAt).IsRequired();
 
         builder.HasIndex(s => s.Slug).IsUnique();
-        builder.HasIndex(s => s.ProviderId);
+        builder.HasIndex(s => s.SupplierId);
         builder.HasIndex(s => s.CityId);
         builder.HasIndex(s => s.ProvinceId);
 
-        // Products navigation is not mapped as an owned collection here
-        // Products are loaded via IProductRepository
-        builder.Ignore(s => s.Products);
     }
 }

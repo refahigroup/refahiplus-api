@@ -7,7 +7,8 @@ public sealed record UpdateModuleCommand(
     string Name,
     string? Description,
     string? IconUrl,
-    int SortOrder
+    int SortOrder,
+    int? CategoryId = null
 ) : IRequest<UpdateModuleResponse>;
 
 public sealed record UpdateModuleResponse(int Id, string Name);

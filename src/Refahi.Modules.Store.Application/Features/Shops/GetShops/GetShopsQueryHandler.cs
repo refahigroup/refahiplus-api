@@ -19,10 +19,9 @@ public class GetShopsQueryHandler : IRequestHandler<GetShopsQuery, ShopsPagedRes
     {
         ShopType? shopType = request.ShopType.HasValue ? (ShopType)request.ShopType.Value : null;
 
-        // Default: Active only unless Status explicitly provided
         ShopStatus? status = request.Status.HasValue
             ? (ShopStatus)request.Status.Value
-            : ShopStatus.Active;
+            : null;
 
         var (items, total) = await _shopRepository.GetPagedAsync(
             shopType, status, request.PageNumber, request.PageSize, cancellationToken);

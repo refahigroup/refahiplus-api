@@ -24,7 +24,8 @@ public class CreateModuleCommandHandler : IRequestHandler<CreateModuleCommand, C
             request.Slug,
             request.Description,
             request.IconUrl,
-            request.SortOrder);
+            request.SortOrder,
+            request.CategoryId);
 
         await _moduleRepo.AddAsync(module, cancellationToken);
 

@@ -29,6 +29,7 @@ public class SearchProductsEndpoint : IEndpoint
                 return Results.NotFound();
 
             var query = new SearchProductsQuery(
+                ModuleId: moduleId.Value,
                 Query: q ?? string.Empty,
                 PageNumber: pageNumber > 0 ? pageNumber : 1,
                 PageSize: pageSize > 0 ? pageSize : 20);

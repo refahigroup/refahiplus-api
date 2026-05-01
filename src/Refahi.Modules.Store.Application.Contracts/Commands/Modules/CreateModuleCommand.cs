@@ -8,7 +8,8 @@ public sealed record CreateModuleCommand(
     string Slug,
     string? Description,
     string? IconUrl,
-    int SortOrder
+    int SortOrder,
+    int? CategoryId = null
 ) : IRequest<CreateModuleResponse>;
 
 public sealed record CreateModuleResponse(int Id, string Name, string Slug);

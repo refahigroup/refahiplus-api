@@ -38,7 +38,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
             if (product is null || product.IsDeleted)
             {
                 itemDtos.Add(new CartItemDto(
-                    item.Id, item.ProductId,
+                    item.Id, item.ShopId, item.ProductId,
                     "محصول حذف شده", null,
                     item.VariantId, null,
                     item.SessionId, null,
@@ -93,7 +93,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
             }
 
             itemDtos.Add(new CartItemDto(
-                item.Id, item.ProductId,
+                item.Id, item.ShopId, item.ProductId,
                 product.Title, mainImage,
                 item.VariantId, variantLabel,
                 item.SessionId, sessionLabel,

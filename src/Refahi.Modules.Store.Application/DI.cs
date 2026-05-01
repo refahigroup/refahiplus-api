@@ -14,7 +14,8 @@ public static class DI
         services
             .AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly))
             .AddValidatorsFromAssembly(assembly)
-            .AddScoped<IModuleResolver, ModuleResolver>();
+            .AddScoped<IModuleResolver, ModuleResolver>()
+            .AddScoped<IStoreModuleCatalogService, StoreModuleCatalogService>();
 
         return services;
     }

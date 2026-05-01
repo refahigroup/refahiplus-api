@@ -55,64 +55,21 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Area")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("CategoryCode")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int?>("CityId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("CommissionPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)")
-                        .HasDefaultValue(0m);
+                    b.Property<Guid>("AgreementProductId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<short>("DeliveryType")
-                        .HasColumnType("smallint");
-
                     b.Property<string>("Description")
                         .HasMaxLength(5000)
                         .HasColumnType("character varying(5000)");
-
-                    b.Property<int?>("DiscountPercent")
-                        .HasColumnType("integer");
-
-                    b.Property<long?>("DiscountedPriceMinor")
-                        .HasColumnType("bigint");
 
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<long>("PriceMinor")
-                        .HasColumnType("bigint");
-
-                    b.Property<short>("ProductType")
-                        .HasColumnType("smallint");
-
-                    b.Property<short>("SalesModel")
-                        .HasColumnType("smallint");
-
-                    b.Property<Guid>("ShopId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -138,13 +95,9 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("CityId");
+                    b.HasIndex("AgreementProductId");
 
                     b.HasIndex("IsDeleted");
-
-                    b.HasIndex("ShopId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -211,9 +164,6 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<Guid>("ProviderId")
-                        .HasColumnType("uuid");
-
                     b.Property<int?>("ProvinceId")
                         .HasColumnType("integer");
 
@@ -236,6 +186,9 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
 
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -243,14 +196,63 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
 
                     b.HasIndex("CityId");
 
-                    b.HasIndex("ProviderId");
-
                     b.HasIndex("ProvinceId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
 
+                    b.HasIndex("SupplierId");
+
                     b.ToTable("shops", "store");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.ShopProduct", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<long>("DiscountedPrice")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("Price")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ShopId");
+
+                    b.HasIndex("ShopId", "ProductId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("shop_products", "store");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.Banner", b =>
@@ -275,6 +277,11 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -296,6 +303,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("ModuleId");
 
@@ -320,6 +329,9 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.Property<Guid?>("SessionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uuid");
+
                     b.Property<long>("UnitPriceMinor")
                         .HasColumnType("bigint");
 
@@ -331,6 +343,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.HasIndex("CartId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ShopId");
 
                     b.ToTable("cart_items", "store");
                 });
@@ -573,60 +587,6 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.ToTable("reviews", "store");
                 });
 
-            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.StoreCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CategoryCode")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ModuleId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryCode")
-                        .IsUnique();
-
-                    b.HasIndex("ModuleId");
-
-                    b.HasIndex("ParentId");
-
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
-                    b.ToTable("categories", "store");
-                });
-
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.StoreModule", b =>
                 {
                     b.Property<int>("Id")
@@ -634,6 +594,9 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -771,14 +734,6 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.StoreCategory", b =>
-                {
-                    b.HasOne("Refahi.Modules.Store.Domain.Entities.StoreCategory", null)
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VariantAttribute", b =>
                 {
                     b.HasOne("Refahi.Modules.Store.Domain.Aggregates.Product", null)
@@ -818,11 +773,6 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.ProductVariant", b =>
                 {
                     b.Navigation("Combinations");
-                });
-
-            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.StoreCategory", b =>
-                {
-                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VariantAttribute", b =>

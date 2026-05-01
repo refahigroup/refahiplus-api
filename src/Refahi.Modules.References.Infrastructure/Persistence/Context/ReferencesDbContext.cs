@@ -10,6 +10,7 @@ public class ReferencesDbContext : DbContext
 
     public DbSet<Province> Provinces => Set<Province>();
     public DbSet<City> Cities => Set<City>();
+    public DbSet<Category> Categories => Set<Category>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,5 +20,6 @@ public class ReferencesDbContext : DbContext
 
         modelBuilder.ApplyConfiguration(new ProvinceConfiguration());
         modelBuilder.ApplyConfiguration(new CityConfiguration());
+        modelBuilder.ApplyConfiguration(new CategoryConfiguration());
     }
 }

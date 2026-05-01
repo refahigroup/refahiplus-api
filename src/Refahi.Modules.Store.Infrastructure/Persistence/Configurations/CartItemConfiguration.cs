@@ -13,6 +13,7 @@ public class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.HasKey(i => i.Id);
 
         builder.Property(i => i.CartId).IsRequired();
+        builder.Property(i => i.ShopId).IsRequired();
         builder.Property(i => i.ProductId).IsRequired();
         builder.Property(i => i.VariantId);
         builder.Property(i => i.SessionId);     // v1.1 — nullable FK to product_sessions
@@ -20,6 +21,7 @@ public class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.Property(i => i.UnitPriceMinor).IsRequired();
 
         builder.HasIndex(i => i.CartId);
+        builder.HasIndex(i => i.ShopId);
         builder.HasIndex(i => i.ProductId);
     }
 }

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Store.Domain.Aggregates;
-using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 
@@ -28,27 +27,25 @@ public class ProductRepository : IProductRepository
             .Include(p => p.Sessions)
             .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted, ct);
 
-    public Task<List<Product>> GetByShopIdAsync(Guid shopId, CancellationToken ct = default)
-        => _db.Products
-            .Where(p => p.ShopId == shopId && !p.IsDeleted)
-            .ToListAsync(ct);
-
     public async Task<(List<Product> Items, int Total)> GetPagedAsync(
-        int? categoryId, Guid? shopId, long? minPrice, long? maxPrice,
-        short? salesModel, int page, int pageSize, CancellationToken ct = default)
+        Guid? shopId, int page, int pageSize, CancellationToken ct = default)
     {
-        var q = _db.Products.Where(p => !p.IsDeleted && p.IsAvailable);
+        IQueryable<Product> q;
 
-        if (categoryId.HasValue)
-            q = q.Where(p => p.CategoryId == categoryId.Value);
         if (shopId.HasValue)
-            q = q.Where(p => p.ShopId == shopId.Value);
-        if (minPrice.HasValue)
-            q = q.Where(p => p.PriceMinor >= minPrice.Value);
-        if (maxPrice.HasValue)
-            q = q.Where(p => p.PriceMinor <= maxPrice.Value);
-        if (salesModel.HasValue)
-            q = q.Where(p => (short)p.SalesModel == salesModel.Value);
+        {
+            q = _db.ShopProducts
+                .Where(sp => sp.ShopId == shopId.Value && sp.IsActive && !sp.IsDeleted)
+                .Join(_db.Products,
+                    sp => sp.ProductId,
+                    p => p.Id,
+                    (_, p) => p)
+                .Where(p => !p.IsDeleted && p.IsAvailable);
+        }
+        else
+        {
+            q = _db.Products.Where(p => !p.IsDeleted && p.IsAvailable);
+        }
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -79,6 +76,37 @@ public class ProductRepository : IProductRepository
         return (items, total);
     }
 
+    public async Task<(List<Product> Items, int Total)> SearchAsync(
+        string query, IReadOnlyList<Guid> allowedAgreementProductIds,
+        int page, int pageSize, CancellationToken ct = default)
+    {
+        var q = _db.Products.Where(p =>
+            !p.IsDeleted && p.IsAvailable
+            && allowedAgreementProductIds.Contains(p.AgreementProductId)
+            && (p.Title.Contains(query) || (p.Description != null && p.Description.Contains(query))));
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(p => p.Images)
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
+    public async Task<List<Product>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
+    {
+        if (ids.Count == 0)
+            return [];
+
+        return await _db.Products
+            .Where(p => ids.Contains(p.Id))
+            .Include(p => p.Images)
+            .ToListAsync(ct);
+    }
+
     public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default)
         => _db.Products.AnyAsync(p => p.Slug == slug, ct);
 
@@ -97,15 +125,25 @@ public class ProductRepository : IProductRepository
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
     public async Task<(List<Product> Items, int Total)> GetPagedAdminAsync(
-        int? categoryId, Guid? shopId, bool? isDeleted,
+        Guid? shopId, bool? isDeleted,
         int page, int pageSize, CancellationToken ct = default)
     {
-        var q = _db.Products.AsQueryable();
+        IQueryable<Product> q;
 
-        if (categoryId.HasValue)
-            q = q.Where(p => p.CategoryId == categoryId.Value);
         if (shopId.HasValue)
-            q = q.Where(p => p.ShopId == shopId.Value);
+        {
+            q = _db.ShopProducts
+                .Where(sp => sp.ShopId == shopId.Value && !sp.IsDeleted)
+                .Join(_db.Products,
+                    sp => sp.ProductId,
+                    p => p.Id,
+                    (_, p) => p);
+        }
+        else
+        {
+            q = _db.Products.AsQueryable();
+        }
+
         if (isDeleted.HasValue)
             q = q.Where(p => p.IsDeleted == isDeleted.Value);
 
@@ -123,15 +161,6 @@ public class ProductRepository : IProductRepository
     public async Task UpdateAsync(Product product, CancellationToken ct = default)
     {
         _db.Products.Update(product);
-        try
-        {
-            await _db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            // Detach the stale entity so the caller's next GetByIdAsync re-queries DB
-            _db.Entry(product).State = EntityState.Detached;
-            throw new StoreConcurrencyException();
-        }
+        await _db.SaveChangesAsync(ct);
     }
 }

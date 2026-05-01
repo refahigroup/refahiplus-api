@@ -8,7 +8,7 @@ public sealed record ShopDto(
     string? CoverImageUrl,
     string ShopType,
     string Status,
-    Guid ProviderId,
+    Guid SupplierId,
     int? ProvinceId,
     int? CityId,
     string? Address,

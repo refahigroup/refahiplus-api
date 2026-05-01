@@ -9,15 +9,18 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
 {
     private readonly IDailyDealRepository _dealRepo;
     private readonly IProductRepository _productRepo;
+    private readonly IShopProductRepository _shopProductRepo;
     private readonly IShopRepository _shopRepo;
 
     public GetDailyDealsQueryHandler(
         IDailyDealRepository dealRepo,
         IProductRepository productRepo,
+        IShopProductRepository shopProductRepo,
         IShopRepository shopRepo)
     {
         _dealRepo = dealRepo;
         _productRepo = productRepo;
+        _shopProductRepo = shopProductRepo;
         _shopRepo = shopRepo;
     }
 
@@ -38,19 +41,23 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
             if (product is null || product.IsDeleted)
                 continue;
 
-            var shop = await _shopRepo.GetByIdAsync(product.ShopId, cancellationToken);
+            var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(product.Id, isActive: true, page: 1, pageSize: 1, cancellationToken);
+            var firstShopProduct = shopProducts.FirstOrDefault();
+            var originalPrice = firstShopProduct?.Price ?? 0;
+            var shopId = firstShopProduct?.ShopId;
+            var shop = shopId.HasValue ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken) : null;
 
             var mainImage = product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
                          ?? product.Images.FirstOrDefault()?.ImageUrl;
 
-            var discountedPrice = product.PriceMinor * (100 - deal.DiscountPercent) / 100;
+            var discountedPrice = originalPrice * (100 - deal.DiscountPercent) / 100;
 
             result.Add(new DailyDealDto(
                 deal.Id,
                 deal.ProductId,
                 product.Title,
                 mainImage,
-                product.PriceMinor,
+                originalPrice,
                 deal.DiscountPercent,
                 discountedPrice,
                 deal.StartTime,

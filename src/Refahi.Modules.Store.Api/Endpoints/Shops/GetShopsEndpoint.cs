@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Shops;
 using Refahi.Modules.Store.Application.Contracts.Queries.Shops;
+using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Store.Api.Endpoints.Shops;
@@ -23,7 +24,7 @@ public class GetShopsEndpoint : IEndpoint
         {
             var query = new GetShopsQuery(
                 ShopType: type,
-                Status: null,       // defaults to Active in handler
+                Status: (short)ShopStatus.Active,   // endpoint عمومی فقط فروشگاه‌های فعال را برمی‌گرداند
                 PageNumber: page > 0 ? page : 1,
                 PageSize: size > 0 ? size : 20);
 

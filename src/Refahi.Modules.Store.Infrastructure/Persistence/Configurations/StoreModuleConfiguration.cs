@@ -19,6 +19,7 @@ public class StoreModuleConfiguration : IEntityTypeConfiguration<StoreModule>
         builder.Property(m => m.IconUrl).HasMaxLength(500);
         builder.Property(m => m.IsActive).IsRequired();
         builder.Property(m => m.SortOrder).IsRequired();
+        builder.Property(m => m.CategoryId);
 
         builder.HasIndex(m => m.Slug).IsUnique();
         builder.HasIndex(m => m.IsActive);

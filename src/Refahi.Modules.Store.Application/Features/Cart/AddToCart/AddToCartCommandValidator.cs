@@ -10,6 +10,9 @@ public class AddToCartCommandValidator : AbstractValidator<AddToCartCommand>
         RuleFor(x => x.UserId)
             .NotEmpty().WithMessage("شناسه کاربر الزامی است");
 
+        RuleFor(x => x.ShopId)
+            .NotEmpty().WithMessage("شناسه فروشگاه الزامی است");
+
         RuleFor(x => x.ProductId)
             .NotEmpty().WithMessage("شناسه محصول الزامی است");
 

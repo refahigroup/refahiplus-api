@@ -20,17 +20,19 @@ public class UpdateBannerCommandHandler : IRequestHandler<UpdateBannerCommand, U
         DateTimeOffset? startDate = null;
         DateTimeOffset? endDate = null;
 
-        if (!string.IsNullOrWhiteSpace(request.StartDate) &&
-            !DateTimeOffset.TryParse(request.StartDate, out var parsedStart))
-            throw new StoreDomainException("تاریخ شروع معتبر نیست", "INVALID_START_DATE");
-        else if (!string.IsNullOrWhiteSpace(request.StartDate))
-            startDate = DateTimeOffset.Parse(request.StartDate);
+        if (!string.IsNullOrWhiteSpace(request.StartDate))
+        {
+            if (!DateTimeOffset.TryParse(request.StartDate, out var parsedStart))
+                throw new StoreDomainException("تاریخ شروع معتبر نیست", "INVALID_START_DATE");
+            startDate = parsedStart.ToUniversalTime();
+        }
 
-        if (!string.IsNullOrWhiteSpace(request.EndDate) &&
-            !DateTimeOffset.TryParse(request.EndDate, out var parsedEnd))
-            throw new StoreDomainException("تاریخ پایان معتبر نیست", "INVALID_END_DATE");
-        else if (!string.IsNullOrWhiteSpace(request.EndDate))
-            endDate = DateTimeOffset.Parse(request.EndDate);
+        if (!string.IsNullOrWhiteSpace(request.EndDate))
+        {
+            if (!DateTimeOffset.TryParse(request.EndDate, out var parsedEnd))
+                throw new StoreDomainException("تاریخ پایان معتبر نیست", "INVALID_END_DATE");
+            endDate = parsedEnd.ToUniversalTime();
+        }
 
         banner.Update(request.Title, request.ImageUrl, request.LinkUrl,
             request.SortOrder, request.IsActive, startDate, endDate);

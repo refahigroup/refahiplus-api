@@ -12,6 +12,7 @@ public class StoreDbContext : DbContext
     public DbSet<StoreModule> Modules => Set<StoreModule>();
     public DbSet<Shop> Shops => Set<Shop>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ShopProduct> ShopProducts => Set<ShopProduct>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<VariantAttribute> VariantAttributes => Set<VariantAttribute>();
@@ -19,7 +20,6 @@ public class StoreDbContext : DbContext
     public DbSet<ProductVariantCombination> ProductVariantCombinations => Set<ProductVariantCombination>();
     public DbSet<ProductSpecification> ProductSpecifications => Set<ProductSpecification>();
     public DbSet<ProductSession> ProductSessions => Set<ProductSession>();
-    public DbSet<StoreCategory> Categories => Set<StoreCategory>();
     public DbSet<Banner> Banners => Set<Banner>();
     public DbSet<DailyDeal> DailyDeals => Set<DailyDeal>();
     public DbSet<Review> Reviews => Set<Review>();
@@ -42,11 +42,11 @@ public class StoreDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ProductVariantCombinationConfiguration());
         modelBuilder.ApplyConfiguration(new ProductSpecificationConfiguration());
         modelBuilder.ApplyConfiguration(new ProductSessionConfiguration());
-        modelBuilder.ApplyConfiguration(new StoreCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new BannerConfiguration());
         modelBuilder.ApplyConfiguration(new DailyDealConfiguration());
         modelBuilder.ApplyConfiguration(new ReviewConfiguration());
         modelBuilder.ApplyConfiguration(new CartConfiguration());
         modelBuilder.ApplyConfiguration(new CartItemConfiguration());
+        modelBuilder.ApplyConfiguration(new ShopProductConfiguration());
     }
 }

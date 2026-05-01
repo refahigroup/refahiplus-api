@@ -12,4 +12,8 @@ public sealed class ProductImage
 
     internal static ProductImage Create(Guid productId, string imageUrl, bool isMain, int sortOrder)
         => new() { ProductId = productId, ImageUrl = imageUrl, IsMain = isMain, SortOrder = sortOrder };
+
+    internal void SetMain(bool isMain) => IsMain = isMain;
+
+    internal void SetSortOrder(int sortOrder) => SortOrder = sortOrder;
 }

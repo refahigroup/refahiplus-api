@@ -8,6 +8,7 @@ public sealed class CartItem
 
     public Guid Id { get; private set; }
     public Guid CartId { get; private set; }
+    public Guid ShopId { get; private set; }
     public Guid ProductId { get; private set; }
     public Guid? VariantId { get; private set; }
     public Guid? SessionId { get; private set; }    // v1.1 — برای محصولات SessionBased
@@ -15,12 +16,13 @@ public sealed class CartItem
     public long UnitPriceMinor { get; private set; }
 
     internal static CartItem Create(
-        Guid cartId, Guid productId, Guid? variantId,
+        Guid cartId, Guid shopId, Guid productId, Guid? variantId,
         Guid? sessionId, int quantity, long unitPriceMinor)
         => new()
         {
             Id = Guid.NewGuid(),
             CartId = cartId,
+            ShopId = shopId,
             ProductId = productId,
             VariantId = variantId,
             SessionId = sessionId,

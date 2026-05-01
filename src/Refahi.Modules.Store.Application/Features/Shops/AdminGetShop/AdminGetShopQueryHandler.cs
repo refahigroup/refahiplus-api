@@ -27,7 +27,7 @@ public class AdminGetShopQueryHandler : IRequestHandler<AdminGetShopQuery, ShopD
         s.CoverImageUrl,
         s.ShopType.ToString(),
         s.Status.ToString(),
-        s.ProviderId,
+        s.SupplierId,
         s.ProvinceId,
         s.CityId,
         s.Address,

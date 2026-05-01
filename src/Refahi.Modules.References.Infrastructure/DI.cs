@@ -26,6 +26,7 @@ public static class DI
 
         services.AddScoped<IProvinceRepository, ProvinceRepository>();
         services.AddScoped<ICityRepository, CityRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
 
         return services;
     }

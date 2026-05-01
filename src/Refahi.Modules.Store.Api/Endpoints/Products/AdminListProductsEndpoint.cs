@@ -14,7 +14,6 @@ public class AdminListProductsEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes) return;
 
         routes.MapGet("/admin/products", async (
-            int? categoryId,
             Guid? shopId,
             bool? isDeleted,
             int pageNumber,
@@ -23,7 +22,6 @@ public class AdminListProductsEndpoint : IEndpoint
             CancellationToken ct) =>
         {
             var query = new AdminGetProductsQuery(
-                categoryId,
                 shopId,
                 isDeleted,
                 pageNumber <= 0 ? 1 : pageNumber,

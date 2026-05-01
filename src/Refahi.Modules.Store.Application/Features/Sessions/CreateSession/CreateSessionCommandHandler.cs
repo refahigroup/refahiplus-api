@@ -3,22 +3,28 @@ using Refahi.Modules.Store.Application.Contracts.Commands.Sessions;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
 
 namespace Refahi.Modules.Store.Application.Features.Sessions.CreateSession;
 
 public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand, CreateSessionResponse>
 {
     private readonly IProductRepository _productRepo;
+    private readonly IMediator _mediator;
 
-    public CreateSessionCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public CreateSessionCommandHandler(IProductRepository productRepo, IMediator mediator)
+    {
+        _productRepo = productRepo;
+        _mediator = mediator;
+    }
 
     public async Task<CreateSessionResponse> Handle(CreateSessionCommand request, CancellationToken cancellationToken)
     {
         var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        if (product.SalesModel != SalesModel.SessionBased)
+        var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
+        if (ap is null || ap.SalesModel != (short)SalesModel.SessionBased)
             throw new StoreDomainException("این محصول سانسی نیست", "NOT_SESSION_PRODUCT");
 
         if (!DateOnly.TryParse(request.Date, out var date))

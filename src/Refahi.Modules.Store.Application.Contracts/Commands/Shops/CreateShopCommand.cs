@@ -6,7 +6,7 @@ public sealed record CreateShopCommand(
     string Name,
     string Slug,
     short ShopType,
-    Guid ProviderId,
+    Guid SupplierId,
     int? ProvinceId,
     int? CityId,
     string? Address,

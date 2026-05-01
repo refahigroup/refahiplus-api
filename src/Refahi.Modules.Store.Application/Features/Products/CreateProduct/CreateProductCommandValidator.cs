@@ -7,37 +7,19 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
 {
     public CreateProductCommandValidator()
     {
+        RuleFor(x => x.AgreementProductId)
+            .NotEmpty().WithMessage("شناسه قرارداد محصول الزامی است");
+
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("عنوان محصول الزامی است")
-            .MaximumLength(500).WithMessage("عنوان محصول نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد");
+            .MaximumLength(300).WithMessage("عنوان محصول نمی‌تواند بیشتر از ۳۰۰ کاراکتر باشد");
 
         RuleFor(x => x.Slug)
             .NotEmpty().WithMessage("اسلاگ الزامی است")
-            .MaximumLength(500).WithMessage("اسلاگ نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد")
+            .MaximumLength(300).WithMessage("اسلاگ نمی‌تواند بیشتر از ۳۰۰ کاراکتر باشد")
             .Matches(@"^[a-z0-9-]+$").WithMessage("اسلاگ فقط می‌تواند شامل حروف کوچک انگلیسی، اعداد و خط تیره باشد");
-
-        RuleFor(x => x.PriceMinor)
-            .GreaterThan(0).WithMessage("قیمت محصول باید بیشتر از صفر باشد");
-
-        RuleFor(x => x.ProductType)
-            .InclusiveBetween((short)1, (short)2).WithMessage("نوع محصول نامعتبر است");
-
-        RuleFor(x => x.DeliveryType)
-            .InclusiveBetween((short)1, (short)3).WithMessage("نوع تحویل نامعتبر است");
-
-        RuleFor(x => x.SalesModel)
-            .InclusiveBetween((short)1, (short)2).WithMessage("مدل فروش نامعتبر است");
-
-        RuleFor(x => x.CategoryId)
-            .GreaterThan(0).WithMessage("دسته‌بندی الزامی است");
-
-        RuleFor(x => x.CategoryCode)
-            .NotEmpty().WithMessage("کد دسته‌بندی الزامی است");
 
         RuleFor(x => x.StockCount)
             .GreaterThanOrEqualTo(0).WithMessage("تعداد موجودی نمی‌تواند منفی باشد");
-
-        RuleFor(x => x.CommissionPercent)
-            .InclusiveBetween(0, 100).WithMessage("درصد کمیسیون باید بین ۰ تا ۱۰۰ باشد");
     }
 }

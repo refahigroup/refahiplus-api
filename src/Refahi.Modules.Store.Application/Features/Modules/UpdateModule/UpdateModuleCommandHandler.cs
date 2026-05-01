@@ -18,7 +18,7 @@ public class UpdateModuleCommandHandler : IRequestHandler<UpdateModuleCommand, U
         var module = await _moduleRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("ماژول یافت نشد", "MODULE_NOT_FOUND");
 
-        module.UpdateInfo(request.Name, request.Description, request.IconUrl, request.SortOrder);
+        module.UpdateInfo(request.Name, request.Description, request.IconUrl, request.SortOrder, request.CategoryId);
 
         await _moduleRepo.UpdateAsync(module, cancellationToken);
 

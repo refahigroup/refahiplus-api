@@ -28,7 +28,7 @@ public class GetShopBySlugQueryHandler : IRequestHandler<GetShopBySlugQuery, Sho
         s.CoverImageUrl,
         s.ShopType.ToString(),
         s.Status.ToString(),
-        s.ProviderId,
+        s.SupplierId,
         s.ProvinceId,
         s.CityId,
         s.Address,

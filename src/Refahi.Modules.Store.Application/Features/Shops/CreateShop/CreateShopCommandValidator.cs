@@ -19,7 +19,7 @@ public class CreateShopCommandValidator : AbstractValidator<CreateShopCommand>
         RuleFor(x => x.ShopType)
             .Must(t => t is 1 or 2 or 3).WithMessage("نوع فروشگاه نامعتبر است");
 
-        RuleFor(x => x.ProviderId)
+        RuleFor(x => x.SupplierId)
             .NotEmpty().WithMessage("شناسه تامین‌کننده الزامی است");
 
         RuleFor(x => x.Address)

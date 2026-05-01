@@ -1,56 +1,70 @@
 using MediatR;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 using Refahi.Modules.Store.Application.Contracts.Queries.Products;
-using Refahi.Modules.Store.Domain.Aggregates;
+using Refahi.Modules.Store.Application.Services;
+using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
 
 namespace Refahi.Modules.Store.Application.Features.Products.SearchProducts;
 
 public class SearchProductsQueryHandler : IRequestHandler<SearchProductsQuery, ProductsPagedResponse>
 {
+    private readonly IStoreModuleCatalogService _catalog;
     private readonly IProductRepository _productRepo;
-    private readonly IShopRepository _shopRepo;
+    private readonly IShopProductRepository _shopProductRepo;
+    private readonly IMediator _mediator;
 
-    public SearchProductsQueryHandler(IProductRepository productRepo, IShopRepository shopRepo)
+    public SearchProductsQueryHandler(
+        IStoreModuleCatalogService catalog,
+        IProductRepository productRepo,
+        IShopProductRepository shopProductRepo,
+        IMediator mediator)
     {
+        _catalog = catalog;
         _productRepo = productRepo;
-        _shopRepo = shopRepo;
+        _shopProductRepo = shopProductRepo;
+        _mediator = mediator;
     }
 
-    public async Task<ProductsPagedResponse> Handle(SearchProductsQuery request, CancellationToken cancellationToken)
+    public async Task<ProductsPagedResponse> Handle(SearchProductsQuery request, CancellationToken ct)
     {
-        var (items, total) = await _productRepo.SearchAsync(
-            request.Query,
-            request.PageNumber,
-            request.PageSize,
-            cancellationToken);
+        var empty = new ProductsPagedResponse([], request.PageNumber, request.PageSize, 0, 0);
 
-        var shopIds = items.Select(p => p.ShopId).Distinct().ToList();
-        var shops = new Dictionary<Guid, Shop>();
-        foreach (var shopId in shopIds)
-        {
-            var shop = await _shopRepo.GetByIdAsync(shopId, cancellationToken);
-            if (shop is not null)
-                shops[shopId] = shop;
-        }
+        var apIds = await _catalog.GetDisplayableAgreementProductIdsAsync(request.ModuleId, ct);
+        if (apIds.Count == 0)
+            return empty;
+
+        var (items, total) = await _productRepo.SearchAsync(
+            request.Query, apIds, request.PageNumber, request.PageSize, ct);
+
+        if (items.Count == 0)
+            return empty;
+
+        // Batch enrichment — eliminates N+1 cross-module calls
+        var productIds = items.Select(p => p.Id).ToList();
+        var usedApIds = items.Select(p => p.AgreementProductId).Distinct().ToList();
+        var apDtos = await _mediator.Send(new GetAgreementProductsByIdsQuery(usedApIds), ct);
+        var shopProducts = await _shopProductRepo.GetForProductsAsync(productIds, shopId: null, ct);
 
         var dtos = items.Select(p =>
         {
+            apDtos.TryGetValue(p.AgreementProductId, out var ap);
+            shopProducts.TryGetValue(p.Id, out var sp);
             var mainImage = p.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
                          ?? p.Images.FirstOrDefault()?.ImageUrl;
-            shops.TryGetValue(p.ShopId, out var shop);
             return new ProductSummaryDto(
                 p.Id, p.Title, p.Slug,
-                p.PriceMinor, p.DiscountedPriceMinor, p.DiscountPercent,
-                p.ProductType.ToString(), p.DeliveryType.ToString(), p.SalesModel.ToString(),
+                sp?.Price ?? 0,
+                sp?.DiscountedPrice ?? 0,
+                ap is not null ? ((ProductType)ap.ProductType).ToString() : string.Empty,
+                ap is not null ? ((DeliveryType)ap.DeliveryType).ToString() : string.Empty,
+                ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
                 mainImage,
-                shop?.Name ?? string.Empty,
-                p.City,
                 p.IsAvailable);
         });
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
-
         return new ProductsPagedResponse(dtos, request.PageNumber, request.PageSize, total, totalPages);
     }
 }

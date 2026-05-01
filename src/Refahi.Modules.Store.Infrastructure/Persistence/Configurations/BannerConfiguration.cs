@@ -20,10 +20,12 @@ public class BannerConfiguration : IEntityTypeConfiguration<Banner>
         builder.Property(b => b.BannerType).IsRequired();
         builder.Property(b => b.SortOrder).IsRequired();
         builder.Property(b => b.IsActive).IsRequired();
+        builder.Property(b => b.IsDeleted).IsRequired().HasDefaultValue(false);
         builder.Property(b => b.StartDate);
         builder.Property(b => b.EndDate);
 
         builder.HasIndex(b => b.ModuleId);
         builder.HasIndex(b => b.IsActive);
+        builder.HasIndex(b => b.IsDeleted);
     }
 }

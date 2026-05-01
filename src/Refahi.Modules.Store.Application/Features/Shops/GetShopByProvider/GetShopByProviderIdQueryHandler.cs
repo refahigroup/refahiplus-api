@@ -16,7 +16,7 @@ public class GetShopByProviderIdQueryHandler : IRequestHandler<GetShopByProvider
     public async Task<ShopDto?> Handle(
         GetShopByProviderIdQuery request, CancellationToken cancellationToken)
     {
-        var shop = await _shopRepository.GetByProviderIdAsync(request.ProviderId, cancellationToken);
+        var shop = await _shopRepository.GetByProviderIdAsync(request.SupplierId, cancellationToken);
         return shop is null ? null : MapToDto(shop);
     }
 
@@ -28,7 +28,7 @@ public class GetShopByProviderIdQueryHandler : IRequestHandler<GetShopByProvider
         s.CoverImageUrl,
         s.ShopType.ToString(),
         s.Status.ToString(),
-        s.ProviderId,
+        s.SupplierId,
         s.ProvinceId,
         s.CityId,
         s.Address,
