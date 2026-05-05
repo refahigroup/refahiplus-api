@@ -7,7 +7,7 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Identity.Api.Endpoints.Profile;
 
-public class MeEndpoint: IEndpoint
+public class MeEndpoint : IEndpoint
 {
     public void Map(object app)
     {
@@ -18,22 +18,22 @@ public class MeEndpoint: IEndpoint
         {
             var id = userPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrEmpty(id) || !Guid.TryParse(id, out var userId)) 
+            if (string.IsNullOrEmpty(id) || !Guid.TryParse(id, out var userId))
                 return Results.Unauthorized();
 
-            var user = await mediator.Send(new MeQuery(userId));
+            var me = await mediator.Send(new MeQuery(userId));
 
-            if (user is null) 
+            if (me is null)
                 return Results.NotFound();
 
-            return Results.Ok(user);
-
+            return Results.Ok(ApiResponseHelper.Success(me, "اطلاعات کاربر با موفقیت دریافت شد"));
         })
         .WithName("Identity.Me")
         .WithTags("Identity")
         .RequireAuthorization()
         .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status404NotFound);
     }
 }
+

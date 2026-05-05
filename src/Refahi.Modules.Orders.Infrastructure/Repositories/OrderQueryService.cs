@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Orders.Application.Contracts.Repositories;
 using Refahi.Modules.Orders.Application.Contracts.Dtos;
+using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Infrastructure.Persistence.Context;
 
 namespace Refahi.Modules.Orders.Infrastructure.Repositories;
@@ -15,10 +16,22 @@ public class OrderQueryService : IOrderQueryService
     }
 
     public async Task<List<OrderSummaryDto>> GetUserOrderSummariesAsync(
-        Guid userId, int page, int pageSize, CancellationToken ct = default)
+        Guid userId,
+        OrderStatus[]? statuses,
+        string? sourceModule,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
     {
-        return await _context.Orders
-            .Where(o => o.UserId == userId)
+        var q = _context.Orders.Where(o => o.UserId == userId);
+
+        if (statuses?.Length > 0)
+            q = q.Where(o => statuses.Contains(o.Status));
+
+        if (!string.IsNullOrWhiteSpace(sourceModule))
+            q = q.Where(o => o.SourceModule == sourceModule);
+
+        return await q
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -31,5 +44,22 @@ public class OrderQueryService : IOrderQueryService
                 o.Items.Count,
                 o.CreatedAt))
             .ToListAsync(ct);
+    }
+
+    public async Task<int> CountUserOrdersAsync(
+        Guid userId,
+        OrderStatus[]? statuses,
+        string? sourceModule,
+        CancellationToken ct = default)
+    {
+        var q = _context.Orders.Where(o => o.UserId == userId);
+
+        if (statuses?.Length > 0)
+            q = q.Where(o => statuses.Contains(o.Status));
+
+        if (!string.IsNullOrWhiteSpace(sourceModule))
+            q = q.Where(o => o.SourceModule == sourceModule);
+
+        return await q.CountAsync(ct);
     }
 }

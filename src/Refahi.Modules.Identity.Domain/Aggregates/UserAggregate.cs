@@ -253,4 +253,13 @@ public class User
         FailedLoginAttempts = 0;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Update email address (does not change approval status)
+    /// </summary>
+    public void UpdateEmail(string? email)
+    {
+        Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLower();
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

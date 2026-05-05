@@ -6,7 +6,7 @@ using Refahi.Modules.Identity.Domain.Repositories;
 
 namespace Refahi.Modules.Identity.Application.Features.Auth.Me;
 
-public class MeQueryHandler : IRequestHandler<MeQuery, UserDto?>
+public class MeQueryHandler : IRequestHandler<MeQuery, MeDetailDto?>
 {
     private readonly IUserRepository _userRepository;
 
@@ -15,18 +15,31 @@ public class MeQueryHandler : IRequestHandler<MeQuery, UserDto?>
         _userRepository = userRepository;
     }
 
-    public async Task<UserDto?> Handle(MeQuery request, CancellationToken cancellationToken)
+    public async Task<MeDetailDto?> Handle(MeQuery request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
 
-        if (user == null)
+        if (user is null)
             return null;
 
-        return new UserDto(
+        UserProfileDto? profileDto = null;
+        if (user.Profile is not null)
+        {
+            profileDto = new UserProfileDto(
+                user.Profile.Id,
+                user.Profile.UserId,
+                user.Profile.FirstName,
+                user.Profile.LastName,
+                user.Profile.NationalCode,
+                user.Profile.Gender);
+        }
+
+        return new MeDetailDto(
             user.Id,
             user.MobileNumber,
             user.Email,
             user.IsActive,
-            user.GetRoles());
+            user.GetRoles(),
+            profileDto);
     }
 }
