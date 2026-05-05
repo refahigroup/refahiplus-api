@@ -5,4 +5,5 @@ public sealed record ProductSummaryDto(
     long PriceMinor, long DiscountedPriceMinor,
     string ProductType, string DeliveryType, string SalesModel,
     string? MainImageUrl,
-    bool IsAvailable);
+    bool IsAvailable,
+    decimal CommissionPercent);

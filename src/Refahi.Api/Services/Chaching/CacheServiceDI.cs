@@ -15,11 +15,25 @@ public static class CacheServiceDI
         }
         else
         {
-            services.AddSingleton<IConnectionMultiplexer>(
-                _ => ConnectionMultiplexer.Connect(configuration["CacheService:Redis:Connection"])
-            );
 
-            services.AddSingleton<ICacheService, RedisCacheService>();
+            string type = configuration["CacheService:Redis:Type"]?.ToLower() ?? "";
+            string redis = configuration["CacheService:Redis:Connection"] ?? "";
+
+            if (type == "redis" && !string.IsNullOrEmpty(redis))
+            {
+                services.AddSingleton<IConnectionMultiplexer>(
+                    _ => ConnectionMultiplexer.Connect(redis)
+                );
+
+                services.AddSingleton<ICacheService, RedisCacheService>();
+            }
+            else
+            {
+                services.AddMemoryCache();
+                services.AddSingleton<ICacheService, InMemoryCacheService>();
+
+            }
+
         }
 
         return services;

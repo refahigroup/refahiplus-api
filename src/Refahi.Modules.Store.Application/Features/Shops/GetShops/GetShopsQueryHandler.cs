@@ -4,15 +4,20 @@ using Refahi.Modules.Store.Application.Contracts.Queries.Shops;
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Shops.GetShops;
 
 public class GetShopsQueryHandler : IRequestHandler<GetShopsQuery, ShopsPagedResponse>
 {
     private readonly IShopRepository _shopRepository;
+    private readonly IPathService _pathService;
 
-    public GetShopsQueryHandler(IShopRepository shopRepository)
-        => _shopRepository = shopRepository;
+    public GetShopsQueryHandler(IShopRepository shopRepository, IPathService pathService)
+    {
+        _shopRepository = shopRepository;
+        _pathService = pathService;
+    }
 
     public async Task<ShopsPagedResponse> Handle(
         GetShopsQuery request, CancellationToken cancellationToken)
@@ -36,11 +41,11 @@ public class GetShopsQueryHandler : IRequestHandler<GetShopsQuery, ShopsPagedRes
             totalPages);
     }
 
-    private static ShopSummaryDto MapToSummaryDto(Shop s) => new(
+    private ShopSummaryDto MapToSummaryDto(Shop s) => new(
         s.Id,
         s.Name,
         s.Slug,
-        s.LogoUrl,
+        s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
         s.ShopType.ToString(),
         s.Status.ToString(),
         s.ProvinceId,

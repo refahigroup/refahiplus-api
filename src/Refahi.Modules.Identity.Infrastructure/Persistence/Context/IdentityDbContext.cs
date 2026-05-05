@@ -14,6 +14,7 @@ public class IdentityDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
@@ -25,6 +26,7 @@ public class IdentityDbContext : DbContext
 
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new UserProfileConfiguration());
+        modelBuilder.ApplyConfiguration(new UserAddressConfiguration());
         modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
         modelBuilder.ApplyConfiguration(new RefreshTokenConfiguration());
     }

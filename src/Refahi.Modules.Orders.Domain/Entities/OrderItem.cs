@@ -1,3 +1,5 @@
+using Refahi.Modules.Orders.Domain.Enums;
+
 namespace Refahi.Modules.Orders.Domain.Entities;
 
 /// <summary>
@@ -29,6 +31,9 @@ public sealed class OrderItem
     // --- متادیتا (جزئیات خاص هر ماژول) ---
     public string? MetadataJson { get; private set; }                  // {"size":"XL","color":"ملانژ","variant_id":"..."}
 
+    // --- روش ارسال این آیتم ---
+    public DeliveryMethod DeliveryMethod { get; private set; }
+
     public int SortOrder { get; private set; }
 
     internal static OrderItem Create(
@@ -42,7 +47,8 @@ public sealed class OrderItem
         string categoryCode,
         string[]? tags,
         string? metadataJson,
-        int sortOrder)
+        int sortOrder,
+        DeliveryMethod deliveryMethod = DeliveryMethod.None)
     {
         return new OrderItem
         {
@@ -58,6 +64,7 @@ public sealed class OrderItem
             CategoryCode = categoryCode,
             Tags = tags,
             MetadataJson = metadataJson,
+            DeliveryMethod = deliveryMethod,
             SortOrder = sortOrder
         };
     }

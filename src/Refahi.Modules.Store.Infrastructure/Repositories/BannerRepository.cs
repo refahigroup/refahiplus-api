@@ -20,11 +20,25 @@ public class BannerRepository : IBannerRepository
             .OrderBy(b => b.SortOrder)
             .ToListAsync(ct);
 
-    public Task<List<Banner>> GetAllAsync(int? moduleId = null, CancellationToken ct = default)
+    public Task<List<Banner>> GetActiveByModuleAsync(int moduleId, CancellationToken ct = default)
+        => _db.Banners
+            .Where(b => b.IsActive && !b.IsDeleted && b.ModuleId == moduleId)
+            .OrderBy(b => b.SortOrder)
+            .ToListAsync(ct);
+
+    public Task<List<Banner>> GetActiveByShopAsync(Guid shopId, CancellationToken ct = default)
+        => _db.Banners
+            .Where(b => b.IsActive && !b.IsDeleted && b.ShopId == shopId)
+            .OrderBy(b => b.SortOrder)
+            .ToListAsync(ct);
+
+    public Task<List<Banner>> GetAllAsync(int? moduleId = null, Guid? shopId = null, CancellationToken ct = default)
     {
         var query = _db.Banners.Where(b => !b.IsDeleted);
         if (moduleId.HasValue)
             query = query.Where(b => b.ModuleId == moduleId.Value);
+        if (shopId.HasValue)
+            query = query.Where(b => b.ShopId == shopId.Value);
         return query.OrderBy(b => b.SortOrder).ToListAsync(ct);
     }
 

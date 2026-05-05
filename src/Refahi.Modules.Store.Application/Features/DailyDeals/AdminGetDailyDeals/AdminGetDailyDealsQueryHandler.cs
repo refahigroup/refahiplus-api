@@ -2,6 +2,7 @@ using MediatR;
 using Refahi.Modules.Store.Application.Contracts.Dtos.DailyDeals;
 using Refahi.Modules.Store.Application.Contracts.Queries.DailyDeals;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.DailyDeals.AdminGetDailyDeals;
 
@@ -11,22 +12,25 @@ public class AdminGetDailyDealsQueryHandler : IRequestHandler<AdminGetDailyDeals
     private readonly IProductRepository _productRepo;
     private readonly IShopProductRepository _shopProductRepo;
     private readonly IShopRepository _shopRepo;
+    private readonly IPathService _pathService;
 
     public AdminGetDailyDealsQueryHandler(
         IDailyDealRepository dealRepo,
         IProductRepository productRepo,
         IShopProductRepository shopProductRepo,
-        IShopRepository shopRepo)
+        IShopRepository shopRepo,
+        IPathService pathService)
     {
         _dealRepo = dealRepo;
         _productRepo = productRepo;
         _shopProductRepo = shopProductRepo;
         _shopRepo = shopRepo;
+        _pathService = pathService;
     }
 
     public async Task<List<AdminDailyDealDto>> Handle(AdminGetDailyDealsQuery request, CancellationToken cancellationToken)
     {
-        var deals = await _dealRepo.GetAllAsync(request.ModuleId, cancellationToken);
+        var deals = await _dealRepo.GetAllAsync(request.ModuleId, ct: cancellationToken);
 
         var result = new List<AdminDailyDealDto>(deals.Count);
 
@@ -43,14 +47,16 @@ public class AdminGetDailyDealsQueryHandler : IRequestHandler<AdminGetDailyDeals
 
             var mainImage = product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
                          ?? product.Images.FirstOrDefault()?.ImageUrl;
+            var mainImageUrl = mainImage is null ? null : _pathService.MakeAbsoluteMediaUrl(mainImage);
             var discountedPrice = originalPrice * (100 - deal.DiscountPercent) / 100;
 
             result.Add(new AdminDailyDealDto(
                 deal.Id,
                 deal.ModuleId,
+                deal.ShopId,
                 deal.ProductId,
                 product.Title,
-                mainImage,
+                mainImageUrl,
                 originalPrice,
                 deal.DiscountPercent,
                 discountedPrice,

@@ -8,4 +8,4 @@ public sealed record LinkMediaToEntityCommand(
     Guid EntityId,
     Guid RequestedByUserId,
     bool IsAdmin
-) : IRequest;
+) : IRequest<Unit>;

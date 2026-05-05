@@ -12,7 +12,7 @@ public static class DI
         var assembly = typeof(DI).Assembly;
 
         services
-            .AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly))
+            .AddMediatR(assembly)
             .AddValidatorsFromAssembly(assembly);
 
 

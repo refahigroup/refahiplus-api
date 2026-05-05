@@ -138,6 +138,7 @@ public class AgreementRepository : IAgreementRepository
                 ap => ap.Id,
                 ap => new AgreementProductDto(
                     ap.Id, ap.AgreementId, ap.Name, ap.Description, ap.CategoryId,
+                    null,
                     (short)ap.ProductType, (short)ap.DeliveryType, (short)ap.SalesModel,
                     ap.CommissionPercent, ap.IsDeleted, ap.CreatedAt),
                 ct);

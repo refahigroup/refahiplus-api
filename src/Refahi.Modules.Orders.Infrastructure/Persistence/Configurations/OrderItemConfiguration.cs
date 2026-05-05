@@ -65,6 +65,12 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             .HasColumnType("jsonb")
             .HasColumnName("metadata");
 
+        builder.Property(i => i.DeliveryMethod)
+            .IsRequired()
+            .HasConversion<short>()
+            .HasDefaultValue(Refahi.Modules.Orders.Domain.Enums.DeliveryMethod.None)
+            .HasColumnName("delivery_method");
+
         builder.Property(i => i.SortOrder)
             .IsRequired()
             .HasDefaultValue(0)

@@ -21,7 +21,10 @@ public sealed class Order
 
     // --- مبالغ (long / ریال) ---
     public long TotalAmountMinor { get; private set; }                 // جمع کل قبل از تخفیف
-    public long DiscountAmountMinor { get; private set; }              // مجموع تخفیفات
+    public long DiscountAmountMinor { get; private set; }              // مجموع تخفیفات کالاها
+    public long ShippingFeeMinor { get; private set; }                 // هزینه ارسال
+    public string? DiscountCode { get; private set; }                  // کد تخفیف اعمال‌شده
+    public long DiscountCodeAmountMinor { get; private set; }          // مبلغ کاسته‌شده توسط کد تخفیف
     public long FinalAmountMinor { get; private set; }                 // مبلغ نهایی قابل پرداخت
     public string Currency { get; private set; } = "IRR";
 
@@ -36,6 +39,12 @@ public sealed class Order
     // --- ماژول مبدا ---
     public string SourceModule { get; private set; } = string.Empty;  // "Store", "Hotel", "Flight"
     public Guid SourceReferenceId { get; private set; }               // رفرنس به رکورد اصلی در ماژول مبدا
+
+    // --- اطلاعات ارسال (Snapshot از Identity) ---
+    public Guid? ShippingAddressId { get; private set; }              // FK soft → Identity.UserAddress
+    public string? ShippingAddressSnapshotJson { get; private set; }  // Snapshot JSON آدرس برای حفظ تاریخچه
+    public DateOnly? DeliveryDate { get; private set; }               // روز تحویل
+    public DeliveryTimeSlot DeliveryTimeSlot { get; private set; }    // بازه‌ی ساعتی تحویل (فاز ۲)
 
     // --- Idempotency ---
     public string IdempotencyKey { get; private set; } = string.Empty;
@@ -67,10 +76,23 @@ public sealed class Order
         string sourceModule,
         Guid sourceReferenceId,
         string idempotencyKey,
-        List<OrderItemData> items)
+        List<OrderItemData> items,
+        Guid? shippingAddressId = null,
+        string? shippingAddressSnapshotJson = null,
+        DateOnly? deliveryDate = null,
+        DeliveryTimeSlot deliveryTimeSlot = DeliveryTimeSlot.None,
+        long shippingFeeMinor = 0,
+        string? discountCode = null,
+        long discountCodeAmountMinor = 0)
     {
         if (items is null || items.Count == 0)
             throw new OrderDomainException("سفارش باید حداقل یک آیتم داشته باشد", "ORDER_EMPTY");
+
+        if (shippingFeeMinor < 0)
+            throw new OrderDomainException("هزینه ارسال نمی‌تواند منفی باشد", "INVALID_SHIPPING_FEE");
+
+        if (discountCodeAmountMinor < 0)
+            throw new OrderDomainException("مبلغ کد تخفیف نمی‌تواند منفی باشد", "INVALID_DISCOUNT_CODE_AMOUNT");
 
         var order = new Order
         {
@@ -83,6 +105,13 @@ public sealed class Order
             SourceModule = sourceModule,
             SourceReferenceId = sourceReferenceId,
             IdempotencyKey = idempotencyKey,
+            ShippingAddressId = shippingAddressId,
+            ShippingAddressSnapshotJson = shippingAddressSnapshotJson,
+            DeliveryDate = deliveryDate,
+            DeliveryTimeSlot = deliveryTimeSlot,
+            ShippingFeeMinor = shippingFeeMinor,
+            DiscountCode = string.IsNullOrWhiteSpace(discountCode) ? null : discountCode.Trim(),
+            DiscountCodeAmountMinor = discountCodeAmountMinor,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -101,7 +130,8 @@ public sealed class Order
                 categoryCode: item.CategoryCode,
                 tags: item.Tags,
                 metadataJson: item.MetadataJson,
-                sortOrder: sortOrder++));
+                sortOrder: sortOrder++,
+                deliveryMethod: item.DeliveryMethod));
         }
 
         order.RecalculateAmounts();
@@ -247,7 +277,10 @@ public sealed class Order
     {
         TotalAmountMinor = _items.Sum(i => i.UnitPriceMinor * i.Quantity);
         DiscountAmountMinor = _items.Sum(i => i.DiscountAmountMinor);
-        FinalAmountMinor = TotalAmountMinor - DiscountAmountMinor;
+        // فرمول نهایی: قیمت کل - تخفیف کالاها - تخفیف کد + هزینه ارسال
+        var final = TotalAmountMinor - DiscountAmountMinor - DiscountCodeAmountMinor + ShippingFeeMinor;
+        if (final < 0) final = 0;
+        FinalAmountMinor = final;
     }
 
     private static string GenerateOrderNumber()
@@ -269,4 +302,5 @@ public sealed record OrderItemData(
     Guid SourceItemId,
     string CategoryCode,
     string[]? Tags,
-    string? MetadataJson);
+    string? MetadataJson,
+    DeliveryMethod DeliveryMethod = DeliveryMethod.None);

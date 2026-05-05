@@ -5,6 +5,7 @@ using Refahi.Modules.Store.Application.Services;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Products.SearchProducts;
 
@@ -14,17 +15,20 @@ public class SearchProductsQueryHandler : IRequestHandler<SearchProductsQuery, P
     private readonly IProductRepository _productRepo;
     private readonly IShopProductRepository _shopProductRepo;
     private readonly IMediator _mediator;
+    private readonly IPathService _pathService;
 
     public SearchProductsQueryHandler(
         IStoreModuleCatalogService catalog,
         IProductRepository productRepo,
         IShopProductRepository shopProductRepo,
-        IMediator mediator)
+        IMediator mediator,
+        IPathService pathService)
     {
         _catalog = catalog;
         _productRepo = productRepo;
         _shopProductRepo = shopProductRepo;
         _mediator = mediator;
+        _pathService = pathService;
     }
 
     public async Task<ProductsPagedResponse> Handle(SearchProductsQuery request, CancellationToken ct)
@@ -53,6 +57,7 @@ public class SearchProductsQueryHandler : IRequestHandler<SearchProductsQuery, P
             shopProducts.TryGetValue(p.Id, out var sp);
             var mainImage = p.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
                          ?? p.Images.FirstOrDefault()?.ImageUrl;
+            var mainImageUrl = mainImage is null ? null : _pathService.MakeAbsoluteMediaUrl(mainImage);
             return new ProductSummaryDto(
                 p.Id, p.Title, p.Slug,
                 sp?.Price ?? 0,
@@ -60,8 +65,9 @@ public class SearchProductsQueryHandler : IRequestHandler<SearchProductsQuery, P
                 ap is not null ? ((ProductType)ap.ProductType).ToString() : string.Empty,
                 ap is not null ? ((DeliveryType)ap.DeliveryType).ToString() : string.Empty,
                 ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
-                mainImage,
-                p.IsAvailable);
+                mainImageUrl,
+                p.IsAvailable,
+                ap?.CommissionPercent ?? 0);
         });
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);

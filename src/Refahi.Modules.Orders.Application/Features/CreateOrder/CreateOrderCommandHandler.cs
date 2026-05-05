@@ -1,6 +1,7 @@
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Domain.Aggregates;
+using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Repositories;
 
 namespace Refahi.Modules.Orders.Application.Features.CreateOrder;
@@ -29,14 +30,22 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Cre
             SourceItemId: i.SourceItemId,
             CategoryCode: i.CategoryCode,
             Tags: i.Tags,
-            MetadataJson: i.MetadataJson)).ToList();
+            MetadataJson: i.MetadataJson,
+            DeliveryMethod: (DeliveryMethod)i.DeliveryMethod)).ToList();
 
         var order = Order.Create(
             userId: request.UserId,
             sourceModule: request.SourceModule,
             sourceReferenceId: request.SourceReferenceId,
             idempotencyKey: request.IdempotencyKey,
-            items: items);
+            items: items,
+            shippingAddressId: request.ShippingAddressId,
+            shippingAddressSnapshotJson: request.ShippingAddressSnapshotJson,
+            deliveryDate: request.DeliveryDate,
+            deliveryTimeSlot: (DeliveryTimeSlot)request.DeliveryTimeSlot,
+            shippingFeeMinor: request.ShippingFeeMinor,
+            discountCode: request.DiscountCode,
+            discountCodeAmountMinor: request.DiscountCodeAmountMinor);
 
         await _orderRepository.AddAsync(order, cancellationToken);
         // Domain events are captured to Outbox by SaveChangesAsync override in OrdersDbContext

@@ -1,4 +1,5 @@
 using MediatR;
+using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.SupplyChain.Application.Abstractions;
 using Refahi.Modules.SupplyChain.Application.Contracts.Dtos;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.Agreements;
@@ -8,9 +9,13 @@ namespace Refahi.Modules.SupplyChain.Application.Features.Agreements.GetAgreemen
 public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuery, AgreementDto?>
 {
     private readonly IAgreementRepository _repository;
+    private readonly IMediator _mediator;
 
-    public GetAgreementByIdQueryHandler(IAgreementRepository repository)
-        => _repository = repository;
+    public GetAgreementByIdQueryHandler(IAgreementRepository repository, IMediator mediator)
+    {
+        _repository = repository;
+        _mediator = mediator;
+    }
 
     public async Task<AgreementDto?> Handle(GetAgreementByIdQuery request, CancellationToken cancellationToken)
     {
@@ -24,6 +29,20 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
             ? (s.CompanyName ?? $"{s.FirstName} {s.LastName}".Trim())
             : string.Empty;
 
+        // Batch-fetch category names for all products
+        var categoryIds = agreement.Products
+            .Where(p => !p.IsDeleted && p.CategoryId.HasValue)
+            .Select(p => p.CategoryId!.Value)
+            .Distinct()
+            .ToList();
+
+        var categoryNames = new Dictionary<int, string>();
+        foreach (var catId in categoryIds)
+        {
+            var cat = await _mediator.Send(new GetCategoryByIdQuery(catId), cancellationToken);
+            if (cat is not null) categoryNames[catId] = cat.Name;
+        }
+
         var products = agreement.Products
             .Where(p => !p.IsDeleted)
             .Select(p => new AgreementProductDto(
@@ -32,6 +51,7 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
                 p.Name,
                 p.Description,
                 p.CategoryId,
+                p.CategoryId.HasValue && categoryNames.TryGetValue(p.CategoryId.Value, out var cn) ? cn : null,
                 (short)p.ProductType,
                 (short)p.DeliveryType,
                 (short)p.SalesModel,

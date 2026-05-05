@@ -3,6 +3,9 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="11.1.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Refahi.Modules.Identity.Domain\Refahi.Modules.Identity.Domain.csproj" />
   </ItemGroup>
 </Project>

@@ -42,11 +42,32 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasDefaultValue("IRR")
                         .HasColumnName("currency");
 
+                    b.Property<DateOnly?>("DeliveryDate")
+                        .HasColumnType("date")
+                        .HasColumnName("delivery_date");
+
+                    b.Property<short>("DeliveryTimeSlot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0)
+                        .HasColumnName("delivery_time_slot");
+
                     b.Property<long>("DiscountAmountMinor")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
                         .HasColumnName("discount_amount_minor");
+
+                    b.Property<string>("DiscountCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("discount_code");
+
+                    b.Property<long>("DiscountCodeAmountMinor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("discount_code_amount_minor");
 
                     b.Property<long>("FinalAmountMinor")
                         .HasColumnType("bigint")
@@ -81,6 +102,20 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
+
+                    b.Property<Guid?>("ShippingAddressId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("shipping_address_id");
+
+                    b.Property<string>("ShippingAddressSnapshotJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("shipping_address_snapshot");
+
+                    b.Property<long>("ShippingFeeMinor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("shipping_fee_minor");
 
                     b.Property<string>("SourceModule")
                         .IsRequired()
@@ -142,6 +177,12 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("category_code");
+
+                    b.Property<short>("DeliveryMethod")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0)
+                        .HasColumnName("delivery_method");
 
                     b.Property<long>("DiscountAmountMinor")
                         .ValueGeneratedOnAdd()

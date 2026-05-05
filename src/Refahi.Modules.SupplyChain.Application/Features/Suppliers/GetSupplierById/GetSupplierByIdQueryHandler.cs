@@ -3,15 +3,20 @@ using Refahi.Modules.SupplyChain.Application.Abstractions;
 using Refahi.Modules.SupplyChain.Application.Contracts.Dtos;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.Suppliers;
 using Refahi.Modules.SupplyChain.Domain.Aggregates;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.SupplyChain.Application.Features.Suppliers.GetSupplierById;
 
 public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery, SupplierDto?>
 {
     private readonly ISupplierRepository _repository;
+    private readonly IPathService _pathService;
 
-    public GetSupplierByIdQueryHandler(ISupplierRepository repository)
-        => _repository = repository;
+    public GetSupplierByIdQueryHandler(ISupplierRepository repository, IPathService pathService)
+    {
+        _repository = repository;
+        _pathService = pathService;
+    }
 
     public async Task<SupplierDto?> Handle(GetSupplierByIdQuery request, CancellationToken cancellationToken)
     {
@@ -20,10 +25,10 @@ public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery,
         if (supplier is null || supplier.IsDeleted)
             return null;
 
-        return MapToDto(supplier);
+        return MapToDto(supplier, _pathService);
     }
 
-    private static SupplierDto MapToDto(Supplier s) => new(
+    private static SupplierDto MapToDto(Supplier s, IPathService pathService) => new(
         s.Id,
         (short)s.Type,
         s.Type.ToString(),
@@ -31,7 +36,7 @@ public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery,
         s.LastName,
         s.CompanyName,
         s.BrandName,
-        s.LogoUrl,
+        s.LogoUrl is null ? null : pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
         s.NationalId,
         s.EconomicCode,
         s.ProvinceId,

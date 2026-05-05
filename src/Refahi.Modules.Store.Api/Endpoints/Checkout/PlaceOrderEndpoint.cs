@@ -12,13 +12,24 @@ namespace Refahi.Modules.Store.Api.Endpoints.Checkout;
 
 public class PlaceOrderEndpoint : IEndpoint
 {
+    /// <summary>
+    /// Body endpoint — جداگانه از Command برای امکان پردازش راحت‌تر در Endpoint.
+    /// </summary>
+    public sealed record PlaceOrderRequestBody(
+        List<WalletPaymentInput> WalletAllocations,
+        Guid? ShippingAddressId,
+        DateOnly? DeliveryDate,
+        short DeliveryTimeSlot,
+        Dictionary<Guid, short>? CartItemDeliveryMethods,
+        string? DiscountCode);
+
     public void Map(object app)
     {
         if (app is not IEndpointRouteBuilder routes) return;
 
         routes.MapPost("/{moduleSlug}/checkout", async (
             string moduleSlug,
-            [FromBody] PlaceStoreOrderCommand command,
+            [FromBody] PlaceOrderRequestBody body,
             HttpContext httpContext,
             IModuleResolver moduleResolver,
             IMediator mediator,
@@ -38,8 +49,18 @@ public class PlaceOrderEndpoint : IEndpoint
             if (moduleId is null)
                 return Results.NotFound();
 
-            var adjustedCommand = command with { UserId = userId, ModuleId = moduleId.Value, IdempotencyKey = idempotencyKey };
-            var result = await mediator.Send(adjustedCommand, ct);
+            var command = new PlaceStoreOrderCommand(
+                UserId: userId,
+                ModuleId: moduleId.Value,
+                WalletAllocations: body.WalletAllocations ?? new List<WalletPaymentInput>(),
+                IdempotencyKey: idempotencyKey,
+                ShippingAddressId: body.ShippingAddressId,
+                DeliveryDate: body.DeliveryDate,
+                DeliveryTimeSlot: body.DeliveryTimeSlot,
+                CartItemDeliveryMethods: body.CartItemDeliveryMethods,
+                DiscountCode: body.DiscountCode);
+
+            var result = await mediator.Send(command, ct);
             return Results.Ok(ApiResponseHelper.Success(result, "سفارش با موفقیت ثبت و پرداخت شد"));
         })
         .WithName("Store.PlaceOrder")

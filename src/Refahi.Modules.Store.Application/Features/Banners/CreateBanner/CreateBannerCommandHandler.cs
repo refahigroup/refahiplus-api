@@ -36,7 +36,7 @@ public class CreateBannerCommandHandler : IRequestHandler<CreateBannerCommand, C
             endDate = parsedEnd.ToUniversalTime();
         }
 
-        var banner = Banner.Create(
+        var banner = Banner.CreateForModule(
             request.ModuleId,
             request.Title,
             request.ImageUrl,

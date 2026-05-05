@@ -30,11 +30,31 @@ public class DailyDealRepository : IDailyDealRepository
             .ToListAsync(ct);
     }
 
-    public Task<List<DailyDeal>> GetAllAsync(int? moduleId = null, CancellationToken ct = default)
+    public Task<List<DailyDeal>> GetCurrentlyActiveByModuleAsync(int moduleId, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return _db.DailyDeals
+            .Where(d => d.IsActive && d.ModuleId == moduleId
+                && d.StartTime <= now && d.EndTime >= now)
+            .ToListAsync(ct);
+    }
+
+    public Task<List<DailyDeal>> GetCurrentlyActiveByShopAsync(Guid shopId, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return _db.DailyDeals
+            .Where(d => d.IsActive && d.ShopId == shopId
+                && d.StartTime <= now && d.EndTime >= now)
+            .ToListAsync(ct);
+    }
+
+    public Task<List<DailyDeal>> GetAllAsync(int? moduleId = null, Guid? shopId = null, CancellationToken ct = default)
     {
         var query = _db.DailyDeals.AsQueryable();
         if (moduleId.HasValue)
             query = query.Where(d => d.ModuleId == moduleId.Value);
+        if (shopId.HasValue)
+            query = query.Where(d => d.ShopId == shopId.Value);
         return query.OrderByDescending(d => d.StartTime).ToListAsync(ct);
     }
 

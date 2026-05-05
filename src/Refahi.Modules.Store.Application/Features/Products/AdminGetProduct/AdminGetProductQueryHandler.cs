@@ -4,6 +4,7 @@ using Refahi.Modules.Store.Application.Contracts.Queries.Products;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Products.AdminGetProduct;
 
@@ -13,17 +14,20 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
     private readonly IShopProductRepository _shopProductRepo;
     private readonly IReviewRepository _reviewRepo;
     private readonly IMediator _mediator;
+    private readonly IPathService _pathService;
 
     public AdminGetProductQueryHandler(
         IProductRepository productRepo,
         IShopProductRepository shopProductRepo,
         IReviewRepository reviewRepo,
-        IMediator mediator)
+        IMediator mediator,
+        IPathService pathService)
     {
         _productRepo = productRepo;
         _shopProductRepo = shopProductRepo;
         _reviewRepo = reviewRepo;
         _mediator = mediator;
+        _pathService = pathService;
     }
 
     public async Task<ProductDetailDto?> Handle(AdminGetProductQuery request, CancellationToken cancellationToken)
@@ -40,12 +44,14 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
 
         var images = product.Images
             .OrderBy(i => i.SortOrder)
-            .Select(i => new ProductImageDto(i.Id, i.ImageUrl, i.IsMain, i.SortOrder))
+            .Select(i => new ProductImageDto(i.Id, _pathService.MakeAbsoluteMediaUrl(i.ImageUrl), i.IsMain, i.SortOrder))
             .ToList();
 
         var variants = product.Variants
             .Select(v => new ProductVariantDto(
-                v.Id, v.SKU, v.ImageUrl, v.StockCount,
+                v.Id, v.SKU,
+                v.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(v.ImageUrl),
+                v.StockCount,
                 v.PriceMinor, v.DiscountedPriceMinor, v.IsAvailable,
                 v.Combinations.Select(c =>
                 {

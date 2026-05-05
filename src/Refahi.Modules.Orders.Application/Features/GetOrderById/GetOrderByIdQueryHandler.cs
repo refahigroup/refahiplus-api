@@ -32,7 +32,8 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             FinalPriceMinor: i.FinalPriceMinor,
             CategoryCode: i.CategoryCode,
             Tags: i.Tags,
-            MetadataJson: i.MetadataJson)).ToList();
+            MetadataJson: i.MetadataJson,
+            DeliveryMethod: (short)i.DeliveryMethod)).ToList();
 
         return new OrderDto(
             Id: order.Id,
@@ -40,11 +41,18 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             UserId: order.UserId,
             TotalAmountMinor: order.TotalAmountMinor,
             DiscountAmountMinor: order.DiscountAmountMinor,
+            ShippingFeeMinor: order.ShippingFeeMinor,
+            DiscountCode: order.DiscountCode,
+            DiscountCodeAmountMinor: order.DiscountCodeAmountMinor,
             FinalAmountMinor: order.FinalAmountMinor,
             Status: order.Status.ToString(),
             PaymentState: order.PaymentState.ToString(),
             SourceModule: order.SourceModule,
             SourceReferenceId: order.SourceReferenceId,
+            ShippingAddressId: order.ShippingAddressId,
+            ShippingAddressSnapshotJson: order.ShippingAddressSnapshotJson,
+            DeliveryDate: order.DeliveryDate,
+            DeliveryTimeSlot: (short)order.DeliveryTimeSlot,
             Items: items,
             CreatedAt: order.CreatedAt);
     }

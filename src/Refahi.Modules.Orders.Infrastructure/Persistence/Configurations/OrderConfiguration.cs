@@ -38,9 +38,40 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasDefaultValue(0L)
             .HasColumnName("discount_amount_minor");
 
+        builder.Property(o => o.ShippingFeeMinor)
+            .IsRequired()
+            .HasDefaultValue(0L)
+            .HasColumnName("shipping_fee_minor");
+
+        builder.Property(o => o.DiscountCode)
+            .HasMaxLength(50)
+            .HasColumnName("discount_code");
+
+        builder.Property(o => o.DiscountCodeAmountMinor)
+            .IsRequired()
+            .HasDefaultValue(0L)
+            .HasColumnName("discount_code_amount_minor");
+
         builder.Property(o => o.FinalAmountMinor)
             .IsRequired()
             .HasColumnName("final_amount_minor");
+
+        builder.Property(o => o.ShippingAddressId)
+            .HasColumnName("shipping_address_id");
+
+        builder.Property(o => o.ShippingAddressSnapshotJson)
+            .HasColumnType("jsonb")
+            .HasColumnName("shipping_address_snapshot");
+
+        builder.Property(o => o.DeliveryDate)
+            .HasColumnType("date")
+            .HasColumnName("delivery_date");
+
+        builder.Property(o => o.DeliveryTimeSlot)
+            .IsRequired()
+            .HasConversion<short>()
+            .HasDefaultValue(Refahi.Modules.Orders.Domain.Enums.DeliveryTimeSlot.None)
+            .HasColumnName("delivery_time_slot");
 
         builder.Property(o => o.Currency)
             .IsRequired()

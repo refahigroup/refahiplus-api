@@ -10,11 +10,13 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
-		<PackageReference Include="MediatR" Version="14.0.0" />
+		<PackageReference Include="MediatR" Version="11.1.0" />
+		<PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Refahi.Modules.Identity.Application.Contracts\Refahi.Modules.Identity.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Store.Application.Contracts\Refahi.Modules.Store.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Wallets.Application.Contracts\Refahi.Modules.Wallets.Application.Contracts.csproj" />

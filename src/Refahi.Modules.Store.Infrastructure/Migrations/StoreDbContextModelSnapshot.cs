@@ -286,8 +286,11 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int>("ModuleId")
+                    b.Property<int?>("ModuleId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("ShopId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -306,9 +309,16 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
 
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("ModuleId");
+                    b.HasIndex("ModuleId")
+                        .HasFilter("\"ModuleId\" IS NOT NULL");
 
-                    b.ToTable("banners", "store");
+                    b.HasIndex("ShopId")
+                        .HasFilter("\"ShopId\" IS NOT NULL");
+
+                    b.ToTable("banners", "store", t =>
+                        {
+                            t.HasCheckConstraint("CK_banners_owner_xor", "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.CartItem", b =>
@@ -366,10 +376,13 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("ModuleId")
+                    b.Property<int?>("ModuleId")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ShopId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("StartTime")
@@ -379,11 +392,18 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
 
                     b.HasIndex("IsActive");
 
-                    b.HasIndex("ModuleId");
+                    b.HasIndex("ModuleId")
+                        .HasFilter("\"ModuleId\" IS NOT NULL");
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("daily_deals", "store");
+                    b.HasIndex("ShopId")
+                        .HasFilter("\"ShopId\" IS NOT NULL");
+
+                    b.ToTable("daily_deals", "store", t =>
+                        {
+                            t.HasCheckConstraint("CK_daily_deals_owner_xor", "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.ProductImage", b =>
@@ -680,6 +700,19 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.ToTable("variant_attribute_values", "store");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.Banner", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Entities.StoreModule", null)
+                        .WithMany()
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Refahi.Modules.Store.Domain.Aggregates.Shop", null)
+                        .WithMany()
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.CartItem", b =>
                 {
                     b.HasOne("Refahi.Modules.Store.Domain.Aggregates.Cart", null)
@@ -687,6 +720,19 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .HasForeignKey("CartId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.DailyDeal", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Entities.StoreModule", null)
+                        .WithMany()
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Refahi.Modules.Store.Domain.Aggregates.Shop", null)
+                        .WithMany()
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.ProductImage", b =>

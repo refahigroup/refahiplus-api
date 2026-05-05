@@ -5,6 +5,7 @@ using Refahi.Api.Middlewares;
 using Refahi.Api.Services;
 using Refahi.Api.Services.Chaching;
 using Refahi.Api.Services.Notification;
+using Refahi.Api.Services.Path;
 using Refahi.Modules.Hotels.Api;
 using Refahi.Modules.Identity.Api;
 using Refahi.Modules.Media.Api;
@@ -66,7 +67,9 @@ builder.Services.RegisterDbTools();
 // Register Shared services
 builder.Services
     .RegisterCachingService(builder.Configuration, builder.Environment.IsDevelopment())
-    .RegisterNotificationService(builder.Configuration);
+    .RegisterNotificationService(builder.Configuration)
+    .RegisterPathService(builder.Configuration);
+
 
 // Register modules
 //try

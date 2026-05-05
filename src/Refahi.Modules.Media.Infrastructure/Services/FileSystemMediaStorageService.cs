@@ -17,8 +17,6 @@ public class FileSystemMediaStorageService : IMediaStorageService
         _options = options.Value;
         if (string.IsNullOrWhiteSpace(_options.BasePath))
             throw new InvalidOperationException("MediaStorage:BasePath تنظیم نشده است");
-        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
-            throw new InvalidOperationException("MediaStorage:BaseUrl تنظیم نشده است");
     }
 
     public async Task<MediaStorageResult> SaveAsync(
@@ -75,5 +73,5 @@ public class FileSystemMediaStorageService : IMediaStorageService
     }
 
     public string GetPublicUrl(string storagePath)
-        => $"{_options.BaseUrl.TrimEnd('/')}/{storagePath.TrimStart('/')}";
+        => $"{_options.CreateBaseUrl.TrimEnd('/')}/{storagePath.TrimStart('/')}";
 }

@@ -4,7 +4,7 @@ using Refahi.Modules.Media.Domain.Repositories;
 
 namespace Refahi.Modules.Media.Application.Features.Link;
 
-public class LinkMediaToEntityCommandHandler : IRequestHandler<LinkMediaToEntityCommand>
+public class LinkMediaToEntityCommandHandler : IRequestHandler<LinkMediaToEntityCommand, Unit>
 {
     private readonly IMediaAssetRepository _repository;
 
@@ -13,7 +13,7 @@ public class LinkMediaToEntityCommandHandler : IRequestHandler<LinkMediaToEntity
         _repository = repository;
     }
 
-    public async Task Handle(LinkMediaToEntityCommand request, CancellationToken ct)
+    public async Task<Unit> Handle(LinkMediaToEntityCommand request, CancellationToken ct)
     {
         var asset = await _repository.GetByIdAsync(request.MediaId, ct)
             ?? throw new KeyNotFoundException("فایل مدیا یافت نشد");
@@ -26,5 +26,6 @@ public class LinkMediaToEntityCommandHandler : IRequestHandler<LinkMediaToEntity
 
         asset.LinkToEntity(request.EntityType, request.EntityId);
         await _repository.SaveChangesAsync(ct);
+        return Unit.Value;
     }
 }

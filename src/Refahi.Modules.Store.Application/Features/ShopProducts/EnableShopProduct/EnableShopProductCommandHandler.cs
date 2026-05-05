@@ -5,14 +5,14 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.ShopProducts.EnableShopProduct;
 
-public class EnableShopProductCommandHandler : IRequestHandler<EnableShopProductCommand>
+public class EnableShopProductCommandHandler : IRequestHandler<EnableShopProductCommand, Unit>
 {
     private readonly IShopProductRepository _shopProductRepo;
 
     public EnableShopProductCommandHandler(IShopProductRepository shopProductRepo)
         => _shopProductRepo = shopProductRepo;
 
-    public async Task Handle(EnableShopProductCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(EnableShopProductCommand request, CancellationToken cancellationToken)
     {
         var shopProduct = await _shopProductRepo.GetAsync(request.ShopId, request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول در این فروشگاه یافت نشد", "SHOP_PRODUCT_NOT_FOUND");
@@ -22,5 +22,6 @@ public class EnableShopProductCommandHandler : IRequestHandler<EnableShopProduct
 
         shopProduct.Enable();
         await _shopProductRepo.UpdateAsync(shopProduct, cancellationToken);
+        return Unit.Value;
     }
 }

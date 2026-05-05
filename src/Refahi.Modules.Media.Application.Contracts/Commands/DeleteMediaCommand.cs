@@ -6,4 +6,4 @@ public sealed record DeleteMediaCommand(
     Guid MediaId,
     Guid RequestedByUserId,
     bool IsAdmin
-) : IRequest;
+) : IRequest<Unit>;

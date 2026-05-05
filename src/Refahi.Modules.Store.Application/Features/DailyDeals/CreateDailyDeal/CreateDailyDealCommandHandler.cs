@@ -28,7 +28,7 @@ public class CreateDailyDealCommandHandler : IRequestHandler<CreateDailyDealComm
         if (!DateTimeOffset.TryParse(request.EndTime, out var endTime))
             throw new StoreDomainException("زمان پایان معتبر نیست", "INVALID_END_TIME");
 
-        var deal = DailyDeal.Create(request.ModuleId, request.ProductId, request.DiscountPercent, startTime, endTime);
+        var deal = DailyDeal.CreateForModule(request.ModuleId, request.ProductId, request.DiscountPercent, startTime, endTime);
 
         await _dealRepo.AddAsync(deal, cancellationToken);
 

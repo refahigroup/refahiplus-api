@@ -5,7 +5,7 @@ using Refahi.Modules.Media.Domain.Repositories;
 
 namespace Refahi.Modules.Media.Application.Features.Delete;
 
-public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand>
+public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, Unit>
 {
     private readonly IMediaAssetRepository _repository;
     private readonly IMediaStorageService _storage;
@@ -18,12 +18,12 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand>
         _storage = storage;
     }
 
-    public async Task Handle(DeleteMediaCommand request, CancellationToken ct)
+    public async Task<Unit> Handle(DeleteMediaCommand request, CancellationToken ct)
     {
         var asset = await _repository.GetByIdAsync(request.MediaId, ct)
             ?? throw new KeyNotFoundException("فایل مدیا یافت نشد");
 
-        if (asset.IsDeleted) return;
+        if (asset.IsDeleted) return Unit.Value;
 
         if (!request.IsAdmin && asset.UploadedByUserId != request.RequestedByUserId)
             throw new UnauthorizedAccessException("اجازه حذف این فایل را ندارید");
@@ -40,5 +40,6 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand>
         {
             // ignore — TD-MEDIA-05 (Cleanup Job)
         }
+        return Unit.Value;
     }
 }

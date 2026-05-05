@@ -25,6 +25,7 @@ public class GetAgreementProductByIdQueryHandler : IRequestHandler<GetAgreementP
             product.Name,
             product.Description,
             product.CategoryId,
+            null,
             (short)product.ProductType,
             (short)product.DeliveryType,
             (short)product.SalesModel,

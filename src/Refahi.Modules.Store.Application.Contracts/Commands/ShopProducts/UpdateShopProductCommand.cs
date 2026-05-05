@@ -8,4 +8,4 @@ public sealed record UpdateShopProductCommand(
     long Price,
     long DiscountedPrice,
     string? Description
-) : IRequest;
+) : IRequest<Unit>;

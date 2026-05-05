@@ -8,4 +8,5 @@ public sealed record OrderItemDto(
     long FinalPriceMinor,
     string CategoryCode,
     string[]? Tags,
-    string? MetadataJson);
+    string? MetadataJson,
+    short DeliveryMethod);

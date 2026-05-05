@@ -1,11 +1,14 @@
-using System.Text.Json;
 using MediatR;
+using Refahi.Modules.Identity.Application.Contracts.Models;
+using Refahi.Modules.Identity.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Commands.Checkout;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
+using System.Text.Json;
 
 namespace Refahi.Modules.Store.Application.Features.Checkout.PlaceStoreOrder;
 
@@ -15,6 +18,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
     private readonly IProductRepository _productRepo;
     private readonly IShopRepository _shopRepo;
     private readonly IProductSessionRepository _sessionRepo;
+    private readonly IDeliveryService _deliveryService;
     private readonly IMediator _mediator;
 
     public PlaceStoreOrderCommandHandler(
@@ -22,12 +26,14 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         IProductRepository productRepo,
         IShopRepository shopRepo,
         IProductSessionRepository sessionRepo,
+        IDeliveryService deliveryService,
         IMediator mediator)
     {
         _cartRepo = cartRepo;
         _productRepo = productRepo;
         _shopRepo = shopRepo;
         _sessionRepo = sessionRepo;
+        _deliveryService = deliveryService;
         _mediator = mediator;
     }
 
@@ -44,6 +50,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         var orderItems = new List<CreateOrderItemInput>();
         var stockUpdates = new List<(Guid ProductId, Guid? VariantId, int Quantity)>();
         var sessionUpdates = new List<(Guid ProductId, Guid SessionId, int Quantity)>();
+        var deliveryItems = new List<DeliveryItemInput>();
 
         // Cache agreement products per unique AgreementProductId
         var agreementProductCache = new Dictionary<Guid, Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?>();
@@ -147,6 +154,16 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 sessionUpdates.Add((product.Id, cartItem.SessionId.Value, cartItem.Quantity));
             }
 
+            // روش ارسال این آیتم
+            short deliveryMethod = 0;
+            if (request.CartItemDeliveryMethods is not null
+                && request.CartItemDeliveryMethods.TryGetValue(cartItem.Id, out var dm))
+            {
+                deliveryMethod = dm;
+            }
+
+            deliveryItems.Add(new DeliveryItemInput(deliveryMethod, cartItem.Quantity));
+
             orderItems.Add(new CreateOrderItemInput(
                 Title: itemTitle,
                 UnitPriceMinor: cartItem.UnitPriceMinor,
@@ -155,20 +172,67 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 SourceItemId: cartItem.ProductId,
                 CategoryCode: categoryCode ?? string.Empty,
                 Tags: null,
-                MetadataJson: metadataJson));
+                MetadataJson: metadataJson,
+                DeliveryMethod: deliveryMethod));
         }
 
-        // STEP 3: Create order via Orders module
+        // STEP 3: دریافت آدرس و ساخت Snapshot
+        UserAddressDto? addressDto = null;
+        string? addressSnapshotJson = null;
+        if (request.ShippingAddressId.HasValue)
+        {
+            addressDto = await _mediator.Send(
+                new GetUserAddressByIdQuery(request.ShippingAddressId.Value, request.UserId),
+                cancellationToken);
+
+            if (addressDto is null)
+                throw new StoreDomainException("آدرس ارسال نامعتبر است یا متعلق به این کاربر نیست", "INVALID_SHIPPING_ADDRESS");
+
+            addressSnapshotJson = JsonSerializer.Serialize(new
+            {
+                id = addressDto.Id,
+                title = addressDto.Title,
+                province_id = addressDto.ProvinceId,
+                city_id = addressDto.CityId,
+                full_address = addressDto.FullAddress,
+                postal_code = addressDto.PostalCode,
+                receiver_name = addressDto.ReceiverName,
+                receiver_phone = addressDto.ReceiverPhone,
+                plate = addressDto.Plate,
+                unit = addressDto.Unit,
+                latitude = addressDto.Latitude,
+                longitude = addressDto.Longitude
+            });
+        }
+
+        // STEP 4: محاسبه‌ی هزینه ارسال
+        var shippingFeeMinor = _deliveryService.CalcPrice(
+            deliveryItems,
+            shippingAddressId: request.ShippingAddressId,
+            shopId: shopId);
+
+        // STEP 5: کد تخفیف (فاز ۱: Stub — همیشه ۰)
+        long discountCodeAmountMinor = 0;
+        // TODO: در فاز ۳ پیاده‌سازی واقعی validation و محاسبه‌ی کد تخفیف.
+
+        // STEP 6: Create order via Orders module
         var createOrderCommand = new CreateOrderCommand(
             UserId: request.UserId,
             SourceModule: "Store",
             SourceReferenceId: shopId!.Value,
             Items: orderItems,
-            IdempotencyKey: $"store-order-{request.IdempotencyKey}");
+            IdempotencyKey: $"store-order-{request.IdempotencyKey}",
+            ShippingAddressId: request.ShippingAddressId,
+            ShippingAddressSnapshotJson: addressSnapshotJson,
+            DeliveryDate: request.DeliveryDate,
+            DeliveryTimeSlot: request.DeliveryTimeSlot,
+            ShippingFeeMinor: shippingFeeMinor,
+            DiscountCode: request.DiscountCode,
+            DiscountCodeAmountMinor: discountCodeAmountMinor);
 
         var orderResult = await _mediator.Send(createOrderCommand, cancellationToken);
 
-        // STEP 4: Pay order via Orders module (calls Wallet)
+        // STEP 7: Pay order via Orders module (calls Wallet)
         var payCommand = new PayOrderCommand(
             OrderId: orderResult.OrderId,
             Allocations: request.WalletAllocations
@@ -178,7 +242,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
         var payResult = await _mediator.Send(payCommand, cancellationToken);
 
-        // STEP 5: Decrease stock/capacity ONLY after payment success
+        // STEP 8: Decrease stock/capacity ONLY after payment success
         foreach (var (productId, variantId, quantity) in stockUpdates)
         {
             var product = await _productRepo.GetByIdAsync(productId, cancellationToken);
@@ -221,11 +285,11 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             }
         }
 
-        // STEP 6: Clear cart
+        // STEP 9: Clear cart
         cart.Clear();
         await _cartRepo.UpdateAsync(cart, cancellationToken);
 
-        // STEP 7: Return response
+        // STEP 10: Return response
         return new PlaceStoreOrderResponse(
             OrderId: orderResult.OrderId,
             OrderNumber: orderResult.OrderNumber,

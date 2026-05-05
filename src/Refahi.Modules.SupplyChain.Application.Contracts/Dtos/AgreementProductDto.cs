@@ -6,6 +6,7 @@ public sealed record AgreementProductDto(
     string Name,
     string? Description,
     int? CategoryId,
+    string? CategoryName,
     short ProductType,
     short DeliveryType,
     short SalesModel,
