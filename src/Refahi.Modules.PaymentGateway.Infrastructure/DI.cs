@@ -6,6 +6,7 @@ using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
 using Refahi.Modules.PaymentGateway.Infrastructure.Persistence.Context;
 using Refahi.Modules.PaymentGateway.Infrastructure.Persistence.Repositories;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers;
+using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
@@ -31,6 +32,10 @@ public static class DI
         // Providers
         services.UseSepProvider(configuration);
         services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<SepPaymentGatewayProvider>());
+
+        services.UseJibitProvider(configuration);
+        services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<JibitPaymentGatewayProvider>());
+
         services.AddScoped<IPaymentGatewayProviderFactory, PaymentGatewayProviderFactory>();
 
         return services;
