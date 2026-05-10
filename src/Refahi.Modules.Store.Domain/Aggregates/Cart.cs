@@ -77,4 +77,19 @@ public sealed class Cart
         _items.Clear();
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>ادغام دسته‌ای آیتم‌ها از سبد محلی — از AddItem موجود استفاده می‌کند تا dup-merge حفظ شود</summary>
+    public void MergeItems(IReadOnlyList<MergeItemSpec> items)
+    {
+        foreach (var i in items)
+            AddItem(i.ShopId, i.ProductId, i.VariantId, i.SessionId, i.Quantity, i.UnitPriceMinor);
+    }
+
+    public readonly record struct MergeItemSpec(
+        Guid ShopId,
+        Guid ProductId,
+        Guid? VariantId,
+        Guid? SessionId,
+        int Quantity,
+        long UnitPriceMinor);
 }

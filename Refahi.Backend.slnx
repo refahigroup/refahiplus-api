@@ -68,6 +68,13 @@
 		<Project Path="src/Refahi.Modules.Wallets.Domain/Refahi.Modules.Wallets.Domain.csproj" />
 		<Project Path="src/Refahi.Modules.Wallets.Infrastructure/Refahi.Modules.Wallets.Infrastructure.csproj" />
 	</Folder>
+	<Folder Name="/01_Modules/PaymentGateway/">
+		<Project Path="src/Refahi.Modules.PaymentGateway.Api/Refahi.Modules.PaymentGateway.Api.csproj" />
+		<Project Path="src/Refahi.Modules.PaymentGateway.Application.Contracts/Refahi.Modules.PaymentGateway.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.PaymentGateway.Application/Refahi.Modules.PaymentGateway.Application.csproj" />
+		<Project Path="src/Refahi.Modules.PaymentGateway.Domain/Refahi.Modules.PaymentGateway.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.PaymentGateway.Infrastructure/Refahi.Modules.PaymentGateway.Infrastructure.csproj" />
+	</Folder>
 	<Project Path="src/Refahi.Api/Refahi.Api.csproj" />
 
 </Solution>

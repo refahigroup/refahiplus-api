@@ -21,6 +21,7 @@
 	  <ProjectReference Include="..\Refahi.Modules.Media.Api\Refahi.Modules.Media.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Orders.Api\Refahi.Modules.Orders.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Organizations.Api\Refahi.Modules.Organizations.Api.csproj" />
+	  <ProjectReference Include="..\Refahi.Modules.PaymentGateway.Api\Refahi.Modules.PaymentGateway.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.References.Api\Refahi.Modules.References.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Store.Api\Refahi.Modules.Store.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.SupplyChain.Api\Refahi.Modules.SupplyChain.Api.csproj" />

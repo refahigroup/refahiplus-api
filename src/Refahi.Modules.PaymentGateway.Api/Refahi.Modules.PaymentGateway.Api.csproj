@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Refahi.Modules.PaymentGateway.Application\Refahi.Modules.PaymentGateway.Application.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.PaymentGateway.Application.Contracts\Refahi.Modules.PaymentGateway.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.PaymentGateway.Infrastructure\Refahi.Modules.PaymentGateway.Infrastructure.csproj" />
+    <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
+  </ItemGroup>
+</Project>

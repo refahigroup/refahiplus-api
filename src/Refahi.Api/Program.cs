@@ -11,6 +11,7 @@ using Refahi.Modules.Identity.Api;
 using Refahi.Modules.Media.Api;
 using Refahi.Modules.Orders.Api;
 using Refahi.Modules.Organizations.Api;
+using Refahi.Modules.PaymentGateway.Api;
 using Refahi.Modules.References.Api;
 using Refahi.Modules.Store.Api;
 using Refahi.Modules.SupplyChain.Api;
@@ -83,7 +84,8 @@ builder.Services
         .RegisterOrdersModule(builder.Configuration)
         .RegisterHotelsModule(builder.Configuration)
         .RegisterStoreModule(builder.Configuration)
-        .RegisterSupplyChainModule(builder.Configuration);
+        .RegisterSupplyChainModule(builder.Configuration)
+        .RegisterPaymentGatewayModule(builder.Configuration);
 //}
 //catch(Exception ex) 
 //{
@@ -145,7 +147,8 @@ app.MapGet("/api/health", () => {
        .UseOrdersModule("/api/orders")
        .UseHotelModule("/api/hotels")
        .UseStoreModule("/api/store")
-       .UseSupplyChainModule("/api/supply-chain");
+       .UseSupplyChainModule("/api/supply-chain")
+       .UsePaymentGatewayModule("/api/payment-gateway");
 //}
 //catch 
 //{ 
