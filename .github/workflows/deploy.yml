@@ -49,7 +49,7 @@ jobs:
         registry: ghcr.io
         dockerfile: ./src/Refahi.Api/Dockerfile
         directory: .
-        username: SaeedGhaffari
+        username: refahigroup
         password: ${{ secrets.GH_PAT }}       
 
     # - name: Notify Deploy Agent
