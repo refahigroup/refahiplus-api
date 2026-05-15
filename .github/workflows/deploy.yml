@@ -23,7 +23,7 @@ jobs:
         dotnet-version: 9.0.x
         
     - name: Restore dependencies
-      run: dotnet restore ./Refahi.Api.Solution.sln
+      run: dotnet restore ./Refahi.Backend.slnx
       
     - name: Build Solution
       run: dotnet build ./Refahi.Backend.slnx --configuration Release
