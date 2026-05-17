@@ -1,0 +1,67 @@
+name: refahi-api Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Determine branch
+      id: branch
+      run: echo "BRANCH_NAME=${GITHUB_REF##*/}" >> $GITHUB_ENV
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore ./Refahi.Backend.slnx
+      
+    - name: Build Solution
+      run: dotnet build ./Refahi.Backend.slnx --configuration Release
+
+    - name: Publish Refahi.Api.csproj
+      run: dotnet publish ./src/Refahi.Api/Refahi.Api.csproj --configuration Release --no-build
+      
+    - name: Set service name and env
+      id: service
+      run: |
+        echo "SERVICE_NAME=api" >> $GITHUB_ENV
+        if [[ "${{ env.BRANCH_NAME }}" == "main" ]]; then
+          echo "ENV=prod" >> $GITHUB_ENV
+        else
+          echo "ENV=stage" >> $GITHUB_ENV
+        fi 
+
+    - name: Push Refahi.Api
+      uses: mr-smithers-excellent/docker-build-push@v6
+      with:
+        image: refahi-api
+        tags: ${{ env.ENV }}
+        registry: ghcr.io
+        dockerfile: ./src/Refahi.Api/Dockerfile
+        directory: .
+        username: refahigroup
+        password: ${{ secrets.GH_PAT }}       
+
+    # - name: Notify Deploy Agent
+    #  uses: fjogeleit/http-request-action@v1
+    #  with:
+    #    url: ${{ secrets.DEPLOY_AGENT_URL }}
+    #    method: POST
+    #    contentType: 'application/json'
+    #    bearerToken: ${{ secrets.DEPLOY_AGENT_TOKEN }}
+    #    data: |
+    #      {
+    #        "service": "${{ env.SERVICE_NAME }}",
+    #        "env": "${{ env.ENV }}"
+    #      }
+    #    timeout: 180000
