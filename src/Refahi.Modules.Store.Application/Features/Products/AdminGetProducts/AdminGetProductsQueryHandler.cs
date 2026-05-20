@@ -33,7 +33,8 @@ public class AdminGetProductsQueryHandler : IRequestHandler<AdminGetProductsQuer
             request.PageSize,
             cancellationToken);
 
-        var dtoTasks = items.Select(async p =>
+        var dtoList = new List<ProductSummaryDto>();
+        foreach (var p in items)
         {
             var ap = await _mediator.Send(new GetAgreementProductByIdQuery(p.AgreementProductId), cancellationToken);
             var sp = request.ShopId.HasValue
@@ -42,7 +43,7 @@ public class AdminGetProductsQueryHandler : IRequestHandler<AdminGetProductsQuer
             var mainImage = p.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
                          ?? p.Images.FirstOrDefault()?.ImageUrl;
             var mainImageUrl = mainImage is null ? null : _pathService.MakeAbsoluteMediaUrl(mainImage);
-            return new ProductSummaryDto(
+            dtoList.Add(new ProductSummaryDto(
                 p.Id, p.Title, p.Slug,
                 sp?.Price ?? 0,
                 sp?.DiscountedPrice ?? 0,
@@ -51,10 +52,10 @@ public class AdminGetProductsQueryHandler : IRequestHandler<AdminGetProductsQuer
                 ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
                 mainImageUrl,
                 p.IsAvailable,
-                ap?.CommissionPercent ?? 0);
-        });
+                ap?.CommissionPercent ?? 0));
+        }
 
-        var dtos = await Task.WhenAll(dtoTasks);
+        var dtos = dtoList.ToArray();
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
 
         return new AdminProductsPagedResponse(dtos, request.PageNumber, request.PageSize, total, totalPages);
