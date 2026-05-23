@@ -29,10 +29,20 @@ public static class NotificationDI
                 client.BaseAddress = new Uri(baseUrl);
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
+                // Force HTTP/1.1 to avoid h2c negotiation failures with servers that don't support HTTP/2 cleartext
+                client.DefaultRequestVersion = System.Net.HttpVersion.Version11;
+                client.DefaultVersionPolicy = System.Net.Http.HttpVersionPolicy.RequestVersionOrLower;
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new System.Net.Http.SocketsHttpHandler
+            {
+                // Evict idle connections before they become stale (most servers have a 30-60s keep-alive timeout)
+                PooledConnectionIdleTimeout = TimeSpan.FromSeconds(20),
+                PooledConnectionLifetime = TimeSpan.FromSeconds(60),
+                ConnectTimeout = TimeSpan.FromSeconds(10),
             })
             .AddPolicyHandler(GetRetryPolicy())
             .AddPolicyHandler(GetCircuitBreakerPolicy())
-            .SetHandlerLifetime(TimeSpan.FromMinutes(5)); // HttpClient pooling
+            .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
             // Register OTP API Client (uses shared HttpClient)
             services.AddScoped<OtpApiClient>(sp =>
@@ -61,15 +71,21 @@ public static class NotificationDI
 
     private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
     {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError() // 5xx, 408
-            .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.TooManyRequests) // 429
+        // Exclude ResponseEnded from retries: it means the server actively closed the connection.
+        // Retrying won't help when the server is down or consistently rejecting requests, and
+        // only adds 2+4+8=14s of backoff delay. Stale-connection recovery is handled by
+        // SocketsHttpHandler.PooledConnectionIdleTimeout instead.
+        return Policy<HttpResponseMessage>
+            .Handle<HttpRequestException>(ex => ex.HttpRequestError != System.Net.Http.HttpRequestError.ResponseEnded)
+            .OrResult(msg =>
+                (int)msg.StatusCode >= 500 ||
+                msg.StatusCode == System.Net.HttpStatusCode.RequestTimeout ||
+                msg.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             .WaitAndRetryAsync(
                 retryCount: 3,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential backoff
                 onRetry: (outcome, timespan, retryAttempt, context) =>
                 {
-                    // Log retry attempts
                     Console.WriteLine($"OTP API retry attempt {retryAttempt} after {timespan.TotalSeconds}s delay");
                 });
     }

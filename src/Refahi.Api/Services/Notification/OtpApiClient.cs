@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Polly.CircuitBreaker;
 using Refahi.Api.Services.Notification.Dtos;
 
 namespace Refahi.Api.Services.Notification;
@@ -66,6 +67,16 @@ public class OtpApiClient
 
             await HandleErrorResponseAsync(response, cancellationToken);
             throw new OtpApiException("Failed to generate OTP", response.StatusCode);
+        }
+        catch (BrokenCircuitException ex)
+        {
+            _logger.LogWarning(ex, "OTP generate request rejected: circuit breaker is open");
+            throw new OtpApiException("OTP service is temporarily unavailable", ex);
+        }
+        catch (HttpRequestException ex) when (ex.HttpRequestError == HttpRequestError.ResponseEnded)
+        {
+            _logger.LogWarning(ex, "OTP generate request failed: response ended prematurely");
+            throw new OtpApiException("OTP service connection was interrupted", ex);
         }
         catch (HttpRequestException ex)
         {
@@ -136,6 +147,16 @@ public class OtpApiClient
 
             await HandleErrorResponseAsync(response, cancellationToken);
             throw new OtpApiException("Failed to validate OTP", response.StatusCode);
+        }
+        catch (BrokenCircuitException ex)
+        {
+            _logger.LogWarning(ex, "OTP validate request rejected: circuit breaker is open");
+            throw new OtpApiException("OTP service is temporarily unavailable", ex);
+        }
+        catch (HttpRequestException ex) when (ex.HttpRequestError == HttpRequestError.ResponseEnded)
+        {
+            _logger.LogWarning(ex, "OTP validate request failed: response ended prematurely");
+            throw new OtpApiException("OTP service connection was interrupted", ex);
         }
         catch (HttpRequestException ex)
         {
