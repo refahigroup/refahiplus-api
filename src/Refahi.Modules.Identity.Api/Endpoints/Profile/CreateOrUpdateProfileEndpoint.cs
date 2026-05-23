@@ -32,7 +32,8 @@ public class CreateOrUpdateProfileEndpoint : IEndpoint
                 request.FirstName,
                 request.LastName,
                 request.NationalCode,
-                request.Gender);
+                request.Gender,
+                request.Birthday);
 
             var result = await mediator.Send(command);
 

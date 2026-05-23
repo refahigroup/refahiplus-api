@@ -6,4 +6,5 @@ public record CreateOrUpdateProfileRequest(
     string FirstName,
     string LastName,
     string? NationalCode,
-    Gender? Gender);
+    Gender? Gender,
+    DateOnly? Birthday = null);

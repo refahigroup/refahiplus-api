@@ -13,7 +13,8 @@ public record CreateOrUpdateProfileCommand(
     string FirstName,
     string LastName,
     string? NationalCode = null,
-    Gender? Gender = null) : IRequest<CreateOrUpdateProfileResult>;
+    Gender? Gender = null,
+    DateOnly? Birthday = null) : IRequest<CreateOrUpdateProfileResult>;
 
 public record CreateOrUpdateProfileResult(
     bool Success,

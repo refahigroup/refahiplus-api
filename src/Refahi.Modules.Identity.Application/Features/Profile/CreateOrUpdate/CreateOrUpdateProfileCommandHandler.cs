@@ -57,7 +57,8 @@ public class CreateOrUpdateProfileCommandHandler : IRequestHandler<CreateOrUpdat
                     firstName: request.FirstName,
                     lastName: request.LastName,
                     nationalCode: request.NationalCode,
-                    gender: request.Gender);
+                    gender: request.Gender,
+                    birthday: request.Birthday);
 
                 await _profileRepository.AddAsync(profile, cancellationToken);
             }
@@ -75,7 +76,8 @@ public class CreateOrUpdateProfileCommandHandler : IRequestHandler<CreateOrUpdat
                     firstName: request.FirstName,
                     lastName: request.LastName,
                     nationalCode: request.NationalCode,
-                    gender: request.Gender);
+                    gender: request.Gender,
+                    birthday: request.Birthday);
 
                 await _profileRepository.UpdateAsync(existingProfile, cancellationToken);
                 profile = existingProfile;
