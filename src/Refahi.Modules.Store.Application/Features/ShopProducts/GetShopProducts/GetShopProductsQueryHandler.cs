@@ -30,12 +30,10 @@ public class GetShopProductsQueryHandler : IRequestHandler<GetShopProductsQuery,
             request.PageSize,
             cancellationToken);
 
-        // Load all products in parallel (existing pattern)
-        var productTasks = items.Select(sp => _productRepo.GetByIdAsync(sp.ProductId, cancellationToken)).ToArray();
-        var products = await Task.WhenAll(productTasks);
-        var productMap = products
-            .Where(p => p is not null)
-            .ToDictionary(p => p!.Id, p => p!);
+        // Batch-fetch all products in a single query to avoid concurrent DbContext operations
+        var productIds = items.Select(sp => sp.ProductId).Distinct().ToList();
+        var products = await _productRepo.GetByIdsAsync(productIds, cancellationToken);
+        var productMap = products.ToDictionary(p => p.Id, p => p);
 
         // Collect unique AgreementProduct IDs and fetch commission percents in one cross-module call
         var agreementProductIds = productMap.Values
