@@ -34,7 +34,8 @@ public class CartRepository : ICartRepository
 
     public async Task UpdateAsync(Cart cart, CancellationToken ct = default)
     {
-        _db.Carts.Update(cart);
+        // Cart aggregates are loaded tracked. Calling Update marks new GUID-keyed
+        // cart items as Modified, which makes EF issue UPDATE instead of INSERT.
         await _db.SaveChangesAsync(ct);
     }
 
