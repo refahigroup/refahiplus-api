@@ -12,5 +12,7 @@ public sealed record CreateProvisionalBookingCommand(
     DateOnly CheckOut,
     int RoomsCount,
     IEnumerable<GuestDto> Guests,
-    string BoardType
+    string BoardType,
+    string? Email,
+    string? Phone
 ) : IRequest<ProvisionalBookingResponse>;

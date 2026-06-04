@@ -39,7 +39,9 @@ public sealed class CreateProvisionalBookingCommandHandler: IRequestHandler<Crea
             CheckOut = request.CheckOut,
             RoomsCount = request.RoomsCount,
             Guests = request.Guests,
-            BoardType = request.BoardType
+            BoardType = request.BoardType,
+            Email = request.Email,
+            Phone = request.Phone
         };
 
         // 2. provider create booking
