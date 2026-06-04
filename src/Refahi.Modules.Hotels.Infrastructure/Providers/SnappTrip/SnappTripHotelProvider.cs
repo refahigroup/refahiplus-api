@@ -167,8 +167,8 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 hotel_id = (int)request.HotelId,
                 checkin = request.CheckIn.ToString("yyyy-MM-dd"),
                 checkout = request.CheckOut.ToString("yyyy-MM-dd"),
-                email = string.Empty,   // باید از جایی دیگر پر شود (User info)
-                phone = string.Empty,   // باید از جایی دیگر پر شود (User info)
+                email = request.Email ?? string.Empty,
+                phone = request.Phone ?? string.Empty,
                 note = null,
                 rooms = MapRooms(request)
             };

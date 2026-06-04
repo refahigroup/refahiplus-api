@@ -13,6 +13,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Refahi.Modules.Hotels.Application\Refahi.Modules.Hotels.Application.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Hotels.Infrastructure\Refahi.Modules.Hotels.Infrastructure.csproj" />
+		<ProjectReference Include="..\Refahi.Modules.PaymentGateway.Application.Contracts\Refahi.Modules.PaymentGateway.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>
 

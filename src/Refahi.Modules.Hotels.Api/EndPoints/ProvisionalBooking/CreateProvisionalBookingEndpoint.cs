@@ -27,7 +27,9 @@ public sealed class CreateProvisionalBookingEndpoint : IEndpoint
                 body.CheckOut,
                 body.RoomsCount,
                 body.Guests,
-                body.BoardType
+                body.BoardType,
+                body.Email,
+                body.Phone
             );
 
             var result = await sender.Send(command);
@@ -50,4 +52,6 @@ public sealed class CreateProvisionalBookingRequest
     public int RoomsCount { get; set; }
     public IEnumerable<GuestDto> Guests { get; set; } = Enumerable.Empty<GuestDto>();
     public string BoardType { get; set; } = default!;
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
 }
