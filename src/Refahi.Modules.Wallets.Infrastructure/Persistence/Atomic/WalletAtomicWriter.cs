@@ -307,6 +307,10 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
 
     private sealed class IdempotencyRow
     {
+        public IdempotencyRow()
+        {
+        }
+
         public Guid IdempotencyId { get; set; }
         public Guid WalletId { get; set; }
         public string IdempotencyKey { get; set; } = string.Empty;
