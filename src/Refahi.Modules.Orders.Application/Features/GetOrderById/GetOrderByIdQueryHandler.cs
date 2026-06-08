@@ -30,6 +30,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             UnitPriceMinor: i.UnitPriceMinor,
             Quantity: i.Quantity,
             FinalPriceMinor: i.FinalPriceMinor,
+            SourceItemId: i.SourceItemId,
             CategoryCode: i.CategoryCode,
             Tags: i.Tags,
             MetadataJson: i.MetadataJson,

@@ -12,13 +12,8 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep;
 
 /// <summary>
 /// SEP (Saman Electronic Payment) implementation of IPaymentGatewayProvider.
-///
-/// Flow:
-///   GetTokenAsync → SEP Token endpoint → returns Token
-///   BuildRedirectUrl → SEP payment page URL with token
-///   VerifyAsync → SEP Verify endpoint → confirms transaction
 /// </summary>
-public class SepPaymentGatewayProvider : IPaymentGatewayProvider
+public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
 {
     private readonly SepApiClient _apiClient;
     private readonly SepOptions _options;
@@ -47,12 +42,11 @@ public class SepPaymentGatewayProvider : IPaymentGatewayProvider
 
             var response = await _apiClient.RequestTokenAsync(sepRequest, ct);
 
-            // SEP: Status=1 means success
             if (response.Status == 1 && !string.IsNullOrEmpty(response.Token))
                 return new GetTokenResult(true, response.Token);
 
             return new GetTokenResult(false, null,
-                $"SEP token request failed. Status={response.Status} Error={response.ErrorDesc}");
+                $"SEP token request failed. Status={response.Status} ErrorCode={response.ErrorCode} Error={response.ErrorDesc}");
         }
         catch (Exception ex)
         {
@@ -62,7 +56,7 @@ public class SepPaymentGatewayProvider : IPaymentGatewayProvider
 
     public string BuildRedirectUrl(string token)
     {
-        return $"{_options.PaymentBaseUrl.TrimEnd('/')}?Token={Uri.EscapeDataString(token)}";
+        return $"{_options.PaymentBaseUrl.TrimEnd('/')}?token={Uri.EscapeDataString(token)}";
     }
 
     public async Task<VerifyResult> VerifyAsync(VerifyRequest request, CancellationToken ct = default)
@@ -76,18 +70,23 @@ public class SepPaymentGatewayProvider : IPaymentGatewayProvider
             };
 
             var response = await _apiClient.VerifyTransactionAsync(sepRequest, ct);
+            var verifiedAmount = response.TransactionDetail?.OrginalAmount ?? 0;
 
-            // SEP: ResultCode=0 means success
-            if (response.ResultCode == 0)
+            if (response.Success &&
+                response.ResultCode == 0 &&
+                response.TransactionDetail is not null &&
+                verifiedAmount == request.ExpectedAmountMinor)
             {
-                return new VerifyResult(true, response.Amount, response.ResultCode);
+                return new VerifyResult(true, verifiedAmount, response.ResultCode);
             }
+
+            var description = BuildVerifyFailureDescription(response, request.ExpectedAmountMinor, verifiedAmount);
 
             return new VerifyResult(
                 false,
-                response.Amount,
+                verifiedAmount,
                 response.ResultCode,
-                GetSepResultDescription(response.ResultCode));
+                description);
         }
         catch (Exception ex)
         {
@@ -95,29 +94,56 @@ public class SepPaymentGatewayProvider : IPaymentGatewayProvider
         }
     }
 
-    /// <summary>
-    /// Translates SEP result codes to Persian descriptions.
-    /// Based on SEP documentation and sample code error codes.
-    /// </summary>
+    public async Task<ReverseResult> ReverseAsync(ReverseRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var sepRequest = new SepReverseRequest
+            {
+                RefNum = request.RefNum,
+                TerminalNumber = long.Parse(_options.TerminalId)
+            };
+
+            var response = await _apiClient.ReverseTransactionAsync(sepRequest, ct);
+
+            if (response.Success && response.ResultCode == 0)
+                return new ReverseResult(true, response.ResultCode);
+
+            return new ReverseResult(
+                false,
+                response.ResultCode,
+                response.ResultDescription ?? GetSepResultDescription(response.ResultCode));
+        }
+        catch (Exception ex)
+        {
+            return new ReverseResult(false, -99, ex.Message);
+        }
+    }
+
+    private static string BuildVerifyFailureDescription(
+        SepVerifyResponse response,
+        long expectedAmount,
+        long verifiedAmount)
+    {
+        if (response.ResultCode == 0 && response.TransactionDetail is null)
+            return "SEP verify response did not include TransactionDetail.";
+
+        if (response.ResultCode == 0 && verifiedAmount != expectedAmount)
+            return $"SEP verified amount mismatch. Expected={expectedAmount} Actual={verifiedAmount}.";
+
+        return response.ResultDescription ?? GetSepResultDescription(response.ResultCode);
+    }
+
     private static string GetSepResultDescription(int resultCode) => resultCode switch
     {
-        0 => "تراکنش موفق",
-        -1 => "خطا در بررسی صحت رسید دیجیتالی",
-        -2 => "عدم تطابق حساب‌ها هنگام تأیید رسید",
-        -3 => "ورودی نامعتبر",
-        -4 => "رمز یا حساب نامعتبر",
-        -5 => "خطای پایگاه داده",
-        -6 => "تراکنش قبلاً برگشت خورده",
-        -7 => "رشته ورودی null است",
-        -8 => "رشته ورودی خیلی طولانی است",
-        -9 => "رشته ورودی غیرمجاز",
-        -10 => "رشته ورودی base64 نامعتبر",
-        -11 => "رشته ورودی خیلی کوتاه است",
-        -14 => "تراکنش نامعتبر",
-        -15 => "مبلغ برگشتی اشتباه است",
-        -16 => "خطای داخلی سیستم",
-        -17 => "تراکنش برگشتی از بانک دیگر",
-        -18 => "IP نامعتبر",
-        _ => $"خطای ناشناخته (کد {resultCode})"
+        0 => "SEP transaction succeeded.",
+        2 => "SEP duplicate request.",
+        5 => "SEP transaction has been reversed.",
+        -2 => "SEP transaction was not found.",
+        -6 => "SEP transaction verify window has expired.",
+        -104 => "SEP terminal is inactive.",
+        -105 => "SEP terminal was not found.",
+        -106 => "SEP requester IP address is not allowed.",
+        _ => $"Unknown SEP result code ({resultCode})."
     };
 }

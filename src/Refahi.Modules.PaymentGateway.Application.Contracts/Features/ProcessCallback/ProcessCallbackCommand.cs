@@ -20,5 +20,15 @@ public sealed record ProcessCallbackCommand(
     string? TraceNo,
     string? SecurePan,
     /// <summary>Full serialized form data for audit logging.</summary>
-    string? RawCallbackJson
+    string? RawCallbackJson,
+    string? Status = null,
+    string? TerminalId = null,
+    string? MID = null,
+    string? Rrn = null,
+    long? AmountMinor = null,
+    bool AmountParseFailed = false,
+    long? WageMinor = null,
+    long? AffectiveAmountMinor = null,
+    string? HashedCardNumber = null,
+    string? Token = null
 ) : IRequest<ProcessCallbackResponse>;

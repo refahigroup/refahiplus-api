@@ -71,8 +71,31 @@ public class SepApiClient
         var result = await response.Content.ReadFromJsonAsync<SepVerifyResponse>(ct)
             ?? throw new InvalidOperationException("SEP returned an empty verify response.");
 
-        _logger.LogInformation("SEP: Verify response ResultCode={ResultCode} Amount={Amount}",
-            result.ResultCode, result.Amount);
+        _logger.LogInformation("SEP: Verify response ResultCode={ResultCode} Success={Success}",
+            result.ResultCode, result.Success);
+        return result;
+    }
+
+    public async Task<SepReverseResponse> ReverseTransactionAsync(SepReverseRequest request, CancellationToken ct)
+    {
+        _logger.LogInformation("SEP: Reversing transaction RefNum={RefNum}", request.RefNum);
+
+        var response = await _http.PostAsJsonAsync(_options.ReverseUrl, request, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogError("SEP reverse request failed. Status={Status} Body={Body}",
+                response.StatusCode, body);
+            throw new HttpRequestException(
+                $"SEP reverse request failed with status {response.StatusCode}. Body: {body}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<SepReverseResponse>(ct)
+            ?? throw new InvalidOperationException("SEP returned an empty reverse response.");
+
+        _logger.LogInformation("SEP: Reverse response ResultCode={ResultCode} Success={Success}",
+            result.ResultCode, result.Success);
         return result;
     }
 }

@@ -63,7 +63,7 @@ public class PlaceOrderEndpoint : IEndpoint
             var result = await mediator.Send(command, ct);
             return Results.Ok(ApiResponseHelper.Success(result, "سفارش با موفقیت ثبت و پرداخت شد"));
         })
-        .WithName("Store.PlaceOrder")
+        .WithName("Store.PrepareOrder")
         .WithTags("Store.Checkout")
         .RequireAuthorization("UserOrAdmin")
         .Produces<ApiResponse<PlaceStoreOrderResponse>>(StatusCodes.Status200OK)
