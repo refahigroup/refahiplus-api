@@ -119,51 +119,69 @@ public sealed class WalletReadRepository : IWalletReadRepository
             _ => null
         };
 
-        var rows = await conn.QueryAsync<MyWalletTransactionDto>(
-            """
-            SELECT
-                le.ledger_entry_id AS LedgerEntryId,
-                le.wallet_id AS WalletId,
-                CASE
-                    WHEN w.wallet_type = @UserWalletType THEN 'REFAHI'
-                    WHEN w.wallet_type = @OrgCreditWalletType THEN 'OrgCredit'
-                    WHEN w.wallet_type = @SystemWalletType THEN 'System'
-                    WHEN w.wallet_type = @ProviderWalletType THEN 'Provider'
-                    ELSE 'Unknown'
-                END AS WalletType,
-                le.operation_id AS OperationId,
-                le.operation_type AS OperationType,
-                le.entry_type AS EntryType,
-                le.amount_minor AS AmountMinor,
-                le.currency AS Currency,
-                le.effective_at AS EffectiveAt,
-                le.created_at AS CreatedAt,
-                le.related_entry_id AS RelatedEntryId,
-                le.relation_type AS RelationType,
-                le.external_reference AS ExternalReference
-            FROM wallets.ledger_entries le
-            INNER JOIN wallets.wallets w ON w.wallet_id = le.wallet_id
-            WHERE w."OwnerId" = @OwnerId
-              AND (@WalletType IS NULL OR w.wallet_type = @WalletType)
-              AND (@OperationType IS NULL OR le.operation_type = @OperationType)
-              AND (@EntryType IS NULL OR le.entry_type = @EntryType)
-            ORDER BY le.created_at DESC
-            LIMIT @Take
-            """,
-            new
-            {
-                OwnerId = ownerId,
-                Take = take,
-                WalletType = walletTypeValue,
-                UserWalletType = (short)WalletType.User,
-                OrgCreditWalletType = (short)WalletType.OrgCredit,
-                SystemWalletType = (short)WalletType.System,
-                ProviderWalletType = (short)WalletType.Provider,
-                OperationType = operationType,
-                EntryType = entryType
-            });
+        var rows = await conn.QueryAsync<OwnerWalletTransactionRow>(
+            new CommandDefinition(
+                """
+                SELECT
+                    le.ledger_entry_id AS LedgerEntryId,
+                    le.wallet_id AS WalletId,
+                    CASE
+                        WHEN w.wallet_type = @UserWalletType THEN 'REFAHI'
+                        WHEN w.wallet_type = @OrgCreditWalletType THEN 'OrgCredit'
+                        WHEN w.wallet_type = @SystemWalletType THEN 'System'
+                        WHEN w.wallet_type = @ProviderWalletType THEN 'Provider'
+                        ELSE 'Unknown'
+                    END AS WalletType,
+                    le.operation_id AS OperationId,
+                    le.operation_type AS OperationType,
+                    le.entry_type AS EntryType,
+                    le.amount_minor AS AmountMinor,
+                    le.currency AS Currency,
+                    le.effective_at AS EffectiveAt,
+                    le.created_at AS CreatedAt,
+                    le.related_entry_id AS RelatedEntryId,
+                    le.relation_type AS RelationType,
+                    le.external_reference AS ExternalReference
+                FROM wallets.ledger_entries le
+                INNER JOIN wallets.wallets w ON w.wallet_id = le.wallet_id
+                WHERE w."OwnerId" = @OwnerId
+                  AND (@WalletType IS NULL OR w.wallet_type = @WalletType)
+                  AND (@OperationType IS NULL OR le.operation_type = @OperationType)
+                  AND (@EntryType IS NULL OR le.entry_type = @EntryType)
+                ORDER BY le.created_at DESC
+                LIMIT @Take
+                """,
+                new
+                {
+                    OwnerId = ownerId,
+                    Take = take,
+                    WalletType = walletTypeValue,
+                    UserWalletType = (short)WalletType.User,
+                    OrgCreditWalletType = (short)WalletType.OrgCredit,
+                    SystemWalletType = (short)WalletType.System,
+                    ProviderWalletType = (short)WalletType.Provider,
+                    OperationType = operationType,
+                    EntryType = entryType
+                },
+                cancellationToken: ct));
 
-        return rows.ToList().AsReadOnly();
+        return rows
+            .Select(row => new MyWalletTransactionDto(
+                row.LedgerEntryId,
+                row.WalletId,
+                row.WalletType,
+                row.OperationId,
+                row.OperationType,
+                row.EntryType,
+                row.AmountMinor,
+                row.Currency,
+                ToDateTimeOffset(row.EffectiveAt),
+                ToDateTimeOffset(row.CreatedAt),
+                row.RelatedEntryId,
+                row.RelationType,
+                row.ExternalReference))
+            .ToList()
+            .AsReadOnly();
     }
 
     public async Task<List<WalletSummaryDto>> GetByOwnerIdAsync(Guid ownerId, CancellationToken ct = default)
@@ -230,5 +248,27 @@ public sealed class WalletReadRepository : IWalletReadRepository
             Currency: row.Currency,
             AllowedCategoryCode: row.AllowedCategoryCode,
             ContractExpiresAt: row.ContractExpiresAt);
+    }
+
+    private static DateTimeOffset ToDateTimeOffset(DateTime value)
+        => new(value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            : value);
+
+    private sealed class OwnerWalletTransactionRow
+    {
+        public Guid LedgerEntryId { get; set; }
+        public Guid WalletId { get; set; }
+        public string WalletType { get; set; } = "";
+        public Guid OperationId { get; set; }
+        public short OperationType { get; set; }
+        public short EntryType { get; set; }
+        public long AmountMinor { get; set; }
+        public string Currency { get; set; } = "";
+        public DateTime EffectiveAt { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public Guid? RelatedEntryId { get; set; }
+        public short RelationType { get; set; }
+        public string? ExternalReference { get; set; }
     }
 }
