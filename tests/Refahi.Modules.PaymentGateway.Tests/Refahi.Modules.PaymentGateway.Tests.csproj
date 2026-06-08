@@ -16,5 +16,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Refahi.Modules.PaymentGateway.Application\Refahi.Modules.PaymentGateway.Application.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.PaymentGateway.Infrastructure\Refahi.Modules.PaymentGateway.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Refahi.Modules.Wallets.Infrastructure\Refahi.Modules.Wallets.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
