@@ -143,6 +143,35 @@ public class ProcessCallbackCommandHandlerTests
         Assert.Equal(0, mediator.TopUpCalls);
     }
 
+    [Fact]
+    public async Task Handle_TopUpExceptionAfterSuccessfulVerify_ReversesAndFailsSession()
+    {
+        var session = CreateSession(amount: 1000);
+        var provider = new FakeProvider(new VerifyResult(true, 1000, 0));
+        var mediator = new FakeMediator(CommandStatus.Completed, new InvalidOperationException(new string('x', 1000)));
+        var handler = CreateHandler(session, provider, mediator);
+
+        var response = await handler.Handle(CreateCommand(session.Id, amount: 1000), CancellationToken.None);
+
+        Assert.False(response.IsSuccess);
+        Assert.Equal(PaymentSessionStatus.Failed, session.Status);
+        Assert.Equal(1, provider.VerifyCalls);
+        Assert.Equal(1, provider.ReverseCalls);
+        Assert.Equal(1, mediator.TopUpCalls);
+        Assert.Contains("Provider transaction reversed", session.ProviderResultDescription);
+        Assert.True(session.ProviderResultDescription?.Length <= 500);
+    }
+
+    [Fact]
+    public void MarkAsFailed_TruncatesProviderResultDescriptionToDatabaseLimit()
+    {
+        var session = CreateSession(amount: 1000);
+
+        session.MarkAsFailed(0, new string('x', 700));
+
+        Assert.Equal(500, session.ProviderResultDescription?.Length);
+    }
+
     private static ProcessCallbackCommandHandler CreateHandler(
         PaymentGatewaySession session,
         FakeProvider provider,

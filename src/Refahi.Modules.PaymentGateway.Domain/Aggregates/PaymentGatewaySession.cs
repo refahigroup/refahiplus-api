@@ -20,6 +20,8 @@ namespace Refahi.Modules.PaymentGateway.Domain.Aggregates;
 /// </summary>
 public sealed class PaymentGatewaySession : EntityBase
 {
+    private const int ProviderResultDescriptionMaxLength = 500;
+
     // Parameterless ctor for EF Core
     private PaymentGatewaySession() { }
 
@@ -142,10 +144,12 @@ public sealed class PaymentGatewaySession : EntityBase
 
     public void MarkAsSucceeded(Guid topUpLedgerEntryId, int providerResultCode, string? providerResultDescription = null)
     {
+        var boundedDescription = TruncateProviderResultDescription(providerResultDescription);
+
         Status = PaymentSessionStatus.Succeeded;
         TopUpLedgerEntryId = topUpLedgerEntryId;
         ProviderResultCode = providerResultCode;
-        ProviderResultDescription = providerResultDescription;
+        ProviderResultDescription = boundedDescription;
         CompletedAt = DateTimeOffset.UtcNow;
 
         AddDomainEvent(new PaymentSessionSucceededDomainEvent(
@@ -161,9 +165,11 @@ public sealed class PaymentGatewaySession : EntityBase
 
     public void MarkAsFailed(int? providerResultCode, string? providerResultDescription)
     {
+        var boundedDescription = TruncateProviderResultDescription(providerResultDescription);
+
         Status = PaymentSessionStatus.Failed;
         ProviderResultCode = providerResultCode;
-        ProviderResultDescription = providerResultDescription;
+        ProviderResultDescription = boundedDescription;
         CompletedAt = DateTimeOffset.UtcNow;
 
         AddDomainEvent(new PaymentSessionFailedDomainEvent(
@@ -173,7 +179,7 @@ public sealed class PaymentGatewaySession : EntityBase
             AmountMinor: AmountMinor,
             Currency: Currency,
             Provider: Provider,
-            FailureReason: providerResultDescription,
+            FailureReason: boundedDescription,
             OccurredAt: CompletedAt.Value));
     }
 
@@ -207,6 +213,13 @@ public sealed class PaymentGatewaySession : EntityBase
     {
         if (IsExpired())
             throw new PaymentSessionExpiredException("مدت زمان جلسه پرداخت منقضی شده است.");
+    }
+
+    private static string? TruncateProviderResultDescription(string? description)
+    {
+        return string.IsNullOrEmpty(description) || description.Length <= ProviderResultDescriptionMaxLength
+            ? description
+            : description[..ProviderResultDescriptionMaxLength];
     }
 
     private void EnsureNotTerminal()
