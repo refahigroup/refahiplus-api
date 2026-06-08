@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Refahi.Modules.Hotels.Application.Contracts.Services.Bookings.StartPayment;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
@@ -22,6 +23,7 @@ public sealed class CreateHotelPaymentSessionEndpoint : IEndpoint
             Guid bookingId,
             [FromBody] CreateHotelPaymentSessionRequest body,
             HttpContext httpContext,
+            IConfiguration configuration,
             ISender sender,
             CancellationToken ct) =>
         {
@@ -35,8 +37,13 @@ public sealed class CreateHotelPaymentSessionEndpoint : IEndpoint
 
             var req = httpContext.Request;
             var provider = body.Provider == 0 ? PaymentGatewayProviderType.Sep : body.Provider;
-            var providerSlug = provider.ToString().ToLowerInvariant();
-            var providerCallbackUrl = $"{req.Scheme}://{req.Host}/api/payment-gateway/callback/{providerSlug}";
+            var providerCallbackUrl = PaymentGatewayCallbackUrlBuilder.Build(
+                provider,
+                configuration["PaymentGateway:PublicBaseUrl"],
+                req.Scheme,
+                req.Host.Value,
+                req.Headers["X-Forwarded-Proto"].ToString(),
+                req.Headers["X-Forwarded-Host"].ToString());
 
             var successUrl = body.SucceededCallbackUrl
                 ?? $"{body.ReturnBaseUrl.TrimEnd('/')}/{bookingId}/success";

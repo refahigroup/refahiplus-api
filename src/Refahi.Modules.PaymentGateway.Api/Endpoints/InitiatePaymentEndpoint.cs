@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Refahi.Modules.PaymentGateway.Api.Models;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Exceptions;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
@@ -25,6 +26,7 @@ public class InitiatePaymentEndpoint : IEndpoint
         routes.MapPost("/initiate", async (
             InitiatePaymentRequestBody body,
             HttpContext httpContext,
+            IConfiguration configuration,
             IMediator mediator,
             CancellationToken ct) =>
         {
@@ -36,8 +38,13 @@ public class InitiatePaymentEndpoint : IEndpoint
 
             // Build the absolute callback URL where the provider will POST the result
             var req = httpContext.Request;
-            var providerSlug = body.Provider.ToString().ToLowerInvariant();
-            var providerCallbackUrl = $"{req.Scheme}://{req.Host}/api/payment-gateway/callback/{providerSlug}";
+            var providerCallbackUrl = PaymentGatewayCallbackUrlBuilder.Build(
+                body.Provider,
+                configuration["PaymentGateway:PublicBaseUrl"],
+                req.Scheme,
+                req.Host.Value,
+                req.Headers["X-Forwarded-Proto"].ToString(),
+                req.Headers["X-Forwarded-Host"].ToString());
 
             var command = new InitiatePaymentCommand(
                 UserId: userId,
