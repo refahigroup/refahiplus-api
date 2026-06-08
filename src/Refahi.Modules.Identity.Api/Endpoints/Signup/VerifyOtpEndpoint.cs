@@ -61,7 +61,11 @@ public class VerifyOtpEndpoint : IEndpoint
                 expires_in = (int)(tokens.AccessTokenExpiresAtUtc - DateTimeOffset.UtcNow).TotalSeconds,
                 expires_at_utc = tokens.AccessTokenExpiresAtUtc,
                 refresh_token = tokens.RefreshToken,
-                refresh_expires_at_utc = tokens.RefreshTokenExpiresAtUtc
+                refresh_expires_at_utc = tokens.RefreshTokenExpiresAtUtc,
+
+                is_new_user = result.IsNewUser,
+                registration_completed = result.RegistrationCompleted,
+                profile_required = result.ProfileRequired
             });
         })
         .WithName("Identity.SignUp.VerifyOtp")

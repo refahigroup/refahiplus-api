@@ -16,4 +16,7 @@ public record ValidateOtpResult(
     string? ErrorMessage = null,
     UserDto? User = null,
     string? MobileNumber = null,
-    string? Email = null);
+    string? Email = null,
+    bool IsNewUser = true,
+    bool RegistrationCompleted = true,
+    bool ProfileRequired = false);

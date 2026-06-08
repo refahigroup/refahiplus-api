@@ -25,19 +25,20 @@ public class SendLoginOtpEndpoint : IEndpoint
             var result = await mediator.Send(request);
 
             if (!result.Success)
-                return Results.Unauthorized();
+                return Results.BadRequest(ApiResponseHelper.Error(result.ErrorMessage ?? "ارسال کد ورود ناموفق بود"));
 
             return Results.Ok(new
             {
                 success = true,
                 token = result.Token,
-                expires_at = result.ExpiresAt
+                expires_at = result.ExpiresAt,
+                flow = result.Flow
             });
         })
         .WithName("Identity.Auth.SendLoginOtp")
         .WithTags("Identity")
         .Produces(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+        .Produces(StatusCodes.Status400BadRequest);
     }
 }
