@@ -43,6 +43,9 @@ public sealed class SepTokenResponse
     [JsonPropertyName("token")]
     public string? Token { get; set; }
 
+    [JsonPropertyName("errorCode")]
+    public string? ErrorCode { get; set; }
+
     [JsonPropertyName("errorDesc")]
     public string? ErrorDesc { get; set; }
 }
@@ -69,8 +72,35 @@ public sealed class SepVerifyResponse
     [JsonPropertyName("ResultCode")]
     public int ResultCode { get; set; }
 
-    [JsonPropertyName("Amount")]
-    public long Amount { get; set; }
+    [JsonPropertyName("ResultDescription")]
+    public string? ResultDescription { get; set; }
+
+    [JsonPropertyName("Success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("TransactionDetail")]
+    public SepTransactionDetail? TransactionDetail { get; set; }
+}
+
+public sealed class SepReverseRequest
+{
+    [JsonPropertyName("RefNum")]
+    public string RefNum { get; set; } = default!;
+
+    [JsonPropertyName("TerminalNumber")]
+    public long TerminalNumber { get; set; }
+}
+
+public sealed class SepReverseResponse
+{
+    [JsonPropertyName("ResultCode")]
+    public int ResultCode { get; set; }
+
+    [JsonPropertyName("ResultDescription")]
+    public string? ResultDescription { get; set; }
+
+    [JsonPropertyName("Success")]
+    public bool Success { get; set; }
 
     [JsonPropertyName("TransactionDetail")]
     public SepTransactionDetail? TransactionDetail { get; set; }
@@ -78,12 +108,30 @@ public sealed class SepVerifyResponse
 
 public sealed class SepTransactionDetail
 {
-    [JsonPropertyName("MaskedCardNumber")]
-    public string? MaskedCardNumber { get; set; }
-
     [JsonPropertyName("RRN")]
     public string? RRN { get; set; }
 
     [JsonPropertyName("RefNum")]
     public string? RefNum { get; set; }
+
+    [JsonPropertyName("MaskedPan")]
+    public string? MaskedPan { get; set; }
+
+    [JsonPropertyName("HashedPan")]
+    public string? HashedPan { get; set; }
+
+    [JsonPropertyName("TerminalNumber")]
+    public int TerminalNumber { get; set; }
+
+    [JsonPropertyName("OrginalAmount")]
+    public long OrginalAmount { get; set; }
+
+    [JsonPropertyName("AffectiveAmount")]
+    public long AffectiveAmount { get; set; }
+
+    [JsonPropertyName("StraceDate")]
+    public string? StraceDate { get; set; }
+
+    [JsonPropertyName("StraceNo")]
+    public string? StraceNo { get; set; }
 }

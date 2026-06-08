@@ -75,6 +75,9 @@
 		<Project Path="src/Refahi.Modules.PaymentGateway.Domain/Refahi.Modules.PaymentGateway.Domain.csproj" />
 		<Project Path="src/Refahi.Modules.PaymentGateway.Infrastructure/Refahi.Modules.PaymentGateway.Infrastructure.csproj" />
 	</Folder>
+	<Folder Name="/02_Tests/">
+		<Project Path="tests/Refahi.Modules.PaymentGateway.Tests/Refahi.Modules.PaymentGateway.Tests.csproj" />
+	</Folder>
 	<Project Path="src/Refahi.Api/Refahi.Api.csproj" />
 
 </Solution>

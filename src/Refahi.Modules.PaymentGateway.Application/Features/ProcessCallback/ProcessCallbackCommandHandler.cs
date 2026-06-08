@@ -5,6 +5,7 @@ using Refahi.Modules.PaymentGateway.Application.Contracts.Features.ProcessCallba
 using Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
 using Refahi.Modules.PaymentGateway.Domain.Exceptions;
+using Refahi.Modules.Wallets.Application.Contracts;
 using Refahi.Modules.Wallets.Application.Contracts.Features.TopUp;
 using System;
 using System.Threading;
@@ -83,6 +84,28 @@ public class ProcessCallbackCommandHandler : IRequestHandler<ProcessCallbackComm
             securePan: command.SecurePan,
             rawCallbackJson: command.RawCallbackJson);
 
+        if (command.AmountParseFailed)
+        {
+            const string message = "Payment callback amount is invalid.";
+            _logger.LogWarning("PaymentGateway: Callback amount is invalid. Session={SessionId}", sessionId);
+
+            session.MarkAsFailed(null, message);
+            await _sessionRepository.UpdateAsync(session, ct);
+            return new ProcessCallbackResponse(sessionId, false, session.BuildFailureRedirectUrl());
+        }
+
+        if (command.AmountMinor.HasValue && command.AmountMinor.Value != session.AmountMinor)
+        {
+            var message = $"Payment callback amount mismatch. Expected={session.AmountMinor} Actual={command.AmountMinor.Value}.";
+            _logger.LogWarning(
+                "PaymentGateway: Callback amount mismatch. Session={SessionId} Expected={Expected} Actual={Actual}",
+                sessionId, session.AmountMinor, command.AmountMinor.Value);
+
+            session.MarkAsFailed(null, message);
+            await _sessionRepository.UpdateAsync(session, ct);
+            return new ProcessCallbackResponse(sessionId, false, session.BuildFailureRedirectUrl());
+        }
+
         // SEP success state
         if (command.State.Equals("OK", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(command.RefNum))
         {
@@ -106,17 +129,37 @@ public class ProcessCallbackCommandHandler : IRequestHandler<ProcessCallbackComm
                     MetadataJson: null,
                     ExternalReference: command.RefNum);
 
-                var topUpResponse = await _mediator.Send(topUpCommand, ct);
+                try
+                {
+                    var topUpResponse = await _mediator.Send(topUpCommand, ct);
 
-                var ledgerEntryId = topUpResponse.Data?.LedgerEntryId ?? Guid.Empty;
-                session.MarkAsSucceeded(ledgerEntryId, verifyResult.ResultCode);
-                await _sessionRepository.UpdateAsync(session, ct);
+                    if (topUpResponse.Status != CommandStatus.Completed || topUpResponse.Data is null)
+                    {
+                        var reason = $"Wallet top-up did not complete. Status={topUpResponse.Status}.";
+                        var reverseMessage = await TryReverseAsync(provider, command.RefNum, reason, ct);
+                        session.MarkAsFailed(verifyResult.ResultCode, reverseMessage);
+                        await _sessionRepository.UpdateAsync(session, ct);
+                        return new ProcessCallbackResponse(sessionId, false, session.BuildFailureRedirectUrl());
+                    }
 
-                _logger.LogInformation(
-                    "PaymentGateway: Wallet topped up. Session={SessionId} LedgerEntry={LedgerEntryId}",
-                    sessionId, ledgerEntryId);
+                    var ledgerEntryId = topUpResponse.Data.LedgerEntryId;
+                    session.MarkAsSucceeded(ledgerEntryId, verifyResult.ResultCode);
+                    await _sessionRepository.UpdateAsync(session, ct);
 
-                return new ProcessCallbackResponse(sessionId, true, session.BuildSuccessRedirectUrl());
+                    _logger.LogInformation(
+                        "PaymentGateway: Wallet topped up. Session={SessionId} LedgerEntry={LedgerEntryId}",
+                        sessionId, ledgerEntryId);
+
+                    return new ProcessCallbackResponse(sessionId, true, session.BuildSuccessRedirectUrl());
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "PaymentGateway: Wallet top-up failed after provider verification. Session={SessionId}", sessionId);
+                    var reverseMessage = await TryReverseAsync(provider, command.RefNum, ex.Message, ct);
+                    session.MarkAsFailed(verifyResult.ResultCode, reverseMessage);
+                    await _sessionRepository.UpdateAsync(session, ct);
+                    return new ProcessCallbackResponse(sessionId, false, session.BuildFailureRedirectUrl());
+                }
             }
             else
             {
@@ -124,7 +167,11 @@ public class ProcessCallbackCommandHandler : IRequestHandler<ProcessCallbackComm
                     "PaymentGateway: Verification failed. Session={SessionId} Code={Code} Desc={Desc}",
                     sessionId, verifyResult.ResultCode, verifyResult.ErrorMessage);
 
-                session.MarkAsFailed(verifyResult.ResultCode, verifyResult.ErrorMessage);
+                var failureMessage = verifyResult.ErrorMessage;
+                if (verifyResult.ResultCode == 0 && verifyResult.VerifiedAmountMinor > 0)
+                    failureMessage = await TryReverseAsync(provider, command.RefNum, verifyResult.ErrorMessage ?? "Provider verification failed.", ct);
+
+                session.MarkAsFailed(verifyResult.ResultCode, failureMessage);
                 await _sessionRepository.UpdateAsync(session, ct);
                 return new ProcessCallbackResponse(sessionId, false, session.BuildFailureRedirectUrl());
             }
@@ -144,4 +191,30 @@ public class ProcessCallbackCommandHandler : IRequestHandler<ProcessCallbackComm
 
     private static string BuildFallbackUrl(Guid sessionId) =>
         $"/charge/wallet/topup/result/{sessionId}";
+
+    private async Task<string> TryReverseAsync(
+        IPaymentGatewayProvider provider,
+        string refNum,
+        string reason,
+        CancellationToken ct)
+    {
+        if (provider is not IReversiblePaymentGatewayProvider reversibleProvider)
+            return reason;
+
+        var reverseResult = await reversibleProvider.ReverseAsync(new ReverseRequest(refNum), ct);
+
+        if (reverseResult.IsSuccess)
+        {
+            _logger.LogWarning(
+                "PaymentGateway: Reversed provider transaction after local failure. RefNum={RefNum} Reason={Reason}",
+                refNum, reason);
+            return $"{reason} Provider transaction reversed.";
+        }
+
+        _logger.LogError(
+            "PaymentGateway: Provider reverse failed. RefNum={RefNum} Code={Code} Error={Error} Reason={Reason}",
+            refNum, reverseResult.ResultCode, reverseResult.ErrorMessage, reason);
+
+        return $"{reason} Provider reverse failed. Code={reverseResult.ResultCode} Error={reverseResult.ErrorMessage}";
+    }
 }

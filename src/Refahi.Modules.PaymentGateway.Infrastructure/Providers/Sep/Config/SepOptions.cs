@@ -9,10 +9,12 @@ public class SepOptions
     public string TokenUrl { get; set; } = "https://sep.shaparak.ir/onlinepg/onlinepg";
 
     /// <summary>آدرس پایه صفحه پرداخت SEP (token به query string اضافه می‌شود)</summary>
-    public string PaymentBaseUrl { get; set; } = "https://sep.shaparak.ir/OnlinePG/OnlinePG";
+    public string PaymentBaseUrl { get; set; } = "https://sep.shaparak.ir/OnlinePG/SendToken";
 
     /// <summary>آدرس تأیید تراکنش</summary>
     public string VerifyUrl { get; set; } = "https://sep.shaparak.ir/verifyTxnRandomSessionkey/ipg/VerifyTransaction";
+
+    public string ReverseUrl { get; set; } = "https://sep.shaparak.ir/verifyTxnRandomSessionkey/ipg/ReverseTransaction";
 
     /// <summary>مدت اعتبار جلسه پرداخت (دقیقه)</summary>
     public int SessionExpiryMinutes { get; set; } = 15;

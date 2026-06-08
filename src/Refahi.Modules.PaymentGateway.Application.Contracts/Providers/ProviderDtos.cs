@@ -22,3 +22,11 @@ public sealed record VerifyResult(
     long VerifiedAmountMinor,
     int ResultCode,
     string? ErrorMessage = null);
+
+public sealed record ReverseRequest(
+    string RefNum);
+
+public sealed record ReverseResult(
+    bool IsSuccess,
+    int ResultCode,
+    string? ErrorMessage = null);

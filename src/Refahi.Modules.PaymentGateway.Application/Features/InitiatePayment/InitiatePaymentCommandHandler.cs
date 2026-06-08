@@ -1,11 +1,14 @@
 using MediatR;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Exceptions;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
 using Refahi.Modules.PaymentGateway.Domain.Aggregates;
+using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,20 +18,33 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
 {
     private readonly IPaymentGatewaySessionRepository _sessionRepository;
     private readonly IPaymentGatewayProviderFactory _providerFactory;
+    private readonly IWalletReadRepository _walletReadRepository;
     private readonly ILogger<InitiatePaymentCommandHandler> _logger;
 
     public InitiatePaymentCommandHandler(
         IPaymentGatewaySessionRepository sessionRepository,
         IPaymentGatewayProviderFactory providerFactory,
+        IWalletReadRepository walletReadRepository,
         ILogger<InitiatePaymentCommandHandler> logger)
     {
         _sessionRepository = sessionRepository;
         _providerFactory = providerFactory;
+        _walletReadRepository = walletReadRepository;
         _logger = logger;
     }
 
     public async Task<InitiatePaymentResponse> Handle(InitiatePaymentCommand command, CancellationToken ct)
     {
+        var ownerWallets = await _walletReadRepository.GetByOwnerIdAsync(command.UserId, ct);
+        if (!ownerWallets.Any(w => w.WalletId == command.WalletId))
+        {
+            throw new ValidationException([
+                new FluentValidation.Results.ValidationFailure(
+                    nameof(command.WalletId),
+                    "کیف‌پول انتخاب‌شده متعلق به کاربر جاری نیست.")
+            ]);
+        }
+
         var sessionId = Guid.NewGuid();
 
         _logger.LogInformation(

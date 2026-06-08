@@ -108,7 +108,6 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                         }).Where(s => !string.IsNullOrEmpty(s)));
 
                     itemTitle = $"{product.Title}{(string.IsNullOrEmpty(variantLabel) ? string.Empty : $" - {variantLabel}")} - {shopForTitle?.Name ?? string.Empty}";
-                    stockUpdates.Add((product.Id, cartItem.VariantId, cartItem.Quantity));
                 }
                 else
                 {
@@ -116,7 +115,6 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                         throw new StoreDomainException($"موجودی کافی برای '{product.Title}' وجود ندارد", "INSUFFICIENT_STOCK");
 
                     itemTitle = $"{product.Title} - {shopForTitle?.Name ?? string.Empty}";
-                    stockUpdates.Add((product.Id, null, cartItem.Quantity));
                 }
 
                 metadataJson = JsonSerializer.Serialize(new
@@ -151,7 +149,6 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                     end_time = session.EndTime.ToString("HH:mm")
                 });
 
-                sessionUpdates.Add((product.Id, cartItem.SessionId.Value, cartItem.Quantity));
             }
 
             // روش ارسال این آیتم
@@ -232,15 +229,8 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
         var orderResult = await _mediator.Send(createOrderCommand, cancellationToken);
 
-        // STEP 7: Pay order via Orders module (calls Wallet)
-        var payCommand = new PayOrderCommand(
-            OrderId: orderResult.OrderId,
-            Allocations: request.WalletAllocations
-                .Select(w => new WalletAllocationInput(w.WalletId, w.AmountMinor))
-                .ToList(),
-            IdempotencyKey: $"store-pay-{request.IdempotencyKey}");
-
-        var payResult = await _mediator.Send(payCommand, cancellationToken);
+        // STEP 7: Payment is handled by Orders unified checkout.
+        var paymentStatus = "Unpaid";
 
         // STEP 8: Decrease stock/capacity ONLY after payment success
         foreach (var (productId, variantId, quantity) in stockUpdates)
@@ -285,15 +275,13 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             }
         }
 
-        // STEP 9: Clear cart
-        cart.Clear();
-        await _cartRepo.UpdateAsync(cart, cancellationToken);
+        // Cart is cleared after the order is paid by the unified checkout flow.
 
         // STEP 10: Return response
         return new PlaceStoreOrderResponse(
             OrderId: orderResult.OrderId,
             OrderNumber: orderResult.OrderNumber,
             FinalAmountMinor: orderResult.FinalAmountMinor,
-            Status: payResult.Status);
+            Status: paymentStatus);
     }
 }

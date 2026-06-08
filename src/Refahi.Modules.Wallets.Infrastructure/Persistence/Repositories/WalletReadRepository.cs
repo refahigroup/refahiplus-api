@@ -1,6 +1,7 @@
 using Dapper;
 using Npgsql;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetBalance;
+using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyTransactions;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetTransactions;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetWalletInfo;
@@ -94,6 +95,73 @@ public sealed class WalletReadRepository : IWalletReadRepository
               order by created_at desc
               limit @Take",
             new { WalletId = walletId, Take = take });
+
+        return rows.ToList().AsReadOnly();
+    }
+
+    public async Task<IReadOnlyList<MyWalletTransactionDto>> GetOwnerWalletTransactionsAsync(
+        Guid ownerId,
+        int take,
+        string? walletType = null,
+        short? operationType = null,
+        short? entryType = null,
+        CancellationToken ct = default)
+    {
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync(ct);
+
+        short? walletTypeValue = walletType?.Trim() switch
+        {
+            null or "" => null,
+            "REFAHI" or "Refahi" or "User" => (short)WalletType.User,
+            "OrgCredit" or "ORG_CREDIT" or "Organizational" => (short)WalletType.OrgCredit,
+            _ when short.TryParse(walletType, out var parsed) => parsed,
+            _ => null
+        };
+
+        var rows = await conn.QueryAsync<MyWalletTransactionDto>(
+            """
+            SELECT
+                le.ledger_entry_id AS LedgerEntryId,
+                le.wallet_id AS WalletId,
+                CASE
+                    WHEN w.wallet_type = @UserWalletType THEN 'REFAHI'
+                    WHEN w.wallet_type = @OrgCreditWalletType THEN 'OrgCredit'
+                    WHEN w.wallet_type = @SystemWalletType THEN 'System'
+                    WHEN w.wallet_type = @ProviderWalletType THEN 'Provider'
+                    ELSE 'Unknown'
+                END AS WalletType,
+                le.operation_id AS OperationId,
+                le.operation_type AS OperationType,
+                le.entry_type AS EntryType,
+                le.amount_minor AS AmountMinor,
+                le.currency AS Currency,
+                le.effective_at AS EffectiveAt,
+                le.created_at AS CreatedAt,
+                le.related_entry_id AS RelatedEntryId,
+                le.relation_type AS RelationType,
+                le.external_reference AS ExternalReference
+            FROM wallets.ledger_entries le
+            INNER JOIN wallets.wallets w ON w.wallet_id = le.wallet_id
+            WHERE w."OwnerId" = @OwnerId
+              AND (@WalletType IS NULL OR w.wallet_type = @WalletType)
+              AND (@OperationType IS NULL OR le.operation_type = @OperationType)
+              AND (@EntryType IS NULL OR le.entry_type = @EntryType)
+            ORDER BY le.created_at DESC
+            LIMIT @Take
+            """,
+            new
+            {
+                OwnerId = ownerId,
+                Take = take,
+                WalletType = walletTypeValue,
+                UserWalletType = (short)WalletType.User,
+                OrgCreditWalletType = (short)WalletType.OrgCredit,
+                SystemWalletType = (short)WalletType.System,
+                ProviderWalletType = (short)WalletType.Provider,
+                OperationType = operationType,
+                EntryType = entryType
+            });
 
         return rows.ToList().AsReadOnly();
     }
