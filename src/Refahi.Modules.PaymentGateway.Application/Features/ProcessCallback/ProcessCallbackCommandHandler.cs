@@ -155,7 +155,8 @@ public class ProcessCallbackCommandHandler : IRequestHandler<ProcessCallbackComm
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "PaymentGateway: Wallet top-up failed after provider verification. Session={SessionId}", sessionId);
-                    var reverseMessage = await TryReverseAsync(provider, command.RefNum, ex.Message, ct);
+                    var reason = $"Wallet top-up failed after provider verification. {ex.GetType().Name}.";
+                    var reverseMessage = await TryReverseAsync(provider, command.RefNum, reason, ct);
                     session.MarkAsFailed(verifyResult.ResultCode, reverseMessage);
                     await _sessionRepository.UpdateAsync(session, ct);
                     return new ProcessCallbackResponse(sessionId, false, session.BuildFailureRedirectUrl());

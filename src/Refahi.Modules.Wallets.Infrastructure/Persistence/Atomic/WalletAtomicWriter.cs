@@ -98,8 +98,8 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
         // 2A) Already completed - return cached result (no lock needed)
         if ((IdempotencyStatus)idem.Status == IdempotencyStatus.Completed)
         {
-            var completedAt = idem.CompletedAt ?? now;
-            var ledgerId = idem.ResultLedgerEntryIds is { Length: > 0 } ? idem.ResultLedgerEntryIds[0] : Guid.Empty;
+            var completedAt = ReadCompletedAt(idem, now);
+            var ledgerId = ReadFirstLedgerEntryId(idem);
             var balance = idem.ResultBalanceAvailableMinor ?? 0;
 
             await tx.CommitAsync(ct);
@@ -154,8 +154,8 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
             if ((IdempotencyStatus)idem.Status == IdempotencyStatus.Completed)
             {
                 // Completed while we were acquiring lock
-                var completedAt = idem.CompletedAt ?? now;
-                var ledgerId = idem.ResultLedgerEntryIds is { Length: > 0 } ? idem.ResultLedgerEntryIds[0] : Guid.Empty;
+                var completedAt = ReadCompletedAt(idem, now);
+                var ledgerId = ReadFirstLedgerEntryId(idem);
                 var balance = idem.ResultBalanceAvailableMinor ?? 0;
 
                 await tx.CommitAsync(ct);
@@ -283,23 +283,41 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
         return SHA256.HashData(Encoding.UTF8.GetBytes(canonical));
     }
 
+    private static DateTimeOffset ReadCompletedAt(IdempotencyRow idem, DateTimeOffset fallback)
+    {
+        if (!idem.CompletedAt.HasValue)
+            return fallback;
+
+        var completedAt = DateTime.SpecifyKind(idem.CompletedAt.Value, DateTimeKind.Utc);
+        return new DateTimeOffset(completedAt);
+    }
+
+    private static Guid ReadFirstLedgerEntryId(IdempotencyRow idem)
+    {
+        return idem.ResultLedgerEntryIds is { Length: > 0 } && idem.ResultLedgerEntryIds.GetValue(0) is Guid ledgerEntryId
+            ? ledgerEntryId
+            : Guid.Empty;
+    }
+
     private enum IdempotencyStatus : short
     {
         Pending = 1,
         Completed = 2
     }
 
-    private sealed record IdempotencyRow(
-        Guid IdempotencyId,
-        Guid WalletId,
-        string IdempotencyKey,
-        Guid OperationId,
-        short Status,
-        byte[] RequestHash,
-        Guid[] ResultLedgerEntryIds,
-        long? ResultBalanceAvailableMinor,
-        DateTimeOffset CreatedAt,
-        DateTimeOffset? CompletedAt);
+    private sealed class IdempotencyRow
+    {
+        public Guid IdempotencyId { get; set; }
+        public Guid WalletId { get; set; }
+        public string IdempotencyKey { get; set; } = string.Empty;
+        public Guid OperationId { get; set; }
+        public short Status { get; set; }
+        public byte[] RequestHash { get; set; } = [];
+        public Array ResultLedgerEntryIds { get; set; } = Array.Empty<Guid>();
+        public long? ResultBalanceAvailableMinor { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+    }
 
     private sealed record WalletRow(Guid WalletId, string Currency, short Status);
 
