@@ -2,6 +2,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.Extensions.Options;
+using Refahi.Modules.Identity.Application.Features.Auth;
 using Refahi.Modules.Identity.Domain.Repositories;
 using Refahi.Shared.Services.Notification;
 
@@ -11,13 +13,16 @@ public class SendLoginOtpCommandHandler : IRequestHandler<SendLoginOtpCommand, S
 {
     private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
+    private readonly IdentityOptions _options;
 
     public SendLoginOtpCommandHandler(
         IUserRepository userRepository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IOptions<IdentityOptions> options)
     {
         _userRepository = userRepository;
         _notificationService = notificationService;
+        _options = options.Value;
     }
 
     public async Task<SendLoginOtpResult> Handle(SendLoginOtpCommand request, CancellationToken cancellationToken)
@@ -37,10 +42,24 @@ public class SendLoginOtpCommandHandler : IRequestHandler<SendLoginOtpCommand, S
         }
 
         if (!userExists)
-            return new SendLoginOtpResult(false, "کاربری با این شماره موبایل یا ایمیل یافت نشد");
+        {
+            if (receiptType != OtpReceiptType.Sms)
+                return new SendLoginOtpResult(false, "کاربری با این ایمیل یافت نشد");
+
+            if (!_options.AutoRegistrationEnabled)
+                return new SendLoginOtpResult(false, "کاربری با این شماره موبایل یافت نشد");
+
+            var signUpOtpResult = await _notificationService.SendOtp(request.Contact, receiptType, OtpType.SignUp, cancellationToken);
+            return new SendLoginOtpResult(
+                true,
+                null,
+                signUpOtpResult.ReferenceCode,
+                signUpOtpResult.ExpiresAt,
+                AuthFlow.SignUp);
+        }
 
         var otpResult = await _notificationService.SendOtp(request.Contact, receiptType, OtpType.SignIn, cancellationToken);
 
-        return new SendLoginOtpResult(true, null, otpResult.ReferenceCode, otpResult.ExpiresAt);
+        return new SendLoginOtpResult(true, null, otpResult.ReferenceCode, otpResult.ExpiresAt, AuthFlow.SignIn);
     }
 }

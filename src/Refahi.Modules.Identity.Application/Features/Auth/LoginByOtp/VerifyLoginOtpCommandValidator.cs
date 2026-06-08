@@ -15,5 +15,10 @@ public class VerifyLoginOtpCommandValidator : AbstractValidator<VerifyLoginOtpCo
             .WithMessage("کد OTP الزامی است")
             .Matches(@"^\d{6}$")
             .WithMessage("کد OTP باید دقیقاً ۶ رقم باشد");
+
+        RuleFor(x => x.Flow)
+            .Must(x => Refahi.Modules.Identity.Application.Features.Auth.AuthFlow.IsSignIn(x) ||
+                       Refahi.Modules.Identity.Application.Features.Auth.AuthFlow.IsSignUp(x))
+            .WithMessage("جریان OTP نامعتبر است");
     }
 }

@@ -9,4 +9,5 @@ public record SendLoginOtpResult(
     bool Success,
     string? ErrorMessage = null,
     string? Token = null,
-    DateTime? ExpiresAt = null);
+    DateTime? ExpiresAt = null,
+    string? Flow = null);

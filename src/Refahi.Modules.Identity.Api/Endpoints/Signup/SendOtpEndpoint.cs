@@ -36,7 +36,9 @@ public class SendOtpEndpoint : IEndpoint
                 success = true,
                 message = "OTP sent successfully",
                 token = result.Token,
-                expiresAt = result.ExpiresAt
+                expiresAt = result.ExpiresAt,
+                expires_at = result.ExpiresAt,
+                flow = "signUp"
             });
         })
         .WithName("Identity.SignUp.SendOtp")

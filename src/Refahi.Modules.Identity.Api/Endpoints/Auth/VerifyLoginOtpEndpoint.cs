@@ -29,7 +29,7 @@ public class VerifyLoginOtpEndpoint : IEndpoint
             var result = await mediator.Send(request);
 
             if (!result.Success || result.User is null)
-                return Results.Unauthorized();
+                return Results.BadRequest(ApiResponseHelper.Error(result.ErrorMessage ?? "کد تأیید نامعتبر است"));
 
             var identity = new UserIdentity(
                 result.User.Id.ToString(),
@@ -55,13 +55,18 @@ public class VerifyLoginOtpEndpoint : IEndpoint
                 expires_at_utc = tokens.AccessTokenExpiresAtUtc,
 
                 refresh_token = tokens.RefreshToken,
-                refresh_expires_at_utc = tokens.RefreshTokenExpiresAtUtc
+                refresh_expires_at_utc = tokens.RefreshTokenExpiresAtUtc,
+
+                user = result.User,
+                is_new_user = result.IsNewUser,
+                registration_completed = result.RegistrationCompleted,
+                profile_required = result.ProfileRequired
             });
         })
         .WithName("Identity.Auth.VerifyLoginOtp")
         .WithTags("Identity")
         .Produces(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+        .Produces(StatusCodes.Status400BadRequest);
     }
 }
