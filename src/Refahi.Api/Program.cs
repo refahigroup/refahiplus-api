@@ -6,6 +6,7 @@ using Refahi.Api.Services;
 using Refahi.Api.Services.Chaching;
 using Refahi.Api.Services.Notification;
 using Refahi.Api.Services.Path;
+using Refahi.Modules.Flights.Api;
 using Refahi.Modules.Hotels.Api;
 using Refahi.Modules.Identity.Api;
 using Refahi.Modules.Media.Api;
@@ -82,6 +83,7 @@ builder.Services
         .RegisterOrganizationsModule(builder.Configuration)
         .RegisterWalletsModule(builder.Configuration)
         .RegisterOrdersModule(builder.Configuration)
+        .RegisterFlightsModule(builder.Configuration)
         .RegisterHotelsModule(builder.Configuration)
         .RegisterStoreModule(builder.Configuration)
         .RegisterSupplyChainModule(builder.Configuration)
@@ -145,6 +147,7 @@ app.MapGet("/api/health", () => {
        .UseOrganizationsModule("/api/organizations")
        .UseWalletsModule("/api/wallets")
        .UseOrdersModule("/api/orders")
+       .UseFlightsModule("/api/flights")
        .UseHotelModule("/api/hotels")
        .UseStoreModule("/api/store")
        .UseSupplyChainModule("/api/supply-chain")

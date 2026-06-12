@@ -3,6 +3,13 @@
 		<Project Path="src/Refahi.Shared/Refahi.Shared.csproj" Id="9bf2215a-84d1-4879-85da-ff00b1fdae64" />
 	</Folder>
 	<Folder Name="/01_Modules/" />
+	<Folder Name="/01_Modules/Flights/">
+		<Project Path="src/Refahi.Modules.Flights.Api/Refahi.Modules.Flights.Api.csproj" />
+		<Project Path="src/Refahi.Modules.Flights.Application.Contracts/Refahi.Modules.Flights.Application.Contracts.csproj" />
+		<Project Path="src/Refahi.Modules.Flights.Application/Refahi.Modules.Flights.Application.csproj" />
+		<Project Path="src/Refahi.Modules.Flights.Domain/Refahi.Modules.Flights.Domain.csproj" />
+		<Project Path="src/Refahi.Modules.Flights.Infrastructure/Refahi.Modules.Flights.Infrastructure.csproj" />
+	</Folder>
 	<Folder Name="/01_Modules/Hotels/">
 		<Project Path="src/Refahi.Modules.Hotels.Api/Refahi.Modules.Hotels.Api.csproj" />
 		<Project Path="src/Refahi.Modules.Hotels.Application.Contracts/Refahi.Modules.Hotels.Application.Contracts.csproj" />
@@ -76,6 +83,7 @@
 		<Project Path="src/Refahi.Modules.PaymentGateway.Infrastructure/Refahi.Modules.PaymentGateway.Infrastructure.csproj" />
 	</Folder>
 	<Folder Name="/02_Tests/">
+		<Project Path="tests/Refahi.Modules.Flights.Tests/Refahi.Modules.Flights.Tests.csproj" />
 		<Project Path="tests/Refahi.Modules.PaymentGateway.Tests/Refahi.Modules.PaymentGateway.Tests.csproj" />
 	</Folder>
 	<Project Path="src/Refahi.Api/Refahi.Api.csproj" />
