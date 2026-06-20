@@ -4,4 +4,4 @@ namespace Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 public sealed record ProductSessionDto(
     Guid Id, string Date, string StartTime, string EndTime,
     string? Title, int Capacity, int SoldCount, int RemainingCapacity,
-    long PriceAdjustment, bool IsAvailable);
+    long PriceAdjustment, bool IsActive, bool IsCancelled, bool IsAvailable);

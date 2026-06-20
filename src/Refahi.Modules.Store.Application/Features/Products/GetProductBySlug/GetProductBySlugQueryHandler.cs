@@ -77,7 +77,7 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
                     s.Id, s.Date.ToString("yyyy-MM-dd"),
                     s.StartTime.ToString("HH:mm"), s.EndTime.ToString("HH:mm"),
                     s.Title, s.Capacity, s.SoldCount, s.RemainingCapacity,
-                    s.PriceAdjustment, s.IsAvailable))
+                    s.PriceAdjustment, s.IsActive, s.IsCancelled, s.IsAvailable))
                 .ToList();
         }
 

@@ -17,6 +17,9 @@ public class UpdateSessionCommandHandler : IRequestHandler<UpdateSessionCommand,
         var session = await _sessionRepo.GetByIdAsync(request.SessionId, cancellationToken)
             ?? throw new StoreDomainException("سانس یافت نشد", "SESSION_NOT_FOUND");
 
+        if (request.Capacity < session.SoldCount)
+            throw new StoreDomainException("ظرفیت سانس نمی‌تواند کمتر از تعداد فروخته‌شده باشد", "SESSION_CAPACITY_BELOW_SOLD_COUNT");
+
         session.UpdateInfo(request.Capacity, request.Title, request.PriceAdjustment);
 
         if (request.IsActive)

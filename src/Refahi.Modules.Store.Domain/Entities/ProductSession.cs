@@ -28,7 +28,17 @@ public sealed class ProductSession
     internal static ProductSession Create(
         Guid productId, DateOnly date, TimeOnly startTime, TimeOnly endTime,
         int capacity, string? title, long priceAdjustment)
-        => new()
+    {
+        if (endTime <= startTime)
+            throw new StoreDomainException("زمان پایان باید بعد از زمان شروع باشد", "INVALID_SESSION_TIME_RANGE");
+
+        if (capacity <= 0)
+            throw new StoreDomainException("ظرفیت سانس باید بیشتر از صفر باشد", "INVALID_SESSION_CAPACITY");
+
+        if (priceAdjustment < 0)
+            throw new StoreDomainException("تفاوت قیمت نمی‌تواند منفی باشد", "INVALID_SESSION_PRICE_ADJUSTMENT");
+
+        return new ProductSession
         {
             Id = Guid.NewGuid(),
             ProductId = productId,
@@ -42,6 +52,7 @@ public sealed class ProductSession
             IsActive = true,
             IsCancelled = false
         };
+    }
 
     public void Sell(int quantity = 1)
     {
@@ -65,6 +76,15 @@ public sealed class ProductSession
 
     public void UpdateInfo(int capacity, string? title, long priceAdjustment)
     {
+        if (capacity <= 0)
+            throw new StoreDomainException("ظرفیت سانس باید بیشتر از صفر باشد", "INVALID_SESSION_CAPACITY");
+
+        if (capacity < SoldCount)
+            throw new StoreDomainException("ظرفیت سانس نمی‌تواند کمتر از تعداد فروخته‌شده باشد", "SESSION_CAPACITY_BELOW_SOLD_COUNT");
+
+        if (priceAdjustment < 0)
+            throw new StoreDomainException("تفاوت قیمت نمی‌تواند منفی باشد", "INVALID_SESSION_PRICE_ADJUSTMENT");
+
         Capacity = capacity;
         Title = title;
         PriceAdjustment = priceAdjustment;

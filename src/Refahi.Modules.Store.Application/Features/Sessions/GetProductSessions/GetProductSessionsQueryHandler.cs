@@ -26,6 +26,8 @@ public class GetProductSessionsQueryHandler : IRequestHandler<GetProductSessions
             s.SoldCount,
             s.RemainingCapacity,
             s.PriceAdjustment,
+            s.IsActive,
+            s.IsCancelled,
             s.IsAvailable))
             .ToList();
     }

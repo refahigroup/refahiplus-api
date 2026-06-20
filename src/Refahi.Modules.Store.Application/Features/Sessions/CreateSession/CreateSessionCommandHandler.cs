@@ -36,6 +36,9 @@ public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand,
         if (!TimeOnly.TryParse(request.EndTime, out var endTime))
             throw new StoreDomainException("زمان پایان وارد شده معتبر نیست", "INVALID_END_TIME");
 
+        if (endTime <= startTime)
+            throw new StoreDomainException("زمان پایان باید بعد از زمان شروع باشد", "INVALID_SESSION_TIME_RANGE");
+
         product.AddSession(date, startTime, endTime, request.Capacity, request.Title, request.PriceAdjustment);
 
         await _productRepo.UpdateAsync(product, cancellationToken);

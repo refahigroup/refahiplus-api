@@ -25,6 +25,13 @@ public class CreateSessionCommandValidator : AbstractValidator<CreateSessionComm
             .Must(t => TimeOnly.TryParse(t, out _))
             .WithMessage("زمان پایان وارد شده معتبر نیست (مثال: 10:00)");
 
+        RuleFor(x => x)
+            .Must(x =>
+                TimeOnly.TryParse(x.StartTime, out var startTime) &&
+                TimeOnly.TryParse(x.EndTime, out var endTime) &&
+                endTime > startTime)
+            .WithMessage("زمان پایان باید بعد از زمان شروع باشد");
+
         RuleFor(x => x.Capacity)
             .GreaterThan(0).WithMessage("ظرفیت سانس باید بیشتر از صفر باشد");
 
