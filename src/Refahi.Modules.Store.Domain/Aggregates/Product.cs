@@ -191,7 +191,9 @@ public sealed class Product
     public ProductVariant AddVariant(
         List<(Guid AttributeId, Guid ValueId)> combinations,
         int stockCount, long priceMinor, long? discountedPriceMinor = null,
-        string? imageUrl = null, string? sku = null)
+        string? imageUrl = null, string? sku = null,
+        DateOnly? fromDate = null, DateOnly? toDate = null,
+        VariantCapacityType capacityType = VariantCapacityType.Unlimited, int? capacity = null)
     {
         foreach (var (attrId, valueId) in combinations)
         {
@@ -201,7 +203,17 @@ public sealed class Product
                 throw new StoreDomainException("مقدار اتریبیوت به این اتریبیوت تعلق ندارد", "VARIANT_VALUE_NOT_FOUND");
         }
 
-        var variant = ProductVariant.Create(Id, stockCount, priceMinor, discountedPriceMinor, imageUrl, sku);
+        var variant = ProductVariant.Create(
+            Id,
+            stockCount,
+            priceMinor,
+            discountedPriceMinor,
+            imageUrl,
+            sku,
+            fromDate,
+            toDate,
+            capacityType,
+            capacity);
         foreach (var (attrId, valueId) in combinations)
             variant.AddCombination(attrId, valueId);
 

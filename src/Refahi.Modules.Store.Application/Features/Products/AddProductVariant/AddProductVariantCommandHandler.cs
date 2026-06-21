@@ -27,7 +27,11 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
             request.PriceMinor,
             request.DiscountedPriceMinor,
             request.ImageUrl,
-            request.Sku);
+            request.Sku,
+            request.FromDate,
+            request.ToDate,
+            request.CapacityType,
+            request.Capacity);
 
         await _productRepo.UpdateAsync(product, cancellationToken);
 

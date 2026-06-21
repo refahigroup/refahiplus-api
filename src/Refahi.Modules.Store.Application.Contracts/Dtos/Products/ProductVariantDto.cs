@@ -1,3 +1,5 @@
+using Refahi.Modules.Store.Domain.Enums;
+
 namespace Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 
 public sealed record ProductVariantDto(
@@ -7,6 +9,11 @@ public sealed record ProductVariantDto(
     int StockCount,
     long PriceMinor,
     long? DiscountedPriceMinor,
+    DateOnly? FromDate,
+    DateOnly? ToDate,
+    VariantCapacityType CapacityType,
+    int? Capacity,
+    bool RequiresUsageDate,
     bool IsAvailable,
     List<VariantCombinationDto> Combinations);
 

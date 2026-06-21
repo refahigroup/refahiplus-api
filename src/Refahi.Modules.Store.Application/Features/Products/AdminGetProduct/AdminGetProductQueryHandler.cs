@@ -52,7 +52,9 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
                 v.Id, v.SKU,
                 v.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(v.ImageUrl),
                 v.StockCount,
-                v.PriceMinor, v.DiscountedPriceMinor, v.IsAvailable,
+                v.PriceMinor, v.DiscountedPriceMinor,
+                v.FromDate, v.ToDate, v.CapacityType, v.Capacity, v.RequiresUsageDate,
+                v.IsAvailable,
                 v.Combinations.Select(c =>
                 {
                     var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
