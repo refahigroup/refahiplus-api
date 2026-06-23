@@ -26,12 +26,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => p.AgreementProductId);
         builder.HasIndex(p => p.IsDeleted);
 
-        // Optimistic concurrency using PostgreSQL xmin system column
+        // Optimistic concurrency via PostgreSQL system column xmin.
         builder.Property(p => p.Version)
             .HasColumnName("xmin")
             .HasColumnType("xid")
-            .IsConcurrencyToken()
-            .ValueGeneratedOnAddOrUpdate();
+            .IsRowVersion();
 
         // Owned collections via private backing fields
         builder.HasMany(p => p.Images)

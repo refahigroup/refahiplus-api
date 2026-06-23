@@ -21,7 +21,7 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
             .Select(c => (c.AttributeId, c.ValueId))
             .ToList();
 
-        product.AddVariant(
+        var addedVariant = product.AddVariant(
             combinations,
             request.StockCount,
             request.PriceMinor,
@@ -33,9 +33,8 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
             request.CapacityType,
             request.Capacity);
 
-        await _productRepo.UpdateAsync(product, cancellationToken);
+        await _productRepo.AddProductVariantAsync(product, addedVariant, cancellationToken);
 
-        var addedVariant = product.Variants.Last();
         return new AddProductVariantResponse(addedVariant.Id);
     }
 }

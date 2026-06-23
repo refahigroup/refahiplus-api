@@ -166,7 +166,11 @@ public sealed class Product
     /// </summary>
     public VariantAttribute AddVariantAttribute(string name, int sortOrder = 0)
     {
-        var attr = VariantAttribute.Create(Id, name, sortOrder);
+        var normalizedName = name.Trim();
+        if (_variantAttributes.Any(a => string.Equals(a.Name, normalizedName, StringComparison.OrdinalIgnoreCase)))
+            throw new StoreDomainException("ویژگی تنوع قبلاً برای این محصول ثبت شده است", "VARIANT_ATTRIBUTE_ALREADY_EXISTS");
+
+        var attr = VariantAttribute.Create(Id, normalizedName, sortOrder);
         _variantAttributes.Add(attr);
         UpdatedAt = DateTimeOffset.UtcNow;
         return attr;
@@ -182,6 +186,34 @@ public sealed class Product
         var attrValue = attr.AddValue(value, sortOrder);
         UpdatedAt = DateTimeOffset.UtcNow;
         return attrValue;
+    }
+
+    public void RemoveVariantAttribute(Guid attributeId)
+    {
+        var attr = _variantAttributes.FirstOrDefault(a => a.Id == attributeId)
+            ?? throw new StoreDomainException("ویژگی تنوع یافت نشد", "VARIANT_ATTRIBUTE_NOT_FOUND");
+
+        if (_variants.Any(v => v.Combinations.Any(c => c.VariantAttributeId == attributeId)))
+            throw new StoreDomainException(
+                "این ویژگی در تنوع‌های محصول استفاده شده است؛ ابتدا تنوع‌های وابسته را حذف کنید",
+                "VARIANT_ATTRIBUTE_IN_USE");
+
+        _variantAttributes.Remove(attr);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void RemoveVariantAttributeValue(Guid attributeId, Guid valueId)
+    {
+        var attr = _variantAttributes.FirstOrDefault(a => a.Id == attributeId)
+            ?? throw new StoreDomainException("ویژگی تنوع یافت نشد", "VARIANT_ATTRIBUTE_NOT_FOUND");
+
+        if (_variants.Any(v => v.Combinations.Any(c => c.VariantAttributeValueId == valueId)))
+            throw new StoreDomainException(
+                "این مقدار در تنوع‌های محصول استفاده شده است؛ ابتدا تنوع‌های وابسته را حذف کنید",
+                "VARIANT_ATTRIBUTE_VALUE_IN_USE");
+
+        attr.RemoveValue(valueId);
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     /// <summary>
@@ -220,6 +252,15 @@ public sealed class Product
         _variants.Add(variant);
         UpdatedAt = DateTimeOffset.UtcNow;
         return variant;
+    }
+
+    public void RemoveVariant(Guid variantId)
+    {
+        var variant = _variants.FirstOrDefault(v => v.Id == variantId)
+            ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
+
+        _variants.Remove(variant);
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     public void AddSpecification(string key, string value, int sortOrder = 0)

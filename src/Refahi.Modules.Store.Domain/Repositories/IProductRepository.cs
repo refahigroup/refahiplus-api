@@ -1,4 +1,5 @@
 using Refahi.Modules.Store.Domain.Aggregates;
+using Refahi.Modules.Store.Domain.Entities;
 
 namespace Refahi.Modules.Store.Domain.Repositories;
 
@@ -22,5 +23,8 @@ public interface IProductRepository
     Task<List<Product>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
     Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default);
     Task AddAsync(Product product, CancellationToken ct = default);
+    Task AddVariantAttributeAsync(Product product, VariantAttribute attribute, CancellationToken ct = default);
+    Task AddVariantAttributeValueAsync(Product product, VariantAttributeValue value, CancellationToken ct = default);
+    Task AddProductVariantAsync(Product product, ProductVariant variant, CancellationToken ct = default);
     Task UpdateAsync(Product product, CancellationToken ct = default);
 }

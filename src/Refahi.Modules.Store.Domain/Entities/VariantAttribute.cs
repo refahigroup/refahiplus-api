@@ -1,3 +1,5 @@
+using Refahi.Modules.Store.Domain.Exceptions;
+
 namespace Refahi.Modules.Store.Domain.Entities;
 
 public sealed class VariantAttribute
@@ -26,5 +28,13 @@ public sealed class VariantAttribute
         var v = VariantAttributeValue.Create(Id, value, sortOrder);
         _values.Add(v);
         return v;
+    }
+
+    internal void RemoveValue(Guid valueId)
+    {
+        var value = _values.FirstOrDefault(v => v.Id == valueId)
+            ?? throw new StoreDomainException("مقدار ویژگی تنوع یافت نشد", "VARIANT_ATTRIBUTE_VALUE_NOT_FOUND");
+
+        _values.Remove(value);
     }
 }

@@ -47,6 +47,18 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
             .Select(i => new ProductImageDto(i.Id, _pathService.MakeAbsoluteMediaUrl(i.ImageUrl), i.IsMain, i.SortOrder))
             .ToList();
 
+        var variantAttributes = product.VariantAttributes
+            .OrderBy(a => a.SortOrder)
+            .Select(a => new VariantAttributeDto(
+                a.Id,
+                a.Name,
+                a.SortOrder,
+                a.Values
+                    .OrderBy(v => v.SortOrder)
+                    .Select(v => new VariantAttributeValueDto(v.Id, v.Value, v.SortOrder))
+                    .ToList()))
+            .ToList();
+
         var variants = product.Variants
             .Select(v => new ProductVariantDto(
                 v.Id, v.SKU,
@@ -91,7 +103,7 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
             ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
             ap?.CategoryId, null,
             product.IsAvailable, product.StockCount,
-            images, variants, specifications, sessions,
+            images, variants, variantAttributes, specifications, sessions,
             averageRating, reviewTotal,
             product.CreatedAt);
     }

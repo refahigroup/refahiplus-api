@@ -18,12 +18,9 @@ public class AddVariantAttributeValueCommandHandler : IRequestHandler<AddVariant
         var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        product.AddVariantAttributeValue(request.AttributeId, request.Value, request.SortOrder);
+        var added = product.AddVariantAttributeValue(request.AttributeId, request.Value, request.SortOrder);
 
-        await _productRepo.UpdateAsync(product, cancellationToken);
-
-        var attr = product.VariantAttributes.First(a => a.Id == request.AttributeId);
-        var added = attr.Values.Last(v => v.Value == request.Value);
+        await _productRepo.AddVariantAttributeValueAsync(product, added, cancellationToken);
 
         return new AddVariantAttributeValueResponse(added.Id, added.Value);
     }

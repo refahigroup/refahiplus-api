@@ -8,6 +8,7 @@ public sealed record ProductDetailDto(
     bool IsAvailable, int StockCount,
     List<ProductImageDto> Images,
     List<ProductVariantDto> Variants,
+    List<VariantAttributeDto> VariantAttributes,
     List<ProductSpecificationDto> Specifications,
     List<ProductSessionDto>? Sessions,
     double AverageRating, int ReviewCount,
