@@ -1,6 +1,7 @@
 using MediatR;
 using Refahi.Modules.Store.Application.Contracts.Commands.Cart;
 using Refahi.Modules.Store.Application.Services;
+using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
@@ -12,15 +13,18 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
 {
     private readonly ICartRepository _cartRepo;
     private readonly IProductRepository _productRepo;
+    private readonly IStoreProductPriceResolver _priceResolver;
     private readonly IMediator _mediator;
 
     public UpdateCartItemCommandHandler(
         ICartRepository cartRepo,
         IProductRepository productRepo,
+        IStoreProductPriceResolver priceResolver,
         IMediator mediator)
     {
         _cartRepo = cartRepo;
         _productRepo = productRepo;
+        _priceResolver = priceResolver;
         _mediator = mediator;
     }
 
@@ -32,16 +36,17 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
         var item = cart.Items.FirstOrDefault(i => i.Id == request.CartItemId)
             ?? throw new StoreDomainException("آیتم سبد خرید یافت نشد", "CART_ITEM_NOT_FOUND");
 
-        await ValidateRequestedQuantityAsync(item, request.Quantity, cancellationToken);
+        var (product, salesModel) = await ValidateRequestedQuantityAsync(item, request.Quantity, cancellationToken);
+        var unitPrice = await ResolveUnitPriceAsync(item, product, salesModel, cancellationToken);
 
-        cart.UpdateItemQuantity(request.CartItemId, request.Quantity);
+        cart.UpdateItemQuantityAndPrice(request.CartItemId, request.Quantity, unitPrice);
 
         await _cartRepo.UpdateAsync(cart, cancellationToken);
 
         return new UpdateCartItemResponse(item.Id, request.Quantity);
     }
 
-    private async Task ValidateRequestedQuantityAsync(
+    private async Task<(Product Product, SalesModel SalesModel)> ValidateRequestedQuantityAsync(
         Refahi.Modules.Store.Domain.Entities.CartItem item,
         int quantity,
         CancellationToken cancellationToken)
@@ -73,7 +78,7 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
                 throw new StoreDomainException("موجودی کافی نیست", "INSUFFICIENT_STOCK");
             }
 
-            return;
+            return (product, salesModel);
         }
 
         if (item.SessionId.HasValue)
@@ -84,7 +89,7 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
             if (!session.IsAvailable || session.RemainingCapacity < quantity)
                 throw new StoreDomainException("ظرفیت کافی نیست", "INSUFFICIENT_CAPACITY");
 
-            return;
+            return (product, salesModel);
         }
 
         if (!item.VariantId.HasValue)
@@ -101,5 +106,30 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
             _mediator,
             excludeOrderId: null,
             cancellationToken);
+
+        return (product, salesModel);
+    }
+
+    private async Task<long> ResolveUnitPriceAsync(
+        Refahi.Modules.Store.Domain.Entities.CartItem item,
+        Product product,
+        SalesModel salesModel,
+        CancellationToken cancellationToken)
+    {
+        var priceVariantId = salesModel == SalesModel.SessionBased && item.SessionId.HasValue
+            ? null
+            : item.VariantId;
+        var resolvedPrice = await _priceResolver.ResolveAsync(item.ShopId, product, priceVariantId, cancellationToken);
+        var unitPrice = resolvedPrice.UnitPriceMinor;
+
+        if (salesModel == SalesModel.SessionBased && item.SessionId.HasValue)
+        {
+            var session = product.Sessions.FirstOrDefault(s => s.Id == item.SessionId.Value)
+                ?? throw new StoreDomainException("سانس یافت نشد", "SESSION_NOT_FOUND");
+
+            unitPrice += session.PriceAdjustment;
+        }
+
+        return unitPrice;
     }
 }

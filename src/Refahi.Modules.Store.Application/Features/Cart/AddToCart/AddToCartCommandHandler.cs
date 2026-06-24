@@ -14,21 +14,21 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
 {
     private readonly ICartRepository _cartRepo;
     private readonly IProductRepository _productRepo;
-    private readonly IShopProductRepository _shopProductRepo;
     private readonly IProductSessionRepository _sessionRepo;
+    private readonly IStoreProductPriceResolver _priceResolver;
     private readonly IMediator _mediator;
 
     public AddToCartCommandHandler(
         ICartRepository cartRepo,
         IProductRepository productRepo,
-        IShopProductRepository shopProductRepo,
         IProductSessionRepository sessionRepo,
+        IStoreProductPriceResolver priceResolver,
         IMediator mediator)
     {
         _cartRepo = cartRepo;
         _productRepo = productRepo;
-        _shopProductRepo = shopProductRepo;
         _sessionRepo = sessionRepo;
+        _priceResolver = priceResolver;
         _mediator = mediator;
     }
 
@@ -40,17 +40,16 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
         if (product.IsDeleted)
             throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        // Validate product is linked to this shop and currently active
-        var shopProduct = await _shopProductRepo.GetAsync(request.ShopId, request.ProductId, cancellationToken);
-        if (shopProduct is null || !shopProduct.IsActive)
-            throw new StoreDomainException("این محصول در فروشگاه مورد نظر موجود نیست", "PRODUCT_NOT_IN_SHOP");
-
         // Get sales model from AgreementProduct; price comes from ShopProduct
         var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
             ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
 
-        long unitPrice = shopProduct.DiscountedPrice > 0 ? shopProduct.DiscountedPrice : shopProduct.Price;
         var salesModel = (SalesModel)ap.SalesModel;
+        var priceVariantId = salesModel == SalesModel.SessionBased && request.SessionId.HasValue
+            ? null
+            : request.VariantId;
+        var resolvedPrice = await _priceResolver.ResolveAsync(request.ShopId, product, priceVariantId, cancellationToken);
+        long unitPrice = resolvedPrice.UnitPriceMinor;
         var normalizedUsageDate = request.UsageDate;
 
         if (salesModel == SalesModel.StockBased)
@@ -68,8 +67,6 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
                 if (!variant.HasLegacyStockAvailable(request.Quantity))
                     throw new StoreDomainException("موجودی کافی نیست", "INSUFFICIENT_STOCK");
 
-                // Use variant price if set, otherwise use agreement product price
-                unitPrice = variant.DiscountedPriceMinor ?? variant.PriceMinor;
             }
             else
             {
@@ -108,7 +105,6 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
                     excludeOrderId: null,
                     cancellationToken);
 
-                unitPrice = variant.EffectivePriceMinor;
             }
             else
             {

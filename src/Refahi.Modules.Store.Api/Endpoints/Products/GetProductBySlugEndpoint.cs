@@ -18,6 +18,8 @@ public class GetProductBySlugEndpoint : IEndpoint
         routes.MapGet("/{moduleSlug}/products/{slug}", async (
             string moduleSlug,
             string slug,
+            string? shopSlug,
+            Guid? shopId,
             IModuleResolver moduleResolver,
             IMediator mediator,
             CancellationToken ct) =>
@@ -26,7 +28,7 @@ public class GetProductBySlugEndpoint : IEndpoint
             if (moduleId is null)
                 return Results.NotFound();
 
-            var result = await mediator.Send(new GetProductBySlugQuery(slug), ct);
+            var result = await mediator.Send(new GetProductBySlugQuery(slug, shopSlug, shopId), ct);
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponseHelper.Success(result));

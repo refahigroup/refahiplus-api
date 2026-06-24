@@ -15,7 +15,13 @@ public sealed record ProductVariantDto(
     int? Capacity,
     bool RequiresUsageDate,
     bool IsAvailable,
-    List<VariantCombinationDto> Combinations);
+    List<VariantCombinationDto> Combinations,
+    Guid? ShopProductVariantId = null,
+    long? ShopPriceMinor = null,
+    long? ShopDiscountedPriceMinor = null,
+    string? PriceSource = null,
+    bool IsActiveInShop = true,
+    bool UsesShopSpecificPrice = false);
 
 public sealed record VariantCombinationDto(
     Guid AttributeId,

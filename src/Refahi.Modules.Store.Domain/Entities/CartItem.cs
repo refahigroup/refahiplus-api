@@ -38,4 +38,12 @@ public sealed class CartItem
             throw new StoreDomainException("تعداد باید بیشتر از صفر باشد", "INVALID_QUANTITY");
         Quantity = newQuantity;
     }
+
+    internal void UpdateUnitPrice(long unitPriceMinor)
+    {
+        if (unitPriceMinor <= 0)
+            throw new StoreDomainException("قیمت واحد باید بیشتر از صفر باشد", "INVALID_PRICE");
+
+        UnitPriceMinor = unitPriceMinor;
+    }
 }

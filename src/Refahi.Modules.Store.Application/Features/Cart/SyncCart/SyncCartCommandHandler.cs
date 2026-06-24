@@ -16,23 +16,23 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
 {
     private readonly ICartRepository _cartRepo;
     private readonly IProductRepository _productRepo;
-    private readonly IShopProductRepository _shopProductRepo;
     private readonly IProductSessionRepository _sessionRepo;
+    private readonly IStoreProductPriceResolver _priceResolver;
     private readonly IMediator _mediator;
     private readonly IMemoryCache _cache;
 
     public SyncCartCommandHandler(
         ICartRepository cartRepo,
         IProductRepository productRepo,
-        IShopProductRepository shopProductRepo,
         IProductSessionRepository sessionRepo,
+        IStoreProductPriceResolver priceResolver,
         IMediator mediator,
         IMemoryCache cache)
     {
         _cartRepo = cartRepo;
         _productRepo = productRepo;
-        _shopProductRepo = shopProductRepo;
         _sessionRepo = sessionRepo;
+        _priceResolver = priceResolver;
         _mediator = mediator;
         _cache = cache;
     }
@@ -80,17 +80,7 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
                 continue;
             }
 
-            // 4c. Validate shop-product link
-            var shopProduct = await _shopProductRepo.GetAsync(item.ShopId, item.ProductId, cancellationToken);
-            if (shopProduct is null || !shopProduct.IsActive)
-            {
-                warnings.Add(new CartSyncWarning(
-                    "PRODUCT_DELETED", "این محصول در فروشگاه مورد نظر موجود نیست",
-                    item.ProductId, item.VariantId, item.SessionId));
-                continue;
-            }
-
-            // 4d. Resolve agreement product for sales model
+            // 4c. Resolve agreement product for sales model
             var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
             if (ap is null)
             {
@@ -100,8 +90,39 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
                 continue;
             }
 
-            long authoritativePrice = shopProduct.DiscountedPrice > 0 ? shopProduct.DiscountedPrice : shopProduct.Price;
+            // 4d. Resolve authoritative shop/product price
             var salesModel = (SalesModel)ap.SalesModel;
+            var priceVariantId = salesModel == SalesModel.SessionBased && item.SessionId.HasValue
+                ? null
+                : item.VariantId;
+            StoreResolvedPrice resolvedPrice;
+            try
+            {
+                resolvedPrice = await _priceResolver.ResolveAsync(item.ShopId, product, priceVariantId, cancellationToken);
+            }
+            catch (StoreDomainException ex) when (ex.ErrorCode == "SHOP_PRODUCT_VARIANT_INACTIVE")
+            {
+                warnings.Add(new CartSyncWarning(
+                    "VARIANT_REMOVED", ex.Message,
+                    item.ProductId, item.VariantId, item.SessionId));
+                continue;
+            }
+            catch (StoreDomainException ex) when (ex.ErrorCode is "PRODUCT_NOT_IN_SHOP" or "INVALID_PRICE" or "INVALID_DISCOUNTED_PRICE")
+            {
+                warnings.Add(new CartSyncWarning(
+                    "PRODUCT_DELETED", ex.Message,
+                    item.ProductId, item.VariantId, item.SessionId));
+                continue;
+            }
+            catch (StoreDomainException ex) when (ex.ErrorCode == "VARIANT_NOT_FOUND")
+            {
+                warnings.Add(new CartSyncWarning(
+                    "VARIANT_REMOVED", ex.Message,
+                    item.ProductId, item.VariantId, item.SessionId));
+                continue;
+            }
+
+            long authoritativePrice = resolvedPrice.UnitPriceMinor;
             int allowedQuantity = item.Quantity;
             DateOnly? normalizedUsageDate = null;
 
@@ -117,8 +138,6 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
                             item.ProductId, item.VariantId, item.SessionId));
                         continue;
                     }
-
-                    authoritativePrice = variant.DiscountedPriceMinor ?? variant.PriceMinor;
 
                     if (variant.StockCount <= 0)
                     {
@@ -220,7 +239,6 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
                         continue;
                     }
 
-                    authoritativePrice = variant.EffectivePriceMinor;
                 }
                 else
                 {

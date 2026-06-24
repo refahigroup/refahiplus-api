@@ -48,6 +48,7 @@ public sealed class Cart
         if (existing is not null)
         {
             existing.UpdateQuantity(existing.Quantity + quantity);
+            existing.UpdateUnitPrice(unitPriceMinor);
         }
         else
         {
@@ -62,6 +63,15 @@ public sealed class Cart
         var item = _items.FirstOrDefault(i => i.Id == itemId)
             ?? throw new StoreDomainException("آیتم سبد خرید یافت نشد", "CART_ITEM_NOT_FOUND");
         item.UpdateQuantity(newQuantity);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UpdateItemQuantityAndPrice(Guid itemId, int newQuantity, long unitPriceMinor)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new StoreDomainException("آیتم سبد خرید یافت نشد", "CART_ITEM_NOT_FOUND");
+        item.UpdateQuantity(newQuantity);
+        item.UpdateUnitPrice(unitPriceMinor);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

@@ -16,6 +16,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
     private readonly IProductSessionRepository _sessionRepo;
     private readonly IShopRepository _shopRepo;
     private readonly IShopProductRepository _shopProductRepo;
+    private readonly IStoreProductPriceResolver _priceResolver;
     private readonly IMediator _mediator;
 
     public GetCartQueryHandler(
@@ -24,6 +25,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
         IProductSessionRepository sessionRepo,
         IShopRepository shopRepo,
         IShopProductRepository shopProductRepo,
+        IStoreProductPriceResolver priceResolver,
         IMediator mediator)
     {
         _cartRepo = cartRepo;
@@ -31,6 +33,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
         _sessionRepo = sessionRepo;
         _shopRepo = shopRepo;
         _shopProductRepo = shopProductRepo;
+        _priceResolver = priceResolver;
         _mediator = mediator;
     }
 
@@ -94,6 +97,25 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
             // محاسبه‌ی OriginalUnitPriceMinor
             long originalUnitPrice = item.UnitPriceMinor;
+            long? currentUnitPrice = null;
+            Guid? shopProductVariantId = null;
+            string? priceSource = null;
+
+            try
+            {
+                var priceVariantId = salesModel == SalesModel.SessionBased && item.SessionId.HasValue
+                    ? null
+                    : item.VariantId;
+                var resolvedPrice = await _priceResolver.ResolveAsync(item.ShopId, product, priceVariantId, cancellationToken);
+                originalUnitPrice = resolvedPrice.OriginalPriceMinor;
+                currentUnitPrice = resolvedPrice.UnitPriceMinor;
+                shopProductVariantId = resolvedPrice.ShopProductVariantId;
+                priceSource = resolvedPrice.Source.ToString();
+            }
+            catch (StoreDomainException)
+            {
+                isAvailable = false;
+            }
 
             if (item.VariantId.HasValue)
             {
@@ -125,14 +147,15 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                         isAvailable = false;
                     }
 
-                    originalUnitPrice = variant.PriceMinor;
+                    if (!currentUnitPrice.HasValue)
+                        originalUnitPrice = variant.PriceMinor;
                 }
                 else
                 {
                     isAvailable = false;
                 }
             }
-            else
+            else if (!currentUnitPrice.HasValue)
             {
                 // بدون variant — قیمت اصلی از ShopProduct
                 var shopProduct = await _shopProductRepo.GetAsync(item.ShopId, item.ProductId, cancellationToken);
@@ -153,12 +176,19 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                     isAvailable = !isUnsupportedSessionVariant &&
                                   session.IsAvailable &&
                                   session.RemainingCapacity >= item.Quantity;
+                    if (currentUnitPrice.HasValue)
+                    {
+                        currentUnitPrice += session.PriceAdjustment;
+                        originalUnitPrice += session.PriceAdjustment;
+                    }
                 }
                 else
                 {
                     isAvailable = false;
                 }
             }
+
+            var hasPriceChanged = currentUnitPrice.HasValue && currentUnitPrice.Value != item.UnitPriceMinor;
 
             // محاسبه DiscountPercent
             int discountPercent = 0;
@@ -190,7 +220,11 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 OriginalUnitPriceMinor: originalUnitPrice,
                 DiscountPercent: discountPercent,
                 TotalPriceMinor: item.UnitPriceMinor * item.Quantity,
-                IsAvailable: isAvailable));
+                IsAvailable: isAvailable,
+                CurrentUnitPriceMinor: currentUnitPrice,
+                HasPriceChanged: hasPriceChanged,
+                ShopProductVariantId: shopProductVariantId,
+                PriceSource: priceSource));
         }
 
         var totalMinor = itemDtos.Sum(i => i.TotalPriceMinor);

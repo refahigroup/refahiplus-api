@@ -17,7 +17,8 @@ public static class DI
             .AddValidatorsFromAssembly(assembly)
             .AddScoped<IModuleResolver, ModuleResolver>()
             .AddScoped<IStoreModuleCatalogService, StoreModuleCatalogService>()
-            .AddScoped<IDeliveryService, DeliveryService>();
+            .AddScoped<IDeliveryService, DeliveryService>()
+            .AddScoped<IStoreProductPriceResolver, StoreProductPriceResolver>();
 
         return services;
     }

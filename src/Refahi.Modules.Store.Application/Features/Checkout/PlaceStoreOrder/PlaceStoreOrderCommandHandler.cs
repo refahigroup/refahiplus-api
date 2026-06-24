@@ -19,6 +19,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
     private readonly IProductRepository _productRepo;
     private readonly IShopRepository _shopRepo;
     private readonly IProductSessionRepository _sessionRepo;
+    private readonly IStoreProductPriceResolver _priceResolver;
     private readonly IDeliveryService _deliveryService;
     private readonly IMediator _mediator;
 
@@ -27,6 +28,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         IProductRepository productRepo,
         IShopRepository shopRepo,
         IProductSessionRepository sessionRepo,
+        IStoreProductPriceResolver priceResolver,
         IDeliveryService deliveryService,
         IMediator mediator)
     {
@@ -34,6 +36,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         _productRepo = productRepo;
         _shopRepo = shopRepo;
         _sessionRepo = sessionRepo;
+        _priceResolver = priceResolver;
         _deliveryService = deliveryService;
         _mediator = mediator;
     }
@@ -87,6 +90,16 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 categoryCode = category?.CategoryCode;
             }
 
+            var priceVariantId = salesModel == SalesModel.SessionBased && cartItem.SessionId.HasValue
+                ? null
+                : cartItem.VariantId;
+            var resolvedPrice = await _priceResolver.ResolveAsync(
+                cartItem.ShopId,
+                product,
+                priceVariantId,
+                cancellationToken);
+            long authoritativeUnitPrice = resolvedPrice.UnitPriceMinor;
+
             // Build metadata from AgreementProduct
             string itemTitle;
             string metadataJson;
@@ -132,7 +145,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                     product_type = ap?.ProductType.ToString(),
                     sales_model = salesModel.ToString(),
                     delivery_type = ap?.DeliveryType.ToString(),
-                    variant_id = cartItem.VariantId?.ToString()
+                    variant_id = cartItem.VariantId?.ToString(),
+                    shop_product_variant_id = resolvedPrice.ShopProductVariantId?.ToString(),
+                    price_source = resolvedPrice.Source.ToString()
                 });
             }
             else // SessionBased
@@ -144,6 +159,8 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
                     if (!session.IsAvailable || session.RemainingCapacity < cartItem.Quantity)
                         throw new StoreDomainException($"ظرفیت کافی برای سانس '{product.Title}' وجود ندارد", "INSUFFICIENT_CAPACITY");
+
+                    authoritativeUnitPrice += session.PriceAdjustment;
 
                     var sessionTitlePart = !string.IsNullOrWhiteSpace(session.Title) ? $" {session.Title}" : string.Empty;
                     itemTitle = $"{product.Title}{sessionTitlePart} {session.Date:yyyy-MM-dd} - {shopForTitle?.Name ?? string.Empty}";
@@ -157,7 +174,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                         session_id = cartItem.SessionId.Value.ToString(),
                         date = session.Date.ToString("yyyy-MM-dd"),
                         start_time = session.StartTime.ToString("HH:mm"),
-                        end_time = session.EndTime.ToString("HH:mm")
+                        end_time = session.EndTime.ToString("HH:mm"),
+                        shop_product_variant_id = resolvedPrice.ShopProductVariantId?.ToString(),
+                        price_source = resolvedPrice.Source.ToString()
                     });
                 }
                 else if (cartItem.VariantId.HasValue)
@@ -195,7 +214,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                         usage_date = normalizedUsageDate?.ToString("yyyy-MM-dd"),
                         capacity_type = variant.CapacityType.ToString(),
                         from_date = variant.FromDate?.ToString("yyyy-MM-dd"),
-                        to_date = variant.ToDate?.ToString("yyyy-MM-dd")
+                        to_date = variant.ToDate?.ToString("yyyy-MM-dd"),
+                        shop_product_variant_id = resolvedPrice.ShopProductVariantId?.ToString(),
+                        price_source = resolvedPrice.Source.ToString()
                     });
                 }
                 else
@@ -203,6 +224,11 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                     throw new StoreDomainException("برای محصولات سانسی، انتخاب سانس یا خدمت الزامی است", "SESSION_REQUIRED");
                 }
             }
+
+            if (authoritativeUnitPrice != cartItem.UnitPriceMinor)
+                throw new StoreDomainException(
+                    "قیمت برخی آیتم‌های سبد خرید تغییر کرده است. لطفاً سبد خرید را به‌روزرسانی و دوباره تلاش کنید.",
+                    "CART_PRICE_CHANGED");
 
             // روش ارسال این آیتم
             short deliveryMethod = 0;
@@ -216,7 +242,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
             orderItems.Add(new CreateOrderItemInput(
                 Title: itemTitle,
-                UnitPriceMinor: cartItem.UnitPriceMinor,
+                UnitPriceMinor: authoritativeUnitPrice,
                 Quantity: cartItem.Quantity,
                 DiscountAmountMinor: 0,
                 SourceItemId: cartItem.ProductId,

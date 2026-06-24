@@ -25,4 +25,8 @@ public sealed record CartItemDto(
     long OriginalUnitPriceMinor,      // قیمت اصلی واحد (پیش از تخفیف) — اگر تخفیف ندارد = UnitPriceMinor
     int DiscountPercent,              // درصد تخفیف (0 اگر بدون تخفیف)
     long TotalPriceMinor,             // UnitPriceMinor × Quantity
-    bool IsAvailable);
+    bool IsAvailable,
+    long? CurrentUnitPriceMinor = null,
+    bool HasPriceChanged = false,
+    Guid? ShopProductVariantId = null,
+    string? PriceSource = null);
