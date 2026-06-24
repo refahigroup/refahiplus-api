@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Commands.ShopProducts;
+using Refahi.Modules.Store.Application.Contracts.Dtos.ShopProducts;
 using Refahi.Modules.Store.Application.Contracts.Queries.ShopProducts;
 using Refahi.Shared.Presentation;
 
@@ -171,6 +172,150 @@ public class UpdateShopProductEndpoint : IEndpoint
     }
 }
 
+public class ListShopProductVariantsEndpoint : IEndpoint
+{
+    public void Map(object app)
+    {
+        if (app is not IEndpointRouteBuilder routes) return;
+
+        routes.MapGet("/admin/shops/{shopId:guid}/products/{productId:guid}/variants", async (
+            Guid shopId,
+            Guid productId,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            var result = await mediator.Send(new ListShopProductVariantsQuery(shopId, productId), ct);
+            return Results.Ok(ApiResponseHelper.Success(result));
+        })
+        .WithName("Store.Admin.ListShopProductVariants")
+        .WithTags("Store.ShopProducts")
+        .RequireAuthorization("AdminOnly")
+        .Produces<ApiResponse<IReadOnlyList<ShopProductVariantDto>>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound);
+    }
+}
+
+public class UpsertShopProductVariantEndpoint : IEndpoint
+{
+    public void Map(object app)
+    {
+        if (app is not IEndpointRouteBuilder routes) return;
+
+        routes.MapPut("/admin/shops/{shopId:guid}/products/{productId:guid}/variants/{variantId:guid}", async (
+            Guid shopId,
+            Guid productId,
+            Guid variantId,
+            UpsertShopProductVariantRequest request,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            var command = new UpsertShopProductVariantCommand(
+                shopId,
+                productId,
+                variantId,
+                request.PriceMinor,
+                request.DiscountedPriceMinor,
+                request.IsActive);
+
+            var result = await mediator.Send(command, ct);
+            return Results.Ok(ApiResponseHelper.Success(result));
+        })
+        .WithName("Store.Admin.UpsertShopProductVariant")
+        .WithTags("Store.ShopProducts")
+        .RequireAuthorization("AdminOnly")
+        .Produces<ApiResponse<ShopProductVariantDto>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound);
+    }
+}
+
+public class EnableShopProductVariantEndpoint : IEndpoint
+{
+    public void Map(object app)
+    {
+        if (app is not IEndpointRouteBuilder routes) return;
+
+        routes.MapPatch("/admin/shops/{shopId:guid}/products/{productId:guid}/variants/{variantId:guid}/enable", async (
+            Guid shopId,
+            Guid productId,
+            Guid variantId,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            await mediator.Send(new EnableShopProductVariantCommand(shopId, productId, variantId), ct);
+            return Results.Ok(ApiResponseHelper.Success<object?>(null));
+        })
+        .WithName("Store.Admin.EnableShopProductVariant")
+        .WithTags("Store.ShopProducts")
+        .RequireAuthorization("AdminOnly")
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound);
+    }
+}
+
+public class DisableShopProductVariantEndpoint : IEndpoint
+{
+    public void Map(object app)
+    {
+        if (app is not IEndpointRouteBuilder routes) return;
+
+        routes.MapPatch("/admin/shops/{shopId:guid}/products/{productId:guid}/variants/{variantId:guid}/disable", async (
+            Guid shopId,
+            Guid productId,
+            Guid variantId,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            await mediator.Send(new DisableShopProductVariantCommand(shopId, productId, variantId), ct);
+            return Results.Ok(ApiResponseHelper.Success<object?>(null));
+        })
+        .WithName("Store.Admin.DisableShopProductVariant")
+        .WithTags("Store.ShopProducts")
+        .RequireAuthorization("AdminOnly")
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound);
+    }
+}
+
+public class RemoveShopProductVariantEndpoint : IEndpoint
+{
+    public void Map(object app)
+    {
+        if (app is not IEndpointRouteBuilder routes) return;
+
+        routes.MapDelete("/admin/shops/{shopId:guid}/products/{productId:guid}/variants/{variantId:guid}", async (
+            Guid shopId,
+            Guid productId,
+            Guid variantId,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            await mediator.Send(new RemoveShopProductVariantCommand(shopId, productId, variantId), ct);
+            return Results.NoContent();
+        })
+        .WithName("Store.Admin.RemoveShopProductVariant")
+        .WithTags("Store.ShopProducts")
+        .RequireAuthorization("AdminOnly")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound);
+    }
+}
+
 public sealed record AddProductToShopRequest(Guid ProductId, long Price, long DiscountedPrice, string? Description);
 
 public sealed record UpdateShopProductRequest(long Price, long DiscountedPrice, string? Description);
+
+public sealed record UpsertShopProductVariantRequest(
+    long PriceMinor,
+    long? DiscountedPriceMinor,
+    bool IsActive);

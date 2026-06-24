@@ -30,5 +30,11 @@ public class ShopProductConfiguration : IEntityTypeConfiguration<ShopProduct>
         builder.HasIndex(sp => sp.ProductId);
         builder.HasIndex(sp => sp.ShopId);
         builder.HasIndex(sp => sp.IsDeleted);
+
+        builder.HasMany(sp => sp.VariantOfferings)
+            .WithOne()
+            .HasForeignKey(v => v.ShopProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(sp => sp.VariantOfferings).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

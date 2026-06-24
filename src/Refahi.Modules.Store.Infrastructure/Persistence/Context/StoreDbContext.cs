@@ -13,6 +13,7 @@ public class StoreDbContext : DbContext
     public DbSet<Shop> Shops => Set<Shop>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ShopProduct> ShopProducts => Set<ShopProduct>();
+    public DbSet<ShopProductVariant> ShopProductVariants => Set<ShopProductVariant>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<VariantAttribute> VariantAttributes => Set<VariantAttribute>();
@@ -48,5 +49,6 @@ public class StoreDbContext : DbContext
         modelBuilder.ApplyConfiguration(new CartConfiguration());
         modelBuilder.ApplyConfiguration(new CartItemConfiguration());
         modelBuilder.ApplyConfiguration(new ShopProductConfiguration());
+        modelBuilder.ApplyConfiguration(new ShopProductVariantConfiguration());
     }
 }

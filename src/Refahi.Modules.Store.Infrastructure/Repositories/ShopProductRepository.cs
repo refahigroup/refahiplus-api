@@ -15,6 +15,11 @@ public class ShopProductRepository : IShopProductRepository
         => _db.ShopProducts
             .FirstOrDefaultAsync(sp => sp.ShopId == shopId && sp.ProductId == productId && !sp.IsDeleted, ct);
 
+    public Task<ShopProduct?> GetWithVariantOfferingsAsync(Guid shopId, Guid productId, CancellationToken ct = default)
+        => _db.ShopProducts
+            .Include(sp => sp.VariantOfferings)
+            .FirstOrDefaultAsync(sp => sp.ShopId == shopId && sp.ProductId == productId && !sp.IsDeleted, ct);
+
     public async Task<(List<ShopProduct> Items, int Total)> GetByShopAsync(
         Guid shopId, bool? isActive, int page, int pageSize, CancellationToken ct = default)
     {
@@ -137,7 +142,9 @@ public class ShopProductRepository : IShopProductRepository
 
     public async Task UpdateAsync(ShopProduct shopProduct, CancellationToken ct = default)
     {
-        _db.ShopProducts.Update(shopProduct);
+        if (_db.Entry(shopProduct).State == EntityState.Detached)
+            _db.ShopProducts.Update(shopProduct);
+
         await _db.SaveChangesAsync(ct);
     }
 }

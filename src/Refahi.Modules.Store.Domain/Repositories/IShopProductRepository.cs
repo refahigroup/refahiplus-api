@@ -5,6 +5,7 @@ namespace Refahi.Modules.Store.Domain.Repositories;
 public interface IShopProductRepository
 {
     Task<ShopProduct?> GetAsync(Guid shopId, Guid productId, CancellationToken ct = default);
+    Task<ShopProduct?> GetWithVariantOfferingsAsync(Guid shopId, Guid productId, CancellationToken ct = default);
     Task<(List<ShopProduct> Items, int Total)> GetByShopAsync(
         Guid shopId, bool? isActive, int page, int pageSize, CancellationToken ct = default);
     Task<(List<ShopProduct> Items, int Total)> GetByProductAsync(
