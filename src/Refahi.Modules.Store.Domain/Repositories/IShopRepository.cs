@@ -15,6 +15,7 @@ public interface IShopRepository
     /// <summary>Returns a paginated subset of active shops whose IDs are in <paramref name="ids"/>.</summary>
     Task<(List<Shop> Items, int Total)> GetPagedByIdsAsync(
         IEnumerable<Guid> ids, int page, int size, CancellationToken ct = default);
+    Task<List<Shop>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
     Task AddAsync(Shop shop, CancellationToken ct = default);
     Task UpdateAsync(Shop shop, CancellationToken ct = default);
 }

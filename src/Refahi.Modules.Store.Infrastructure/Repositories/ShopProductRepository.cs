@@ -56,6 +56,27 @@ public class ShopProductRepository : IShopProductRepository
         return (items, total);
     }
 
+    public async Task<IReadOnlyList<ShopProduct>> ListForVariantBackfillAsync(
+        Guid? shopId = null,
+        Guid? productId = null,
+        CancellationToken ct = default)
+    {
+        var q = _db.ShopProducts
+            .Include(sp => sp.VariantOfferings)
+            .Where(sp => !sp.IsDeleted);
+
+        if (shopId.HasValue)
+            q = q.Where(sp => sp.ShopId == shopId.Value);
+
+        if (productId.HasValue)
+            q = q.Where(sp => sp.ProductId == productId.Value);
+
+        return await q
+            .OrderBy(sp => sp.ShopId)
+            .ThenBy(sp => sp.ProductId)
+            .ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Guid>> GetActiveShopIdsByAgreementProductIdsAsync(
         IEnumerable<Guid> agreementProductIds, CancellationToken ct = default)
     {

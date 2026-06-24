@@ -69,6 +69,16 @@ public class ShopRepository : IShopRepository
         return (items, total);
     }
 
+    public async Task<List<Shop>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
+    {
+        if (ids.Count == 0)
+            return [];
+
+        return await _db.Shops
+            .Where(s => ids.Contains(s.Id))
+            .ToListAsync(ct);
+    }
+
     public async Task AddAsync(Shop shop, CancellationToken ct = default)
     {
         await _db.Shops.AddAsync(shop, ct);

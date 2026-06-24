@@ -311,6 +311,66 @@ public class RemoveShopProductVariantEndpoint : IEndpoint
     }
 }
 
+public class GetShopProductVariantBackfillAuditEndpoint : IEndpoint
+{
+    public void Map(object app)
+    {
+        if (app is not IEndpointRouteBuilder routes) return;
+
+        routes.MapGet("/admin/shop-product-variants/backfill/audit", async (
+            Guid? shopId,
+            Guid? productId,
+            int? detailLimit,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            var query = new GetShopProductVariantBackfillAuditQuery(
+                shopId,
+                productId,
+                detailLimit.GetValueOrDefault(100));
+
+            var result = await mediator.Send(query, ct);
+            return Results.Ok(ApiResponseHelper.Success(result));
+        })
+        .WithName("Store.Admin.GetShopProductVariantBackfillAudit")
+        .WithTags("Store.ShopProductVariants.Backfill")
+        .RequireAuthorization("AdminOnly")
+        .Produces<ApiResponse<ShopProductVariantBackfillAuditDto>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+    }
+}
+
+public class BackfillShopProductVariantsEndpoint : IEndpoint
+{
+    public void Map(object app)
+    {
+        if (app is not IEndpointRouteBuilder routes) return;
+
+        routes.MapPost("/admin/shop-product-variants/backfill", async (
+            BackfillShopProductVariantsRequest request,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            var command = new BackfillShopProductVariantsCommand(
+                request.ShopId,
+                request.ProductId,
+                request.DryRun ?? true,
+                request.DetailLimit ?? 100);
+
+            var result = await mediator.Send(command, ct);
+            return Results.Ok(ApiResponseHelper.Success(result));
+        })
+        .WithName("Store.Admin.BackfillShopProductVariants")
+        .WithTags("Store.ShopProductVariants.Backfill")
+        .RequireAuthorization("AdminOnly")
+        .Produces<ApiResponse<ShopProductVariantBackfillResultDto>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+    }
+}
+
 public sealed record AddProductToShopRequest(Guid ProductId, long Price, long DiscountedPrice, string? Description);
 
 public sealed record UpdateShopProductRequest(long Price, long DiscountedPrice, string? Description);
@@ -319,3 +379,9 @@ public sealed record UpsertShopProductVariantRequest(
     long PriceMinor,
     long? DiscountedPriceMinor,
     bool IsActive);
+
+public sealed record BackfillShopProductVariantsRequest(
+    Guid? ShopId,
+    Guid? ProductId,
+    bool? DryRun,
+    int? DetailLimit);

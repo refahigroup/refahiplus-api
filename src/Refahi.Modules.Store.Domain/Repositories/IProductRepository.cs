@@ -21,6 +21,8 @@ public interface IProductRepository
         int page, int pageSize, CancellationToken ct = default);
     /// <summary>Batch-fetches products by IDs including Images. Does not filter IsDeleted/IsAvailable.</summary>
     Task<List<Product>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
+    /// <summary>Batch-fetches products by IDs including variants and related variant metadata. Does not filter IsDeleted/IsAvailable.</summary>
+    Task<List<Product>> GetByIdsForAdminWithDetailsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
     Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default);
     Task AddAsync(Product product, CancellationToken ct = default);
     Task AddVariantAttributeAsync(Product product, VariantAttribute attribute, CancellationToken ct = default);

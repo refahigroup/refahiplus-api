@@ -102,6 +102,16 @@ public class ProductRepository : IProductRepository
             .ToListAsync(ct);
     }
 
+    public async Task<List<Product>> GetByIdsForAdminWithDetailsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
+    {
+        if (ids.Count == 0)
+            return [];
+
+        return await QueryWithDetails()
+            .Where(p => ids.Contains(p.Id))
+            .ToListAsync(ct);
+    }
+
     public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default)
         => _db.Products.AnyAsync(p => p.Slug == slug, ct);
 

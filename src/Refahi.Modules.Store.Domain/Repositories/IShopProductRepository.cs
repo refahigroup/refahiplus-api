@@ -10,6 +10,8 @@ public interface IShopProductRepository
         Guid shopId, bool? isActive, int page, int pageSize, CancellationToken ct = default);
     Task<(List<ShopProduct> Items, int Total)> GetByProductAsync(
         Guid productId, bool? isActive, int page, int pageSize, CancellationToken ct = default);
+    Task<IReadOnlyList<ShopProduct>> ListForVariantBackfillAsync(
+        Guid? shopId = null, Guid? productId = null, CancellationToken ct = default);
     /// <summary>Returns distinct ShopIds that have at least one active ShopProduct whose linked Product.AgreementProductId is in <paramref name="agreementProductIds"/>.</summary>
     [Obsolete("Use GetDisplayableShopIdsByAgreementProductIdsAsync which also enforces IsAvailable/IsDeleted on Product.")]
     Task<IReadOnlyList<Guid>> GetActiveShopIdsByAgreementProductIdsAsync(
