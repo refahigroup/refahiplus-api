@@ -345,6 +345,9 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.Property<long>("UnitPriceMinor")
                         .HasColumnType("bigint");
 
+                    b.Property<DateOnly?>("UsageDate")
+                        .HasColumnType("date");
+
                     b.Property<Guid?>("VariantId")
                         .HasColumnType("uuid");
 

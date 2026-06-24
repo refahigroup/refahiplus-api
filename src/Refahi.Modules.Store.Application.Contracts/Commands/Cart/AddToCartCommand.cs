@@ -9,6 +9,7 @@ public sealed record AddToCartCommand(
     Guid ProductId,
     Guid? VariantId,
     Guid? SessionId,
+    DateOnly? UsageDate,
     int Quantity
 ) : IRequest<AddToCartResponse>;
 

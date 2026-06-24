@@ -1,6 +1,8 @@
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Domain.Events;
+using Refahi.Modules.Store.Application.Services;
+using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using System.Text.Json;
@@ -40,6 +42,8 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidE
             var metadata = ReadMetadata(item.MetadataJson);
             var variantId = ReadGuid(metadata, "variant_id");
             var sessionId = ReadGuid(metadata, "session_id");
+            var salesModel = ReadSalesModel(metadata);
+            var usageDate = ReadDateOnly(metadata, "usage_date");
 
             if (sessionId.HasValue)
             {
@@ -49,6 +53,22 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidE
                     session.Sell(item.Quantity);
                     await _sessionRepository.UpdateAsync(session, cancellationToken);
                 }
+
+                continue;
+            }
+
+            if (salesModel == SalesModel.SessionBased)
+            {
+                if (!variantId.HasValue)
+                    throw new StoreDomainException("خرید این خدمت با تنظیمات فعلی امکان‌پذیر نیست.", "INVALID_SESSION_VARIANT");
+
+                await EnsureSessionVariantCapacityAfterPaymentAsync(
+                    item.SourceItemId,
+                    variantId.Value,
+                    usageDate,
+                    item.Quantity,
+                    notification.OrderId,
+                    cancellationToken);
 
                 continue;
             }
@@ -123,5 +143,75 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidE
         }
 
         return Guid.TryParse(value.GetString(), out var id) ? id : null;
+    }
+
+    private async Task EnsureSessionVariantCapacityAfterPaymentAsync(
+        Guid productId,
+        Guid variantId,
+        DateOnly? usageDate,
+        int quantity,
+        Guid currentOrderId,
+        CancellationToken cancellationToken)
+    {
+        var product = await _productRepository.GetByIdAsync(productId, cancellationToken)
+            ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
+
+        var variant = product.Variants.FirstOrDefault(v => v.Id == variantId)
+            ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
+
+        var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(variant, usageDate);
+
+        // TODO: Replace sold-count recheck with atomic reservation/ledger before high-volume capacity sales.
+        await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
+            variant,
+            normalizedUsageDate,
+            quantity,
+            _mediator,
+            excludeOrderId: currentOrderId,
+            cancellationToken);
+    }
+
+    private static SalesModel? ReadSalesModel(JsonElement? metadata)
+    {
+        if (metadata is null ||
+            metadata.Value.ValueKind != JsonValueKind.Object ||
+            !metadata.Value.TryGetProperty("sales_model", out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number &&
+            value.TryGetInt16(out var numericSalesModel) &&
+            Enum.IsDefined(typeof(SalesModel), numericSalesModel))
+        {
+            return (SalesModel)numericSalesModel;
+        }
+
+        if (value.ValueKind != JsonValueKind.String)
+            return null;
+
+        var rawValue = value.GetString();
+        if (short.TryParse(rawValue, out numericSalesModel) &&
+            Enum.IsDefined(typeof(SalesModel), numericSalesModel))
+        {
+            return (SalesModel)numericSalesModel;
+        }
+
+        return Enum.TryParse<SalesModel>(rawValue, ignoreCase: true, out var parsedSalesModel)
+            ? parsedSalesModel
+            : null;
+    }
+
+    private static DateOnly? ReadDateOnly(JsonElement? metadata, string propertyName)
+    {
+        if (metadata is null ||
+            metadata.Value.ValueKind != JsonValueKind.Object ||
+            !metadata.Value.TryGetProperty(propertyName, out var value) ||
+            value.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        return DateOnly.TryParse(value.GetString(), out var date) ? date : null;
     }
 }

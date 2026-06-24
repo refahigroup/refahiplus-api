@@ -1,7 +1,11 @@
 using MediatR;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Cart;
 using Refahi.Modules.Store.Application.Contracts.Queries.Cart;
+using Refahi.Modules.Store.Application.Services;
+using Refahi.Modules.Store.Domain.Enums;
+using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
 
 namespace Refahi.Modules.Store.Application.Features.Cart.GetCart;
 
@@ -12,19 +16,22 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
     private readonly IProductSessionRepository _sessionRepo;
     private readonly IShopRepository _shopRepo;
     private readonly IShopProductRepository _shopProductRepo;
+    private readonly IMediator _mediator;
 
     public GetCartQueryHandler(
         ICartRepository cartRepo,
         IProductRepository productRepo,
         IProductSessionRepository sessionRepo,
         IShopRepository shopRepo,
-        IShopProductRepository shopProductRepo)
+        IShopProductRepository shopProductRepo,
+        IMediator mediator)
     {
         _cartRepo = cartRepo;
         _productRepo = productRepo;
         _sessionRepo = sessionRepo;
         _shopRepo = shopRepo;
         _shopProductRepo = shopProductRepo;
+        _mediator = mediator;
     }
 
     public async Task<CartDto> Handle(GetCartQuery request, CancellationToken cancellationToken)
@@ -38,6 +45,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
         // Cache shop names per ShopId
         var shopNameCache = new Dictionary<Guid, string?>();
+        var salesModelCache = new Dictionary<Guid, SalesModel?>();
 
         foreach (var item in cart.Items)
         {
@@ -63,6 +71,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                     VariantId: item.VariantId,
                     VariantLabel: null,
                     SessionId: item.SessionId,
+                    UsageDate: item.UsageDate,
                     SessionLabel: null,
                     Quantity: item.Quantity,
                     UnitPriceMinor: item.UnitPriceMinor,
@@ -75,6 +84,10 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
             var mainImage = product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
                          ?? product.Images.FirstOrDefault()?.ImageUrl;
+
+            var salesModel = await ResolveSalesModelAsync(product.AgreementProductId, salesModelCache, cancellationToken);
+            var isUnsupportedSessionVariant = salesModel.HasValue
+                && StoreSalesModelRules.IsUnsupportedSessionVariant(salesModel.Value, item.VariantId);
 
             string? variantLabel = null;
             bool isAvailable = product.IsAvailable;
@@ -95,7 +108,23 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                             var val = attr?.Values.FirstOrDefault(v => v.Id == c.VariantAttributeValueId);
                             return val?.Value ?? string.Empty;
                         }).Where(s => !string.IsNullOrEmpty(s)));
-                    isAvailable = variant.IsAvailable && variant.StockCount >= item.Quantity;
+                    if (salesModel == SalesModel.StockBased)
+                    {
+                        isAvailable = variant.HasLegacyStockAvailable(item.Quantity);
+                    }
+                    else if (salesModel == SalesModel.SessionBased && !item.SessionId.HasValue)
+                    {
+                        isAvailable = await IsVariantCapacityAvailableAsync(
+                            variant,
+                            item.UsageDate,
+                            item.Quantity,
+                            cancellationToken);
+                    }
+                    else
+                    {
+                        isAvailable = false;
+                    }
+
                     originalUnitPrice = variant.PriceMinor;
                 }
                 else
@@ -121,7 +150,9 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 {
                     var titlePart = !string.IsNullOrWhiteSpace(session.Title) ? session.Title + " " : string.Empty;
                     sessionLabel = $"{titlePart}{session.Date:yyyy-MM-dd} {session.StartTime:HH:mm}-{session.EndTime:HH:mm}";
-                    isAvailable = session.IsAvailable && session.RemainingCapacity >= item.Quantity;
+                    isAvailable = !isUnsupportedSessionVariant &&
+                                  session.IsAvailable &&
+                                  session.RemainingCapacity >= item.Quantity;
                 }
                 else
                 {
@@ -152,6 +183,7 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 VariantId: item.VariantId,
                 VariantLabel: variantLabel,
                 SessionId: item.SessionId,
+                UsageDate: item.UsageDate,
                 SessionLabel: sessionLabel,
                 Quantity: item.Quantity,
                 UnitPriceMinor: item.UnitPriceMinor,
@@ -173,5 +205,47 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
             OriginalTotalMinor: originalTotalMinor,
             DiscountTotalMinor: discountTotalMinor,
             TotalItems: cart.Items.Sum(i => i.Quantity));
+    }
+
+    private async Task<bool> IsVariantCapacityAvailableAsync(
+        Refahi.Modules.Store.Domain.Entities.ProductVariant variant,
+        DateOnly? usageDate,
+        int quantity,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(variant, usageDate);
+            await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
+                variant,
+                normalizedUsageDate,
+                quantity,
+                _mediator,
+                excludeOrderId: null,
+                cancellationToken);
+
+            return true;
+        }
+        catch (StoreDomainException)
+        {
+            return false;
+        }
+    }
+
+    private async Task<SalesModel?> ResolveSalesModelAsync(
+        Guid agreementProductId,
+        IDictionary<Guid, SalesModel?> cache,
+        CancellationToken cancellationToken)
+    {
+        if (cache.TryGetValue(agreementProductId, out var cached))
+            return cached;
+
+        var agreementProduct = await _mediator.Send(
+            new GetAgreementProductByIdQuery(agreementProductId),
+            cancellationToken);
+
+        SalesModel? salesModel = agreementProduct is null ? null : (SalesModel)agreementProduct.SalesModel;
+        cache[agreementProductId] = salesModel;
+        return salesModel;
     }
 }

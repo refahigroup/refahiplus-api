@@ -1,5 +1,6 @@
 using MediatR;
 using Refahi.Modules.Store.Application.Contracts.Commands.Cart;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
@@ -50,9 +51,12 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
 
         long unitPrice = shopProduct.DiscountedPrice > 0 ? shopProduct.DiscountedPrice : shopProduct.Price;
         var salesModel = (SalesModel)ap.SalesModel;
+        var normalizedUsageDate = request.UsageDate;
 
         if (salesModel == SalesModel.StockBased)
         {
+            normalizedUsageDate = null;
+
             if (request.VariantId.HasValue)
             {
                 var variant = product.Variants.FirstOrDefault(v => v.Id == request.VariantId.Value)
@@ -61,7 +65,7 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
                 if (!variant.IsAvailable)
                     throw new StoreDomainException("این تنوع محصول موجود نیست", "VARIANT_NOT_AVAILABLE");
 
-                if (variant.StockCount < request.Quantity)
+                if (!variant.HasLegacyStockAvailable(request.Quantity))
                     throw new StoreDomainException("موجودی کافی نیست", "INSUFFICIENT_STOCK");
 
                 // Use variant price if set, otherwise use agreement product price
@@ -75,19 +79,41 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
         }
         else // SessionBased
         {
-            if (!request.SessionId.HasValue)
-                throw new StoreDomainException("برای محصولات سانسی، انتخاب سانس الزامی است", "SESSION_REQUIRED");
+            if (request.SessionId.HasValue)
+            {
+                normalizedUsageDate = null;
 
-            var session = product.Sessions.FirstOrDefault(s => s.Id == request.SessionId.Value)
-                ?? throw new StoreDomainException("سانس یافت نشد", "SESSION_NOT_FOUND");
+                var session = product.Sessions.FirstOrDefault(s => s.Id == request.SessionId.Value)
+                    ?? throw new StoreDomainException("سانس یافت نشد", "SESSION_NOT_FOUND");
 
-            if (!session.IsAvailable)
-                throw new StoreDomainException("این سانس در دسترس نیست", "SESSION_NOT_AVAILABLE");
+                if (!session.IsAvailable)
+                    throw new StoreDomainException("این سانس در دسترس نیست", "SESSION_NOT_AVAILABLE");
 
-            if (session.RemainingCapacity < request.Quantity)
-                throw new StoreDomainException("ظرفیت کافی نیست", "INSUFFICIENT_CAPACITY");
+                if (session.RemainingCapacity < request.Quantity)
+                    throw new StoreDomainException("ظرفیت کافی نیست", "INSUFFICIENT_CAPACITY");
 
-            unitPrice += session.PriceAdjustment;
+                unitPrice += session.PriceAdjustment;
+            }
+            else if (request.VariantId.HasValue)
+            {
+                var variant = product.Variants.FirstOrDefault(v => v.Id == request.VariantId.Value)
+                    ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
+
+                normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(variant, request.UsageDate);
+                await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
+                    variant,
+                    normalizedUsageDate,
+                    request.Quantity,
+                    _mediator,
+                    excludeOrderId: null,
+                    cancellationToken);
+
+                unitPrice = variant.EffectivePriceMinor;
+            }
+            else
+            {
+                throw new StoreDomainException("برای محصولات سانسی، انتخاب سانس یا خدمت الزامی است", "SESSION_REQUIRED");
+            }
         }
 
         var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken);
@@ -95,12 +121,12 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
         if (cart is null)
         {
             cart = CartAggregate.Create(request.UserId, request.ModuleId);
-            cart.AddItem(request.ShopId, request.ProductId, request.VariantId, request.SessionId, request.Quantity, unitPrice);
+            cart.AddItem(request.ShopId, request.ProductId, request.VariantId, request.SessionId, normalizedUsageDate, request.Quantity, unitPrice);
             await _cartRepo.AddAsync(cart, cancellationToken);
         }
         else
         {
-            cart.AddItem(request.ShopId, request.ProductId, request.VariantId, request.SessionId, request.Quantity, unitPrice);
+            cart.AddItem(request.ShopId, request.ProductId, request.VariantId, request.SessionId, normalizedUsageDate, request.Quantity, unitPrice);
             await _cartRepo.UpdateAsync(cart, cancellationToken);
         }
 

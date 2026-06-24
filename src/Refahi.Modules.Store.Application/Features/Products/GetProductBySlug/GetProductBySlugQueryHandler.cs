@@ -37,6 +37,7 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             return null;
 
         var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
+        var salesModel = ap is null ? (SalesModel?)null : (SalesModel)ap.SalesModel;
         var sp = (await _shopProductRepo.GetByProductAsync(product.Id, isActive: true, 1, 1, cancellationToken)).Items.FirstOrDefault();
 
         var averageRating = await _reviewRepo.GetAverageRatingAsync(product.Id, cancellationToken);
@@ -66,7 +67,7 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
                 v.StockCount,
                 v.PriceMinor, v.DiscountedPriceMinor,
                 v.FromDate, v.ToDate, v.CapacityType, v.Capacity, v.RequiresUsageDate,
-                v.IsAvailable,
+                salesModel.HasValue ? v.IsAvailableFor(salesModel.Value) : v.IsAvailable,
                 v.Combinations.Select(c =>
                 {
                     var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);

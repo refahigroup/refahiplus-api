@@ -30,7 +30,7 @@ public sealed class Cart
         };
 
     // --- Behaviors ---
-    public void AddItem(Guid shopId, Guid productId, Guid? variantId, Guid? sessionId,
+    public void AddItem(Guid shopId, Guid productId, Guid? variantId, Guid? sessionId, DateOnly? usageDate,
         int quantity, long unitPriceMinor)
     {
         if (quantity <= 0)
@@ -42,7 +42,8 @@ public sealed class Cart
             i.ShopId == shopId &&
             i.ProductId == productId &&
             i.VariantId == variantId &&
-            i.SessionId == sessionId);
+            i.SessionId == sessionId &&
+            i.UsageDate == usageDate);
 
         if (existing is not null)
         {
@@ -50,7 +51,7 @@ public sealed class Cart
         }
         else
         {
-            _items.Add(CartItem.Create(Id, shopId, productId, variantId, sessionId, quantity, unitPriceMinor));
+            _items.Add(CartItem.Create(Id, shopId, productId, variantId, sessionId, usageDate, quantity, unitPriceMinor));
         }
 
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -82,7 +83,7 @@ public sealed class Cart
     public void MergeItems(IReadOnlyList<MergeItemSpec> items)
     {
         foreach (var i in items)
-            AddItem(i.ShopId, i.ProductId, i.VariantId, i.SessionId, i.Quantity, i.UnitPriceMinor);
+            AddItem(i.ShopId, i.ProductId, i.VariantId, i.SessionId, i.UsageDate, i.Quantity, i.UnitPriceMinor);
     }
 
     public readonly record struct MergeItemSpec(
@@ -90,6 +91,7 @@ public sealed class Cart
         Guid ProductId,
         Guid? VariantId,
         Guid? SessionId,
+        DateOnly? UsageDate,
         int Quantity,
         long UnitPriceMinor);
 }

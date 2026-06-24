@@ -5,6 +5,7 @@ using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Commands.Checkout;
 using Refahi.Modules.Store.Application.Services;
+using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
@@ -73,6 +74,11 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 agreementProductCache[product.AgreementProductId] = ap;
             }
 
+            if (ap is null)
+                throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+
+            var salesModel = (SalesModel)ap.SalesModel;
+
             // CategoryCode via References
             string? categoryCode = null;
             if (ap?.CategoryId.HasValue == true)
@@ -88,14 +94,17 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             // Use CartItem.ShopId for shop name lookup
             var shopForTitle = await _shopRepo.GetByIdAsync(cartItem.ShopId, cancellationToken);
 
-            if (!cartItem.SessionId.HasValue) // StockBased
+            if (salesModel == SalesModel.StockBased)
             {
+                if (cartItem.SessionId.HasValue)
+                    throw new StoreDomainException("سانس برای محصول موجودی‌محور معتبر نیست", "INVALID_SESSION_FOR_STOCK_PRODUCT");
+
                 if (cartItem.VariantId.HasValue)
                 {
                     var variant = product.Variants.FirstOrDefault(v => v.Id == cartItem.VariantId.Value)
                         ?? throw new StoreDomainException($"تنوع محصول '{product.Title}' یافت نشد", "VARIANT_NOT_FOUND");
 
-                    if (!variant.IsAvailable || variant.StockCount < cartItem.Quantity)
+                    if (!variant.HasLegacyStockAvailable(cartItem.Quantity))
                         throw new StoreDomainException($"موجودی کافی برای '{product.Title}' وجود ندارد", "INSUFFICIENT_STOCK");
 
                     var variantLabel = !string.IsNullOrWhiteSpace(variant.SKU)
@@ -121,34 +130,78 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 {
                     shop_id = cartItem.ShopId.ToString(),
                     product_type = ap?.ProductType.ToString(),
-                    sales_model = ap?.SalesModel.ToString(),
+                    sales_model = salesModel.ToString(),
                     delivery_type = ap?.DeliveryType.ToString(),
                     variant_id = cartItem.VariantId?.ToString()
                 });
             }
             else // SessionBased
             {
-                var session = product.Sessions.FirstOrDefault(s => s.Id == cartItem.SessionId.Value)
-                    ?? throw new StoreDomainException($"سانس محصول '{product.Title}' یافت نشد", "SESSION_NOT_FOUND");
-
-                if (!session.IsAvailable || session.RemainingCapacity < cartItem.Quantity)
-                    throw new StoreDomainException($"ظرفیت کافی برای سانس '{product.Title}' وجود ندارد", "INSUFFICIENT_CAPACITY");
-
-                var sessionTitlePart = !string.IsNullOrWhiteSpace(session.Title) ? $" {session.Title}" : string.Empty;
-                itemTitle = $"{product.Title}{sessionTitlePart} {session.Date:yyyy-MM-dd} - {shopForTitle?.Name ?? string.Empty}";
-
-                metadataJson = JsonSerializer.Serialize(new
+                if (cartItem.SessionId.HasValue)
                 {
-                    shop_id = cartItem.ShopId.ToString(),
-                    product_type = ap?.ProductType.ToString(),
-                    sales_model = ap?.SalesModel.ToString(),
-                    delivery_type = ap?.DeliveryType.ToString(),
-                    session_id = cartItem.SessionId.Value.ToString(),
-                    date = session.Date.ToString("yyyy-MM-dd"),
-                    start_time = session.StartTime.ToString("HH:mm"),
-                    end_time = session.EndTime.ToString("HH:mm")
-                });
+                    var session = product.Sessions.FirstOrDefault(s => s.Id == cartItem.SessionId.Value)
+                        ?? throw new StoreDomainException($"سانس محصول '{product.Title}' یافت نشد", "SESSION_NOT_FOUND");
 
+                    if (!session.IsAvailable || session.RemainingCapacity < cartItem.Quantity)
+                        throw new StoreDomainException($"ظرفیت کافی برای سانس '{product.Title}' وجود ندارد", "INSUFFICIENT_CAPACITY");
+
+                    var sessionTitlePart = !string.IsNullOrWhiteSpace(session.Title) ? $" {session.Title}" : string.Empty;
+                    itemTitle = $"{product.Title}{sessionTitlePart} {session.Date:yyyy-MM-dd} - {shopForTitle?.Name ?? string.Empty}";
+
+                    metadataJson = JsonSerializer.Serialize(new
+                    {
+                        shop_id = cartItem.ShopId.ToString(),
+                        product_type = ap?.ProductType.ToString(),
+                        sales_model = salesModel.ToString(),
+                        delivery_type = ap?.DeliveryType.ToString(),
+                        session_id = cartItem.SessionId.Value.ToString(),
+                        date = session.Date.ToString("yyyy-MM-dd"),
+                        start_time = session.StartTime.ToString("HH:mm"),
+                        end_time = session.EndTime.ToString("HH:mm")
+                    });
+                }
+                else if (cartItem.VariantId.HasValue)
+                {
+                    var variant = product.Variants.FirstOrDefault(v => v.Id == cartItem.VariantId.Value)
+                        ?? throw new StoreDomainException($"تنوع محصول '{product.Title}' یافت نشد", "VARIANT_NOT_FOUND");
+
+                    var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(variant, cartItem.UsageDate);
+                    await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
+                        variant,
+                        normalizedUsageDate,
+                        cartItem.Quantity,
+                        _mediator,
+                        excludeOrderId: null,
+                        cancellationToken);
+
+                    var variantLabel = !string.IsNullOrWhiteSpace(variant.SKU)
+                        ? variant.SKU
+                        : string.Join("/", variant.Combinations.Select(c =>
+                        {
+                            var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
+                            var val = attr?.Values.FirstOrDefault(v => v.Id == c.VariantAttributeValueId);
+                            return val?.Value ?? string.Empty;
+                        }).Where(s => !string.IsNullOrEmpty(s)));
+
+                    itemTitle = $"{product.Title}{(string.IsNullOrEmpty(variantLabel) ? string.Empty : $" - {variantLabel}")} - {shopForTitle?.Name ?? string.Empty}";
+
+                    metadataJson = JsonSerializer.Serialize(new
+                    {
+                        shop_id = cartItem.ShopId.ToString(),
+                        product_type = ap?.ProductType.ToString(),
+                        sales_model = salesModel.ToString(),
+                        delivery_type = ap?.DeliveryType.ToString(),
+                        variant_id = cartItem.VariantId.Value.ToString(),
+                        usage_date = normalizedUsageDate?.ToString("yyyy-MM-dd"),
+                        capacity_type = variant.CapacityType.ToString(),
+                        from_date = variant.FromDate?.ToString("yyyy-MM-dd"),
+                        to_date = variant.ToDate?.ToString("yyyy-MM-dd")
+                    });
+                }
+                else
+                {
+                    throw new StoreDomainException("برای محصولات سانسی، انتخاب سانس یا خدمت الزامی است", "SESSION_REQUIRED");
+                }
             }
 
             // روش ارسال این آیتم

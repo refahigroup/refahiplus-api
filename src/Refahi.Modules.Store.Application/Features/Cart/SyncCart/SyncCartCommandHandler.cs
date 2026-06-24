@@ -2,8 +2,10 @@ using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 using Refahi.Modules.Store.Application.Contracts.Commands.Cart;
 using Refahi.Modules.Store.Application.Contracts.Queries.Cart;
+using Refahi.Modules.Store.Application.Services;
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Enums;
+using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
 using CartAggregate = Refahi.Modules.Store.Domain.Aggregates.Cart;
@@ -101,6 +103,7 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
             long authoritativePrice = shopProduct.DiscountedPrice > 0 ? shopProduct.DiscountedPrice : shopProduct.Price;
             var salesModel = (SalesModel)ap.SalesModel;
             int allowedQuantity = item.Quantity;
+            DateOnly? normalizedUsageDate = null;
 
             if (salesModel == SalesModel.StockBased)
             {
@@ -156,40 +159,75 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
             }
             else // SessionBased
             {
-                if (!item.SessionId.HasValue)
+                if (item.SessionId.HasValue)
+                {
+                    var session = product.Sessions.FirstOrDefault(s => s.Id == item.SessionId.Value);
+                    if (session is null || !session.IsAvailable)
+                    {
+                        warnings.Add(new CartSyncWarning(
+                            "SESSION_REMOVED", "سانس موردنظر در دسترس نیست",
+                            item.ProductId, item.VariantId, item.SessionId, item.UsageDate));
+                        continue;
+                    }
+
+                    authoritativePrice += session.PriceAdjustment;
+
+                    if (session.RemainingCapacity <= 0)
+                    {
+                        warnings.Add(new CartSyncWarning(
+                            "OUT_OF_STOCK", "ظرفیت سانس تمام شده است",
+                            item.ProductId, item.VariantId, item.SessionId, item.UsageDate));
+                        continue;
+                    }
+
+                    if (session.RemainingCapacity < allowedQuantity)
+                    {
+                        warnings.Add(new CartSyncWarning(
+                            "QUANTITY_CLAMPED",
+                            $"تعداد به {session.RemainingCapacity} کاهش یافت",
+                            item.ProductId, item.VariantId, item.SessionId, item.UsageDate));
+                        allowedQuantity = session.RemainingCapacity;
+                    }
+                }
+                else if (item.VariantId.HasValue)
+                {
+                    var variant = product.Variants.FirstOrDefault(v => v.Id == item.VariantId.Value);
+                    if (variant is null)
+                    {
+                        warnings.Add(new CartSyncWarning(
+                            "VARIANT_REMOVED", "تنوع محصول موجود نیست",
+                            item.ProductId, item.VariantId, item.SessionId, item.UsageDate));
+                        continue;
+                    }
+
+                    try
+                    {
+                        normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(variant, item.UsageDate);
+                        await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
+                            variant,
+                            normalizedUsageDate,
+                            allowedQuantity,
+                            _mediator,
+                            excludeOrderId: null,
+                            cancellationToken);
+                    }
+                    catch (StoreDomainException ex)
+                    {
+                        warnings.Add(new CartSyncWarning(
+                            ex.ErrorCode,
+                            ex.Message,
+                            item.ProductId, item.VariantId, item.SessionId, item.UsageDate));
+                        continue;
+                    }
+
+                    authoritativePrice = variant.EffectivePriceMinor;
+                }
+                else
                 {
                     warnings.Add(new CartSyncWarning(
                         "SESSION_REMOVED", "سانس محصول مشخص نشده است",
-                        item.ProductId, item.VariantId, item.SessionId));
+                        item.ProductId, item.VariantId, item.SessionId, item.UsageDate));
                     continue;
-                }
-
-                var session = product.Sessions.FirstOrDefault(s => s.Id == item.SessionId.Value);
-                if (session is null || !session.IsAvailable)
-                {
-                    warnings.Add(new CartSyncWarning(
-                        "SESSION_REMOVED", "سانس موردنظر در دسترس نیست",
-                        item.ProductId, item.VariantId, item.SessionId));
-                    continue;
-                }
-
-                authoritativePrice += session.PriceAdjustment;
-
-                if (session.RemainingCapacity <= 0)
-                {
-                    warnings.Add(new CartSyncWarning(
-                        "OUT_OF_STOCK", "ظرفیت سانس تمام شده است",
-                        item.ProductId, item.VariantId, item.SessionId));
-                    continue;
-                }
-
-                if (session.RemainingCapacity < allowedQuantity)
-                {
-                    warnings.Add(new CartSyncWarning(
-                        "QUANTITY_CLAMPED",
-                        $"تعداد به {session.RemainingCapacity} کاهش یافت",
-                        item.ProductId, item.VariantId, item.SessionId));
-                    allowedQuantity = session.RemainingCapacity;
                 }
             }
 
@@ -198,11 +236,11 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
             {
                 warnings.Add(new CartSyncWarning(
                     "PRICE_CHANGED", "قیمت محصول تغییر کرده است",
-                    item.ProductId, item.VariantId, item.SessionId));
+                    item.ProductId, item.VariantId, item.SessionId, normalizedUsageDate));
             }
 
             mergeSpecs.Add(new CartAggregate.MergeItemSpec(
-                item.ShopId, item.ProductId, item.VariantId, item.SessionId,
+                item.ShopId, item.ProductId, item.VariantId, item.SessionId, normalizedUsageDate,
                 allowedQuantity, authoritativePrice));
 
             // After first accepted item we lock the dominantShopId

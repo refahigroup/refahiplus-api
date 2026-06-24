@@ -1,4 +1,5 @@
 using Refahi.Modules.Orders.Application.Contracts.Dtos;
+using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Domain.Enums;
 
 namespace Refahi.Modules.Orders.Application.Contracts.Repositories;
@@ -17,5 +18,12 @@ public interface IOrderQueryService
         Guid userId,
         OrderStatus[]? statuses,
         string? sourceModule,
+        CancellationToken ct = default);
+
+    Task<int> GetStoreVariantSoldQuantityAsync(
+        Guid variantId,
+        DateOnly? usageDate,
+        StoreVariantCapacityScope capacityScope,
+        Guid? excludeOrderId = null,
         CancellationToken ct = default);
 }

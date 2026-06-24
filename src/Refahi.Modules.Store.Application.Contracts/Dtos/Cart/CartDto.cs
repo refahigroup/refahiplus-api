@@ -18,6 +18,7 @@ public sealed record CartItemDto(
     Guid? VariantId,
     string? VariantLabel,
     Guid? SessionId,
+    DateOnly? UsageDate,
     string? SessionLabel,
     int Quantity,
     long UnitPriceMinor,              // قیمت نهایی واحد (پس از تخفیف)

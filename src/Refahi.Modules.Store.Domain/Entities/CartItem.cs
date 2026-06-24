@@ -12,12 +12,13 @@ public sealed class CartItem
     public Guid ProductId { get; private set; }
     public Guid? VariantId { get; private set; }
     public Guid? SessionId { get; private set; }    // v1.1 — برای محصولات SessionBased
+    public DateOnly? UsageDate { get; private set; }
     public int Quantity { get; private set; }
     public long UnitPriceMinor { get; private set; }
 
     internal static CartItem Create(
         Guid cartId, Guid shopId, Guid productId, Guid? variantId,
-        Guid? sessionId, int quantity, long unitPriceMinor)
+        Guid? sessionId, DateOnly? usageDate, int quantity, long unitPriceMinor)
         => new()
         {
             Id = Guid.NewGuid(),
@@ -26,6 +27,7 @@ public sealed class CartItem
             ProductId = productId,
             VariantId = variantId,
             SessionId = sessionId,
+            UsageDate = usageDate,
             Quantity = quantity,
             UnitPriceMinor = unitPriceMinor
         };

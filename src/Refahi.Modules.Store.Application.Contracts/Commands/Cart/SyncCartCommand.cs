@@ -14,6 +14,7 @@ public sealed record SyncCartItemInput(
     Guid ProductId,
     Guid? VariantId,
     Guid? SessionId,
+    DateOnly? UsageDate,
     int Quantity,
     long UnitPriceMinor  // snapshot for PRICE_CHANGED warning detection only
 );
@@ -30,5 +31,6 @@ public sealed record CartSyncWarning(
     string Message,     // Persian — user-facing
     Guid? ProductId,
     Guid? VariantId,
-    Guid? SessionId
+    Guid? SessionId,
+    DateOnly? UsageDate = null
 );

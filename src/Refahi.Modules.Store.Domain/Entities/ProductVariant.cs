@@ -26,6 +26,23 @@ public sealed class ProductVariant
         ToDate.HasValue &&
         FromDate.Value != ToDate.Value;
 
+    public bool UsesLegacyStockFor(SalesModel salesModel)
+        => salesModel == SalesModel.StockBased;
+
+    public bool UsesAccessCapacityFor(SalesModel salesModel)
+        => salesModel == SalesModel.SessionBased;
+
+    public bool HasLegacyStockAvailable(int requestedQuantity)
+        => IsAvailable && StockCount >= requestedQuantity;
+
+    public bool IsAvailableFor(SalesModel salesModel)
+        => salesModel switch
+        {
+            SalesModel.StockBased => IsAvailable,
+            SalesModel.SessionBased => CapacityType == VariantCapacityType.Unlimited || Capacity is > 0,
+            _ => IsAvailable
+        };
+
     private readonly List<ProductVariantCombination> _combinations;
     public IReadOnlyList<ProductVariantCombination> Combinations => _combinations.AsReadOnly();
 
@@ -33,7 +50,8 @@ public sealed class ProductVariant
         Guid productId, int stockCount, long priceMinor, long? discountedPriceMinor = null,
         string? imageUrl = null, string? sku = null,
         DateOnly? fromDate = null, DateOnly? toDate = null,
-        VariantCapacityType capacityType = VariantCapacityType.Unlimited, int? capacity = null)
+        VariantCapacityType capacityType = VariantCapacityType.Unlimited, int? capacity = null,
+        SalesModel salesModel = SalesModel.StockBased)
     {
         ValidatePrice(priceMinor, discountedPriceMinor);
         ValidateValidityRange(fromDate, toDate);
@@ -52,7 +70,7 @@ public sealed class ProductVariant
             ToDate = toDate,
             CapacityType = capacityType,
             Capacity = normalizedCapacity,
-            IsAvailable = stockCount > 0
+            IsAvailable = DetermineInitialAvailability(salesModel, stockCount)
         };
     }
 
@@ -154,4 +172,12 @@ public sealed class ProductVariant
             _ => throw new StoreDomainException("نوع ظرفیت تنوع معتبر نیست", "INVALID_VARIANT_CAPACITY_TYPE")
         };
     }
+
+    private static bool DetermineInitialAvailability(SalesModel salesModel, int stockCount)
+        => salesModel switch
+        {
+            SalesModel.StockBased => stockCount > 0,
+            SalesModel.SessionBased => true,
+            _ => stockCount > 0
+        };
 }

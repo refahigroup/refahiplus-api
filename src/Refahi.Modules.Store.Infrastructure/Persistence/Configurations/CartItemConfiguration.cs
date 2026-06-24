@@ -17,6 +17,7 @@ public class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.Property(i => i.ProductId).IsRequired();
         builder.Property(i => i.VariantId);
         builder.Property(i => i.SessionId);     // v1.1 — nullable FK to product_sessions
+        builder.Property(i => i.UsageDate).HasColumnType("date");
         builder.Property(i => i.Quantity).IsRequired();
         builder.Property(i => i.UnitPriceMinor).IsRequired();
 

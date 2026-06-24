@@ -225,7 +225,8 @@ public sealed class Product
         int stockCount, long priceMinor, long? discountedPriceMinor = null,
         string? imageUrl = null, string? sku = null,
         DateOnly? fromDate = null, DateOnly? toDate = null,
-        VariantCapacityType capacityType = VariantCapacityType.Unlimited, int? capacity = null)
+        VariantCapacityType capacityType = VariantCapacityType.Unlimited, int? capacity = null,
+        SalesModel salesModel = SalesModel.StockBased)
     {
         foreach (var (attrId, valueId) in combinations)
         {
@@ -245,7 +246,8 @@ public sealed class Product
             fromDate,
             toDate,
             capacityType,
-            capacity);
+            capacity,
+            salesModel);
         foreach (var (attrId, valueId) in combinations)
             variant.AddCombination(attrId, valueId);
 
