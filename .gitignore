@@ -416,3 +416,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# AI Agents
+.agents/*
+.codex/*
+.codex-runtime/*
+.claude/*
