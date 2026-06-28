@@ -20,8 +20,8 @@ public class CreateShopCommandHandler : IRequestHandler<CreateShopCommand, Creat
         if (await _shopRepository.SlugExistsAsync(request.Slug.Trim().ToLower(), cancellationToken))
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
 
-        if (await _shopRepository.ProviderHasShopAsync(request.SupplierId, cancellationToken))
-            throw new StoreDomainException("این تامین‌کننده قبلاً فروشگاه ثبت کرده است", "PROVIDER_ALREADY_HAS_SHOP");
+        //if (await _shopRepository.ProviderHasShopAsync(request.SupplierId, cancellationToken))
+        //    throw new StoreDomainException("این تامین‌کننده قبلاً فروشگاه ثبت کرده است", "PROVIDER_ALREADY_HAS_SHOP");
 
         var shopType = (ShopType)request.ShopType;
 

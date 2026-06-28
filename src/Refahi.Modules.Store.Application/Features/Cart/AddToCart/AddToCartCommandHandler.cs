@@ -6,8 +6,6 @@ using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
-using CartAggregate = Refahi.Modules.Store.Domain.Aggregates.Cart;
-
 namespace Refahi.Modules.Store.Application.Features.Cart.AddToCart;
 
 public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCartResponse>
@@ -112,19 +110,17 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
             }
         }
 
-        var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken);
-
-        if (cart is null)
-        {
-            cart = CartAggregate.Create(request.UserId, request.ModuleId);
-            cart.AddItem(request.ShopId, request.ProductId, request.VariantId, request.SessionId, normalizedUsageDate, request.Quantity, unitPrice);
-            await _cartRepo.AddAsync(cart, cancellationToken);
-        }
-        else
-        {
-            cart.AddItem(request.ShopId, request.ProductId, request.VariantId, request.SessionId, normalizedUsageDate, request.Quantity, unitPrice);
-            await _cartRepo.UpdateAsync(cart, cancellationToken);
-        }
+        var cart = await _cartRepo.AddItemAsync(
+            request.UserId,
+            request.ModuleId,
+            request.ShopId,
+            request.ProductId,
+            request.VariantId,
+            request.SessionId,
+            normalizedUsageDate,
+            request.Quantity,
+            unitPrice,
+            cancellationToken);
 
         return new AddToCartResponse(cart.Id, cart.Items.Sum(i => i.Quantity));
     }

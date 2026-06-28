@@ -7,6 +7,7 @@ public interface IOrderRepository
     Task<Order?> GetByIdAsync(Guid orderId, CancellationToken ct = default);
     Task<Order?> GetByIdWithItemsAsync(Guid orderId, CancellationToken ct = default);
     Task<Order?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken ct = default);
+    Task<Order?> GetByIdempotencyKeyWithItemsAsync(string idempotencyKey, CancellationToken ct = default);
     Task<List<Order>> GetByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken ct = default);
     Task<int> CountByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task<List<Order>> GetAllAsync(int page, int pageSize, string? status, Guid? userId, string? sourceModule, CancellationToken ct = default);

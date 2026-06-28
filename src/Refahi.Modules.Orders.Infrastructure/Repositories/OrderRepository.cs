@@ -34,6 +34,13 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey, ct);
     }
 
+    public async Task<Order?> GetByIdempotencyKeyWithItemsAsync(string idempotencyKey, CancellationToken ct = default)
+    {
+        return await _context.Orders
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey, ct);
+    }
+
     public async Task<List<Order>> GetByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken ct = default)
     {
         return await _context.Orders

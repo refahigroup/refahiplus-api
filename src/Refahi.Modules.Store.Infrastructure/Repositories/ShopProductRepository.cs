@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Store.Domain.Aggregates;
+using Refahi.Modules.Store.Domain.Entities;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 
@@ -161,6 +162,29 @@ public class ShopProductRepository : IShopProductRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task AddVariantOfferingsAsync(
+        ShopProduct shopProduct,
+        IReadOnlyList<ShopProductVariant> offerings,
+        CancellationToken ct = default)
+    {
+        if (offerings.Count == 0)
+            return;
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+
+        foreach (var offering in offerings)
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO store.shop_product_variants
+                    (""Id"", ""ShopProductId"", ""ProductVariantId"", ""PriceMinor"", ""DiscountedPriceMinor"", ""IsActive"", ""IsDeleted"", ""CreatedAt"", ""UpdatedAt"")
+                VALUES
+                    ({offering.Id}, {offering.ShopProductId}, {offering.ProductVariantId}, {offering.PriceMinor}, {offering.DiscountedPriceMinor}, {offering.IsActive}, {offering.IsDeleted}, {offering.CreatedAt}, {offering.UpdatedAt})
+                ON CONFLICT (""ShopProductId"", ""ProductVariantId"") WHERE ""IsDeleted"" = false
+                DO NOTHING", ct);
+        }
+
+        await transaction.CommitAsync(ct);
+    }
     public async Task UpdateAsync(ShopProduct shopProduct, CancellationToken ct = default)
     {
         if (_db.Entry(shopProduct).State == EntityState.Detached)

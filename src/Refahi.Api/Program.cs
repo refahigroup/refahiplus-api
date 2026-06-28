@@ -20,6 +20,8 @@ using Refahi.Modules.Wallets.Api;
 using System.Diagnostics;
 using System.Reflection;
 
+const string WebAppCorsPolicy = "WebApp";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // تنظیم Kestrel و IIS برای پشتیبانی از آپلود فایل‌های بزرگ (ویدیو تا ۲۰۰MB، batch تا ۱GB)
@@ -34,6 +36,20 @@ builder.Services.Configure<IISServerOptions>(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options =>
+{
+    var allowedOrigins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>() ?? [];
+
+    options.AddPolicy(WebAppCorsPolicy, policy =>
+    {
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -100,8 +116,10 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 
 var app = builder.Build();
 
+// CORS must run before response wrapping so browser preflight requests can short-circuit cleanly.
+app.UseCors(WebAppCorsPolicy);
 
-// Add global exception handling middleware (must be first)
+// Add global exception handling middleware (first after the CORS boundary)
 app.UseApiExceptionMiddleware();
 
 //// Add response wrapping middleware

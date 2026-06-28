@@ -107,6 +107,13 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
                     item.ProductId, item.VariantId, item.SessionId));
                 continue;
             }
+            catch (StoreDomainException ex) when (ex.ErrorCode == "SHOP_PRODUCT_VARIANT_NOT_CONFIGURED")
+            {
+                warnings.Add(new CartSyncWarning(
+                    "VARIANT_REMOVED", ex.Message,
+                    item.ProductId, item.VariantId, item.SessionId, item.UsageDate));
+                continue;
+            }
             catch (StoreDomainException ex) when (ex.ErrorCode is "PRODUCT_NOT_IN_SHOP" or "INVALID_PRICE" or "INVALID_DISCOUNTED_PRICE")
             {
                 warnings.Add(new CartSyncWarning(

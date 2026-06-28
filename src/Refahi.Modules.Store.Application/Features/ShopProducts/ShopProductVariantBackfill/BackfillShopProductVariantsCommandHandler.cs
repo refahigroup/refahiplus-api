@@ -79,7 +79,7 @@ public class BackfillShopProductVariantsCommandHandler
 
             productsWithVariants++;
 
-            var changed = false;
+            var newOfferings = new List<ShopProductVariant>();
             var existingVariantIds = shopProduct.VariantOfferings
                 .Where(v => !v.IsDeleted)
                 .Select(v => v.ProductVariantId)
@@ -123,17 +123,17 @@ public class BackfillShopProductVariantsCommandHandler
                 if (request.DryRun)
                     continue;
 
-                shopProduct.AddVariantOffering(
+                var offering = shopProduct.AddVariantOffering(
                     variant.Id,
                     variant.PriceMinor,
                     variant.DiscountedPriceMinor,
                     isActive: true);
 
-                changed = true;
+                newOfferings.Add(offering);
             }
 
-            if (changed)
-                await _shopProductRepo.UpdateAsync(shopProduct, cancellationToken);
+            if (newOfferings.Count > 0)
+                await _shopProductRepo.AddVariantOfferingsAsync(shopProduct, newOfferings, cancellationToken);
         }
 
         if (createdItemsCapped)

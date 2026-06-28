@@ -2,6 +2,8 @@ using MediatR;
 using Refahi.Modules.Identity.Application.Contracts.Models;
 using Refahi.Modules.Identity.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
+using Refahi.Modules.Orders.Application.Contracts.Dtos;
+using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Commands.Checkout;
 using Refahi.Modules.Store.Application.Services;
@@ -43,6 +45,14 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
     public async Task<PlaceStoreOrderResponse> Handle(PlaceStoreOrderCommand request, CancellationToken cancellationToken)
     {
+        var orderIdempotencyKey = BuildStoreOrderIdempotencyKey(request.IdempotencyKey);
+        var existingOrder = await _mediator.Send(
+            new GetOrderByIdempotencyKeyQuery(orderIdempotencyKey, request.UserId, "Store"),
+            cancellationToken);
+
+        if (existingOrder is not null)
+            return MapExistingOrder(existingOrder);
+
         // STEP 1: Load cart
         var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken);
 
@@ -58,6 +68,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
         // Cache agreement products per unique AgreementProductId
         var agreementProductCache = new Dictionary<Guid, Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?>();
+        var shopCache = new Dictionary<Guid, Refahi.Modules.Store.Domain.Aggregates.Shop?>();
 
         foreach (var cartItem in cart.Items)
         {
@@ -69,6 +80,21 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             var product = await _productRepo.GetByIdAsync(cartItem.ProductId, cancellationToken);
             if (product is null || product.IsDeleted)
                 throw new StoreDomainException($"محصول '{cartItem.ProductId}' یافت نشد یا حذف شده است", "PRODUCT_NOT_FOUND");
+
+            if (!product.IsAvailable)
+                throw new StoreDomainException($"محصول '{product.Title}' در حال حاضر قابل خرید نیست", "PRODUCT_NOT_AVAILABLE");
+
+            if (!shopCache.TryGetValue(cartItem.ShopId, out var shopForTitle))
+            {
+                shopForTitle = await _shopRepo.GetByIdAsync(cartItem.ShopId, cancellationToken);
+                shopCache[cartItem.ShopId] = shopForTitle;
+            }
+
+            if (shopForTitle is null)
+                throw new StoreDomainException("فروشگاه انتخاب‌شده یافت نشد", "SHOP_NOT_FOUND");
+
+            if (shopForTitle.Status != ShopStatus.Active)
+                throw new StoreDomainException("فروشگاه انتخاب‌شده فعال نیست", "SHOP_NOT_ACTIVE");
 
             // Get AgreementProduct (cached)
             if (!agreementProductCache.TryGetValue(product.AgreementProductId, out var ap))
@@ -104,9 +130,6 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             string itemTitle;
             string metadataJson;
 
-            // Use CartItem.ShopId for shop name lookup
-            var shopForTitle = await _shopRepo.GetByIdAsync(cartItem.ShopId, cancellationToken);
-
             if (salesModel == SalesModel.StockBased)
             {
                 if (cartItem.SessionId.HasValue)
@@ -141,13 +164,19 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
                 metadataJson = JsonSerializer.Serialize(new
                 {
+                    source_module = "Store",
                     shop_id = cartItem.ShopId.ToString(),
+                    product_id = cartItem.ProductId.ToString(),
                     product_type = ap?.ProductType.ToString(),
                     sales_model = salesModel.ToString(),
                     delivery_type = ap?.DeliveryType.ToString(),
                     variant_id = cartItem.VariantId?.ToString(),
+                    shop_product_id = resolvedPrice.ShopProductId.ToString(),
                     shop_product_variant_id = resolvedPrice.ShopProductVariantId?.ToString(),
-                    price_source = resolvedPrice.Source.ToString()
+                    price_source = resolvedPrice.Source.ToString(),
+                    unit_price_minor = authoritativeUnitPrice,
+                    original_unit_price_minor = resolvedPrice.OriginalPriceMinor,
+                    discounted_price_minor = resolvedPrice.DiscountedPriceMinor
                 });
             }
             else // SessionBased
@@ -167,7 +196,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
                     metadataJson = JsonSerializer.Serialize(new
                     {
+                        source_module = "Store",
                         shop_id = cartItem.ShopId.ToString(),
+                        product_id = cartItem.ProductId.ToString(),
                         product_type = ap?.ProductType.ToString(),
                         sales_model = salesModel.ToString(),
                         delivery_type = ap?.DeliveryType.ToString(),
@@ -175,8 +206,12 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                         date = session.Date.ToString("yyyy-MM-dd"),
                         start_time = session.StartTime.ToString("HH:mm"),
                         end_time = session.EndTime.ToString("HH:mm"),
+                        shop_product_id = resolvedPrice.ShopProductId.ToString(),
                         shop_product_variant_id = resolvedPrice.ShopProductVariantId?.ToString(),
-                        price_source = resolvedPrice.Source.ToString()
+                        price_source = resolvedPrice.Source.ToString(),
+                        unit_price_minor = authoritativeUnitPrice,
+                        original_unit_price_minor = resolvedPrice.OriginalPriceMinor + session.PriceAdjustment,
+                        discounted_price_minor = resolvedPrice.DiscountedPriceMinor
                     });
                 }
                 else if (cartItem.VariantId.HasValue)
@@ -206,7 +241,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
                     metadataJson = JsonSerializer.Serialize(new
                     {
+                        source_module = "Store",
                         shop_id = cartItem.ShopId.ToString(),
+                        product_id = cartItem.ProductId.ToString(),
                         product_type = ap?.ProductType.ToString(),
                         sales_model = salesModel.ToString(),
                         delivery_type = ap?.DeliveryType.ToString(),
@@ -215,8 +252,12 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                         capacity_type = variant.CapacityType.ToString(),
                         from_date = variant.FromDate?.ToString("yyyy-MM-dd"),
                         to_date = variant.ToDate?.ToString("yyyy-MM-dd"),
+                        shop_product_id = resolvedPrice.ShopProductId.ToString(),
                         shop_product_variant_id = resolvedPrice.ShopProductVariantId?.ToString(),
-                        price_source = resolvedPrice.Source.ToString()
+                        price_source = resolvedPrice.Source.ToString(),
+                        unit_price_minor = authoritativeUnitPrice,
+                        original_unit_price_minor = resolvedPrice.OriginalPriceMinor,
+                        discounted_price_minor = resolvedPrice.DiscountedPriceMinor
                     });
                 }
                 else
@@ -291,13 +332,16 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         long discountCodeAmountMinor = 0;
         // TODO: در فاز ۳ پیاده‌سازی واقعی validation و محاسبه‌ی کد تخفیف.
 
+        var finalAmountMinor = CalculateFinalAmountMinor(orderItems, shippingFeeMinor, discountCodeAmountMinor);
+        ValidateWalletAllocations(request.WalletAllocations, finalAmountMinor);
+
         // STEP 6: Create order via Orders module
         var createOrderCommand = new CreateOrderCommand(
             UserId: request.UserId,
             SourceModule: "Store",
             SourceReferenceId: shopId!.Value,
             Items: orderItems,
-            IdempotencyKey: $"store-order-{request.IdempotencyKey}",
+            IdempotencyKey: orderIdempotencyKey,
             ShippingAddressId: request.ShippingAddressId,
             ShippingAddressSnapshotJson: addressSnapshotJson,
             DeliveryDate: request.DeliveryDate,
@@ -363,4 +407,37 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             FinalAmountMinor: orderResult.FinalAmountMinor,
             Status: paymentStatus);
     }
+
+    private static long CalculateFinalAmountMinor(
+        IReadOnlyCollection<CreateOrderItemInput> orderItems,
+        long shippingFeeMinor,
+        long discountCodeAmountMinor)
+    {
+        var totalMinor = orderItems.Sum(i => (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor);
+        var finalAmountMinor = totalMinor - discountCodeAmountMinor + shippingFeeMinor;
+        return finalAmountMinor < 0 ? 0 : finalAmountMinor;
+    }
+
+    private static void ValidateWalletAllocations(
+        IReadOnlyCollection<WalletPaymentInput> walletAllocations,
+        long finalAmountMinor)
+    {
+        var allocatedAmountMinor = walletAllocations.Sum(a => a.AmountMinor);
+        if (allocatedAmountMinor != finalAmountMinor)
+        {
+            throw new StoreDomainException(
+                "مجموع مبالغ کیف‌پول باید دقیقاً برابر مبلغ قابل پرداخت سفارش باشد",
+                "WALLET_ALLOCATION_AMOUNT_MISMATCH");
+        }
+    }
+
+    private static string BuildStoreOrderIdempotencyKey(string idempotencyKey)
+        => $"store-order-{idempotencyKey}";
+
+    private static PlaceStoreOrderResponse MapExistingOrder(OrderDto order)
+        => new(
+            OrderId: order.Id,
+            OrderNumber: order.OrderNumber,
+            FinalAmountMinor: order.FinalAmountMinor,
+            Status: order.PaymentState);
 }

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Refahi.Modules.Store.Domain.Aggregates;
-using Refahi.Modules.Store.Domain.Entities;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 
@@ -63,8 +62,7 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
                 ShopProductId: shopProduct.Id,
                 ShopProductVariantId: null,
                 VariantId: null,
-                Source: StorePriceSource.ShopProduct,
-                UsedFallback: false);
+                Source: StorePriceSource.ShopProduct);
         }
 
         var variant = product.Variants.FirstOrDefault(v => v.Id == variantId.Value)
@@ -73,41 +71,32 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
         var offering = shopProduct.VariantOfferings
             .FirstOrDefault(v => v.ProductVariantId == variant.Id && !v.IsDeleted);
 
-        if (offering is not null)
+        if (offering is null)
         {
-            if (!offering.IsActive)
-                throw new StoreDomainException("این تنوع در فروشگاه انتخاب‌شده فعال نیست.", "SHOP_PRODUCT_VARIANT_INACTIVE");
+            _logger.LogWarning(
+                "Missing ShopProductVariant offering for shop {ShopId}, product {ProductId}, variant {VariantId}.",
+                shopId,
+                product.Id,
+                variant.Id);
 
-            ValidatePrice(offering.PriceMinor, offering.DiscountedPriceMinor);
-
-            return new StoreResolvedPrice(
-                UnitPriceMinor: offering.DiscountedPriceMinor ?? offering.PriceMinor,
-                OriginalPriceMinor: offering.PriceMinor,
-                DiscountedPriceMinor: offering.DiscountedPriceMinor,
-                ShopProductId: shopProduct.Id,
-                ShopProductVariantId: offering.Id,
-                VariantId: variant.Id,
-                Source: StorePriceSource.ShopProductVariant,
-                UsedFallback: false);
+            throw new StoreDomainException(
+                "این تنوع برای فروشگاه انتخاب‌شده تعریف نشده است.",
+                "SHOP_PRODUCT_VARIANT_NOT_CONFIGURED");
         }
 
-        ValidatePrice(variant.PriceMinor, variant.DiscountedPriceMinor);
+        if (!offering.IsActive)
+            throw new StoreDomainException("این تنوع در فروشگاه انتخاب‌شده فعال نیست.", "SHOP_PRODUCT_VARIANT_INACTIVE");
 
-        _logger.LogInformation(
-            "Using ProductVariant price fallback for shop {ShopId}, product {ProductId}, variant {VariantId}.",
-            shopId,
-            product.Id,
-            variant.Id);
+        ValidatePrice(offering.PriceMinor, offering.DiscountedPriceMinor);
 
         return new StoreResolvedPrice(
-            UnitPriceMinor: variant.DiscountedPriceMinor ?? variant.PriceMinor,
-            OriginalPriceMinor: variant.PriceMinor,
-            DiscountedPriceMinor: variant.DiscountedPriceMinor,
+            UnitPriceMinor: offering.DiscountedPriceMinor ?? offering.PriceMinor,
+            OriginalPriceMinor: offering.PriceMinor,
+            DiscountedPriceMinor: offering.DiscountedPriceMinor,
             ShopProductId: shopProduct.Id,
-            ShopProductVariantId: null,
+            ShopProductVariantId: offering.Id,
             VariantId: variant.Id,
-            Source: StorePriceSource.ProductVariantFallback,
-            UsedFallback: true);
+            Source: StorePriceSource.ShopProductVariant);
     }
 
     private static long? NormalizeShopDiscount(long discountedPrice)
@@ -125,4 +114,3 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
             throw new StoreDomainException("قیمت تخفیف‌خورده باید کمتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
     }
 }
-

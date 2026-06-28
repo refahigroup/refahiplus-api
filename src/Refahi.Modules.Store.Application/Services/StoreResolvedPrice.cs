@@ -7,13 +7,10 @@ public sealed record StoreResolvedPrice(
     Guid ShopProductId,
     Guid? ShopProductVariantId,
     Guid? VariantId,
-    StorePriceSource Source,
-    bool UsedFallback);
+    StorePriceSource Source);
 
 public enum StorePriceSource
 {
     ShopProduct = 0,
-    ShopProductVariant = 1,
-    ProductVariantFallback = 2
+    ShopProductVariant = 1
 }
-

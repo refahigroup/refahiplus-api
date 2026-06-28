@@ -132,11 +132,11 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                         }).Where(s => !string.IsNullOrEmpty(s)));
                     if (salesModel == SalesModel.StockBased)
                     {
-                        isAvailable = variant.HasLegacyStockAvailable(item.Quantity);
+                        isAvailable = isAvailable && variant.HasLegacyStockAvailable(item.Quantity);
                     }
                     else if (salesModel == SalesModel.SessionBased && !item.SessionId.HasValue)
                     {
-                        isAvailable = await IsVariantCapacityAvailableAsync(
+                        isAvailable = isAvailable && await IsVariantCapacityAvailableAsync(
                             variant,
                             item.UsageDate,
                             item.Quantity,
@@ -173,7 +173,8 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 {
                     var titlePart = !string.IsNullOrWhiteSpace(session.Title) ? session.Title + " " : string.Empty;
                     sessionLabel = $"{titlePart}{session.Date:yyyy-MM-dd} {session.StartTime:HH:mm}-{session.EndTime:HH:mm}";
-                    isAvailable = !isUnsupportedSessionVariant &&
+                    isAvailable = isAvailable &&
+                                  !isUnsupportedSessionVariant &&
                                   session.IsAvailable &&
                                   session.RemainingCapacity >= item.Quantity;
                     if (currentUnitPrice.HasValue)

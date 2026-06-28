@@ -75,7 +75,7 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
                     v.Id, v.SKU,
                     v.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(v.ImageUrl),
                     v.StockCount,
-                    shopPrice.PriceMinor, shopPrice.DiscountedPriceMinor,
+                    shopPrice.PriceMinor ?? v.PriceMinor, shopPrice.DiscountedPriceMinor ?? v.DiscountedPriceMinor,
                     v.FromDate, v.ToDate, v.CapacityType, v.Capacity, v.RequiresUsageDate,
                     (salesModel.HasValue ? v.IsAvailableFor(salesModel.Value) : v.IsAvailable) && shopPrice.IsActiveInShop,
                     v.Combinations.Select(c =>
@@ -190,12 +190,23 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
         if (offering is null)
         {
             return new VariantShopPrice(
-                variant.PriceMinor,
-                variant.DiscountedPriceMinor,
                 null,
-                StorePriceSource.ProductVariantFallback.ToString(),
-                IsActiveInShop: true,
+                null,
+                null,
+                null,
+                IsActiveInShop: false,
                 UsesShopSpecificPrice: false);
+        }
+
+        if (!offering.IsActive)
+        {
+            return new VariantShopPrice(
+                null,
+                null,
+                offering.Id,
+                null,
+                IsActiveInShop: false,
+                UsesShopSpecificPrice: true);
         }
 
         return new VariantShopPrice(
@@ -208,10 +219,10 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
     }
 
     private sealed record VariantShopPrice(
-        long PriceMinor,
+        long? PriceMinor,
         long? DiscountedPriceMinor,
         Guid? ShopProductVariantId,
-        string PriceSource,
+        string? PriceSource,
         bool IsActiveInShop,
         bool UsesShopSpecificPrice);
 }
