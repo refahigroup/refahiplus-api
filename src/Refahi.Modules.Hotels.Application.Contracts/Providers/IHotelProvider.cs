@@ -87,5 +87,13 @@ public interface IHotelProvider
     /// دریافت وضعیت رزرو
     /// </summary>
     Task<BookingStatusDto> GetBookingStatusAsync(string bookingCode);
-}
 
+    /// <summary>
+    /// تلاش برای لغو رزرو در پروایدر با کلید idempotency مستقل.
+    /// اگر پروایدر لغو را پشتیبانی نکند باید Status=Unsupported برگرداند تا سیستم وضعیت خارجی حل‌نشده را ثبت کند.
+    /// </summary>
+    Task<CancelProviderBookingResultDto> CancelBookingAsync(
+        string bookingCode,
+        string idempotencyKey,
+        string reason);
+}

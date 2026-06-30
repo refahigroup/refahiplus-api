@@ -76,6 +76,344 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
                     b.ToTable("hotel_bookings", "hotels");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg.HotelBookingSagaState", b =>
+                {
+                    b.Property<Guid>("SagaId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("saga_id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("ExternalUnresolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("external_unresolved_at");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<Guid>("HotelRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("hotel_request_id");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<short>("PaymentStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0)
+                        .HasColumnName("payment_status");
+
+                    b.Property<short>("ProviderBookingStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0)
+                        .HasColumnName("provider_booking_status");
+
+                    b.Property<DateTime?>("ProviderCancellationCompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("provider_cancellation_completed_at");
+
+                    b.Property<string>("ProviderCancellationIdempotencyKey")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("provider_cancellation_idempotency_key");
+
+                    b.Property<string>("ProviderCancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("provider_cancellation_reason");
+
+                    b.Property<DateTime?>("ProviderCancellationRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("provider_cancellation_requested_at");
+
+                    b.Property<short>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1)
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("SagaId");
+
+                    b.HasIndex("HotelRequestId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_hotel_booking_sagas_hotel_request_id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_hotel_booking_sagas_order_id")
+                        .HasFilter("\"order_id\" IS NOT NULL");
+
+                    b.HasIndex("ProviderBookingStatus", "UpdatedAt")
+                        .HasDatabaseName("ix_hotel_booking_sagas_provider_status_updated_at");
+
+                    b.HasIndex("Status", "UpdatedAt")
+                        .HasDatabaseName("ix_hotel_booking_sagas_status_updated_at");
+
+                    b.ToTable("hotel_booking_sagas", "hotels");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.HotelRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Breakdown")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("breakdown");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IRR")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("ExpireAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expire_at");
+
+                    b.Property<string>("Fees")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("fees");
+
+                    b.Property<string>("GuestInfoSnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("guest_info_snapshot");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<string>("ProviderBookingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("provider_booking_code");
+
+                    b.Property<DateTime?>("ProviderConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("provider_confirmed_at");
+
+                    b.Property<long>("ProviderHotelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("provider_hotel_id");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("provider_name");
+
+                    b.Property<long>("ProviderRoomId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("provider_room_id");
+
+                    b.Property<string>("SearchCriteriaSnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("search_criteria_snapshot");
+
+                    b.Property<string>("SelectedHotelSnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("selected_hotel_snapshot");
+
+                    b.Property<string>("SelectedRoomSnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("selected_room_snapshot");
+
+                    b.Property<short>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1)
+                        .HasColumnName("status");
+
+                    b.Property<long>("TotalPrice")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_price");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_hotel_requests_order_id")
+                        .HasFilter("\"order_id\" IS NOT NULL");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_hotel_requests_user_id");
+
+                    b.HasIndex("Status", "ExpireAt")
+                        .HasDatabaseName("ix_hotel_requests_status_expire_at");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_hotel_requests_user_id_idempotency_key");
+
+                    b.HasIndex("UserId", "Status")
+                        .HasDatabaseName("ix_hotel_requests_user_id_status");
+
+                    b.ToTable("hotel_requests", "hotels");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.ProviderBookingCacheAgg.HotelProviderBookingCacheEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<DateTime?>("CancellationCompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancellation_completed_at");
+
+                    b.Property<string>("CancellationIdempotencyKey")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("cancellation_idempotency_key");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("cancellation_reason");
+
+                    b.Property<DateTime?>("CancellationRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancellation_requested_at");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("ExternalUnresolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("external_unresolved_at");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<Guid>("HotelRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("hotel_request_id");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<DateTime?>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_attempt_at");
+
+                    b.Property<string>("ProviderBookingCode")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("provider_booking_code");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("provider_name");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("request_hash");
+
+                    b.Property<string>("ResponseJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("response_json");
+
+                    b.Property<Guid>("SagaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("saga_id");
+
+                    b.Property<short>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1)
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CancellationIdempotencyKey")
+                        .HasDatabaseName("ix_hotel_provider_booking_cache_cancel_idem")
+                        .HasFilter("\"cancellation_idempotency_key\" IS NOT NULL");
+
+                    b.HasIndex("ProviderName", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_hotel_provider_booking_cache_provider_idem");
+
+                    b.HasIndex("ProviderName", "ProviderBookingCode")
+                        .IsUnique()
+                        .HasDatabaseName("ux_hotel_provider_booking_cache_provider_code")
+                        .HasFilter("\"provider_booking_code\" IS NOT NULL");
+
+                    b.HasIndex("Status", "UpdatedAt")
+                        .HasDatabaseName("ix_hotel_provider_booking_cache_status_updated_at");
+
+                    b.ToTable("hotel_provider_booking_cache", "hotels");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Booking", b =>
                 {
                     b.OwnsOne("Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.ValueObjects.Money", "BasePrice", b1 =>

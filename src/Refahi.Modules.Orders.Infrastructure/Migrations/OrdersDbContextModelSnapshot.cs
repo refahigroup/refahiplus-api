@@ -97,11 +97,23 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("payment_state");
 
+                    b.Property<string>("ReferenceType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasDefaultValue("Unknown")
+                        .HasColumnName("reference_type");
+
                     b.Property<uint>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
+
+                    b.Property<Guid?>("SagaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("saga_id");
 
                     b.Property<Guid?>("ShippingAddressId")
                         .HasColumnType("uuid")
@@ -158,6 +170,10 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_orders_user_id");
+
+                    b.HasIndex("ReferenceType", "SourceReferenceId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_orders_reference_type_source_reference_id");
 
                     b.HasIndex("SourceModule", "SourceReferenceId")
                         .HasDatabaseName("ix_orders_source");
@@ -277,10 +293,27 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_at");
 
+                    b.Property<int>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("retry_count");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Pending")
+                        .HasColumnName("status");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProcessedAt")
                         .HasDatabaseName("ix_outbox_messages_processed_at");
+
+                    b.HasIndex("Status", "OccurredAt")
+                        .HasDatabaseName("ix_outbox_messages_status_occurred_at");
 
                     b.ToTable("outbox_messages", "orders");
                 });

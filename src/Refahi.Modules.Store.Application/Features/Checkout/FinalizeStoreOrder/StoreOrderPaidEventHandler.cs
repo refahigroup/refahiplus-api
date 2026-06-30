@@ -1,6 +1,6 @@
 using MediatR;
+using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
-using Refahi.Modules.Orders.Domain.Events;
 using Refahi.Modules.Store.Application.Services;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace Refahi.Modules.Store.Application.Features.Checkout.FinalizeStoreOrder;
 
-public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidEvent>
+public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidIntegrationEvent>
 {
     private readonly ICartRepository _cartRepository;
     private readonly IProductRepository _productRepository;
@@ -28,8 +28,11 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidE
         _mediator = mediator;
     }
 
-    public async Task Handle(OrderPaidEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(OrderPaidIntegrationEvent notification, CancellationToken cancellationToken)
     {
+        if (!notification.SourceModule.Equals("Store", StringComparison.OrdinalIgnoreCase))
+            return;
+
         var order = await _mediator.Send(
             new GetOrderByIdQuery(notification.OrderId, notification.UserId, "Admin"),
             cancellationToken);

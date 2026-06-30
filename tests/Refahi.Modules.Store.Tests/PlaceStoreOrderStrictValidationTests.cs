@@ -467,6 +467,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 PaymentState: "Unpaid",
                 SourceModule: command.SourceModule,
                 SourceReferenceId: command.SourceReferenceId,
+                ReferenceType: command.ReferenceType ?? command.SourceModule,
                 ShippingAddressId: command.ShippingAddressId,
                 ShippingAddressSnapshotJson: command.ShippingAddressSnapshotJson,
                 DeliveryDate: command.DeliveryDate,

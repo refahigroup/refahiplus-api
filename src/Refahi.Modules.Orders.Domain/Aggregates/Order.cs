@@ -39,6 +39,10 @@ public sealed class Order
     // --- ماژول مبدا ---
     public string SourceModule { get; private set; } = string.Empty;  // "Store", "Hotel", "Flight"
     public Guid SourceReferenceId { get; private set; }               // رفرنس به رکورد اصلی در ماژول مبدا
+    public string ReferenceType { get; private set; } = string.Empty; // "HotelRequest", "Cart", ...
+    public Guid? SagaId { get; private set; }                         // optional workflow correlation id
+    public string Module => SourceModule;
+    public Guid ReferenceId => SourceReferenceId;
 
     // --- اطلاعات ارسال (Snapshot از Identity) ---
     public Guid? ShippingAddressId { get; private set; }              // FK soft → Identity.UserAddress
@@ -76,6 +80,7 @@ public sealed class Order
         string sourceModule,
         Guid sourceReferenceId,
         string idempotencyKey,
+        string? referenceType,
         List<OrderItemData> items,
         Guid? shippingAddressId = null,
         string? shippingAddressSnapshotJson = null,
@@ -83,7 +88,8 @@ public sealed class Order
         DeliveryTimeSlot deliveryTimeSlot = DeliveryTimeSlot.None,
         long shippingFeeMinor = 0,
         string? discountCode = null,
-        long discountCodeAmountMinor = 0)
+        long discountCodeAmountMinor = 0,
+        Guid? sagaId = null)
     {
         if (items is null || items.Count == 0)
             throw new OrderDomainException("سفارش باید حداقل یک آیتم داشته باشد", "ORDER_EMPTY");
@@ -104,6 +110,8 @@ public sealed class Order
             PaymentState = PaymentState.Unpaid,
             SourceModule = sourceModule,
             SourceReferenceId = sourceReferenceId,
+            ReferenceType = string.IsNullOrWhiteSpace(referenceType) ? sourceModule : referenceType.Trim(),
+            SagaId = sagaId,
             IdempotencyKey = idempotencyKey,
             ShippingAddressId = shippingAddressId,
             ShippingAddressSnapshotJson = shippingAddressSnapshotJson,
@@ -142,6 +150,8 @@ public sealed class Order
             UserId: order.UserId,
             SourceModule: order.SourceModule,
             SourceReferenceId: order.SourceReferenceId,
+            ReferenceType: order.ReferenceType,
+            SagaId: order.SagaId,
             FinalAmountMinor: order.FinalAmountMinor,
             OccurredAt: DateTimeOffset.UtcNow));
 
@@ -182,6 +192,10 @@ public sealed class Order
             OrderId: Id,
             OrderNumber: OrderNumber,
             UserId: UserId,
+            SourceModule: SourceModule,
+            SourceReferenceId: SourceReferenceId,
+            ReferenceType: ReferenceType,
+            SagaId: SagaId,
             PaymentId: paymentId,
             AmountMinor: FinalAmountMinor,
             OccurredAt: DateTimeOffset.UtcNow));
@@ -265,6 +279,8 @@ public sealed class Order
                 UserId: UserId,
                 SourceModule: SourceModule,
                 SourceReferenceId: SourceReferenceId,
+                ReferenceType: ReferenceType,
+                SagaId: SagaId,
                 OccurredAt: DateTimeOffset.UtcNow));
         }
     }

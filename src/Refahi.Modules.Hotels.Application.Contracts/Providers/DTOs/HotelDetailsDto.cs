@@ -12,5 +12,8 @@ public sealed class HotelDetailsDto
     public IEnumerable<string> Images { get; set; } = Enumerable.Empty<string>();
     public IEnumerable<string> Facilities { get; set; } = Enumerable.Empty<string>();
     public IEnumerable<HotelRoomDto> Rooms { get; set; } = Enumerable.Empty<HotelRoomDto>();
+    public string? CheckInTime { get; set; }
+    public string? CheckOutTime { get; set; }
+    public string? Policies { get; set; }
 }
 

@@ -146,7 +146,10 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 Stars = detail.stars,
                 Images = images,
                 Facilities = facilities,
-                Rooms = rooms
+                Rooms = rooms,
+                CheckInTime = detail.policies?.check_in_time,
+                CheckOutTime = detail.policies?.check_out_time,
+                Policies = detail.policies?.cancellation
             };
 
             return new[] { hotelDto };
@@ -169,12 +172,14 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 checkout = request.CheckOut.ToString("yyyy-MM-dd"),
                 email = request.Email ?? string.Empty,
                 phone = request.Phone ?? string.Empty,
-                note = null,
+                note = string.IsNullOrWhiteSpace(request.IdempotencyKey)
+                    ? null
+                    : $"RefahiIdempotencyKey:{request.IdempotencyKey}",
                 rooms = MapRooms(request)
             };
 
             // Call API
-            var response = await _apiClient.CreateBookingAsync(snappTripRequest);
+            var response = await _apiClient.CreateBookingAsync(snappTripRequest, request.IdempotencyKey);
 
             // Map response to DTO
             return SnappTripMapper.MapCreateBooking(response);
@@ -198,6 +203,23 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             
             var response = await _apiClient.GetBookingStatusAsync(bookingCode);
             return SnappTripMapper.MapStatus(response);
+        }
+
+        public Task<CancelProviderBookingResultDto> CancelBookingAsync(
+            string bookingCode,
+            string idempotencyKey,
+            string reason)
+        {
+            _logger.LogWarning(
+                "SnappTrip cancellation is not supported by the current provider contract. BookingCode={BookingCode}, IdempotencyKey={IdempotencyKey}",
+                bookingCode,
+                idempotencyKey);
+
+            return Task.FromResult(new CancelProviderBookingResultDto
+            {
+                Status = "Unsupported",
+                ProviderMessage = "Current SnappTrip adapter has no documented cancellation endpoint."
+            });
         }
 
         // ---------------------------------------------------------
@@ -278,6 +300,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
             // 2. صدا زدن API
             var response = await _apiClient.SearchCityAvailabilityAsync(request);
+            var hotelImages = await GetSearchResultImagesAsync(response.items.Select(x => (long)x.hotel.id));
 
             // 3. Mapping response به Application DTO
             var availabilityItems = response.items
@@ -289,7 +312,8 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                         AccommodationType: item.hotel.accommodation_type,
                         AccommodationTitle: item.hotel.accommodation_title,
                         Address: item.hotel.address,
-                        Stars: item.hotel.stars
+                        Stars: item.hotel.stars,
+                        Images: hotelImages.TryGetValue(item.hotel.id, out var images) ? images : []
                     ) : null,
                     Room: item.room != null ? new AvailabilityByCitiesRoom(
                         Id: item.room.id,
@@ -317,6 +341,36 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
             // 5. بازگشت نتیجه
             return new GetAvailabilityByCityDto(filterDto, availabilityItems);
+        }
+
+        private async Task<Dictionary<long, IReadOnlyList<string>>> GetSearchResultImagesAsync(IEnumerable<long> hotelIds)
+        {
+            var result = new Dictionary<long, IReadOnlyList<string>>();
+            var ids = hotelIds.Where(id => id > 0).Distinct().ToArray();
+
+            foreach (var batch in ids.Chunk(10))
+            {
+                try
+                {
+                    var galleries = await _apiClient.GetHotelsGalleriesAsync(batch);
+                    foreach (var gallery in galleries)
+                    {
+                        var images = gallery.gallery?
+                            .Select(item => item.url)
+                            .Where(url => !string.IsNullOrWhiteSpace(url))
+                            .Distinct()
+                            .ToList() ?? [];
+
+                        result[gallery.hotel_id] = images;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "SnappTrip search gallery lookup failed for HotelIds={HotelIds}", string.Join(',', batch));
+                }
+            }
+
+            return result;
         }
 
         public async Task<AvailabilityCalendarDto> GetHotelAvailabilityCalendarAsync(long hotelId, DateOnly from, DateOnly to)

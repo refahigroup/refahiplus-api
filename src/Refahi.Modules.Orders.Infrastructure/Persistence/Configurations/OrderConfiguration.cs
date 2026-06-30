@@ -104,6 +104,15 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired()
             .HasColumnName("source_reference_id");
 
+        builder.Property(o => o.ReferenceType)
+            .IsRequired()
+            .HasMaxLength(80)
+            .HasDefaultValue("Unknown")
+            .HasColumnName("reference_type");
+
+        builder.Property(o => o.SagaId)
+            .HasColumnName("saga_id");
+
         builder.Property(o => o.IdempotencyKey)
             .IsRequired()
             .HasMaxLength(200)
@@ -134,6 +143,10 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(o => new { o.SourceModule, o.SourceReferenceId })
             .HasDatabaseName("ix_orders_source");
 
+        builder.HasIndex(o => new { o.ReferenceType, o.SourceReferenceId })
+            .IsUnique()
+            .HasDatabaseName("ux_orders_reference_type_source_reference_id");
+
         builder.HasIndex(o => o.Status)
             .HasDatabaseName("ix_orders_status");
 
@@ -148,5 +161,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         // DomainEvents is an in-memory collection — EF must not map it
         builder.Ignore(o => o.DomainEvents);
+        builder.Ignore(o => o.Module);
+        builder.Ignore(o => o.ReferenceId);
     }
 }

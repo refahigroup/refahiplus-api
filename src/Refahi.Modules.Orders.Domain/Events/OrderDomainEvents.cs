@@ -8,6 +8,8 @@ public sealed record OrderCreatedEvent(
     Guid UserId,
     string SourceModule,
     Guid SourceReferenceId,
+    string ReferenceType,
+    Guid? SagaId,
     long FinalAmountMinor,
     DateTimeOffset OccurredAt
 ) : IDomainEvent;
@@ -16,6 +18,10 @@ public sealed record OrderPaidEvent(
     Guid OrderId,
     string OrderNumber,
     Guid UserId,
+    string SourceModule,
+    Guid SourceReferenceId,
+    string ReferenceType,
+    Guid? SagaId,
     Guid PaymentId,
     long AmountMinor,
     DateTimeOffset OccurredAt
@@ -43,5 +49,7 @@ public sealed record OrderDeliveredEvent(
     Guid UserId,
     string SourceModule,
     Guid SourceReferenceId,
+    string ReferenceType,
+    Guid? SagaId,
     DateTimeOffset OccurredAt
 ) : IDomainEvent;
