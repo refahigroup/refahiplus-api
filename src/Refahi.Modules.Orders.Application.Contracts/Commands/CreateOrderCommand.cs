@@ -12,13 +12,15 @@ public sealed record CreateOrderCommand(
     Guid SourceReferenceId,
     List<CreateOrderItemInput> Items,
     string IdempotencyKey,
+    string? ReferenceType = null,
     Guid? ShippingAddressId = null,
     string? ShippingAddressSnapshotJson = null,
     DateOnly? DeliveryDate = null,
     short DeliveryTimeSlot = 0,
     long ShippingFeeMinor = 0,
     string? DiscountCode = null,
-    long DiscountCodeAmountMinor = 0
+    long DiscountCodeAmountMinor = 0,
+    Guid? SagaId = null
 ) : IRequest<CreateOrderResponse>;
 
 public sealed record CreateOrderItemInput(

@@ -25,6 +25,17 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
             .IsRequired()
             .HasColumnName("occurred_at");
 
+        builder.Property(o => o.RetryCount)
+            .IsRequired()
+            .HasDefaultValue(0)
+            .HasColumnName("retry_count");
+
+        builder.Property(o => o.Status)
+            .IsRequired()
+            .HasMaxLength(30)
+            .HasDefaultValue(OutboxMessageStatus.Pending)
+            .HasColumnName("status");
+
         builder.Property(o => o.ProcessedAt)
             .HasColumnName("processed_at");
 
@@ -34,5 +45,8 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
 
         builder.HasIndex(o => o.ProcessedAt)
             .HasDatabaseName("ix_outbox_messages_processed_at");
+
+        builder.HasIndex(o => new { o.Status, o.OccurredAt })
+            .HasDatabaseName("ix_outbox_messages_status_occurred_at");
     }
 }

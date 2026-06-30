@@ -7,6 +7,7 @@ using Refahi.Modules.Hotels.Infrastructure.Persistence;
 using Refahi.Modules.Hotels.Infrastructure.Persistence.Repositories;
 using Refahi.Modules.Hotels.Infrastructure.Providers;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip;
+using Refahi.Modules.Hotels.Infrastructure.Workers;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
 
@@ -28,11 +29,17 @@ public static class DI
 
         // Repositories
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IHotelRequestRepository, HotelRequestRepository>();
+        services.AddScoped<IHotelBookingSagaRepository, HotelBookingSagaRepository>();
+        services.AddScoped<IHotelProviderBookingCacheRepository, HotelProviderBookingCacheRepository>();
 
         // Providers
         services.UseSnappTripProvider(configuration)
                 .AddScoped<IHotelProvider>(sp => sp.GetRequiredService<IHotelProviderFactory>().GetDefaultProvider())
                 .AddScoped<IHotelProviderFactory>(sp => new HotelProviderFactory(sp, HotelProviderType.SnappTrip));
+
+        services.AddHostedService<HotelProviderReconciliationWorker>();
+        services.AddHostedService<HotelSagaRecoveryWorker>();
 
         return services;
     }

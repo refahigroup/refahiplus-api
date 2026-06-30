@@ -51,6 +51,7 @@ public class GetOrderByIdempotencyKeyQueryHandler : IRequestHandler<GetOrderById
             PaymentState: order.PaymentState.ToString(),
             SourceModule: order.SourceModule,
             SourceReferenceId: order.SourceReferenceId,
+            ReferenceType: order.ReferenceType,
             ShippingAddressId: order.ShippingAddressId,
             ShippingAddressSnapshotJson: order.ShippingAddressSnapshotJson,
             DeliveryDate: order.DeliveryDate,

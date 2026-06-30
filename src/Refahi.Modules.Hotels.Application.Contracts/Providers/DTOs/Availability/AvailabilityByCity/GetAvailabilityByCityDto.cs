@@ -61,7 +61,8 @@ public record AvailabilityByCitiesHotel
      string? AccommodationType,
      string? AccommodationTitle,
      string? Address,
-     int? Stars
+     int? Stars,
+     IReadOnlyList<string>? Images = null
 );
 
 public record AvailabilityByCitiesRoom

@@ -7,6 +7,8 @@ namespace Refahi.Modules.Orders.Application.Contracts.Commands;
 /// </summary>
 public sealed record PayOrderCommand(
     Guid OrderId,
+    Guid CallerUserId,
+    string CallerRole,
     List<WalletAllocationInput> Allocations,
     string IdempotencyKey
 ) : IRequest<PayOrderResponse>;

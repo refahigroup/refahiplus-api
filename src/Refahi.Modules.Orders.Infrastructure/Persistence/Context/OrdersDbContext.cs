@@ -1,7 +1,9 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
 using Refahi.Modules.Orders.Domain.Aggregates;
 using Refahi.Modules.Orders.Domain.Entities;
+using Refahi.Modules.Orders.Domain.Events;
 using Refahi.Modules.Orders.Infrastructure.Outbox;
 using Refahi.Modules.Orders.Infrastructure.Persistence.Configurations;
 
@@ -39,14 +41,44 @@ public class OrdersDbContext : DbContext
 
         var outboxMessages = domainEventEntities
             .SelectMany(e => e.DomainEvents)
-            .Select(evt => new OutboxMessage
+            .Select(MapToOutboxMessage)
+            .Where(message => message is not null)
+            .Select(message => message!)
+            .ToList();
+
+        static OutboxMessage? MapToOutboxMessage(Refahi.Shared.Domain.IDomainEvent evt)
+        {
+            var integrationEvent = MapToIntegrationEvent(evt);
+            if (integrationEvent is null)
+                return null;
+
+            return new OutboxMessage
             {
                 Id = Guid.NewGuid(),
-                EventType = evt.GetType().AssemblyQualifiedName!,
-                EventData = JsonSerializer.Serialize(evt, evt.GetType()),
-                OccurredAt = evt.OccurredAt
-            })
-            .ToList();
+                EventType = integrationEvent.GetType().AssemblyQualifiedName!,
+                EventData = JsonSerializer.Serialize(integrationEvent, integrationEvent.GetType()),
+                OccurredAt = evt.OccurredAt,
+                RetryCount = 0,
+                Status = OutboxMessageStatus.Pending
+            };
+        }
+
+        static object? MapToIntegrationEvent(Refahi.Shared.Domain.IDomainEvent evt)
+            => evt switch
+            {
+                OrderPaidEvent paid => new OrderPaidIntegrationEvent(
+                    paid.OrderId,
+                    paid.OrderNumber,
+                    paid.UserId,
+                    paid.SourceModule,
+                    paid.SourceReferenceId,
+                    paid.ReferenceType,
+                    paid.SagaId,
+                    paid.PaymentId,
+                    paid.AmountMinor,
+                    paid.OccurredAt),
+                _ => evt
+            };
 
         if (outboxMessages.Count > 0)
             OutboxMessages.AddRange(outboxMessages);

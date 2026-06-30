@@ -14,6 +14,7 @@ public sealed record OrderDto(
     string PaymentState,
     string SourceModule,
     Guid SourceReferenceId,
+    string ReferenceType,
     Guid? ShippingAddressId,
     string? ShippingAddressSnapshotJson,
     DateOnly? DeliveryDate,

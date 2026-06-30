@@ -2,6 +2,7 @@
 
 public sealed class BookingDraftDto
 {
+    public string IdempotencyKey { get; set; } = default!;
     public long HotelId { get; set; }
     public long RoomId { get; set; }
     public DateOnly CheckIn { get; set; }

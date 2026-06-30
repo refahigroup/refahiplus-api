@@ -89,6 +89,29 @@ public class SnappTripApiClient
         return result;
     }
 
+    private async Task<T> PostAsync<T>(string url, object payload, string idempotencyKey)
+    {
+        _logger.LogInformation("SnappTrip POST {Url} IdempotencyKey={IdempotencyKey}", url, idempotencyKey);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(payload)
+        };
+        request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
+        request.Headers.TryAddWithoutValidation("X-Idempotency-Key", idempotencyKey);
+
+        var response = await _http.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+            await ThrowApiError(response, url);
+
+        var result = await response.Content.ReadFromJsonAsync<T>();
+        if (result == null)
+            throw new Exception($"SnappTrip POST {url} returned NULL");
+
+        return result;
+    }
+
     private async Task ThrowApiError(HttpResponseMessage response, string url)
     {
         var err = await response.Content.ReadFromJsonAsync<SnappTripApiError>();
@@ -181,9 +204,9 @@ public class SnappTripApiClient
     // 7) CREATE BOOKING
     // ============================================================
 
-    public Task<SnappTripBookingCreateResponse> CreateBookingAsync(SnappTripCreateBookingRequest req)
+    public Task<SnappTripBookingCreateResponse> CreateBookingAsync(SnappTripCreateBookingRequest req, string idempotencyKey)
     {
-        return PostAsync<SnappTripBookingCreateResponse>("/booking/create", req);
+        return PostAsync<SnappTripBookingCreateResponse>("/booking/create", req, idempotencyKey);
     }
 
     // ============================================================
