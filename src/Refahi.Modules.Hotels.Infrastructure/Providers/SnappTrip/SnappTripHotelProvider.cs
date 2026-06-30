@@ -126,11 +126,12 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                     Description = roomItem.description ?? string.Empty,
                     Adults = roomItem.adults,
                     Children = roomItem.children,
-                    Facilities = roomItem.facilities_tags?
-                        .SelectMany(t => t.facilities.Select(f => f.title))
-                        .Where(s => !string.IsNullOrEmpty(s))
-                        .Distinct()
-                        .ToList() ?? new List<string>()
+                    //Facilities = roomItem.facilities_tags?
+                    //    .SelectMany(t => t.facilities.Select(f => f.title))
+                    //    .Where(s => !string.IsNullOrEmpty(s))
+                    //    .Distinct()
+                    //    .ToList() ?? new List<string>()
+                    Facilities = MapRoomFacilities(roomItem)
                 };
 
                 rooms.Add(roomDto);
@@ -510,6 +511,18 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
         {
             var dt = ConvertUnixTimeToDateTime(unix);
             return DateOnly.FromDateTime(dt);
+        }
+
+        private static List<string> MapRoomFacilities(Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripRoomItem roomItem)
+        {
+            return roomItem.facilities_tags?
+                .Where(tag => tag?.facilities != null)
+                .SelectMany(tag => tag!.facilities!)
+                .Select(facility => facility?.title)
+                .Where(title => !string.IsNullOrWhiteSpace(title))
+                .Select(title => title!)
+                .Distinct()
+                .ToList() ?? new List<string>();
         }
     }
 }
