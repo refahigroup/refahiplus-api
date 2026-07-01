@@ -3,6 +3,13 @@
 		<Project Path="src/Refahi.Shared/Refahi.Shared.csproj" Id="9bf2215a-84d1-4879-85da-ff00b1fdae64" />
 	</Folder>
 	<Folder Name="/01_Modules/" />
+	<Folder Name="/01_Modules/Charge/">
+		<Project Path="src/Refahi.Modules.Charge.Api/Refahi.Modules.Charge.Api.csproj" Id="6c7d489e-fd8d-432d-9ca2-b4a13ec0512a" />
+		<Project Path="src/Refahi.Modules.Charge.Application.Contracts/Refahi.Modules.Charge.Application.Contracts.csproj" Id="df260fde-da73-4dbc-9a55-8c7d988f9ff6" />
+		<Project Path="src/Refahi.Modules.Charge.Application/Refahi.Modules.Charge.Application.csproj" Id="fa346925-cfbd-4198-a585-c7d45725c26d" />
+		<Project Path="src/Refahi.Modules.Charge.Domain/Refahi.Modules.Charge.Domain.csproj" Id="204b9a73-5671-4da4-a5c2-92bb5ba665f0" />
+		<Project Path="src/Refahi.Modules.Charge.Infrastructure/Refahi.Modules.Charge.Infrastructure.csproj" Id="2dcad94f-358a-499e-86ba-d1727d29b345" />
+	</Folder>
 	<Folder Name="/01_Modules/Flights/">
 		<Project Path="src/Refahi.Modules.Flights.Api/Refahi.Modules.Flights.Api.csproj" />
 		<Project Path="src/Refahi.Modules.Flights.Application.Contracts/Refahi.Modules.Flights.Application.Contracts.csproj" />
