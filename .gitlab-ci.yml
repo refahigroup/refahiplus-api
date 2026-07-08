@@ -25,6 +25,14 @@ default:
 build_publish:
   stage: build
   image: registry.refahi.xyz/refahi-devops/ci-cache/dotnet-sdk:10.0
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: refahi_wallets_tests
+    POSTGRES_USER: refahi
+    POSTGRES_PASSWORD: refahi
+    REFAHI_WALLETS_TEST_CONNECTION: "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
   script:
     - echo "Branch=$CI_COMMIT_BRANCH"
 
@@ -47,6 +55,7 @@ build_publish:
 
     - dotnet restore "./$SOLUTION" --packages .nuget/packages
     - dotnet build "./$SOLUTION" -c Release --no-restore
+    - dotnet test "./tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" -c Release --no-build --no-restore
 
     - dotnet publish "./$API_CSPROJ" -c Release --no-build --output "./$PUBLISH_DIR"
 
