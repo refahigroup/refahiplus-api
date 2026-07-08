@@ -175,24 +175,15 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 cancellationToken: ct));
 
             // Insert HOLD ledger entry (reduces available balance)
-            await conn.ExecuteAsync(new CommandDefinition(
-                Sql.LedgerInsertHold,
-                new
-                {
-                    LedgerEntryId = holdLedgerEntryId,
-                    WalletId = allocation.WalletId,
-                    OperationId = operationId,
-                    OperationType = (short)OperationType.Reserve,
-                    EntryType = (short)EntryType.Hold,
-                    AmountMinor = allocation.AmountMinor,
-                    Currency = currency,
-                    EffectiveAt = now,
-                    CreatedAt = now,
-                    ExternalReference = $"intent:{intentId}",
-                    MetadataJson = metadataJson
-                },
+            await InsertLedgerEntryAsync(
+                conn,
                 tx,
-                cancellationToken: ct));
+                LedgerEntryInsertCommand.CreateParameters(
+                    holdLedgerEntryId, allocation.WalletId, operationId,
+                    OperationType.Reserve, EntryType.Hold, allocation.AmountMinor, currency,
+                    now, now, relatedEntryId: null, RelationType.None,
+                    $"intent:{intentId}", metadataJson),
+                ct);
 
             // Update balance (reduce available, increase pending/held)
             await conn.ExecuteAsync(new CommandDefinition(
@@ -409,24 +400,15 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             var operationId = Guid.NewGuid();
 
             // Insert PAYMENT ledger entry (from pending)
-            await conn.ExecuteAsync(new CommandDefinition(
-                Sql.LedgerInsertPaymentFromPending,
-                new
-                {
-                    LedgerEntryId = ledgerEntryId,
-                    WalletId = allocation.WalletId,
-                    OperationId = operationId,
-                    OperationType = (short)OperationType.Payment,
-                    EntryType = (short)EntryType.Debit,
-                    AmountMinor = allocation.AmountMinor,
-                    Currency = intent.Currency,
-                    EffectiveAt = now,
-                    CreatedAt = now,
-                    ExternalReference = $"order:{intent.OrderId}|payment:{paymentId}",
-                    MetadataJson = intent.MetadataJson
-                },
+            await InsertLedgerEntryAsync(
+                conn,
                 tx,
-                cancellationToken: ct));
+                LedgerEntryInsertCommand.CreateParameters(
+                    ledgerEntryId, allocation.WalletId, operationId,
+                    OperationType.Payment, EntryType.Debit, allocation.AmountMinor, intent.Currency,
+                    now, now, relatedEntryId: null, RelationType.None,
+                    $"order:{intent.OrderId}|payment:{paymentId}", intent.MetadataJson),
+                ct);
 
             // Update balance: pending -= amount (available unchanged)
             await conn.ExecuteAsync(new CommandDefinition(
@@ -618,24 +600,15 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             var ledgerEntryId = Guid.NewGuid();
             var operationId = Guid.NewGuid();
 
-            await conn.ExecuteAsync(new CommandDefinition(
-                Sql.LedgerInsertRelease,
-                new
-                {
-                    LedgerEntryId = ledgerEntryId,
-                    WalletId = allocation.WalletId,
-                    OperationId = operationId,
-                    OperationType = (short)OperationType.Release,
-                    EntryType = (short)EntryType.ReleaseHold,
-                    AmountMinor = allocation.AmountMinor,
-                    Currency = intent.Currency,
-                    EffectiveAt = now,
-                    CreatedAt = now,
-                    ExternalReference = $"order:{intent.OrderId}|intent:{intentId}",
-                    MetadataJson = intent.MetadataJson
-                },
+            await InsertLedgerEntryAsync(
+                conn,
                 tx,
-                cancellationToken: ct));
+                LedgerEntryInsertCommand.CreateParameters(
+                    ledgerEntryId, allocation.WalletId, operationId,
+                    OperationType.Release, EntryType.ReleaseHold, allocation.AmountMinor, intent.Currency,
+                    now, now, relatedEntryId: null, RelationType.None,
+                    $"order:{intent.OrderId}|intent:{intentId}", intent.MetadataJson),
+                ct);
 
             await conn.ExecuteAsync(new CommandDefinition(
                 Sql.BalanceUpdateRelease,
@@ -834,24 +807,15 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             var operationId = Guid.NewGuid();
 
             // Insert REFUND ledger entry (credit to wallet)
-            await conn.ExecuteAsync(new CommandDefinition(
-                Sql.LedgerInsertRefund,
-                new
-                {
-                    LedgerEntryId = ledgerEntryId,
-                    WalletId = allocation.WalletId,
-                    OperationId = operationId,
-                    OperationType = (short)OperationType.Refund,
-                    EntryType = (short)EntryType.Credit,
-                    AmountMinor = allocation.AmountMinor,
-                    Currency = payment.Currency,
-                    EffectiveAt = now,
-                    CreatedAt = now,
-                    ExternalReference = $"order:{payment.OrderId}|payment:{paymentId}|refund:{refundId}",
-                    MetadataJson = metadataJson
-                },
+            await InsertLedgerEntryAsync(
+                conn,
                 tx,
-                cancellationToken: ct));
+                LedgerEntryInsertCommand.CreateParameters(
+                    ledgerEntryId, allocation.WalletId, operationId,
+                    OperationType.Refund, EntryType.Credit, allocation.AmountMinor, payment.Currency,
+                    now, now, relatedEntryId: null, RelationType.None,
+                    $"order:{payment.OrderId}|payment:{paymentId}|refund:{refundId}", metadataJson),
+                ct);
 
             // Update balance: available += amount (refund goes back to available)
             await conn.ExecuteAsync(new CommandDefinition(
@@ -988,6 +952,17 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             refund.CompletedAt);
     }
 
+    private static Task<int> InsertLedgerEntryAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        LedgerEntryInsertParameters parameters,
+        CancellationToken ct) =>
+        conn.ExecuteAsync(new CommandDefinition(
+            LedgerEntryInsertCommand.CommandText,
+            parameters,
+            tx,
+            cancellationToken: ct));
+
     // ================================================================
     // RECORD TYPES (Internal DTOs)
     // ================================================================
@@ -1058,16 +1033,6 @@ insert into wallets.payment_intent_allocations (allocation_id, intent_id, wallet
 values (@AllocationId, @IntentId, @WalletId, @AmountMinor, @Sequence);
 ";
 
-        public const string LedgerInsertHold = @"
-insert into wallets.ledger_entries 
-(ledger_entry_id, wallet_id, operation_id, operation_type, entry_type, amount_minor, currency, 
- effective_at, created_at, external_reference, metadata)
-values 
-(@LedgerEntryId, @WalletId, @OperationId, @OperationType, @EntryType, @AmountMinor, @Currency,
- @EffectiveAt, @CreatedAt, @ExternalReference, 
- case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end);
-";
-
         public const string BalanceUpdateHold = @"
 update wallets.wallet_balances
 set 
@@ -1112,16 +1077,6 @@ where intent_id = @IntentId and idempotency_key = @IdempotencyKey and operation_
 insert into wallets.payments (payment_id, intent_id, order_id, status, amount_minor, currency, completed_at, metadata)
 values (@PaymentId, @IntentId, @OrderId, @Status, @AmountMinor, @Currency, @CompletedAt,
         case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end);
-";
-
-        public const string LedgerInsertPaymentFromPending = @"
-insert into wallets.ledger_entries
-(ledger_entry_id, wallet_id, operation_id, operation_type, entry_type, amount_minor, currency,
- effective_at, created_at, external_reference, metadata)
-values
-(@LedgerEntryId, @WalletId, @OperationId, @OperationType, @EntryType, @AmountMinor, @Currency,
- @EffectiveAt, @CreatedAt, @ExternalReference,
- case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end);
 ";
 
         public const string BalanceUpdateCapture = @"
@@ -1169,16 +1124,6 @@ order by sequence;
         // ================================================================
         // RELEASE INTENT SQL
         // ================================================================
-        public const string LedgerInsertRelease = @"
-insert into wallets.ledger_entries
-(ledger_entry_id, wallet_id, operation_id, operation_type, entry_type, amount_minor, currency,
- effective_at, created_at, external_reference, metadata)
-values
-(@LedgerEntryId, @WalletId, @OperationId, @OperationType, @EntryType, @AmountMinor, @Currency,
- @EffectiveAt, @CreatedAt, @ExternalReference,
- case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end);
-";
-
         public const string BalanceUpdateRelease = @"
 update wallets.wallet_balances
 set
@@ -1234,16 +1179,6 @@ where payment_id = @PaymentId;
 insert into wallets.refunds (refund_id, payment_id, order_id, status, amount_minor, currency, reason, created_at, completed_at, metadata)
 values (@RefundId, @PaymentId, @OrderId, @Status, @AmountMinor, @Currency, @Reason, @CreatedAt, @CompletedAt,
         case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end);
-";
-
-        public const string LedgerInsertRefund = @"
-insert into wallets.ledger_entries
-(ledger_entry_id, wallet_id, operation_id, operation_type, entry_type, amount_minor, currency,
- effective_at, created_at, external_reference, metadata)
-values
-(@LedgerEntryId, @WalletId, @OperationId, @OperationType, @EntryType, @AmountMinor, @Currency,
- @EffectiveAt, @CreatedAt, @ExternalReference,
- case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end);
 ";
 
         public const string BalanceUpdateRefund = @"

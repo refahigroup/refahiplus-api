@@ -20,5 +20,6 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Migrations\" />
+	  <InternalsVisibleTo Include="Refahi.Modules.Wallets.Tests" />
 	</ItemGroup>
 </Project>
