@@ -240,7 +240,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             intent.AmountMinor,
             intent.Currency,
             allocations.Select(a => new AllocationOutput(a.WalletId, a.AmountMinor)).ToList(),
-            intent.CreatedAt);
+            ToDateTimeOffset(intent.CreatedAt));
     }
 
     // ================================================================
@@ -504,8 +504,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         if (existingIdem is not null && existingIdem.Status == 2) // Completed
         {
             // Return cached
-            var cachedIntentData = await conn.QuerySingleAsync<IntentRow>(new CommandDefinition(
-                "select intent_id as IntentId, order_id as OrderId, amount_minor as AmountMinor, currency as Currency, created_at as CreatedAt from wallets.payment_intents where intent_id = @IntentId",
+            var cachedIntentData = await conn.QuerySingleAsync<IntentWithStatusRow>(new CommandDefinition(
+                Sql.IntentSelectWithStatus,
                 new { IntentId = intentId },
                 tx,
                 cancellationToken: ct));
@@ -516,7 +516,9 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 Outcome: ReleaseIntentOutcome.ReleasedCached,
                 IntentId: intentId,
                 OrderId: cachedIntentData.OrderId,
-                ReleasedAt: cachedIntentData.CreatedAt); // or cached released_at if available
+                ReleasedAt: cachedIntentData.ReleasedAt is { } releasedAt
+                    ? ToDateTimeOffset(releasedAt)
+                    : now);
         }
 
         if (existingIdem is null)
@@ -559,7 +561,9 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 Outcome: ReleaseIntentOutcome.ReleasedCached,
                 IntentId: intentId,
                 OrderId: intent.OrderId,
-                ReleasedAt: intent.ReleasedAt ?? now);
+                ReleasedAt: intent.ReleasedAt is { } releasedAt
+                    ? ToDateTimeOffset(releasedAt)
+                    : now);
         }
 
         // Load allocations
@@ -593,8 +597,6 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         }
 
         // 4) For each allocation: insert RELEASE ledger, update balance
-        var intentData = new IntentRow(intentId, intent.OrderId, intent.AmountMinor, intent.Currency, intent.CreatedAt);
-
         foreach (var allocation in allocations)
         {
             var ledgerEntryId = Guid.NewGuid();
@@ -649,7 +651,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         return new ReleaseIntentAtomicResult(
             Outcome: ReleaseIntentOutcome.Released,
             IntentId: intentId,
-            OrderId: intentData.OrderId,
+            OrderId: intent.OrderId,
             ReleasedAt: now);
     }
 
@@ -904,7 +906,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             payment.AmountMinor,
             payment.Currency,
             allocations.Select(a => new PaymentAllocationOutput(a.WalletId, a.AmountMinor, a.LedgerEntryId)).ToList(),
-            payment.CompletedAt);
+            ToDateTimeOffset(payment.CompletedAt));
     }
 
     private static async Task<PaymentWithAllocationsRow> LoadPaymentByIntent(
@@ -949,7 +951,19 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             refund.AmountMinor,
             refund.Currency,
             allocations.Select(a => new RefundAllocationOutput(a.WalletId, a.AmountMinor, a.LedgerEntryId)).ToList(),
-            refund.CompletedAt);
+            ToDateTimeOffset(refund.CompletedAt));
+    }
+
+    private static DateTimeOffset ToDateTimeOffset(DateTime value)
+    {
+        var utcValue = value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+
+        return new DateTimeOffset(utcValue);
     }
 
     private static Task<int> InsertLedgerEntryAsync(
@@ -967,19 +981,19 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
     // RECORD TYPES (Internal DTOs)
     // ================================================================
     private sealed record IntentIdempotencyRow(Guid IntentId);
-    private sealed record IntentRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, DateTimeOffset CreatedAt);
-    private sealed record IntentWithStatusRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, short Status, DateTimeOffset CreatedAt, DateTimeOffset? CapturedAt, DateTimeOffset? ReleasedAt, string? MetadataJson);
+    private sealed record IntentRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, DateTime CreatedAt);
+    private sealed record IntentWithStatusRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, short Status, DateTime CreatedAt, DateTime? CapturedAt, DateTime? ReleasedAt, string? MetadataJson);
     private sealed record IntentOperationIdempotencyRow(short Status, Guid? ResultPaymentId);
     private sealed record AllocationRow(Guid WalletId, long AmountMinor);
     private sealed record IntentWithAllocationsRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, List<AllocationOutput> Allocations, DateTimeOffset CreatedAt);
     private sealed record WalletRow(Guid WalletId, string Currency, short Status);
     private sealed record BalanceRow(long AvailableMinor, long PendingMinor);
-    private sealed record PaymentRow(Guid PaymentId, Guid OrderId, long AmountMinor, string Currency, DateTimeOffset CompletedAt);
-    private sealed record PaymentWithStatusRow(Guid PaymentId, Guid OrderId, long AmountMinor, string Currency, short Status, DateTimeOffset CompletedAt);
+    private sealed record PaymentRow(Guid PaymentId, Guid OrderId, long AmountMinor, string Currency, DateTime CompletedAt);
+    private sealed record PaymentWithStatusRow(Guid PaymentId, Guid OrderId, long AmountMinor, string Currency, short Status, DateTime CompletedAt);
     private sealed record PaymentAllocationRow(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
     private sealed record PaymentWithAllocationsRow(Guid PaymentId, Guid OrderId, long AmountMinor, string Currency, List<PaymentAllocationOutput> Allocations, DateTimeOffset CompletedAt);
     private sealed record RefundOperationIdempotencyRow(short Status, Guid? ResultRefundId);
-    private sealed record RefundRow(Guid RefundId, Guid OrderId, long AmountMinor, string Currency, DateTimeOffset CompletedAt);
+    private sealed record RefundRow(Guid RefundId, Guid OrderId, long AmountMinor, string Currency, DateTime CompletedAt);
     private sealed record RefundAllocationRow(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
     private sealed record RefundWithAllocationsRow(Guid RefundId, Guid OrderId, long AmountMinor, string Currency, List<RefundAllocationOutput> Allocations, DateTimeOffset CompletedAt);
 

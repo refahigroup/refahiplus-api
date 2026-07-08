@@ -45,6 +45,8 @@ public sealed class PaymentAtomicWriterPostgresTests
 
         Assert.Equal(CreateIntentOutcome.Created, reserve.Outcome);
         Assert.Equal(CreateIntentOutcome.CreatedCached, reserveReplay.Outcome);
+        Assert.Equal(TimeSpan.Zero, reserveReplay.CreatedAt.Offset);
+        AssertTimestampsMatch(reserve.CreatedAt, reserveReplay.CreatedAt);
         await AssertBalancesAsync(connectionString, (firstWalletId, 400, 600), (secondWalletId, 600, 400));
         await AssertLedgerAsync(connectionString, operationType: (short)OperationType.Reserve, expectedCount: 2);
 
@@ -54,6 +56,8 @@ public sealed class PaymentAtomicWriterPostgresTests
         Assert.Equal(CaptureIntentOutcome.Captured, capture.Outcome);
         Assert.Equal(CaptureIntentOutcome.CapturedCached, captureReplay.Outcome);
         Assert.Equal(capture.PaymentId, captureReplay.PaymentId);
+        Assert.Equal(TimeSpan.Zero, captureReplay.CompletedAt.Offset);
+        AssertTimestampsMatch(capture.CompletedAt, captureReplay.CompletedAt);
         await AssertBalancesAsync(connectionString, (firstWalletId, 400, 0), (secondWalletId, 600, 0));
         await AssertLedgerAsync(connectionString, operationType: (short)OperationType.Payment, expectedCount: 2);
 
@@ -65,6 +69,8 @@ public sealed class PaymentAtomicWriterPostgresTests
         Assert.Equal(RefundPaymentOutcome.Refunded, refund.Outcome);
         Assert.Equal(RefundPaymentOutcome.RefundedCached, refundReplay.Outcome);
         Assert.Equal(refund.RefundId, refundReplay.RefundId);
+        Assert.Equal(TimeSpan.Zero, refundReplay.CompletedAt.Offset);
+        AssertTimestampsMatch(refund.CompletedAt, refundReplay.CompletedAt);
         await AssertBalancesAsync(connectionString, (firstWalletId, 1_000, 0), (secondWalletId, 1_000, 0));
         await AssertLedgerAsync(connectionString, operationType: (short)OperationType.Refund, expectedCount: 2);
 
@@ -78,6 +84,8 @@ public sealed class PaymentAtomicWriterPostgresTests
 
         Assert.Equal(ReleaseIntentOutcome.Released, release.Outcome);
         Assert.Equal(ReleaseIntentOutcome.ReleasedCached, releaseReplay.Outcome);
+        Assert.Equal(TimeSpan.Zero, releaseReplay.ReleasedAt.Offset);
+        AssertTimestampsMatch(release.ReleasedAt, releaseReplay.ReleasedAt);
         await AssertBalancesAsync(connectionString, (firstWalletId, 1_000, 0), (secondWalletId, 1_000, 0));
         await AssertLedgerAsync(connectionString, operationType: (short)OperationType.Release, expectedCount: 2);
 
@@ -163,6 +171,12 @@ select count(*) from wallets.ledger_entries
 where operation_type = @OperationType and relation_type = 0 and related_entry_id is null;",
             new { OperationType = operationType });
         Assert.Equal(expectedCount, count);
+    }
+
+    private static void AssertTimestampsMatch(DateTimeOffset expected, DateTimeOffset actual)
+    {
+        var difference = (expected - actual).Duration();
+        Assert.InRange(difference, TimeSpan.Zero, TimeSpan.FromMilliseconds(1));
     }
 
     private sealed record BalanceRow(long Available, long Pending);
