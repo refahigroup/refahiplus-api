@@ -422,3 +422,4 @@ FodyWeavers.xsd
 .codex/*
 .codex-runtime/*
 .claude/*
+/src/Refahi.Api/appsettingsLocal.json
