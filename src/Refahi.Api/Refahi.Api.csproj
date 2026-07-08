@@ -16,6 +16,7 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.11" />
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\Refahi.Modules.Charge.Api\Refahi.Modules.Charge.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Flights.Api\Refahi.Modules.Flights.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Hotels.Api\Refahi.Modules.Hotels.Api.csproj" />
 	  <ProjectReference Include="..\Refahi.Modules.Identity.Api\Refahi.Modules.Identity.Api.csproj" />

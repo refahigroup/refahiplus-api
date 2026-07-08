@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.0" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Refahi.Modules.Charge.Application.Contracts\Refahi.Modules.Charge.Application.Contracts.csproj" />
+		<ProjectReference Include="..\Refahi.Modules.Charge.Domain\Refahi.Modules.Charge.Domain.csproj" />
+		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
+	</ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="MediatR" Version="11.1.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Refahi.Modules.Charge.Domain\Refahi.Modules.Charge.Domain.csproj" />
+	</ItemGroup>
+</Project>
