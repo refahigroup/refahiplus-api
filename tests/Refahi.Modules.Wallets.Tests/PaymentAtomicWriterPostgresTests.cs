@@ -38,10 +38,11 @@ public sealed class PaymentAtomicWriterPostgresTests
         };
 
         var orderId = Guid.NewGuid();
+        const string metadataJson = "{\"source\":\"integration-test\"}";
         var reserve = await writer.ExecuteCreateIntentAsync(
-            orderId, "reserve-key", 1_000, "IRR", allocations, null, CancellationToken.None);
+            orderId, "reserve-key", 1_000, "IRR", allocations, metadataJson, CancellationToken.None);
         var reserveReplay = await writer.ExecuteCreateIntentAsync(
-            orderId, "reserve-key", 1_000, "IRR", allocations, null, CancellationToken.None);
+            orderId, "reserve-key", 1_000, "IRR", allocations, metadataJson, CancellationToken.None);
 
         Assert.Equal(CreateIntentOutcome.Created, reserve.Outcome);
         Assert.Equal(CreateIntentOutcome.CreatedCached, reserveReplay.Outcome);

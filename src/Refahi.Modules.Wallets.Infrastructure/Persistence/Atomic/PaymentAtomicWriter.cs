@@ -982,7 +982,18 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
     // ================================================================
     private sealed record IntentIdempotencyRow(Guid IntentId);
     private sealed record IntentRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, DateTime CreatedAt);
-    private sealed record IntentWithStatusRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, short Status, DateTime CreatedAt, DateTime? CapturedAt, DateTime? ReleasedAt, string? MetadataJson);
+    private sealed class IntentWithStatusRow
+    {
+        public Guid IntentId { get; init; }
+        public Guid OrderId { get; init; }
+        public long AmountMinor { get; init; }
+        public string Currency { get; init; } = string.Empty;
+        public short Status { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public DateTime? CapturedAt { get; init; }
+        public DateTime? ReleasedAt { get; init; }
+        public string? MetadataJson { get; init; }
+    }
     private sealed record IntentOperationIdempotencyRow(short Status, Guid? ResultPaymentId);
     private sealed record AllocationRow(Guid WalletId, long AmountMinor);
     private sealed record IntentWithAllocationsRow(Guid IntentId, Guid OrderId, long AmountMinor, string Currency, List<AllocationOutput> Allocations, DateTimeOffset CreatedAt);
