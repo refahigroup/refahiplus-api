@@ -129,6 +129,8 @@ app.UseApiExceptionMiddleware();
 //// Registered after exception middleware to ensure errors are handled first
 app.UseResponseWrappingMiddleware();
 
+app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

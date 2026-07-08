@@ -122,6 +122,8 @@ public sealed class ApiExceptionMiddleware
             )
         };
 
+        context.Response.StatusCode = response.StatusCode;
+
         return context.Response.WriteAsJsonAsync(response);
     }
 }

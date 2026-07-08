@@ -249,6 +249,7 @@ public sealed class Order
         {
             (OrderStatus.Confirmed, OrderStatus.Processing) => true,
             (OrderStatus.Processing, OrderStatus.Shipped) => true,
+            (OrderStatus.Processing, OrderStatus.Delivered) when _items.All(x => x.DeliveryMethod == DeliveryMethod.None) => true,
             (OrderStatus.Shipped, OrderStatus.Delivered) => true,
             (OrderStatus.Confirmed, OrderStatus.Cancelled) => true,
             (OrderStatus.Processing, OrderStatus.Cancelled) => true,

@@ -1,22 +1,28 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Refahi.Modules.Charge.Domain.Aggregates;
 
 namespace Refahi.Modules.Charge.Infrastructure.Persistence.Context;
 
-public class ChargeDbContext: DbContext
+public sealed class ChargeDbContext : DbContext
 {
-    public static readonly string Schema = "charge";
+    public const string Schema = "charge";
 
-    public ChargeDbContext(DbContextOptions<ChargeDbContext> options) : base(options)
-    {
+    public ChargeDbContext(DbContextOptions<ChargeDbContext> options) : base(options) 
+    { 
     }
+
+    public DbSet<ChargeRequest> ChargeRequests => Set<ChargeRequest>();
+    public DbSet<ChargeFulfillmentAttempt> FulfillmentAttempts => Set<ChargeFulfillmentAttempt>();
+    public DbSet<ChargePin> ChargePins => Set<ChargePin>();
+    public DbSet<ChargeMarkupRule> MarkupRules => Set<ChargeMarkupRule>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-
         modelBuilder.HasDefaultSchema(Schema);
 
-        //modelBuilder.ApplyConfiguration(new Configuration());
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ChargeDbContext).Assembly);
+
+        base.OnModelCreating(modelBuilder);
     }
 }
