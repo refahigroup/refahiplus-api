@@ -39,12 +39,14 @@ public sealed class ChargeRequestQuoteService
         var provider = _providers.GetDefault();
         var product = await ResolveSelectionAsync(provider, selection, ct);
         var now = DateTime.UtcNow;
+
         var price = await _pricing.CalculateAsync(
             selection.Operator,
             selection.ServiceType,
             product.CostMinor,
             now,
             ct);
+
         var ttlMinutes = int.TryParse(
             _configuration["Charge:RequestTtlMinutes"],
             out var configuredTtl)
