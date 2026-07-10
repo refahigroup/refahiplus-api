@@ -17,6 +17,12 @@ public interface IUserRepository
         string? search, string? role, bool? isActive,
         int page, int pageSize,
         CancellationToken cancellationToken = default);
+    Task<List<User>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> userIds,
+        CancellationToken cancellationToken = default);
+    Task<List<User>> SearchByMobileNumberAsync(
+        string mobileNumber,
+        CancellationToken cancellationToken = default);
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     Task UpdateAsync(User user, CancellationToken cancellationToken = default);
 }

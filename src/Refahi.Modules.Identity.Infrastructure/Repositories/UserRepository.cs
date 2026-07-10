@@ -142,4 +142,29 @@ public class UserRepository : IUserRepository
 
         return (items, total);
     }
+
+    public async Task<List<User>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0)
+            return [];
+
+        return await _db.Users
+            .AsNoTracking()
+            .Include(u => u.Profile)
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<User>> SearchByMobileNumberAsync(
+        string mobileNumber,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .Include(u => u.Profile)
+            .Where(u => u.MobileNumber != null && u.MobileNumber.Contains(mobileNumber))
+            .ToListAsync(cancellationToken);
+    }
 }

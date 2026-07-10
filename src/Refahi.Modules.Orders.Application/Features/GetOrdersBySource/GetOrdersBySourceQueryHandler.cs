@@ -34,7 +34,10 @@ public class GetOrdersBySourceQueryHandler : IRequestHandler<GetOrdersBySourceQu
             Status: o.Status.ToString(),
             SourceModule: o.SourceModule,
             ItemCount: o.Items.Count,
-            CreatedAt: o.CreatedAt)).ToList();
+            CreatedAt: o.CreatedAt,
+            FirstName: null,
+            LastName: null,
+            MobileNumber: null)).ToList();
 
         return new PaginatedOrdersResponse(summaries, request.PageNumber, request.PageSize, total, totalPages);
     }

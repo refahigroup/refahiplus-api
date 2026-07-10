@@ -7,5 +7,6 @@ public sealed record GetAllOrdersQuery(
     int PageSize,
     string? Status,
     Guid? UserId,
-    string? SourceModule
+    string? SourceModule,
+    string? MobileNumber
 ) : IRequest<PaginatedOrdersResponse>;
