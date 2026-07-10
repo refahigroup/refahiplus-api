@@ -16,6 +16,7 @@ public static class ChargeCapabilityPolicy
             ChargeServiceType.PinCharge => @operator is ChargeOperator.Irancell or ChargeOperator.Mci or ChargeOperator.Rightel,
             _ => true
         };
+
         var reason = supported ? null : service switch
         {
             ChargeServiceType.PostpaidBill => "پرداخت قبض دائمی برای این اپراتور فعال نیست",
@@ -23,6 +24,7 @@ public static class ChargeCapabilityPolicy
             ChargeServiceType.PinCharge => "پین شارژ برای این اپراتور ارائه نمی‌شود",
             _ => "این خدمت برای اپراتور انتخابی فعال نیست"
         };
+
         var minimum = service switch
         {
             ChargeServiceType.DirectCharge when @operator == ChargeOperator.Irancell => 5_000,
@@ -31,9 +33,14 @@ public static class ChargeCapabilityPolicy
             ChargeServiceType.CreditLimit => 10_000,
             _ => (long?)null
         };
-        long? maximum = service is ChargeServiceType.DirectCharge or ChargeServiceType.CreditLimit ? 10_000_000 : null;
+
+        long? maximum = service is ChargeServiceType.DirectCharge or ChargeServiceType.CreditLimit 
+            ? 10_000_000 
+            : null;
+
         IReadOnlyList<long> suggestions = service is ChargeServiceType.DirectCharge or ChargeServiceType.CreditLimit
             ? [50_000, 100_000, 200_000, 500_000] : [];
+
         return new(service, supported, reason, minimum, maximum, suggestions);
     }
 }

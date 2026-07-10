@@ -29,4 +29,7 @@ public sealed record OrderSummaryDto(
     string Status,
     string SourceModule,
     int ItemCount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? FirstName,
+    string? LastName,
+    string? MobileNumber);

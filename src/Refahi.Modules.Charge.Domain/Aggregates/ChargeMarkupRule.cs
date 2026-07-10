@@ -21,22 +21,50 @@ public sealed class ChargeMarkupRule
         long fixedAmountMinor, DateTime effectiveFrom, DateTime? effectiveTo, DateTime nowUtc)
     {
         Validate(percent, fixedAmountMinor, effectiveFrom, effectiveTo);
-        return new() { Id = Guid.NewGuid(), Operator = @operator, ServiceType = serviceType, Percent = percent,
-            FixedAmountMinor = fixedAmountMinor, EffectiveFrom = effectiveFrom, EffectiveTo = effectiveTo,
-            IsActive = true, CreatedAt = nowUtc, UpdatedAt = nowUtc };
+
+        return new() 
+        { 
+            Id = Guid.NewGuid(), 
+            Operator = @operator, 
+            ServiceType = serviceType, 
+            Percent = percent,
+            FixedAmountMinor = fixedAmountMinor, 
+            EffectiveFrom = effectiveFrom, 
+            EffectiveTo = effectiveTo,
+            IsActive = true, 
+            CreatedAt = nowUtc, 
+            UpdatedAt = nowUtc 
+        };
     }
 
     public void Update(ChargeOperator? @operator, ChargeServiceType? serviceType, decimal percent, long fixedAmountMinor, DateTime effectiveFrom, DateTime? effectiveTo, DateTime nowUtc)
     {
         Validate(percent, fixedAmountMinor, effectiveFrom, effectiveTo);
-        Operator = @operator; ServiceType = serviceType; Percent = percent; FixedAmountMinor = fixedAmountMinor; EffectiveFrom = effectiveFrom; EffectiveTo = effectiveTo; UpdatedAt = nowUtc;
+
+        Operator = @operator; 
+        ServiceType = serviceType;
+        Percent = percent; 
+        FixedAmountMinor = fixedAmountMinor; 
+        EffectiveFrom = effectiveFrom; 
+        EffectiveTo = effectiveTo; 
+        UpdatedAt = nowUtc;
     }
 
-    public void Deactivate(DateTime nowUtc) { IsActive = false; UpdatedAt = nowUtc; }
+    public void Deactivate(DateTime nowUtc) 
+    { 
+        IsActive = false; 
+        UpdatedAt = nowUtc; 
+    }
+
     private static void Validate(decimal percent, long fixedAmountMinor, DateTime from, DateTime? to)
     {
-        if (percent is < 0 or > 100) throw new InvalidOperationException("درصد افزایش قیمت باید بین صفر تا صد باشد");
-        if (fixedAmountMinor < 0) throw new InvalidOperationException("مبلغ ثابت نمی‌تواند منفی باشد");
-        if (to.HasValue && to <= from) throw new InvalidOperationException("بازه اعتبار قانون معتبر نیست");
+        if (percent is < 0 or > 100) 
+            throw new InvalidOperationException("درصد افزایش قیمت باید بین صفر تا صد باشد");
+
+        if (fixedAmountMinor < 0) 
+            throw new InvalidOperationException("مبلغ ثابت نمی‌تواند منفی باشد");
+
+        if (to.HasValue && to <= from) 
+            throw new InvalidOperationException("بازه اعتبار قانون معتبر نیست");
     }
 }

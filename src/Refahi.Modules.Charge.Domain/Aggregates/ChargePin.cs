@@ -10,6 +10,22 @@ public sealed class ChargePin
     public long AmountMinor { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
-    public static ChargePin Create(Guid requestId, string encryptedSerial, string encryptedCode, long amountMinor, DateTime nowUtc)
-        => new() { Id = Guid.NewGuid(), ChargeRequestId = requestId, EncryptedSerial = encryptedSerial, EncryptedCode = encryptedCode, AmountMinor = amountMinor, CreatedAt = nowUtc };
+    public static ChargePin Create(
+        Guid requestId, 
+        string encryptedSerial, 
+        string encryptedCode, 
+        long amountMinor, 
+        DateTime nowUtc
+    )
+    {
+        return new() 
+        { 
+            Id = Guid.NewGuid(), 
+            ChargeRequestId = requestId, 
+            EncryptedSerial = encryptedSerial, 
+            EncryptedCode = encryptedCode, 
+            AmountMinor = amountMinor, 
+            CreatedAt = nowUtc 
+        };
+    }
 }

@@ -20,10 +20,11 @@ public class GetAllOrdersEndpoint : IEndpoint
             string? status = null,
             Guid? userId = null,
             string? sourceModule = null,
+            string? mobileNumber = null,
             CancellationToken ct = default) =>
         {
             var result = await mediator.Send(
-                new GetAllOrdersQuery(pageNumber, pageSize, status, userId, sourceModule), ct);
+                new GetAllOrdersQuery(pageNumber, pageSize, status, userId, sourceModule, mobileNumber), ct);
             return Results.Ok(ApiResponseHelper.SuccessPaginated(result.Data, result.PageNumber, result.PageSize, result.TotalCount));
         })
         .WithName("Orders.GetAllOrders")
@@ -31,6 +32,7 @@ public class GetAllOrdersEndpoint : IEndpoint
         .RequireAuthorization("AdminOnly")
         .Produces<PaginatedResponse<object>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status403Forbidden);
     }
 }

@@ -9,7 +9,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Refahi.Modules.Charge.Application\Refahi.Modules.Charge.Application.csproj" />
-		<ProjectReference Include="..\Refahi.Modules.Charge.Domain\Refahi.Modules.Charge.Domain.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Charge.Infrastructure\Refahi.Modules.Charge.Infrastructure.csproj" />
 		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>

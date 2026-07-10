@@ -21,11 +21,23 @@ public sealed class ChargeFulfillmentAttempt
 
     public static ChargeFulfillmentAttempt Create(Guid requestId, FulfillmentAttemptType type, bool success, int? eniacCode,
         string? operatorCode, string? rrn, string? traceId, string? message, string requestJson, string responseJson,
-        long latencyMilliseconds, DateTime nowUtc) => new()
+        long latencyMilliseconds, DateTime nowUtc)
+    {
+        return new()
         {
-            Id = Guid.NewGuid(), ChargeRequestId = requestId, Type = type, Success = success,
-            EniacResultCode = eniacCode, OperatorResultCode = operatorCode, ProviderRrn = rrn,
-            ProviderTraceId = traceId, Message = message, RequestSnapshotJson = requestJson,
-            ResponseSnapshotJson = responseJson, LatencyMilliseconds = latencyMilliseconds, CreatedAt = nowUtc
+            Id = Guid.NewGuid(),
+            ChargeRequestId = requestId,
+            Type = type,
+            Success = success,
+            EniacResultCode = eniacCode,
+            OperatorResultCode = operatorCode,
+            ProviderRrn = rrn,
+            ProviderTraceId = traceId,
+            Message = message,
+            RequestSnapshotJson = requestJson,
+            ResponseSnapshotJson = responseJson,
+            LatencyMilliseconds = latencyMilliseconds,
+            CreatedAt = nowUtc
         };
+    }
 }

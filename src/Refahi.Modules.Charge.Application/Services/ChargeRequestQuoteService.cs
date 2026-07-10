@@ -21,17 +21,15 @@ public sealed class ChargeRequestQuoteService
         _configuration = configuration;
     }
 
-    public async Task<ResolvedChargeQuote> ResolveAsync(
-        ChargeSelection selection,
-        CancellationToken ct)
+    public async Task<ResolvedChargeQuote> ResolveAsync(ChargeSelection selection, CancellationToken ct)
     {
         var capability = ChargeCapabilityPolicy.Get(selection.Operator, selection.ServiceType);
+
         if (!capability.IsSupported)
             throw new ArgumentException(capability.UnavailableReason);
 
         if (selection.RequestedAmountMinor.HasValue &&
-            (selection.RequestedAmountMinor < capability.MinimumAmountMinor ||
-             selection.RequestedAmountMinor > capability.MaximumAmountMinor))
+            (selection.RequestedAmountMinor < capability.MinimumAmountMinor || selection.RequestedAmountMinor > capability.MaximumAmountMinor))
         {
             throw new ArgumentException("مبلغ انتخاب‌شده خارج از محدوده مجاز این خدمت است");
         }
@@ -39,12 +37,14 @@ public sealed class ChargeRequestQuoteService
         var provider = _providers.GetDefault();
         var product = await ResolveSelectionAsync(provider, selection, ct);
         var now = DateTime.UtcNow;
+
         var price = await _pricing.CalculateAsync(
             selection.Operator,
             selection.ServiceType,
             product.CostMinor,
             now,
             ct);
+
         var ttlMinutes = int.TryParse(
             _configuration["Charge:RequestTtlMinutes"],
             out var configuredTtl)
@@ -90,6 +90,7 @@ public sealed class ChargeRequestQuoteService
         var minimum = ChargeCapabilityPolicy
             .Get(selection.Operator, selection.ServiceType)
             .MinimumAmountMinor ?? 1;
+
         if (amount < minimum)
             throw new ArgumentException($"حداقل مبلغ شارژ این اپراتور {minimum} ریال است");
 
@@ -115,6 +116,7 @@ public sealed class ChargeRequestQuoteService
 
         var product = (await provider.GetProductsAsync(selection.Operator, ct))
             .FirstOrDefault(x => x.ProviderProductId == selection.ProviderProductId);
+
         product ??= (await provider.GetOffersAsync(
                 selection.Operator,
                 selection.DestinationMobileNumber,
@@ -128,6 +130,7 @@ public sealed class ChargeRequestQuoteService
         var amount = product.AmountWithTaxMinor > 0
             ? product.AmountWithTaxMinor
             : product.AmountMinor;
+
         if (selection.Operator is ChargeOperator.Irancell or ChargeOperator.Mci)
         {
             var eligibility = await provider.CheckEligibilityAsync(

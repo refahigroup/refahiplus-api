@@ -58,7 +58,14 @@ public class OrderRepository : IOrderRepository
             .CountAsync(o => o.UserId == userId, ct);
     }
 
-    public async Task<List<Order>> GetAllAsync(int page, int pageSize, string? status, Guid? userId, string? sourceModule, CancellationToken ct = default)
+    public async Task<List<Order>> GetAllAsync(
+        int page,
+        int pageSize,
+        string? status,
+        Guid? userId,
+        string? sourceModule,
+        IReadOnlyCollection<Guid>? allowedUserIds = null,
+        CancellationToken ct = default)
     {
         var query = _context.Orders.AsQueryable();
 
@@ -70,6 +77,14 @@ public class OrderRepository : IOrderRepository
 
         if (!string.IsNullOrEmpty(sourceModule))
             query = query.Where(o => o.SourceModule == sourceModule);
+
+        if (allowedUserIds is not null)
+        {
+            if (allowedUserIds.Count == 0)
+                return [];
+
+            query = query.Where(o => allowedUserIds.Contains(o.UserId));
+        }
 
         return await query
             .OrderByDescending(o => o.CreatedAt)
@@ -78,7 +93,12 @@ public class OrderRepository : IOrderRepository
             .ToListAsync(ct);
     }
 
-    public async Task<int> CountAllAsync(string? status, Guid? userId, string? sourceModule, CancellationToken ct = default)
+    public async Task<int> CountAllAsync(
+        string? status,
+        Guid? userId,
+        string? sourceModule,
+        IReadOnlyCollection<Guid>? allowedUserIds = null,
+        CancellationToken ct = default)
     {
         var query = _context.Orders.AsQueryable();
 
@@ -90,6 +110,14 @@ public class OrderRepository : IOrderRepository
 
         if (!string.IsNullOrEmpty(sourceModule))
             query = query.Where(o => o.SourceModule == sourceModule);
+
+        if (allowedUserIds is not null)
+        {
+            if (allowedUserIds.Count == 0)
+                return 0;
+
+            query = query.Where(o => allowedUserIds.Contains(o.UserId));
+        }
 
         return await query.CountAsync(ct);
     }

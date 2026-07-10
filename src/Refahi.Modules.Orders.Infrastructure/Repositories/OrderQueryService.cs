@@ -44,7 +44,10 @@ public class OrderQueryService : IOrderQueryService
                 o.Status.ToString(),
                 o.SourceModule,
                 o.Items.Count,
-                o.CreatedAt))
+                o.CreatedAt,
+                null,
+                null,
+                null))
             .ToListAsync(ct);
     }
 

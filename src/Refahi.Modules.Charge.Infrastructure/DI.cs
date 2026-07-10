@@ -19,12 +19,16 @@ public static class DI
     public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString();
+
         services.AddDbContext<ChargeDbContext>(options => options.UseNpgsql(connectionString,
             npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", ChargeDbContext.Schema)));
-        services.AddScoped<IChargeRequestRepository, ChargeRequestRepository>();
-        services.AddScoped<IChargeMarkupRuleRepository, ChargeMarkupRuleRepository>();
+
+        services.AddScoped<IChargeRequestRepository, ChargeRequestRepository>()
+                .AddScoped<IChargeMarkupRuleRepository, ChargeMarkupRuleRepository>()
+                .AddScoped<IChargeSecretProtector, ChargeSecretProtector>();
+
         services.AddDataProtection();
-        services.AddScoped<IChargeSecretProtector, ChargeSecretProtector>();
+
         services.Configure<EniacOptions>(configuration.GetSection(EniacOptions.Section));
         services.AddHttpClient<EniacApiClient>((sp, http) =>
         {
@@ -32,15 +36,21 @@ public static class DI
             http.BaseAddress = new Uri(string.IsNullOrWhiteSpace(options.BaseUrl) ? "https://localhost/" : options.BaseUrl);
             http.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 120));
         });
+
         services.AddScoped<IChargeProvider, EniacChargeProvider>();
+
         services.AddScoped<IChargeProviderResolver, ChargeProviderResolver>();
         services.AddHostedService<ChargeFulfillmentWorker>();
+
         return services;
     }
 
     public static void UseInfrastructure(this IServiceProvider provider, bool isDevelopment)
     {
         using var scope = provider.CreateScope();
-        scope.ServiceProvider.GetRequiredService<IDbTools>().ApplyMigrations<ChargeDbContext>();
+
+        scope.ServiceProvider
+             .GetRequiredService<IDbTools>()
+             .ApplyMigrations<ChargeDbContext>();
     }
 }
