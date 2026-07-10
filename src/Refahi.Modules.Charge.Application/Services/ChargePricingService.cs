@@ -6,7 +6,10 @@ namespace Refahi.Modules.Charge.Application.Services;
 public sealed class ChargePricingService
 {
     private readonly IChargeMarkupRuleRepository _rules;
-    public ChargePricingService(IChargeMarkupRuleRepository rules) => _rules = rules;
+    public ChargePricingService(IChargeMarkupRuleRepository rules)
+    {
+        _rules = rules;
+    }
 
     public async Task<ChargePriceResult> CalculateAsync(
         ChargeOperator @operator, 

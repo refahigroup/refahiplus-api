@@ -15,9 +15,10 @@ public static class DI
         services
             .AddMediatR(assembly)
             .AddValidatorsFromAssembly(assembly);
-        services.AddScoped<ChargePricingService>();
-        services.AddScoped<ChargeRequestQuoteService>();
-        services.AddScoped<ChargeFulfillmentProcessor>();
+
+        services.AddScoped<ChargePricingService>()
+                .AddScoped<ChargeRequestQuoteService>()
+                .AddScoped<ChargeFulfillmentProcessor>();
 
         return services;
     }

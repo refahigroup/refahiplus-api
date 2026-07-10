@@ -270,13 +270,17 @@ public sealed class ChargeFulfillmentProcessor
     }
 
     private static bool IsValidSuccess(ChargeRequest request, bool success, int code, string? rrn, IReadOnlyList<ProviderPinDto> pins)
-        => success && code == 0 && 
-            !string.IsNullOrWhiteSpace(rrn) && 
+    {
+        return 
+            success && 
+            code == 0 &&
+            !string.IsNullOrWhiteSpace(rrn) &&
             (
                 request.ServiceType != ChargeServiceType.PinCharge ||
                 (
-                    pins.Count == request.PinCount && 
+                    pins.Count == request.PinCount &&
                     pins.All(x => !string.IsNullOrWhiteSpace(x.Serial) && !string.IsNullOrWhiteSpace(x.Code))
                 )
             );
+    }
 }

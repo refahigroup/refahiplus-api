@@ -9,28 +9,54 @@ namespace Refahi.Modules.Charge.Infrastructure.Workers;
 
 public sealed class ChargeFulfillmentWorker : BackgroundService
 {
-    private readonly IServiceScopeFactory _scopes; private readonly ILogger<ChargeFulfillmentWorker> _logger;
-    public ChargeFulfillmentWorker(IServiceScopeFactory scopes, ILogger<ChargeFulfillmentWorker> logger) { _scopes = scopes; _logger = logger; }
+    private readonly IServiceScopeFactory _scopes;
+    private readonly ILogger<ChargeFulfillmentWorker> _logger;
+
+    public ChargeFulfillmentWorker(IServiceScopeFactory scopes, ILogger<ChargeFulfillmentWorker> logger)
+    {
+        _scopes = scopes;
+        _logger = logger;
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
-            try { await ProcessBatchAsync(stoppingToken); }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
-            catch (Exception ex) { _logger.LogError(ex, "Charge fulfillment worker cycle failed."); }
+            try
+            {
+                await ProcessBatchAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Charge fulfillment worker cycle failed.");
+            }
         }
     }
     private async Task ProcessBatchAsync(CancellationToken ct)
     {
         using var scope = _scopes.CreateScope();
+
         var repository = scope.ServiceProvider.GetRequiredService<IChargeRequestRepository>();
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
+
         var items = await repository.GetWorkItemsAsync(DateTime.UtcNow, 20, ct);
+
         foreach (var item in items)
         {
-            try { await sender.Send(new ReconcileChargeRequestCommand(item.Id), ct); }
-            catch (Exception ex) { _logger.LogError(ex, "Charge fulfillment item failed. ChargeRequestId={ChargeRequestId}", item.Id); }
+            try
+            {
+                await sender.Send(new ReconcileChargeRequestCommand(item.Id), ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Charge fulfillment item failed. ChargeRequestId={ChargeRequestId}", item.Id);
+            }
         }
     }
 }
