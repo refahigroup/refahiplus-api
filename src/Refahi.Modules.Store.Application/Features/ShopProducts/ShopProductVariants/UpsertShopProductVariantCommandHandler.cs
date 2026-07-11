@@ -50,7 +50,7 @@ public class UpsertShopProductVariantCommandHandler
                 request.DiscountedPriceMinor,
                 request.IsActive);
 
-        await _shopProductRepo.UpdateAsync(shopProduct, cancellationToken);
+        await _shopProductRepo.UpsertVariantOfferingAsync(shopProduct, offering, cancellationToken);
 
         return ShopProductVariantMapper.ToDto(offering, product);
     }

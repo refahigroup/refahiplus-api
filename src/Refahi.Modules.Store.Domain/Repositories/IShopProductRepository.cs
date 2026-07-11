@@ -28,5 +28,6 @@ public interface IShopProductRepository
         IReadOnlyList<Guid> productIds, Guid? shopId = null, CancellationToken ct = default);
     Task AddAsync(ShopProduct shopProduct, CancellationToken ct = default);
     Task AddVariantOfferingsAsync(ShopProduct shopProduct, IReadOnlyList<ShopProductVariant> offerings, CancellationToken ct = default);
+    Task UpsertVariantOfferingAsync(ShopProduct shopProduct, ShopProductVariant offering, CancellationToken ct = default);
     Task UpdateAsync(ShopProduct shopProduct, CancellationToken ct = default);
 }
