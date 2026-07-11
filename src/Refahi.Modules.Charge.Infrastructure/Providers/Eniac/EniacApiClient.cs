@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Headers;
@@ -9,13 +10,15 @@ namespace Refahi.Modules.Charge.Infrastructure.Providers.Eniac;
 public sealed class EniacApiClient
 {
     private readonly HttpClient _http; private readonly EniacOptions _options;
+    private readonly ILogger<EniacApiClient> _logger;
     private readonly SemaphoreSlim _tokenLock = new(1, 1);
     private string? _token; private DateTimeOffset _tokenExpiresAt;
 
-    public EniacApiClient(HttpClient http, IOptions<EniacOptions> options)
+    public EniacApiClient(HttpClient http, IOptions<EniacOptions> options, ILogger<EniacApiClient> logger)
     {
         _http = http;
         _options = options.Value;
+        _logger = logger;
     }
 
     public Task<JsonDocument> GetAsync(string path, CancellationToken ct) =>
@@ -49,12 +52,22 @@ public sealed class EniacApiClient
                     attempts = Math.Max(attempts, 2);
                     continue;
                 }
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseBody = await response.Content.ReadAsStringAsync(ct);
+
+                    _logger.LogError(
+                        "Eniac HTTP request failed. Method={Method} Path={Path} StatusCode={StatusCode} ReasonPhrase={ReasonPhrase} ResponseBody={ResponseBody}",
+                        method.Method,
+                        path,
+                        (int)response.StatusCode,
+                        response.ReasonPhrase,
+                        responseBody);
+
+                    throw new HttpRequestException($"Eniac HTTP {(int)response.StatusCode}", null, response.StatusCode);
+                }
 
                 var stream = await response.Content.ReadAsStreamAsync(ct);
-
-                if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException($"Eniac HTTP {(int)response.StatusCode}", null, response.StatusCode);
-
                 return await JsonDocument.ParseAsync(stream, cancellationToken: ct);
             }
             catch (Exception) when (safeToRetry && attempt < attempts && !ct.IsCancellationRequested)
