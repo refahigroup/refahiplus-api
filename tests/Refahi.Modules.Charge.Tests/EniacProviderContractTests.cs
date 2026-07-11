@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Charge.Application.Contracts.Providers;
 using Refahi.Modules.Charge.Domain.Enums;
@@ -38,7 +39,7 @@ public sealed class EniacProviderContractTests
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://provider.test") };
         var options = Options.Create(new EniacOptions { Username = "u", Password = "p" });
-        return new EniacChargeProvider(new EniacApiClient(http, options));
+        return new EniacChargeProvider(new EniacApiClient(http, options, NullLogger<EniacApiClient>.Instance));
     }
     private static HttpResponseMessage Json(string json) => new(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
 
