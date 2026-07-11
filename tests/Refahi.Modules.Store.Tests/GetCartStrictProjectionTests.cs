@@ -198,6 +198,7 @@ public sealed class GetCartStrictProjectionTests
         public Task<IReadOnlyDictionary<Guid, ShopProduct>> GetForProductsAsync(IReadOnlyList<Guid> productIds, Guid? shopId = null, CancellationToken ct = default) => throw new NotSupportedException();
         public Task AddAsync(ShopProduct shopProduct, CancellationToken ct = default) => throw new NotSupportedException();
         public Task AddVariantOfferingsAsync(ShopProduct shopProduct, IReadOnlyList<ShopProductVariant> offerings, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task UpsertVariantOfferingAsync(ShopProduct shopProduct, ShopProductVariant offering, CancellationToken ct = default) => throw new NotSupportedException();
         public Task UpdateAsync(ShopProduct shopProduct, CancellationToken ct = default) => throw new NotSupportedException();
     }
 

@@ -186,6 +186,34 @@ public class ShopProductRepository : IShopProductRepository
 
         await transaction.CommitAsync(ct);
     }
+
+    public async Task UpsertVariantOfferingAsync(
+        ShopProduct shopProduct,
+        ShopProductVariant offering,
+        CancellationToken ct = default)
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO store.shop_product_variants
+                (""Id"", ""ShopProductId"", ""ProductVariantId"", ""PriceMinor"", ""DiscountedPriceMinor"", ""IsActive"", ""IsDeleted"", ""CreatedAt"", ""UpdatedAt"")
+            VALUES
+                ({offering.Id}, {offering.ShopProductId}, {offering.ProductVariantId}, {offering.PriceMinor}, {offering.DiscountedPriceMinor}, {offering.IsActive}, false, {offering.CreatedAt}, {offering.UpdatedAt})
+            ON CONFLICT (""ShopProductId"", ""ProductVariantId"") WHERE ""IsDeleted"" = false
+            DO UPDATE SET
+                ""PriceMinor"" = EXCLUDED.""PriceMinor"",
+                ""DiscountedPriceMinor"" = EXCLUDED.""DiscountedPriceMinor"",
+                ""IsActive"" = EXCLUDED.""IsActive"",
+                ""UpdatedAt"" = EXCLUDED.""UpdatedAt""", ct);
+
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            UPDATE store.shop_products
+            SET ""UpdatedAt"" = {shopProduct.UpdatedAt}
+            WHERE ""Id"" = {shopProduct.Id} AND ""IsDeleted"" = false", ct);
+
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task UpdateAsync(ShopProduct shopProduct, CancellationToken ct = default)
     {
         if (_db.Entry(shopProduct).State == EntityState.Detached)
