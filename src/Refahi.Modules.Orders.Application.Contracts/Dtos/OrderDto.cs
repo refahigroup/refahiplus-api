@@ -20,7 +20,8 @@ public sealed record OrderDto(
     DateOnly? DeliveryDate,
     short DeliveryTimeSlot,
     List<OrderItemDto> Items,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string Currency = "IRR");
 
 public sealed record OrderSummaryDto(
     Guid Id,
@@ -32,4 +33,5 @@ public sealed record OrderSummaryDto(
     DateTimeOffset CreatedAt,
     string? FirstName,
     string? LastName,
-    string? MobileNumber);
+    string? MobileNumber,
+    string Currency = "IRR");

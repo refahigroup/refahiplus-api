@@ -13,5 +13,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Refahi.Modules.Wallets.Application.Contracts\Refahi.Modules.Wallets.Application.Contracts.csproj" />
 		<ProjectReference Include="..\Refahi.Modules.Wallets.Domain\Refahi.Modules.Wallets.Domain.csproj" />
+		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>
 </Project>

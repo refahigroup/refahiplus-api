@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Entities;
+using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 
@@ -190,6 +191,13 @@ public class ShopProductRepository : IShopProductRepository
         if (_db.Entry(shopProduct).State == EntityState.Detached)
             _db.ShopProducts.Update(shopProduct);
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new StoreConcurrencyException(ex);
+        }
     }
 }

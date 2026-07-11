@@ -56,7 +56,7 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
                 existing.SourceReferenceId,
                 existing.SagaId);
 
-            return new CreateOrderResponse(existing.Id, existing.OrderNumber, existing.FinalAmountMinor);
+            return new CreateOrderResponse(existing.Id, existing.OrderNumber, existing.FinalAmountMinor, existing.Currency);
         }
 
         if (IsHotelRequestOrder(request))
@@ -97,7 +97,7 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
             order.SourceReferenceId,
             order.SagaId);
 
-        return new CreateOrderResponse(order.Id, order.OrderNumber, order.FinalAmountMinor);
+        return new CreateOrderResponse(order.Id, order.OrderNumber, order.FinalAmountMinor, order.Currency);
     }
 
     private static List<OrderItemData> MapItems(CreateOrderCommand request)

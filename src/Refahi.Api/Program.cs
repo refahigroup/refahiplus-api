@@ -18,12 +18,21 @@ using Refahi.Modules.References.Api;
 using Refahi.Modules.Store.Api;
 using Refahi.Modules.SupplyChain.Api;
 using Refahi.Modules.Wallets.Api;
+using Refahi.Shared.Monetary;
 using System.Diagnostics;
 using System.Reflection;
 
 const string WebAppCorsPolicy = "WebApp";
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddOptions<MonetaryOptions>()
+    .Bind(builder.Configuration.GetSection(MonetaryOptions.SectionName))
+    .Validate(
+        options => SupportedCurrencies.IsSupported(options.PlatformCurrency),
+        "Monetary:PlatformCurrency must be IRR.")
+    .ValidateOnStart();
 
 // تنظیم Kestrel و IIS برای پشتیبانی از آپلود فایل‌های بزرگ (ویدیو تا ۲۰۰MB، batch تا ۱GB)
 builder.WebHost.ConfigureKestrel(options =>

@@ -7,6 +7,7 @@ using Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
 using Refahi.Modules.PaymentGateway.Domain.Aggregates;
 using Refahi.Modules.Wallets.Application.Contracts.Repositories;
+using Refahi.Shared.Monetary;
 using System;
 using System.Linq;
 using System.Threading;
@@ -36,12 +37,26 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
     public async Task<InitiatePaymentResponse> Handle(InitiatePaymentCommand command, CancellationToken ct)
     {
         var ownerWallets = await _walletReadRepository.GetByOwnerIdAsync(command.UserId, ct);
-        if (!ownerWallets.Any(w => w.WalletId == command.WalletId))
+        var wallet = ownerWallets.SingleOrDefault(w => w.WalletId == command.WalletId);
+        if (wallet is null)
         {
             throw new ValidationException([
                 new FluentValidation.Results.ValidationFailure(
                     nameof(command.WalletId),
                     "کیف‌پول انتخاب‌شده متعلق به کاربر جاری نیست.")
+            ]);
+        }
+
+        var currency = CurrencyCode.Parse(command.Currency).Value;
+        if (!string.Equals(wallet.Currency, currency, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "Payment gateway currency mismatch. Operation={Operation} WalletId={WalletId} ExpectedCurrency={ExpectedCurrency} ProvidedCurrency={ProvidedCurrency}",
+                "InitiatePayment", command.WalletId, wallet.Currency, currency);
+            throw new ValidationException([
+                new FluentValidation.Results.ValidationFailure(
+                    nameof(command.Currency),
+                    "ارز عملیات با ارز کیف‌پول مطابقت ندارد.")
             ]);
         }
 
@@ -56,7 +71,7 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
             userId: command.UserId,
             walletId: command.WalletId,
             amountMinor: command.AmountMinor,
-            currency: command.Currency,
+            currency: currency,
             provider: command.Provider,
             returnBaseUrl: command.ReturnBaseUrl,
             succeededCallbackUrl: command.SucceededCallbackUrl,

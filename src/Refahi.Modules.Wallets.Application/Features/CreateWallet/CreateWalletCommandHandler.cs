@@ -2,6 +2,7 @@ using MediatR;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CreateWallet;
 using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using Refahi.Modules.Wallets.Domain.Enums;
+using Refahi.Shared.Monetary;
 using System;
 using System.Linq;
 using System.Threading;
@@ -22,6 +23,7 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, C
 
     public async Task<CreateWalletResponse> Handle(CreateWalletCommand request, CancellationToken cancellationToken)
     {
+        var currency = CurrencyCode.Parse(request.Currency).Value;
         var walletTypeEnum = MapWalletType(request.WalletType);
         var walletTypeShort = (short)walletTypeEnum;
 
@@ -38,10 +40,10 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, C
             ownerId: request.OwnerId,
             walletType: walletTypeShort,
             walletStatus: (short)WalletStatus.Active,
-            currency: request.Currency.ToUpperInvariant(),
+            currency: currency,
             ct: cancellationToken);
 
-        return new CreateWalletResponse(walletId, request.WalletType.ToUpperInvariant(), request.Currency.ToUpperInvariant());
+        return new CreateWalletResponse(walletId, request.WalletType.ToUpperInvariant(), currency);
     }
 
     private static WalletType MapWalletType(string walletType) =>

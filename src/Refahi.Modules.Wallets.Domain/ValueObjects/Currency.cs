@@ -59,9 +59,7 @@ public sealed record Currency
     }
 
     /// <summary>
-    /// Common currencies (helper).
+    /// Platform currency.
     /// </summary>
-    public static Currency USD => new("USD");
-    public static Currency EUR => new("EUR");
     public static Currency IRR => new("IRR");
 }
