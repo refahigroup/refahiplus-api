@@ -37,4 +37,5 @@ public sealed record CreateOrderItemInput(
 public sealed record CreateOrderResponse(
     Guid OrderId,
     string OrderNumber,
-    long FinalAmountMinor);
+    long FinalAmountMinor,
+    string Currency = "IRR");

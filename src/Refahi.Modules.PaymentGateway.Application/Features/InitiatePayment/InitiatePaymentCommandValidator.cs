@@ -1,5 +1,6 @@
 using FluentValidation;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
+using Refahi.Shared.Monetary;
 
 namespace Refahi.Modules.PaymentGateway.Application.Features.InitiatePayment;
 
@@ -17,8 +18,8 @@ public class InitiatePaymentCommandValidator : AbstractValidator<InitiatePayment
             .GreaterThan(0).WithMessage("مبلغ باید بزرگتر از صفر باشد.");
 
         RuleFor(x => x.Currency)
-            .NotEmpty().WithMessage("واحد پول الزامی است.")
-            .Length(3).WithMessage("کد واحد پول باید ۳ کاراکتر باشد.");
+            .Must(SupportedCurrencies.IsSupported)
+            .WithMessage("تنها ارز پشتیبانی‌شده IRR است.");
 
         RuleFor(x => x.ReturnBaseUrl)
             .NotEmpty().WithMessage("آدرس بازگشت الزامی است.")

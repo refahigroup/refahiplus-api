@@ -1,6 +1,7 @@
 using MediatR;
 using Refahi.Modules.Store.Application.Contracts.Queries;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
+using Refahi.Shared.Monetary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,9 @@ public class SuggestWalletAllocationsQueryHandler : IRequestHandler<SuggestWalle
         SuggestWalletAllocationsQuery request, CancellationToken cancellationToken)
     {
         var wallets = await _mediator.Send(new GetMyWalletsQuery(request.UserId), cancellationToken);
+        wallets = wallets
+            .Where(w => string.Equals(w.Currency, SupportedCurrencies.IRR, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         var now = DateTimeOffset.UtcNow;
 

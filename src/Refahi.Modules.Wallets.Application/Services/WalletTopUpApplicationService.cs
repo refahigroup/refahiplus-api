@@ -3,6 +3,7 @@ using Refahi.Modules.Wallets.Application.Contracts.Features.TopUp;
 using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
 using Refahi.Modules.Wallets.Application.Contracts.Usecases;
 using Refahi.Modules.Wallets.Domain.Aggregates;
+using Refahi.Shared.Monetary;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,7 +40,7 @@ public sealed class WalletTopUpApplicationService : IWalletTopUpUsecase
         CancellationToken ct)
     {
         // 1) Business rule: Normalize currency through domain
-        var currency = Wallet.NormalizeCurrency(command.Currency);
+        var currency = CurrencyCode.Parse(command.Currency).Value;
 
         // 2) Delegate atomic execution to Infrastructure
         var atomicResult = await _atomicWriter.ExecuteTopUpAsync(

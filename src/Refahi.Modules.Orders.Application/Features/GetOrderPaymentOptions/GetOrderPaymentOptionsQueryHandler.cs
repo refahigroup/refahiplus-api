@@ -37,7 +37,7 @@ public sealed class GetOrderPaymentOptionsQueryHandler
 
         var now = DateTimeOffset.UtcNow;
         var options = wallets
-            .Select(w => BuildWalletOption(w, categoryCodes, now))
+            .Select(w => BuildWalletOption(w, order.Currency, categoryCodes, now))
             .ToList();
 
         var priorityWallets = options
@@ -84,13 +84,20 @@ public sealed class GetOrderPaymentOptionsQueryHandler
 
     private static OrderWalletOptionDto BuildWalletOption(
         WalletSummaryDto wallet,
+        string orderCurrency,
         IReadOnlyList<string> orderCategoryCodes,
         DateTimeOffset now)
     {
         var isAllowed = true;
         string? reason = null;
 
-        if (IsOrgCredit(wallet.WalletType))
+        if (!string.Equals(wallet.Currency, orderCurrency, StringComparison.OrdinalIgnoreCase))
+        {
+            isAllowed = false;
+            reason = "ارز کیف پول با ارز سفارش مطابقت ندارد.";
+        }
+
+        if (isAllowed && IsOrgCredit(wallet.WalletType))
         {
             if (wallet.ContractExpiresAt.HasValue && wallet.ContractExpiresAt <= now)
             {
