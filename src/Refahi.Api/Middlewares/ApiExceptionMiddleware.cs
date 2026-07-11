@@ -36,6 +36,11 @@ public sealed class ApiExceptionMiddleware
             _logger.LogWarning(ex, "Store domain rule violation");
             await HandleDomainExceptionAsync(context, ex.Message);
         }
+        catch (StoreConcurrencyException ex)
+        {
+            _logger.LogWarning(ex, "Store optimistic concurrency conflict");
+            await HandleConcurrencyExceptionAsync(context, ex.Message);
+        }
         catch (OrderDomainException ex)
         {
             _logger.LogWarning(ex, "Order domain rule violation");
@@ -90,6 +95,14 @@ public sealed class ApiExceptionMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
         var response = ApiResponseHelper.Error(message, statusCode: (int)HttpStatusCode.BadRequest);
+        return context.Response.WriteAsJsonAsync(response);
+    }
+
+    private static Task HandleConcurrencyExceptionAsync(HttpContext context, string message)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+        var response = ApiResponseHelper.Error(message, statusCode: (int)HttpStatusCode.Conflict);
         return context.Response.WriteAsJsonAsync(response);
     }
 

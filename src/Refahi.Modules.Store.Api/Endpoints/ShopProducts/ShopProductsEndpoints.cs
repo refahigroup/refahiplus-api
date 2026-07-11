@@ -227,6 +227,7 @@ public class UpsertShopProductVariantEndpoint : IEndpoint
         .RequireAuthorization("AdminOnly")
         .Produces<ApiResponse<ShopProductVariantDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status409Conflict)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden)
         .Produces(StatusCodes.Status404NotFound);
