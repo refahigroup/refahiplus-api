@@ -9,24 +9,21 @@ using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Products.GetProducts;
 
-public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ProductsPagedResponse>
+public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ProductsPagedResponse>
 {
     private readonly IStoreModuleCatalogService _catalog;
-    private readonly IShopProductRepository _shopProductRepo;
-    private readonly IProductRepository _productRepo;
+    private readonly IShopProductRepository _shopProductRepository;
     private readonly IMediator _mediator;
     private readonly IPathService _pathService;
 
     public GetProductsQueryHandler(
         IStoreModuleCatalogService catalog,
-        IShopProductRepository shopProductRepo,
-        IProductRepository productRepo,
+        IShopProductRepository shopProductRepository,
         IMediator mediator,
         IPathService pathService)
     {
         _catalog = catalog;
-        _shopProductRepo = shopProductRepo;
-        _productRepo = productRepo;
+        _shopProductRepository = shopProductRepository;
         _mediator = mediator;
         _pathService = pathService;
     }
@@ -34,50 +31,59 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, Product
     public async Task<ProductsPagedResponse> Handle(GetProductsQuery request, CancellationToken ct)
     {
         var empty = new ProductsPagedResponse([], request.PageNumber, request.PageSize, 0, 0);
-
-        var apIds = await _catalog.GetDisplayableAgreementProductIdsAsync(request.ModuleId, ct);
-        if (apIds.Count == 0)
+        var agreementProductIds = await _catalog.GetDisplayableAgreementProductIdsAsync(request.ModuleId, ct);
+        if (agreementProductIds.Count == 0)
             return empty;
 
-        var (productIds, total) = await _shopProductRepo
-            .GetDisplayableProductIdsByAgreementProductIdsAsync(
-                apIds, request.ShopId, request.PageNumber, request.PageSize, ct);
+        var agreementProducts = await _mediator.Send(
+            new GetAgreementProductsByIdsQuery(agreementProductIds), ct);
 
-        if (productIds.Count == 0)
-            return empty;
+        var stockBasedIds = agreementProducts.Values
+            .Where(x => x.SalesModel == (short)SalesModel.StockBased)
+            .Select(x => x.Id)
+            .ToList();
+        var sessionBasedIds = agreementProducts.Values
+            .Where(x => x.SalesModel == (short)SalesModel.SessionBased)
+            .Select(x => x.Id)
+            .ToList();
 
-        var products = await _productRepo.GetByIdsAsync(productIds, ct);
-        var productMap = products.ToDictionary(p => p.Id);
+        var (offerings, total) = await _shopProductRepository.GetDisplayableVariantOfferingsAsync(
+            stockBasedIds,
+            sessionBasedIds,
+            request.SearchQuery,
+            request.Sort,
+            request.PageNumber,
+            request.PageSize,
+            ct);
 
-        // Batch enrichment — eliminates N+1 cross-module calls
-        var usedApIds = products.Select(p => p.AgreementProductId).Distinct().ToList();
-        var apDtos = await _mediator.Send(new GetAgreementProductsByIdsQuery(usedApIds), ct);
-        var shopProducts = await _shopProductRepo.GetForProductsAsync(productIds, request.ShopId, ct);
+        var data = offerings.Select(x =>
+        {
+            agreementProducts.TryGetValue(x.AgreementProductId, out var agreementProduct);
+            var discountPercent = x.DiscountedPriceMinor.HasValue
+                ? (int?)Math.Round((x.PriceMinor - x.DiscountedPriceMinor.Value) * 100m / x.PriceMinor)
+                : null;
 
-        // Preserve pagination order
-        var dtos = productIds
-            .Where(id => productMap.ContainsKey(id))
-            .Select(id =>
-            {
-                var p = productMap[id];
-                apDtos.TryGetValue(p.AgreementProductId, out var ap);
-                shopProducts.TryGetValue(p.Id, out var sp);
-                var mainImage = p.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
-                             ?? p.Images.FirstOrDefault()?.ImageUrl;
-                var mainImageUrl = mainImage is null ? null : _pathService.MakeAbsoluteMediaUrl(mainImage);
-                return new ProductSummaryDto(
-                    p.Id, p.Title, p.Slug,
-                    sp?.Price ?? 0,
-                    sp?.DiscountedPrice ?? 0,
-                    ap is not null ? ((ProductType)ap.ProductType).ToString() : string.Empty,
-                    ap is not null ? ((DeliveryType)ap.DeliveryType).ToString() : string.Empty,
-                    ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
-                    mainImageUrl,
-                    p.IsAvailable,
-                    ap?.CommissionPercent ?? 0);
-            });
+            return new ProductOfferingSummaryDto(
+                x.ProductId,
+                x.ProductVariantId,
+                x.ShopProductVariantId,
+                x.ShopId,
+                x.ProductTitle,
+                x.ProductSlug,
+                x.VariantLabel,
+                x.ShopName,
+                x.ShopSlug,
+                x.PriceMinor,
+                x.DiscountedPriceMinor,
+                discountPercent,
+                agreementProduct is null ? string.Empty : ((ProductType)agreementProduct.ProductType).ToString(),
+                agreementProduct is null ? string.Empty : ((DeliveryType)agreementProduct.DeliveryType).ToString(),
+                agreementProduct is null ? string.Empty : ((SalesModel)agreementProduct.SalesModel).ToString(),
+                x.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(x.ImageUrl),
+                true);
+        }).ToList();
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
-        return new ProductsPagedResponse(dtos, request.PageNumber, request.PageSize, total, totalPages);
+        return new ProductsPagedResponse(data, request.PageNumber, request.PageSize, total, totalPages);
     }
 }

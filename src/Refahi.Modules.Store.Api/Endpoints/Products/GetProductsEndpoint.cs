@@ -17,9 +17,10 @@ public class GetProductsEndpoint : IEndpoint
 
         routes.MapGet("/{moduleSlug}/products", async (
             string moduleSlug,
-            Guid? shopId,
-            int pageNumber,
-            int pageSize,
+            string? q,
+            string? sort,
+            int? pageNumber,
+            int? pageSize,
             IModuleResolver moduleResolver,
             IMediator mediator,
             CancellationToken ct) =>
@@ -30,9 +31,10 @@ public class GetProductsEndpoint : IEndpoint
 
             var query = new GetProductsQuery(
                 ModuleId: moduleId.Value,
-                ShopId: shopId,
-                PageNumber: pageNumber > 0 ? pageNumber : 1,
-                PageSize: pageSize > 0 ? pageSize : 20);
+                SearchQuery: q,
+                Sort: string.IsNullOrWhiteSpace(sort) ? "newest" : sort,
+                PageNumber: pageNumber ?? 1,
+                PageSize: pageSize ?? 30);
 
             var result = await mediator.Send(query, ct);
             return Results.Ok(ApiResponseHelper.SuccessPaginated(
@@ -43,7 +45,7 @@ public class GetProductsEndpoint : IEndpoint
         })
         .WithName("Store.GetProducts")
         .WithTags("Store.Products")
-        .Produces<PaginatedResponse<ProductSummaryDto>>(StatusCodes.Status200OK)
+        .Produces<PaginatedResponse<ProductOfferingSummaryDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
         // Public endpoint
     }

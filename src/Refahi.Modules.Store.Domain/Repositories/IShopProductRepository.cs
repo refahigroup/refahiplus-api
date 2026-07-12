@@ -5,6 +5,14 @@ namespace Refahi.Modules.Store.Domain.Repositories;
 
 public interface IShopProductRepository
 {
+    Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableVariantOfferingsAsync(
+        IReadOnlyList<Guid> stockBasedAgreementProductIds,
+        IReadOnlyList<Guid> sessionBasedAgreementProductIds,
+        string? searchQuery,
+        string sort,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
     Task<ShopProduct?> GetAsync(Guid shopId, Guid productId, CancellationToken ct = default);
     Task<ShopProduct?> GetWithVariantOfferingsAsync(Guid shopId, Guid productId, CancellationToken ct = default);
     Task<(List<ShopProduct> Items, int Total)> GetByShopAsync(
@@ -31,3 +39,19 @@ public interface IShopProductRepository
     Task UpsertVariantOfferingAsync(ShopProduct shopProduct, ShopProductVariant offering, CancellationToken ct = default);
     Task UpdateAsync(ShopProduct shopProduct, CancellationToken ct = default);
 }
+
+public sealed record ProductOfferingReadModel(
+    Guid ProductId,
+    Guid AgreementProductId,
+    Guid ProductVariantId,
+    Guid ShopProductVariantId,
+    Guid ShopId,
+    string ProductTitle,
+    string ProductSlug,
+    string ShopName,
+    string ShopSlug,
+    string VariantLabel,
+    string? ImageUrl,
+    long PriceMinor,
+    long? DiscountedPriceMinor,
+    DateTimeOffset CreatedAt);

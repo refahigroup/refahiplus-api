@@ -187,6 +187,7 @@ public sealed class GetCartStrictProjectionTests
 
     private sealed class FakeShopProductRepository : IShopProductRepository
     {
+        public Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableVariantOfferingsAsync(IReadOnlyList<Guid> stockBasedAgreementProductIds, IReadOnlyList<Guid> sessionBasedAgreementProductIds, string? searchQuery, string sort, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ShopProduct?> GetAsync(Guid shopId, Guid productId, CancellationToken ct = default) => Task.FromResult<ShopProduct?>(null);
         public Task<ShopProduct?> GetWithVariantOfferingsAsync(Guid shopId, Guid productId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<ShopProduct> Items, int Total)> GetByShopAsync(Guid shopId, bool? isActive, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
