@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Entities;
 using Refahi.Modules.Store.Domain.Exceptions;
+using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 
@@ -12,6 +13,136 @@ public class ShopProductRepository : IShopProductRepository
     private readonly StoreDbContext _db;
 
     public ShopProductRepository(StoreDbContext db) => _db = db;
+
+    public async Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableVariantOfferingsAsync(
+        IReadOnlyList<Guid> stockBasedAgreementProductIds,
+        IReadOnlyList<Guid> sessionBasedAgreementProductIds,
+        string? searchQuery,
+        string sort,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var allowedIds = stockBasedAgreementProductIds
+            .Concat(sessionBasedAgreementProductIds)
+            .Distinct()
+            .ToList();
+
+        if (allowedIds.Count == 0)
+            return ([], 0);
+
+        var normalizedSearch = searchQuery?.Trim();
+        var query =
+            from offering in _db.ShopProductVariants.AsNoTracking()
+            join shopProduct in _db.ShopProducts.AsNoTracking() on offering.ShopProductId equals shopProduct.Id
+            join product in _db.Products.AsNoTracking() on shopProduct.ProductId equals product.Id
+            join variant in _db.ProductVariants.AsNoTracking() on offering.ProductVariantId equals variant.Id
+            join shop in _db.Shops.AsNoTracking() on shopProduct.ShopId equals shop.Id
+            where allowedIds.Contains(product.AgreementProductId)
+                  && shop.Status == ShopStatus.Active
+                  && shopProduct.IsActive && !shopProduct.IsDeleted
+                  && offering.IsActive && !offering.IsDeleted
+                  && product.IsAvailable && !product.IsDeleted
+                  && variant.IsAvailable
+                  && offering.PriceMinor > 0
+                  && (!offering.DiscountedPriceMinor.HasValue
+                      || (offering.DiscountedPriceMinor.Value > 0
+                          && offering.DiscountedPriceMinor.Value < offering.PriceMinor))
+                  && ((stockBasedAgreementProductIds.Contains(product.AgreementProductId) && variant.StockCount > 0)
+                      || (sessionBasedAgreementProductIds.Contains(product.AgreementProductId)
+                          && (variant.CapacityType == VariantCapacityType.Unlimited || variant.Capacity > 0)))
+            select new
+            {
+                Offering = offering,
+                ShopProduct = shopProduct,
+                Product = product,
+                Variant = variant,
+                Shop = shop,
+                EffectivePrice = offering.DiscountedPriceMinor ?? offering.PriceMinor
+            };
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            query = query.Where(x =>
+                x.Product.Title.Contains(normalizedSearch)
+                || x.Shop.Name.Contains(normalizedSearch)
+                || _db.ProductVariantCombinations.Any(c =>
+                    c.ProductVariantId == x.Variant.Id
+                    && _db.VariantAttributeValues.Any(v =>
+                        v.Id == c.VariantAttributeValueId && v.Value.Contains(normalizedSearch))));
+        }
+
+        var total = await query.CountAsync(ct);
+        query = sort switch
+        {
+            "price-asc" => query.OrderBy(x => x.EffectivePrice).ThenBy(x => x.Offering.Id),
+            "price-desc" => query.OrderByDescending(x => x.EffectivePrice).ThenBy(x => x.Offering.Id),
+            _ => query.OrderByDescending(x => x.Offering.CreatedAt).ThenBy(x => x.Offering.Id)
+        };
+
+        var rows = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new
+            {
+                ProductId = x.Product.Id,
+                x.Product.AgreementProductId,
+                ProductVariantId = x.Variant.Id,
+                ShopProductVariantId = x.Offering.Id,
+                ShopId = x.Shop.Id,
+                ProductTitle = x.Product.Title,
+                ProductSlug = x.Product.Slug,
+                ShopName = x.Shop.Name,
+                ShopSlug = x.Shop.Slug,
+                VariantImageUrl = x.Variant.ImageUrl,
+                x.Offering.PriceMinor,
+                x.Offering.DiscountedPriceMinor,
+                x.Offering.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        var variantIds = rows.Select(x => x.ProductVariantId).ToList();
+        var productIds = rows.Select(x => x.ProductId).Distinct().ToList();
+
+        var labels = await (
+            from combination in _db.ProductVariantCombinations.AsNoTracking()
+            join attribute in _db.VariantAttributes.AsNoTracking() on combination.VariantAttributeId equals attribute.Id
+            join value in _db.VariantAttributeValues.AsNoTracking() on combination.VariantAttributeValueId equals value.Id
+            where variantIds.Contains(combination.ProductVariantId)
+            orderby attribute.SortOrder, value.SortOrder
+            select new { combination.ProductVariantId, attribute.Name, value.Value })
+            .ToListAsync(ct);
+
+        var labelMap = labels
+            .GroupBy(x => x.ProductVariantId)
+            .ToDictionary(g => g.Key, g => string.Join("، ", g.Select(x => $"{x.Name}: {x.Value}")));
+
+        var imageMap = await _db.ProductImages.AsNoTracking()
+            .Where(x => productIds.Contains(x.ProductId))
+            .OrderByDescending(x => x.IsMain)
+            .ThenBy(x => x.SortOrder)
+            .GroupBy(x => x.ProductId)
+            .Select(g => new { ProductId = g.Key, ImageUrl = g.Select(x => x.ImageUrl).FirstOrDefault() })
+            .ToDictionaryAsync(x => x.ProductId, x => x.ImageUrl, ct);
+
+        var items = rows.Select(x => new ProductOfferingReadModel(
+            x.ProductId,
+            x.AgreementProductId,
+            x.ProductVariantId,
+            x.ShopProductVariantId,
+            x.ShopId,
+            x.ProductTitle,
+            x.ProductSlug,
+            x.ShopName,
+            x.ShopSlug,
+            labelMap.GetValueOrDefault(x.ProductVariantId) ?? string.Empty,
+            x.VariantImageUrl ?? imageMap.GetValueOrDefault(x.ProductId),
+            x.PriceMinor,
+            x.DiscountedPriceMinor,
+            x.CreatedAt)).ToList();
+
+        return (items, total);
+    }
 
     public Task<ShopProduct?> GetAsync(Guid shopId, Guid productId, CancellationToken ct = default)
         => _db.ShopProducts

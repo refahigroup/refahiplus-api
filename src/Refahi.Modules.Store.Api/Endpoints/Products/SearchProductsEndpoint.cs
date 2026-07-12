@@ -43,7 +43,7 @@ public class SearchProductsEndpoint : IEndpoint
         })
         .WithName("Store.SearchProducts")
         .WithTags("Store.Products")
-        .Produces<PaginatedResponse<ProductSummaryDto>>(StatusCodes.Status200OK)
+        .Produces<PaginatedResponse<ProductOfferingSummaryDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
         // Public endpoint
     }
