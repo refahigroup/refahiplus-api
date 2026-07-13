@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Store.Application\Refahi.Modules.Store.Application.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Store.Domain\Refahi.Modules.Store.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Refahi.Modules.Store.Infrastructure\Refahi.Modules.Store.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.SupplyChain.Application.Contracts\Refahi.Modules.SupplyChain.Application.Contracts.csproj" />
   </ItemGroup>
 </Project>

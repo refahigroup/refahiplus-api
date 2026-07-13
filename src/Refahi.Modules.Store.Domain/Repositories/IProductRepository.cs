@@ -8,6 +8,10 @@ public interface IProductRepository
     Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Product?> GetByIdForAdminAsync(Guid id, CancellationToken ct = default);
     Task<Product?> GetBySlugAsync(string slug, CancellationToken ct = default);
+    Task<Product?> GetDisplayableBySlugAsync(
+        string slug,
+        IReadOnlyList<Guid> allowedAgreementProductIds,
+        CancellationToken ct = default);
     Task<(List<Product> Items, int Total)> GetPagedAsync(
         Guid? shopId, int page, int pageSize, CancellationToken ct = default);
     Task<(List<Product> Items, int Total)> GetPagedAdminAsync(

@@ -22,6 +22,23 @@ public class ProductRepository : IProductRepository
         => QueryWithDetails()
             .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted, ct);
 
+    public Task<Product?> GetDisplayableBySlugAsync(
+        string slug,
+        IReadOnlyList<Guid> allowedAgreementProductIds,
+        CancellationToken ct = default)
+    {
+        if (allowedAgreementProductIds.Count == 0)
+            return Task.FromResult<Product?>(null);
+
+        return QueryWithDetails()
+            .FirstOrDefaultAsync(
+                p => p.Slug == slug
+                     && !p.IsDeleted
+                     && p.IsAvailable
+                     && allowedAgreementProductIds.Contains(p.AgreementProductId),
+                ct);
+    }
+
     public async Task<(List<Product> Items, int Total)> GetPagedAsync(
         Guid? shopId, int page, int pageSize, CancellationToken ct = default)
     {

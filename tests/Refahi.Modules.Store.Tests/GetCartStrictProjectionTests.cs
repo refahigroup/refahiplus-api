@@ -142,6 +142,7 @@ public sealed class GetCartStrictProjectionTests
 
         public Task<Product?> GetByIdForAdminAsync(Guid id, CancellationToken ct = default) => GetByIdAsync(id, ct);
         public Task<Product?> GetBySlugAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Product?> GetDisplayableBySlugAsync(string slug, IReadOnlyList<Guid> allowedAgreementProductIds, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<Product> Items, int Total)> GetPagedAsync(Guid? shopId, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<Product> Items, int Total)> GetPagedAdminAsync(Guid? shopId, bool? isDeleted, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<Product> Items, int Total)> SearchAsync(string query, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
@@ -187,9 +188,10 @@ public sealed class GetCartStrictProjectionTests
 
     private sealed class FakeShopProductRepository : IShopProductRepository
     {
-        public Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableVariantOfferingsAsync(IReadOnlyList<Guid> stockBasedAgreementProductIds, IReadOnlyList<Guid> sessionBasedAgreementProductIds, string? searchQuery, string sort, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableProductsAsync(IReadOnlyList<Guid> stockBasedAgreementProductIds, IReadOnlyList<Guid> sessionBasedAgreementProductIds, DateOnly today, string? searchQuery, string sort, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ShopProduct?> GetAsync(Guid shopId, Guid productId, CancellationToken ct = default) => Task.FromResult<ShopProduct?>(null);
         public Task<ShopProduct?> GetWithVariantOfferingsAsync(Guid shopId, Guid productId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ShopProduct?> GetBestDisplayableForProductAsync(Guid productId, SalesModel salesModel, DateOnly today, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<ShopProduct> Items, int Total)> GetByShopAsync(Guid shopId, bool? isActive, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<ShopProduct> Items, int Total)> GetByProductAsync(Guid productId, bool? isActive, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IReadOnlyList<ShopProduct>> ListForVariantBackfillAsync(Guid? shopId = null, Guid? productId = null, CancellationToken ct = default) => throw new NotSupportedException();

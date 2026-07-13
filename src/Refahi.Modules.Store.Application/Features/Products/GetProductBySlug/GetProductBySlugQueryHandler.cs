@@ -17,6 +17,8 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
     private readonly IReviewRepository _reviewRepo;
     private readonly IMediator _mediator;
     private readonly IPathService _pathService;
+    private readonly IStoreModuleCatalogService _catalog;
+    private readonly TimeProvider _timeProvider;
 
     public GetProductBySlugQueryHandler(
         IProductRepository productRepo,
@@ -24,7 +26,9 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
         IShopProductRepository shopProductRepo,
         IReviewRepository reviewRepo,
         IMediator mediator,
-        IPathService pathService)
+        IPathService pathService,
+        IStoreModuleCatalogService catalog,
+        TimeProvider timeProvider)
     {
         _productRepo = productRepo;
         _shopRepo = shopRepo;
@@ -32,18 +36,36 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
         _reviewRepo = reviewRepo;
         _mediator = mediator;
         _pathService = pathService;
+        _catalog = catalog;
+        _timeProvider = timeProvider;
     }
 
     public async Task<ProductDetailDto?> Handle(GetProductBySlugQuery request, CancellationToken cancellationToken)
     {
-        var product = await _productRepo.GetBySlugAsync(request.Slug, cancellationToken);
-        if (product is null || product.IsDeleted)
+        var allowedAgreementProductIds = await _catalog.GetDisplayableAgreementProductIdsAsync(
+            request.ModuleId,
+            cancellationToken);
+        var product = await _productRepo.GetDisplayableBySlugAsync(
+            request.Slug,
+            allowedAgreementProductIds,
+            cancellationToken);
+        if (product is null)
             return null;
 
         var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
-        var salesModel = ap is null ? (SalesModel?)null : (SalesModel)ap.SalesModel;
-        var sp = await ResolveShopProductAsync(request, product.Id, cancellationToken);
-        if (HasExplicitShopContext(request) && sp is null)
+        if (ap is null)
+            return null;
+
+        var salesModel = (SalesModel)ap.SalesModel;
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime);
+        var sp = await ResolveShopProductAsync(request, product.Id, salesModel, today, cancellationToken);
+        if (sp is null)
+            return null;
+
+        var availableSessions = salesModel == SalesModel.SessionBased
+            ? product.Sessions.Where(s => s.Date >= today && s.IsAvailable).ToList()
+            : [];
+        if (salesModel == SalesModel.SessionBased && availableSessions.Count == 0)
             return null;
 
         var averageRating = await _reviewRepo.GetAverageRatingAsync(product.Id, cancellationToken);
@@ -54,30 +76,52 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             .Select(i => new ProductImageDto(i.Id, _pathService.MakeAbsoluteMediaUrl(i.ImageUrl), i.IsMain, i.SortOrder))
             .ToList();
 
+        var displayableVariants = product.Variants
+            .Select(variant => new
+            {
+                Variant = variant,
+                ShopPrice = ResolveVariantShopPrice(sp, variant)
+            })
+            .Where(x => x.ShopPrice is not null && IsVariantDisplayable(x.Variant, salesModel))
+            .Select(x => (x.Variant, ShopPrice: x.ShopPrice!))
+            .ToList();
+
+        if (displayableVariants.Count == 0)
+            return null;
+
+        var usedCombinations = displayableVariants
+            .SelectMany(x => x.Variant.Combinations)
+            .ToList();
+        var usedAttributeIds = usedCombinations.Select(c => c.VariantAttributeId).ToHashSet();
+        var usedValueIds = usedCombinations.Select(c => c.VariantAttributeValueId).ToHashSet();
+
         var variantAttributes = product.VariantAttributes
+            .Where(a => usedAttributeIds.Contains(a.Id))
             .OrderBy(a => a.SortOrder)
             .Select(a => new VariantAttributeDto(
                 a.Id,
                 a.Name,
                 a.SortOrder,
                 a.Values
+                    .Where(v => usedValueIds.Contains(v.Id))
                     .OrderBy(v => v.SortOrder)
                     .Select(v => new VariantAttributeValueDto(v.Id, v.Value, v.SortOrder))
                     .ToList()))
             .ToList();
 
-        var variants = product.Variants
-            .Select(v =>
+        var variants = displayableVariants
+            .Select(x =>
             {
-                var shopPrice = ResolveVariantShopPrice(sp, v);
+                var v = x.Variant;
+                var shopPrice = x.ShopPrice;
 
                 return new ProductVariantDto(
                     v.Id, v.SKU,
                     v.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(v.ImageUrl),
                     v.StockCount,
-                    shopPrice.PriceMinor ?? v.PriceMinor, shopPrice.DiscountedPriceMinor ?? v.DiscountedPriceMinor,
+                    shopPrice.PriceMinor, shopPrice.DiscountedPriceMinor,
                     v.FromDate, v.ToDate, v.CapacityType, v.Capacity, v.RequiresUsageDate,
-                    (salesModel.HasValue ? v.IsAvailableFor(salesModel.Value) : v.IsAvailable) && shopPrice.IsActiveInShop,
+                    true,
                     v.Combinations.Select(c =>
                     {
                         var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
@@ -101,10 +145,9 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             .ToList();
 
         List<ProductSessionDto>? sessions = null;
-        if (ap is not null && (SalesModel)ap.SalesModel == SalesModel.SessionBased)
+        if (salesModel == SalesModel.SessionBased)
         {
-            sessions = product.Sessions
-                .Where(s => s.IsAvailable)
+            sessions = availableSessions
                 .Select(s => new ProductSessionDto(
                     s.Id, s.Date.ToString("yyyy-MM-dd"),
                     s.StartTime.ToString("HH:mm"), s.EndTime.ToString("HH:mm"),
@@ -113,14 +156,21 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
                 .ToList();
         }
 
+        var representativePrice = displayableVariants
+            .OrderBy(x => x.ShopPrice.DiscountedPriceMinor ?? x.ShopPrice.PriceMinor)
+            .ThenByDescending(x => x.ShopPrice.OfferingCreatedAt)
+            .ThenBy(x => x.ShopPrice.ShopProductVariantId)
+            .First()
+            .ShopPrice;
+
         return new ProductDetailDto(
             product.Id, product.AgreementProductId,
             product.Title, product.Slug, product.Description,
-            sp?.Price ?? 0, sp?.DiscountedPrice ?? 0,
-            ap is not null ? ((ProductType)ap.ProductType).ToString() : string.Empty,
-            ap is not null ? ((DeliveryType)ap.DeliveryType).ToString() : string.Empty,
-            ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
-            ap?.CategoryId, null,
+            representativePrice.PriceMinor, representativePrice.DiscountedPriceMinor ?? 0,
+            ((ProductType)ap.ProductType).ToString(),
+            ((DeliveryType)ap.DeliveryType).ToString(),
+            salesModel.ToString(),
+            ap.CategoryId, null,
             product.IsAvailable, product.StockCount,
             images, variants, variantAttributes, specifications, sessions,
             averageRating, reviewTotal,
@@ -130,6 +180,8 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
     private async Task<Refahi.Modules.Store.Domain.Aggregates.ShopProduct?> ResolveShopProductAsync(
         GetProductBySlugQuery request,
         Guid productId,
+        SalesModel salesModel,
+        DateOnly today,
         CancellationToken cancellationToken)
     {
         var shopId = request.ShopId == Guid.Empty ? null : request.ShopId;
@@ -167,62 +219,55 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
                 : null;
         }
 
-        // Legacy fallback for older product-detail callers that do not pass shop context.
-        var spSummary = (await _shopProductRepo.GetByProductAsync(productId, isActive: true, 1, 1, cancellationToken))
-            .Items
-            .FirstOrDefault();
-
-        return spSummary is null
-            ? null
-            : await _shopProductRepo.GetWithVariantOfferingsAsync(spSummary.ShopId, productId, cancellationToken);
+        // Legacy fallback for callers without shop context: use the shop carrying the
+        // cheapest currently displayable variant.
+        return await _shopProductRepo.GetBestDisplayableForProductAsync(
+            productId,
+            salesModel,
+            today,
+            cancellationToken);
     }
 
-    private static bool HasExplicitShopContext(GetProductBySlugQuery request)
-        => request.ShopId.HasValue || !string.IsNullOrWhiteSpace(request.ShopSlug);
+    private static bool IsVariantDisplayable(
+        Refahi.Modules.Store.Domain.Entities.ProductVariant variant,
+        SalesModel salesModel)
+        => salesModel switch
+        {
+            SalesModel.StockBased => variant.IsAvailable && variant.StockCount > 0,
+            SalesModel.SessionBased => variant.IsAvailableFor(salesModel),
+            _ => false
+        };
 
-    private static VariantShopPrice ResolveVariantShopPrice(
+    private static VariantShopPrice? ResolveVariantShopPrice(
         Refahi.Modules.Store.Domain.Aggregates.ShopProduct? shopProduct,
         Refahi.Modules.Store.Domain.Entities.ProductVariant variant)
     {
         var offering = shopProduct?.VariantOfferings
             .FirstOrDefault(o => o.ProductVariantId == variant.Id && !o.IsDeleted);
 
-        if (offering is null)
-        {
-            return new VariantShopPrice(
-                null,
-                null,
-                null,
-                null,
-                IsActiveInShop: false,
-                UsesShopSpecificPrice: false);
-        }
-
-        if (!offering.IsActive)
-        {
-            return new VariantShopPrice(
-                null,
-                null,
-                offering.Id,
-                null,
-                IsActiveInShop: false,
-                UsesShopSpecificPrice: true);
-        }
+        if (offering is null
+            || !offering.IsActive
+            || offering.PriceMinor <= 0
+            || offering.DiscountedPriceMinor is <= 0
+            || offering.DiscountedPriceMinor >= offering.PriceMinor)
+            return null;
 
         return new VariantShopPrice(
             offering.PriceMinor,
             offering.DiscountedPriceMinor,
             offering.Id,
             StorePriceSource.ShopProductVariant.ToString(),
-            offering.IsActive,
-            UsesShopSpecificPrice: true);
+            IsActiveInShop: true,
+            UsesShopSpecificPrice: true,
+            offering.CreatedAt);
     }
 
     private sealed record VariantShopPrice(
-        long? PriceMinor,
+        long PriceMinor,
         long? DiscountedPriceMinor,
-        Guid? ShopProductVariantId,
+        Guid ShopProductVariantId,
         string? PriceSource,
         bool IsActiveInShop,
-        bool UsesShopSpecificPrice);
+        bool UsesShopSpecificPrice,
+        DateTimeOffset OfferingCreatedAt);
 }
