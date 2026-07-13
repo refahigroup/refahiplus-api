@@ -15,6 +15,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Refahi.Modules.Identity.Application.Contracts\Refahi.Modules.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Refahi.Modules.Identity.Application\Refahi.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\Refahi.Modules.Identity.Domain\Refahi.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Store.Application\Refahi.Modules.Store.Application.csproj" />

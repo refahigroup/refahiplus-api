@@ -5,17 +5,26 @@ using Refahi.Modules.Identity.Application.Contracts.Models;
 using Refahi.Modules.Identity.Application.Features.Addresses.Mapping;
 using Refahi.Modules.Identity.Domain.Entities;
 using Refahi.Modules.Identity.Domain.Repositories;
+using Refahi.Modules.Identity.Application.Features.Addresses;
 
 namespace Refahi.Modules.Identity.Application.Features.Addresses.AddAddress;
 
 public class AddAddressCommandHandler : IRequestHandler<AddAddressCommand, UserAddressDto>
 {
     private readonly IUserAddressRepository _repo;
+    private readonly IMediator _mediator;
 
-    public AddAddressCommandHandler(IUserAddressRepository repo) => _repo = repo;
+    public AddAddressCommandHandler(IUserAddressRepository repo, IMediator mediator)
+    {
+        _repo = repo;
+        _mediator = mediator;
+    }
 
     public async Task<UserAddressDto> Handle(AddAddressCommand request, CancellationToken cancellationToken)
     {
+        await AddressLocationValidation.EnsureValidAsync(
+            _mediator, request.ProvinceId, request.CityId, cancellationToken);
+
         // تعیین خودکار IsDefault: اگر کاربر هیچ آدرسی ندارد، اولین آدرس را پیش‌فرض می‌کنیم
         var existing = await _repo.GetByUserIdAsync(request.UserId, cancellationToken);
         var makeDefault = request.IsDefault || existing.Count == 0;

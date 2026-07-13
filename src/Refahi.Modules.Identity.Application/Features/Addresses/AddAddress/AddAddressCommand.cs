@@ -1,6 +1,7 @@
 using System;
 using MediatR;
 using Refahi.Modules.Identity.Application.Contracts.Models;
+using Refahi.Modules.Identity.Application.Features.Addresses;
 
 namespace Refahi.Modules.Identity.Application.Features.Addresses.AddAddress;
 
@@ -21,4 +22,4 @@ public sealed record AddAddressCommand(
     string? Unit,
     double? Latitude,
     double? Longitude,
-    bool IsDefault) : IRequest<UserAddressDto>;
+    bool IsDefault) : IRequest<UserAddressDto>, IAddressInput;

@@ -1,6 +1,7 @@
 using System;
 using MediatR;
 using Refahi.Modules.Identity.Application.Contracts.Models;
+using Refahi.Modules.Identity.Application.Features.Addresses;
 
 namespace Refahi.Modules.Identity.Application.Features.Addresses.UpdateAddress;
 
@@ -17,4 +18,4 @@ public sealed record UpdateAddressCommand(
     string? Plate,
     string? Unit,
     double? Latitude,
-    double? Longitude) : IRequest<UserAddressDto>;
+    double? Longitude) : IRequest<UserAddressDto>, IAddressInput;
