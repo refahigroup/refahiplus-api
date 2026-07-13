@@ -14,9 +14,10 @@ public class ShopProductRepository : IShopProductRepository
 
     public ShopProductRepository(StoreDbContext db) => _db = db;
 
-    public async Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableVariantOfferingsAsync(
+    public async Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableProductsAsync(
         IReadOnlyList<Guid> stockBasedAgreementProductIds,
         IReadOnlyList<Guid> sessionBasedAgreementProductIds,
+        DateOnly today,
         string? searchQuery,
         string sort,
         int page,
@@ -45,12 +46,18 @@ public class ShopProductRepository : IShopProductRepository
                   && product.IsAvailable && !product.IsDeleted
                   && variant.IsAvailable
                   && offering.PriceMinor > 0
-                  && (!offering.DiscountedPriceMinor.HasValue
-                      || (offering.DiscountedPriceMinor.Value > 0
-                          && offering.DiscountedPriceMinor.Value < offering.PriceMinor))
+                  && (offering.DiscountedPriceMinor == null
+                      || (offering.DiscountedPriceMinor > 0
+                          && offering.DiscountedPriceMinor < offering.PriceMinor))
                   && ((stockBasedAgreementProductIds.Contains(product.AgreementProductId) && variant.StockCount > 0)
                       || (sessionBasedAgreementProductIds.Contains(product.AgreementProductId)
-                          && (variant.CapacityType == VariantCapacityType.Unlimited || variant.Capacity > 0)))
+                          && (variant.CapacityType == VariantCapacityType.Unlimited || variant.Capacity > 0)
+                          && _db.ProductSessions.Any(session =>
+                              session.ProductId == product.Id
+                              && session.Date >= today
+                              && session.IsActive
+                              && !session.IsCancelled
+                              && session.SoldCount < session.Capacity)))
             select new
             {
                 Offering = offering,
@@ -72,17 +79,42 @@ public class ShopProductRepository : IShopProductRepository
                         v.Id == c.VariantAttributeValueId && v.Value.Contains(normalizedSearch))));
         }
 
-        var total = await query.CountAsync(ct);
-        query = sort switch
+        // Page distinct products in SQL, then choose the representative offering from the
+        // bounded page in memory. This keeps pagination product-based without loading the
+        // full offering set and avoids provider-specific GroupBy/First translation.
+        var productGroups = query
+            .GroupBy(x => new { ProductId = x.Product.Id, x.Product.CreatedAt })
+            .Select(group => new
+            {
+                group.Key.ProductId,
+                ProductCreatedAt = group.Key.CreatedAt,
+                EffectivePrice = group.Min(x => x.EffectivePrice)
+            });
+
+        var total = await productGroups.CountAsync(ct);
+        var orderedProducts = sort switch
         {
-            "price-asc" => query.OrderBy(x => x.EffectivePrice).ThenBy(x => x.Offering.Id),
-            "price-desc" => query.OrderByDescending(x => x.EffectivePrice).ThenBy(x => x.Offering.Id),
-            _ => query.OrderByDescending(x => x.Offering.CreatedAt).ThenBy(x => x.Offering.Id)
+            "price-asc" => productGroups
+                .OrderBy(x => x.EffectivePrice)
+                .ThenBy(x => x.ProductId),
+            "price-desc" => productGroups
+                .OrderByDescending(x => x.EffectivePrice)
+                .ThenBy(x => x.ProductId),
+            _ => productGroups
+                .OrderByDescending(x => x.ProductCreatedAt)
+                .ThenBy(x => x.ProductId)
         };
 
-        var rows = await query
+        var productPage = await orderedProducts
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .ToListAsync(ct);
+        var productIds = productPage.Select(x => x.ProductId).ToList();
+        if (productIds.Count == 0)
+            return ([], total);
+
+        var candidateRows = await query
+            .Where(x => productIds.Contains(x.Product.Id))
             .Select(x => new
             {
                 ProductId = x.Product.Id,
@@ -97,12 +129,26 @@ public class ShopProductRepository : IShopProductRepository
                 VariantImageUrl = x.Variant.ImageUrl,
                 x.Offering.PriceMinor,
                 x.Offering.DiscountedPriceMinor,
-                x.Offering.CreatedAt
+                EffectivePrice = x.Offering.DiscountedPriceMinor ?? x.Offering.PriceMinor,
+                OfferingCreatedAt = x.Offering.CreatedAt,
+                x.Product.CreatedAt
             })
             .ToListAsync(ct);
 
+        var productOrder = productPage
+            .Select((item, index) => new { item.ProductId, index })
+            .ToDictionary(x => x.ProductId, x => x.index);
+        var rows = candidateRows
+            .GroupBy(x => x.ProductId)
+            .Select(group => group
+                .OrderBy(x => x.EffectivePrice)
+                .ThenByDescending(x => x.OfferingCreatedAt)
+                .ThenBy(x => x.ShopProductVariantId)
+                .First())
+            .OrderBy(x => productOrder[x.ProductId])
+            .ToList();
+
         var variantIds = rows.Select(x => x.ProductVariantId).ToList();
-        var productIds = rows.Select(x => x.ProductId).Distinct().ToList();
 
         var labels = await (
             from combination in _db.ProductVariantCombinations.AsNoTracking()
@@ -152,6 +198,58 @@ public class ShopProductRepository : IShopProductRepository
         => _db.ShopProducts
             .Include(sp => sp.VariantOfferings)
             .FirstOrDefaultAsync(sp => sp.ShopId == shopId && sp.ProductId == productId && !sp.IsDeleted, ct);
+
+    public async Task<ShopProduct?> GetBestDisplayableForProductAsync(
+        Guid productId,
+        SalesModel salesModel,
+        DateOnly today,
+        CancellationToken ct = default)
+    {
+        var candidates =
+            from offering in _db.ShopProductVariants.AsNoTracking()
+            join shopProduct in _db.ShopProducts.AsNoTracking() on offering.ShopProductId equals shopProduct.Id
+            join variant in _db.ProductVariants.AsNoTracking() on offering.ProductVariantId equals variant.Id
+            join shop in _db.Shops.AsNoTracking() on shopProduct.ShopId equals shop.Id
+            where shopProduct.ProductId == productId
+                  && shop.Status == ShopStatus.Active
+                  && shopProduct.IsActive && !shopProduct.IsDeleted
+                  && offering.IsActive && !offering.IsDeleted
+                  && variant.IsAvailable
+                  && offering.PriceMinor > 0
+                  && (offering.DiscountedPriceMinor == null
+                      || (offering.DiscountedPriceMinor > 0
+                          && offering.DiscountedPriceMinor < offering.PriceMinor))
+                  && (salesModel == SalesModel.StockBased
+                      ? variant.StockCount > 0
+                      : (variant.CapacityType == VariantCapacityType.Unlimited || variant.Capacity > 0)
+                        && _db.ProductSessions.Any(session =>
+                            session.ProductId == productId
+                            && session.Date >= today
+                            && session.IsActive
+                            && !session.IsCancelled
+                            && session.SoldCount < session.Capacity))
+            select new
+            {
+                shopProduct.Id,
+                EffectivePrice = offering.DiscountedPriceMinor ?? offering.PriceMinor,
+                offering.CreatedAt,
+                OfferingId = offering.Id
+            };
+
+        var shopProductId = await candidates
+            .OrderBy(x => x.EffectivePrice)
+            .ThenByDescending(x => x.CreatedAt)
+            .ThenBy(x => x.OfferingId)
+            .Select(x => (Guid?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (!shopProductId.HasValue)
+            return null;
+
+        return await _db.ShopProducts
+            .Include(sp => sp.VariantOfferings)
+            .FirstOrDefaultAsync(sp => sp.Id == shopProductId.Value, ct);
+    }
 
     public async Task<(List<ShopProduct> Items, int Total)> GetByShopAsync(
         Guid shopId, bool? isActive, int page, int pageSize, CancellationToken ct = default)

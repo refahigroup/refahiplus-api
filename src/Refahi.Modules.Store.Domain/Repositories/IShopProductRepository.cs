@@ -1,13 +1,15 @@
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Entities;
+using Refahi.Modules.Store.Domain.Enums;
 
 namespace Refahi.Modules.Store.Domain.Repositories;
 
 public interface IShopProductRepository
 {
-    Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableVariantOfferingsAsync(
+    Task<(IReadOnlyList<ProductOfferingReadModel> Items, int Total)> GetDisplayableProductsAsync(
         IReadOnlyList<Guid> stockBasedAgreementProductIds,
         IReadOnlyList<Guid> sessionBasedAgreementProductIds,
+        DateOnly today,
         string? searchQuery,
         string sort,
         int page,
@@ -15,6 +17,11 @@ public interface IShopProductRepository
         CancellationToken ct = default);
     Task<ShopProduct?> GetAsync(Guid shopId, Guid productId, CancellationToken ct = default);
     Task<ShopProduct?> GetWithVariantOfferingsAsync(Guid shopId, Guid productId, CancellationToken ct = default);
+    Task<ShopProduct?> GetBestDisplayableForProductAsync(
+        Guid productId,
+        SalesModel salesModel,
+        DateOnly today,
+        CancellationToken ct = default);
     Task<(List<ShopProduct> Items, int Total)> GetByShopAsync(
         Guid shopId, bool? isActive, int page, int pageSize, CancellationToken ct = default);
     Task<(List<ShopProduct> Items, int Total)> GetByProductAsync(

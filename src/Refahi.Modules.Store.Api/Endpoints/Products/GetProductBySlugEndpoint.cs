@@ -28,7 +28,7 @@ public class GetProductBySlugEndpoint : IEndpoint
             if (moduleId is null)
                 return Results.NotFound();
 
-            var result = await mediator.Send(new GetProductBySlugQuery(slug, shopSlug, shopId), ct);
+            var result = await mediator.Send(new GetProductBySlugQuery(moduleId.Value, slug, shopSlug, shopId), ct);
             return result is null
                 ? Results.NotFound()
                 : Results.Ok(ApiResponseHelper.Success(result));

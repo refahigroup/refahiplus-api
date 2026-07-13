@@ -15,17 +15,20 @@ public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, 
     private readonly IShopProductRepository _shopProductRepository;
     private readonly IMediator _mediator;
     private readonly IPathService _pathService;
+    private readonly TimeProvider _timeProvider;
 
     public GetProductsQueryHandler(
         IStoreModuleCatalogService catalog,
         IShopProductRepository shopProductRepository,
         IMediator mediator,
-        IPathService pathService)
+        IPathService pathService,
+        TimeProvider timeProvider)
     {
         _catalog = catalog;
         _shopProductRepository = shopProductRepository;
         _mediator = mediator;
         _pathService = pathService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<ProductsPagedResponse> Handle(GetProductsQuery request, CancellationToken ct)
@@ -47,9 +50,11 @@ public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, 
             .Select(x => x.Id)
             .ToList();
 
-        var (offerings, total) = await _shopProductRepository.GetDisplayableVariantOfferingsAsync(
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime);
+        var (offerings, total) = await _shopProductRepository.GetDisplayableProductsAsync(
             stockBasedIds,
             sessionBasedIds,
+            today,
             request.SearchQuery,
             request.Sort,
             request.PageNumber,
