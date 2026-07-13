@@ -13,10 +13,9 @@ namespace Refahi.Modules.Store.Api.Endpoints.Checkout;
 public class PlaceOrderEndpoint : IEndpoint
 {
     /// <summary>
-    /// Body endpoint — جداگانه از Command برای امکان پردازش راحت‌تر در Endpoint.
+    /// اطلاعات لازم برای ساخت Order فروشگاه؛ پرداخت در Checkout مشترک Orders انجام می‌شود.
     /// </summary>
     public sealed record PlaceOrderRequestBody(
-        List<WalletPaymentInput> WalletAllocations,
         Guid? ShippingAddressId,
         DateOnly? DeliveryDate,
         short DeliveryTimeSlot,
@@ -52,7 +51,6 @@ public class PlaceOrderEndpoint : IEndpoint
             var command = new PlaceStoreOrderCommand(
                 UserId: userId,
                 ModuleId: moduleId.Value,
-                WalletAllocations: body.WalletAllocations ?? new List<WalletPaymentInput>(),
                 IdempotencyKey: idempotencyKey,
                 ShippingAddressId: body.ShippingAddressId,
                 DeliveryDate: body.DeliveryDate,
@@ -61,7 +59,7 @@ public class PlaceOrderEndpoint : IEndpoint
                 DiscountCode: body.DiscountCode);
 
             var result = await mediator.Send(command, ct);
-            return Results.Ok(ApiResponseHelper.Success(result, "سفارش با موفقیت ثبت و پرداخت شد"));
+            return Results.Ok(ApiResponseHelper.Success(result, "سفارش با موفقیت ثبت شد"));
         })
         .WithName("Store.PrepareOrder")
         .WithTags("Store.Checkout")
