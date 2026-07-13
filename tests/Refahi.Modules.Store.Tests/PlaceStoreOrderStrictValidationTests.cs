@@ -24,15 +24,13 @@ public sealed class PlaceStoreOrderStrictValidationTests
 {
     private static readonly Guid UserId = Guid.Parse("10000000-0000-0000-0000-000000000001");
     private static readonly Guid ShopId = Guid.Parse("20000000-0000-0000-0000-000000000001");
-    private static readonly Guid WalletId = Guid.Parse("30000000-0000-0000-0000-000000000001");
-
     [Fact]
-    public async Task Handle_CreatesOrder_WhenVariantIsStrictlyResolvedAndAllocationMatches()
+    public async Task Handle_CreatesUnpaidOrderWithoutWalletAllocations_WhenVariantIsStrictlyResolved()
     {
         var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1700);
 
         var result = await fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1700),
+            Command(fixture.Cart.ModuleId),
             CancellationToken.None);
 
         var orderCommand = fixture.Mediator.CreateOrderCommand!;
@@ -42,6 +40,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
         Assert.Equal(1700, result.FinalAmountMinor);
         Assert.Equal("Store", orderCommand.SourceModule);
         Assert.Equal(ShopId, orderCommand.SourceReferenceId);
+        Assert.Equal("Unpaid", result.Status);
         Assert.Equal(1700, item.UnitPriceMinor);
         Assert.Contains("\"price_source\":\"ShopProductVariant\"", item.MetadataJson);
         Assert.Contains(fixture.ShopProductVariantId.ToString(), item.MetadataJson);
@@ -52,7 +51,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
     {
         var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1700);
         const string idempotencyKey = "phase29-retry-success";
-        var command = Command(fixture.Cart.ModuleId, 1700, idempotencyKey);
+        var command = Command(fixture.Cart.ModuleId, idempotencyKey);
 
         var firstResult = await fixture.Handler.Handle(command, CancellationToken.None);
         fixture.Cart.Clear();
@@ -73,11 +72,11 @@ public sealed class PlaceStoreOrderStrictValidationTests
         const string idempotencyKey = "phase29-changed-body";
 
         var firstResult = await fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1700, idempotencyKey),
+            Command(fixture.Cart.ModuleId, idempotencyKey),
             CancellationToken.None);
 
         var retryResult = await fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 9999, idempotencyKey),
+            Command(fixture.Cart.ModuleId, idempotencyKey) with { DeliveryTimeSlot = 2 },
             CancellationToken.None);
 
         Assert.Equal(firstResult.OrderId, retryResult.OrderId);
@@ -92,32 +91,25 @@ public sealed class PlaceStoreOrderStrictValidationTests
         var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1700);
         const string idempotencyKey = "phase29-failed-then-fixed";
 
+        fixture.PriceResolver.ExceptionToThrow = new StoreDomainException(
+            "این تنوع در فروشگاه انتخاب‌شده فعال نیست.",
+            "SHOP_PRODUCT_VARIANT_INACTIVE");
+
         var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1699, idempotencyKey),
+            Command(fixture.Cart.ModuleId, idempotencyKey),
             CancellationToken.None));
 
-        Assert.Equal("WALLET_ALLOCATION_AMOUNT_MISMATCH", ex.ErrorCode);
+        Assert.Equal("SHOP_PRODUCT_VARIANT_INACTIVE", ex.ErrorCode);
         Assert.Equal(0, fixture.Mediator.CreateOrderCallCount);
 
+        fixture.PriceResolver.ExceptionToThrow = null;
+
         var result = await fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1700, idempotencyKey),
+            Command(fixture.Cart.ModuleId, idempotencyKey),
             CancellationToken.None);
 
         Assert.Equal(CapturingMediator.CreatedOrderId, result.OrderId);
         Assert.Equal(1, fixture.Mediator.CreateOrderCallCount);
-    }
-
-    [Fact]
-    public async Task Handle_FailsBeforeOrderCreation_WhenWalletAllocationIsLessThanFinalTotal()
-    {
-        var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1700);
-
-        var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1699),
-            CancellationToken.None));
-
-        Assert.Equal("WALLET_ALLOCATION_AMOUNT_MISMATCH", ex.ErrorCode);
-        Assert.Null(fixture.Mediator.CreateOrderCommand);
     }
 
     [Fact]
@@ -126,7 +118,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
         var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1900);
 
         var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1900),
+            Command(fixture.Cart.ModuleId),
             CancellationToken.None));
 
         Assert.Equal("CART_PRICE_CHANGED", ex.ErrorCode);
@@ -142,7 +134,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
             "SHOP_PRODUCT_VARIANT_INACTIVE");
 
         var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1700),
+            Command(fixture.Cart.ModuleId),
             CancellationToken.None));
 
         Assert.Equal("SHOP_PRODUCT_VARIANT_INACTIVE", ex.ErrorCode);
@@ -155,7 +147,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
         var fixture = TestFixture.SessionVariantWithoutUsageDate();
 
         var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 15000),
+            Command(fixture.Cart.ModuleId),
             CancellationToken.None));
 
         Assert.Equal("USAGE_DATE_REQUIRED", ex.ErrorCode);
@@ -168,18 +160,17 @@ public sealed class PlaceStoreOrderStrictValidationTests
         var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1700, activeShop: false);
 
         var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, 1700),
+            Command(fixture.Cart.ModuleId),
             CancellationToken.None));
 
         Assert.Equal("SHOP_NOT_ACTIVE", ex.ErrorCode);
         Assert.Null(fixture.Mediator.CreateOrderCommand);
     }
 
-    private static PlaceStoreOrderCommand Command(int moduleId, long allocationAmountMinor, string? idempotencyKey = null)
+    private static PlaceStoreOrderCommand Command(int moduleId, string? idempotencyKey = null)
         => new(
             UserId: UserId,
             ModuleId: moduleId,
-            WalletAllocations: [new WalletPaymentInput(WalletId, allocationAmountMinor)],
             IdempotencyKey: idempotencyKey ?? Guid.NewGuid().ToString("N"));
 
     private sealed class TestFixture

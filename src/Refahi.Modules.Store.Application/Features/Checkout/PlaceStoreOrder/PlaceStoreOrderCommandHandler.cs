@@ -332,9 +332,6 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         long discountCodeAmountMinor = 0;
         // TODO: در فاز ۳ پیاده‌سازی واقعی validation و محاسبه‌ی کد تخفیف.
 
-        var finalAmountMinor = CalculateFinalAmountMinor(orderItems, shippingFeeMinor, discountCodeAmountMinor);
-        ValidateWalletAllocations(request.WalletAllocations, finalAmountMinor);
-
         // STEP 6: Create order via Orders module
         var createOrderCommand = new CreateOrderCommand(
             UserId: request.UserId,
@@ -406,29 +403,6 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             OrderNumber: orderResult.OrderNumber,
             FinalAmountMinor: orderResult.FinalAmountMinor,
             Status: paymentStatus);
-    }
-
-    private static long CalculateFinalAmountMinor(
-        IReadOnlyCollection<CreateOrderItemInput> orderItems,
-        long shippingFeeMinor,
-        long discountCodeAmountMinor)
-    {
-        var totalMinor = orderItems.Sum(i => (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor);
-        var finalAmountMinor = totalMinor - discountCodeAmountMinor + shippingFeeMinor;
-        return finalAmountMinor < 0 ? 0 : finalAmountMinor;
-    }
-
-    private static void ValidateWalletAllocations(
-        IReadOnlyCollection<WalletPaymentInput> walletAllocations,
-        long finalAmountMinor)
-    {
-        var allocatedAmountMinor = walletAllocations.Sum(a => a.AmountMinor);
-        if (allocatedAmountMinor != finalAmountMinor)
-        {
-            throw new StoreDomainException(
-                "مجموع مبالغ کیف‌پول باید دقیقاً برابر مبلغ قابل پرداخت سفارش باشد",
-                "WALLET_ALLOCATION_AMOUNT_MISMATCH");
-        }
     }
 
     private static string BuildStoreOrderIdempotencyKey(string idempotencyKey)
