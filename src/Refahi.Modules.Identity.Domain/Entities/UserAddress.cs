@@ -75,13 +75,13 @@ public class UserAddress
         double? longitude = null,
         bool isDefault = false)
     {
-        ValidateInput(title, provinceId, cityId, fullAddress, postalCode, receiverName, receiverPhone);
+        ValidateInput(title, provinceId, cityId, fullAddress, postalCode, receiverName, receiverPhone, plate, unit);
 
         return new UserAddress
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Title = title.Trim(),
+            Title = title?.Trim() ?? string.Empty,
             ProvinceId = provinceId,
             CityId = cityId,
             FullAddress = fullAddress.Trim(),
@@ -114,9 +114,9 @@ public class UserAddress
         double? latitude = null,
         double? longitude = null)
     {
-        ValidateInput(title, provinceId, cityId, fullAddress, postalCode, receiverName, receiverPhone);
+        ValidateInput(title, provinceId, cityId, fullAddress, postalCode, receiverName, receiverPhone, plate, unit);
 
-        Title = title.Trim();
+        Title = title?.Trim() ?? string.Empty;
         ProvinceId = provinceId;
         CityId = cityId;
         FullAddress = fullAddress.Trim();
@@ -161,10 +161,12 @@ public class UserAddress
         string fullAddress,
         string postalCode,
         string receiverName,
-        string receiverPhone)
+        string receiverPhone,
+        string? plate,
+        string? unit)
     {
-        if (string.IsNullOrWhiteSpace(title))
-            throw new DomainException("عنوان آدرس الزامی است", "ADDRESS_TITLE_REQUIRED");
+        if (title?.Length > 100)
+            throw new DomainException("عنوان آدرس نمی‌تواند بیشتر از ۱۰۰ کاراکتر باشد", "INVALID_ADDRESS_TITLE");
 
         if (provinceId <= 0)
             throw new DomainException("استان نامعتبر است", "INVALID_PROVINCE");
@@ -175,8 +177,15 @@ public class UserAddress
         if (string.IsNullOrWhiteSpace(fullAddress))
             throw new DomainException("متن آدرس الزامی است", "ADDRESS_TEXT_REQUIRED");
 
-        if (string.IsNullOrWhiteSpace(postalCode) || postalCode.Trim().Length != 10)
+        if (string.IsNullOrWhiteSpace(postalCode) || postalCode.Trim().Length != 10 ||
+            postalCode.Trim().Any(character => character is < '0' or > '9'))
             throw new DomainException("کد پستی باید ۱۰ رقم باشد", "INVALID_POSTAL_CODE");
+
+        if (string.IsNullOrWhiteSpace(plate))
+            throw new DomainException("پلاک الزامی است", "PLATE_REQUIRED");
+
+        if (string.IsNullOrWhiteSpace(unit))
+            throw new DomainException("واحد الزامی است", "UNIT_REQUIRED");
 
         if (string.IsNullOrWhiteSpace(receiverName))
             throw new DomainException("نام تحویل‌گیرنده الزامی است", "RECEIVER_NAME_REQUIRED");
@@ -185,7 +194,7 @@ public class UserAddress
             throw new DomainException("شماره تحویل‌گیرنده الزامی است", "RECEIVER_PHONE_REQUIRED");
 
         var phone = receiverPhone.Trim();
-        if (phone.Length != 11 || !phone.StartsWith("09"))
+        if (phone.Length != 11 || !phone.StartsWith("09") || phone.Any(character => character is < '0' or > '9'))
             throw new DomainException("شماره تحویل‌گیرنده نامعتبر است", "INVALID_RECEIVER_PHONE");
     }
 }
