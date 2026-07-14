@@ -65,8 +65,6 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
         var availableSessions = salesModel == SalesModel.SessionBased
             ? product.Sessions.Where(s => s.Date >= today && s.IsAvailable).ToList()
             : [];
-        if (salesModel == SalesModel.SessionBased && availableSessions.Count == 0)
-            return null;
 
         var averageRating = await _reviewRepo.GetAverageRatingAsync(product.Id, cancellationToken);
         var (_, reviewTotal) = await _reviewRepo.GetPagedAsync(product.Id, approvedOnly: true, page: 1, pageSize: 1, cancellationToken);
@@ -86,7 +84,7 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             .Select(x => (x.Variant, ShopPrice: x.ShopPrice!))
             .ToList();
 
-        if (displayableVariants.Count == 0)
+        if (displayableVariants.Count == 0 && availableSessions.Count == 0)
             return null;
 
         var usedCombinations = displayableVariants
@@ -160,13 +158,16 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             .OrderBy(x => x.ShopPrice.DiscountedPriceMinor ?? x.ShopPrice.PriceMinor)
             .ThenByDescending(x => x.ShopPrice.OfferingCreatedAt)
             .ThenBy(x => x.ShopPrice.ShopProductVariantId)
-            .First()
-            .ShopPrice;
+            .Select(x => x.ShopPrice)
+            .FirstOrDefault();
+
+        var detailPriceMinor = representativePrice?.PriceMinor ?? sp.Price;
+        var detailDiscountedPriceMinor = representativePrice?.DiscountedPriceMinor ?? sp.DiscountedPrice;
 
         return new ProductDetailDto(
             product.Id, product.AgreementProductId,
             product.Title, product.Slug, product.Description,
-            representativePrice.PriceMinor, representativePrice.DiscountedPriceMinor ?? 0,
+            detailPriceMinor, detailDiscountedPriceMinor,
             ((ProductType)ap.ProductType).ToString(),
             ((DeliveryType)ap.DeliveryType).ToString(),
             salesModel.ToString(),
