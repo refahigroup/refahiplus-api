@@ -188,6 +188,33 @@ public sealed class Product
         return attrValue;
     }
 
+    public void UpdateVariantAttribute(Guid attributeId, string name, int sortOrder = 0)
+    {
+        var attr = _variantAttributes.FirstOrDefault(a => a.Id == attributeId)
+            ?? throw new StoreDomainException("ویژگی تنوع یافت نشد", "VARIANT_ATTRIBUTE_NOT_FOUND");
+
+        var normalizedName = name.Trim();
+        if (_variantAttributes.Any(a => a.Id != attributeId &&
+                                        string.Equals(a.Name, normalizedName, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new StoreDomainException(
+                "ویژگی تنوع قبلاً برای این محصول ثبت شده است",
+                "VARIANT_ATTRIBUTE_ALREADY_EXISTS");
+        }
+
+        attr.Update(normalizedName, sortOrder);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UpdateVariantAttributeValue(Guid attributeId, Guid valueId, string value, int sortOrder = 0)
+    {
+        var attr = _variantAttributes.FirstOrDefault(a => a.Id == attributeId)
+            ?? throw new StoreDomainException("ویژگی تنوع یافت نشد", "VARIANT_ATTRIBUTE_NOT_FOUND");
+
+        attr.UpdateValue(valueId, value, sortOrder);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void RemoveVariantAttribute(Guid attributeId)
     {
         var attr = _variantAttributes.FirstOrDefault(a => a.Id == attributeId)
@@ -254,6 +281,41 @@ public sealed class Product
         _variants.Add(variant);
         UpdatedAt = DateTimeOffset.UtcNow;
         return variant;
+    }
+
+    public void UpdateVariant(
+        Guid variantId,
+        List<(Guid AttributeId, Guid ValueId)> combinations,
+        int stockCount, long priceMinor, long? discountedPriceMinor = null,
+        string? imageUrl = null, string? sku = null,
+        DateOnly? fromDate = null, DateOnly? toDate = null,
+        VariantCapacityType capacityType = VariantCapacityType.Unlimited, int? capacity = null,
+        SalesModel salesModel = SalesModel.StockBased)
+    {
+        var variant = _variants.FirstOrDefault(v => v.Id == variantId)
+            ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
+
+        foreach (var (attributeId, valueId) in combinations)
+        {
+            var attribute = _variantAttributes.FirstOrDefault(a => a.Id == attributeId)
+                ?? throw new StoreDomainException("اتریبیوت تنوع یافت نشد", "VARIANT_ATTRIBUTE_NOT_FOUND");
+            if (!attribute.Values.Any(v => v.Id == valueId))
+                throw new StoreDomainException("مقدار اتریبیوت به این اتریبیوت تعلق ندارد", "VARIANT_VALUE_NOT_FOUND");
+        }
+
+        variant.Update(
+            stockCount,
+            priceMinor,
+            discountedPriceMinor,
+            imageUrl,
+            sku,
+            fromDate,
+            toDate,
+            capacityType,
+            capacity,
+            salesModel);
+        variant.ReplaceCombinations(combinations);
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     public void RemoveVariant(Guid variantId)

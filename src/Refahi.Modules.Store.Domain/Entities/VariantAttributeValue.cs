@@ -17,4 +17,10 @@ public sealed class VariantAttributeValue
             Value = value.Trim(),
             SortOrder = sortOrder
         };
+
+    internal void Update(string value, int sortOrder)
+    {
+        Value = value.Trim();
+        SortOrder = sortOrder;
+    }
 }
