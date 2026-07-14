@@ -41,7 +41,7 @@ public sealed class ShopProductRepositoryPostgresTests
         var unavailableProduct = Product.Create(Guid.NewGuid(), "ناموجود", "unavailable", stockCount: 1);
         var unavailableVariant = unavailableProduct.AddVariant([], 0, 1_000);
 
-        var sessionProduct = Product.Create(Guid.NewGuid(), "جلسه منقضی", "expired-session", stockCount: 1);
+        var sessionProduct = Product.Create(Guid.NewGuid(), "خدمت ظرفیت‌محور", "capacity-session", stockCount: 1);
         var sessionVariant = sessionProduct.AddVariant(
             [], 0, 2_000, capacityType: VariantCapacityType.Unlimited, salesModel: SalesModel.SessionBased);
         var today = new DateOnly(2026, 7, 13);
@@ -58,7 +58,7 @@ public sealed class ShopProductRepositoryPostgresTests
         otherShopProduct.AddVariantOffering(otherVariant.Id, 5_000, 4_000, isActive: true);
         var unavailableShopProduct = ShopProduct.Create(firstShop.Id, unavailableProduct.Id, 1_000, 0);
         unavailableShopProduct.AddVariantOffering(unavailableVariant.Id, 1_000, null, isActive: true);
-        var sessionShopProduct = ShopProduct.Create(firstShop.Id, sessionProduct.Id, 2_000, 0);
+        var sessionShopProduct = ShopProduct.Create(secondShop.Id, sessionProduct.Id, 2_000, 0);
         sessionShopProduct.AddVariantOffering(sessionVariant.Id, 2_000, null, isActive: true);
 
         context.AddRange(
@@ -82,14 +82,14 @@ public sealed class ShopProductRepositoryPostgresTests
         var (items, total) = await repository.GetDisplayableProductsAsync(
             stockIds, sessionIds, today, null, "newest", 1, 10);
 
-        Assert.Equal(2, total);
-        Assert.Equal(2, items.Count);
+        Assert.Equal(3, total);
+        Assert.Equal(3, items.Count);
         var shared = Assert.Single(items, x => x.ProductId == firstProduct.Id);
         Assert.Equal(cheapestOffering.Id, shared.ShopProductVariantId);
         Assert.Equal(secondShop.Id, shared.ShopId);
         Assert.Equal(2_500, shared.DiscountedPriceMinor);
         Assert.DoesNotContain(items, x => x.ProductId == unavailableProduct.Id);
-        Assert.DoesNotContain(items, x => x.ProductId == sessionProduct.Id);
+        Assert.Contains(items, x => x.ProductId == sessionProduct.Id);
 
         var (shopSearch, shopSearchTotal) = await repository.GetDisplayableProductsAsync(
             stockIds, sessionIds, today, "فروشگاه اول", "price-asc", 1, 10);
@@ -99,8 +99,8 @@ public sealed class ShopProductRepositoryPostgresTests
 
         var (pricePage, priceTotal) = await repository.GetDisplayableProductsAsync(
             stockIds, sessionIds, today, null, "price-asc", 1, 1);
-        Assert.Equal(2, priceTotal);
-        Assert.Equal(firstProduct.Id, Assert.Single(pricePage).ProductId);
+        Assert.Equal(3, priceTotal);
+        Assert.Equal(sessionProduct.Id, Assert.Single(pricePage).ProductId);
     }
 
     private static Shop CreateActiveShop(string name, string slug)

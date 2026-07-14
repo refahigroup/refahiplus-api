@@ -87,6 +87,33 @@ public sealed class GetProductBySlugEligibilityTests
         Assert.Equal("آینده", session.Title);
     }
 
+    [Fact]
+    public async Task Handle_ReturnsCapacityBasedSessionVariant_WhenProductHasNoSessions()
+    {
+        var product = Product.Create(Guid.NewGuid(), "خدمت ظرفیت‌محور", "capacity-product", stockCount: 1);
+        var variant = product.AddVariant(
+            [],
+            stockCount: 0,
+            priceMinor: 2_000,
+            capacityType: VariantCapacityType.TotalPeriod,
+            capacity: 10,
+            salesModel: SalesModel.SessionBased);
+        var shop = CreateActiveShop();
+        var shopProduct = ShopProduct.Create(shop.Id, product.Id, 2_500, 2_200);
+        shopProduct.AddVariantOffering(variant.Id, 2_000, 1_800, isActive: true);
+        var handler = CreateHandler(product, shop, shopProduct, SalesModel.SessionBased);
+
+        var result = await handler.Handle(
+            new GetProductBySlugQuery(7, product.Slug, shop.Slug),
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(2_000, result.PriceMinor);
+        Assert.Equal(1_800, result.DiscountedPriceMinor);
+        Assert.Equal(variant.Id, Assert.Single(result.Variants).Id);
+        Assert.Empty(result.Sessions!);
+    }
+
     private static GetProductBySlugQueryHandler CreateHandler(
         Product product,
         Shop shop,
