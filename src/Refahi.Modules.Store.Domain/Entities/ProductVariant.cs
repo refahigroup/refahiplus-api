@@ -81,6 +81,41 @@ public sealed class ProductVariant
         DiscountedPriceMinor = discountedPriceMinor;
     }
 
+    internal void Update(
+        int stockCount,
+        long priceMinor,
+        long? discountedPriceMinor,
+        string? imageUrl,
+        string? sku,
+        DateOnly? fromDate,
+        DateOnly? toDate,
+        VariantCapacityType capacityType,
+        int? capacity,
+        SalesModel salesModel)
+    {
+        ValidatePrice(priceMinor, discountedPriceMinor);
+        ValidateValidityRange(fromDate, toDate);
+        var normalizedCapacity = ValidateAndNormalizeCapacity(capacityType, capacity);
+
+        StockCount = stockCount;
+        PriceMinor = priceMinor;
+        DiscountedPriceMinor = discountedPriceMinor;
+        ImageUrl = imageUrl;
+        SKU = sku;
+        FromDate = fromDate;
+        ToDate = toDate;
+        CapacityType = capacityType;
+        Capacity = normalizedCapacity;
+        IsAvailable = DetermineInitialAvailability(salesModel, stockCount);
+    }
+
+    internal void ReplaceCombinations(IEnumerable<(Guid AttributeId, Guid ValueId)> combinations)
+    {
+        _combinations.Clear();
+        foreach (var (attributeId, valueId) in combinations)
+            AddCombination(attributeId, valueId);
+    }
+
     /// <summary>
     /// قیمت موثر (با احتساب تخفیف)
     /// </summary>

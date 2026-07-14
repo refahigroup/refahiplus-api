@@ -30,6 +30,20 @@ public sealed class VariantAttribute
         return v;
     }
 
+    internal void Update(string name, int sortOrder)
+    {
+        Name = name.Trim();
+        SortOrder = sortOrder;
+    }
+
+    internal void UpdateValue(Guid valueId, string value, int sortOrder)
+    {
+        var attributeValue = _values.FirstOrDefault(v => v.Id == valueId)
+            ?? throw new StoreDomainException("مقدار ویژگی تنوع یافت نشد", "VARIANT_ATTRIBUTE_VALUE_NOT_FOUND");
+
+        attributeValue.Update(value, sortOrder);
+    }
+
     internal void RemoveValue(Guid valueId)
     {
         var value = _values.FirstOrDefault(v => v.Id == valueId)
