@@ -23,6 +23,8 @@ public static class DI
         services.AddScoped<IShopRepository, ShopRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IShopProductRepository, ShopProductRepository>();
+        services.AddScoped<ISyntheticOfferReadRepository>(_ =>
+            new SyntheticOfferReadRepository(configuration.GetConnectionString()));
         services.AddScoped<IProductSessionRepository, ProductSessionRepository>();
         services.AddScoped<IBannerRepository, BannerRepository>();
         services.AddScoped<IDailyDealRepository, DailyDealRepository>();
