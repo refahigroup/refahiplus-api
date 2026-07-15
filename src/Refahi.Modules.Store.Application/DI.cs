@@ -20,6 +20,8 @@ public static class DI
             .AddValidatorsFromAssembly(assembly)
             .AddScoped<IModuleResolver, ModuleResolver>()
             .AddScoped<IStoreModuleCatalogService, StoreModuleCatalogService>()
+            .AddScoped<ISyntheticOfferQueryContextService, SyntheticOfferQueryContextService>()
+            .AddSingleton<IStoreBusinessClock, StoreBusinessClock>()
             .AddScoped<IDeliveryService, DeliveryService>()
             .AddScoped<IStoreProductPriceResolver, StoreProductPriceResolver>();
 
