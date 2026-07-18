@@ -130,6 +130,9 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired()
             .HasColumnName("updated_at");
 
+        builder.Property(o => o.PayableUntil)
+            .HasColumnName("payable_until");
+
         // Optimistic Concurrency via PostgreSQL system column xmin (no migration needed — system column)
         builder.Property(o => o.RowVersion)
             .HasColumnName("xmin")
@@ -149,6 +152,9 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasIndex(o => o.Status)
             .HasDatabaseName("ix_orders_status");
+
+        builder.HasIndex(o => new { o.Status, o.PayableUntil })
+            .HasDatabaseName("ix_orders_status_payable_until");
 
         // Navigation — use backing field "_items" via property access mode
         builder.HasMany(o => o.Items)

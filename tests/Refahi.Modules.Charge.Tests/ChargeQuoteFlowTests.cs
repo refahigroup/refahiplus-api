@@ -111,6 +111,7 @@ public sealed class ChargeQuoteFlowTests
         public Task<ChargeRequest?> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default) => Task.FromResult<ChargeRequest?>(null);
         public Task<ChargeRequest?> GetByIdempotencyKeyAsync(Guid userId, string key, CancellationToken ct = default) => Task.FromResult<ChargeRequest?>(null);
         public Task<IReadOnlyList<ChargeRequest>> GetWorkItemsAsync(DateTime nowUtc, int take, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ChargeRequest>>([]);
+        public Task<IReadOnlyList<ChargeRequest>> GetExpiredCandidatesAsync(DateTime nowUtc, int take, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ChargeRequest>>([]);
         public Task AddAsync(ChargeRequest request, CancellationToken ct = default) { AddCount++; return Task.CompletedTask; }
         public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
     }

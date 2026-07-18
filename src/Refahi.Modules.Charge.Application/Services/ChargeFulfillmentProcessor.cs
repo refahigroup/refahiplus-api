@@ -61,9 +61,15 @@ public sealed class ChargeFulfillmentProcessor
             else
                 await TraceAsync(request, ct);
         }
-        catch (Exception ex)
+        catch (ChargeProviderException ex)
         {
             _logger.LogWarning(ex, "Charge provider operation became ambiguous. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}", request.Id, request.OrderId);
+
+            request.RecordAttempt(ChargeFulfillmentAttempt.Create(
+                request.Id,
+                previousStatus == ChargeRequestStatus.Paid ? FulfillmentAttemptType.Purchase : FulfillmentAttemptType.Trace,
+                false, null, null, null, null, ex.Message, "{}", "{}", 0, DateTime.UtcNow,
+                ex.ProviderCallLogId));
 
             request.MarkReconciliationPending(
                 null,
@@ -94,7 +100,8 @@ public sealed class ChargeFulfillmentProcessor
                     request.PayBill,
                     int.TryParse(_configuration["Charge:Providers:Eniac:ChannelId"], out var channelId) ? channelId : 102,
                     _configuration["Charge:Providers:Eniac:ResellerName"], 
-                    request.PinCategoryId, request.PinCount
+                    request.PinCategoryId, request.PinCount,
+                    BuildCallContext(request)
                 ), ct
             );
 
@@ -159,7 +166,8 @@ public sealed class ChargeFulfillmentProcessor
 
     private async Task TraceAsync(ChargeRequest request, CancellationToken ct)
     {
-        if (IsUnresolvedExpired(request)) 
+        if (IsUnresolvedExpired(request) &&
+            request.Attempts.Count(x => x.Type == FulfillmentAttemptType.Trace) >= MinimumTraceAttempts())
         { 
             await ApplyUnresolvedPolicyAsync(request, ct); return; 
         }
@@ -171,7 +179,8 @@ public sealed class ChargeFulfillmentProcessor
                 request.CustomerInvoiceNumber,
                 request.ProviderProductId, 
                 request.ProviderCostMinor, 
-                DateOnly.FromDateTime(request.CreatedAt)), ct
+                DateOnly.FromDateTime(request.CreatedAt),
+                BuildCallContext(request)), ct
             );
 
         request.RecordAttempt(ChargeFulfillmentAttempt.Create(
@@ -224,6 +233,14 @@ public sealed class ChargeFulfillmentProcessor
         return request.PaidAt.HasValue && 
             request.PaidAt.Value.AddHours(hours) <= DateTime.UtcNow;
     }
+
+    private int MinimumTraceAttempts() =>
+        int.TryParse(_configuration["Charge:Reconciliation:MinimumTraceAttempts"], out var configured)
+            ? Math.Clamp(configured, 1, 10)
+            : 3;
+
+    private static ProviderCallContext BuildCallContext(ChargeRequest request) =>
+        new(request.Id, request.OrderId, request.SagaId, request.SagaId.ToString("N"));
 
     private async Task ApplyUnresolvedPolicyAsync(ChargeRequest request, CancellationToken ct)
     {

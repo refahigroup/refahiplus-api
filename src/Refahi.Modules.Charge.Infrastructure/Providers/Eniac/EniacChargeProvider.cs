@@ -225,7 +225,7 @@ public sealed class EniacChargeProvider : IChargeProvider
                 };
         }
 
-        using (doc = await _api.PostAsync(path, body, false, ct))
+        using (doc = await _api.PostAsync(path, body, false, ct, "Purchase", r.CallContext))
         {
             sw.Stop();
             var root = doc.RootElement;
@@ -275,7 +275,7 @@ public sealed class EniacChargeProvider : IChargeProvider
             date = ToPersianDate(r.Date)
         };
 
-        using var doc = await _api.PostAsync("/api/Report/TraceTransaction", body, true, ct);
+        using var doc = await _api.PostAsync("/api/Report/TraceTransaction", body, true, ct, "Trace", r.CallContext);
 
         sw.Stop();
 

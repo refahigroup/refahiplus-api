@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
+using Refahi.Modules.Orders.Domain.Aggregates;
 using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CapturePaymentIntent;
@@ -57,6 +58,8 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
             return new PayOrderResponse(order.Id, order.PaymentId.Value, "Paid");
         }
 
+        await RejectExpiredOrderAsync(order, request.IdempotencyKey, cancellationToken);
+
         if (order.PaymentState is not PaymentState.Unpaid and not PaymentState.Reserved)
             throw new InvalidOperationException("سفارش در وضعیت قابل پرداخت نیست");
 
@@ -96,6 +99,8 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
             // Persist reserved state immediately — if Capture fails, PaymentIntentId is saved and Release is possible
             await _orderRepository.UpdateAsync(order, cancellationToken);
 
+            await RejectExpiredOrderAsync(order, request.IdempotencyKey, cancellationToken);
+
             _logger.LogInformation(
                 "Order payment intent reserved. OrderId={OrderId}, PaymentIntentId={PaymentIntentId}, SagaId={SagaId}",
                 order.Id,
@@ -124,5 +129,17 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
             order.SagaId);
 
         return new PayOrderResponse(order.Id, captureResult.Data.PaymentId, "Paid");
+    }
+
+    private async Task RejectExpiredOrderAsync(Order order, string idempotencyKey, CancellationToken ct)
+    {
+        if (!order.PayableUntil.HasValue || order.PayableUntil.Value > DateTimeOffset.UtcNow) return;
+
+        await _mediator.Send(new CancelOrderCommand(
+            order.Id,
+            "مهلت پرداخت سفارش به پایان رسیده است",
+            $"expired-{idempotencyKey}"), ct);
+
+        throw new InvalidOperationException("مهلت پرداخت سفارش به پایان رسیده است");
     }
 }

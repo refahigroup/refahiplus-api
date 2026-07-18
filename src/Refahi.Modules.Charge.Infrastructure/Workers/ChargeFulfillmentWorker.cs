@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using MediatR;
 using Refahi.Modules.Charge.Application.Contracts.Features;
 using Refahi.Modules.Charge.Domain.Repositories;
+using Refahi.Modules.Charge.Infrastructure.Observability;
 
 namespace Refahi.Modules.Charge.Infrastructure.Workers;
 
@@ -46,6 +47,8 @@ public sealed class ChargeFulfillmentWorker : BackgroundService
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
         var items = await repository.GetWorkItemsAsync(DateTime.UtcNow, 20, ct);
+        ChargeMetrics.WorkerHeartbeat(nameof(ChargeFulfillmentWorker));
+        ChargeMetrics.ReconciliationBatch(items.Count);
 
         foreach (var item in items)
         {

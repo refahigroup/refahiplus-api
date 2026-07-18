@@ -62,4 +62,20 @@ public sealed record GetPostpaidBalanceQuery(ChargeOperator Operator, string Mob
 public sealed record GetPinCategoriesQuery(ChargeOperator? Operator = null) : IRequest<IReadOnlyList<Providers.PinChargeCategoryDto>>;
 public sealed record GetPackageTypesQuery : IRequest<IReadOnlyList<Providers.PackageTypeDto>>;
 
-public sealed record ReconcileChargeRequestCommand(Guid RequestId, bool ForceManualReviewReset = false) : IRequest;
+public sealed record ReconcileChargeRequestCommand(Guid RequestId, bool ForceManualReviewReset = false) : IRequest<ReconcileChargeRequestResponse>;
+public sealed record ReconcileChargeRequestResponse(
+    Guid RequestId, string Status, int AttemptCount, DateTime? NextReconciliationAt,
+    string? ProviderRrn, string? ProviderTraceId, string? Message);
+
+public sealed record GetProviderCallLogsQuery(Guid RequestId, int PageNumber = 1, int PageSize = 50)
+    : IRequest<IReadOnlyList<ProviderCallLogDto>>;
+public sealed record ProviderCallLogDto(
+    Guid Id, string ProviderName, string Operation, string Stage, string Outcome,
+    int? HttpStatusCode, int? ProviderResultCode, string? OperatorResultCode,
+    bool Retryable, int AttemptNumber, string CorrelationId, string? ErrorMessage,
+    long LatencyMilliseconds, DateTime CreatedAt);
+
+public sealed record ConfirmChargeFulfilledCommand(
+    Guid RequestId, string ProviderRrn, string ProviderTraceId, string Evidence) : IRequest<ReconcileChargeRequestResponse>;
+public sealed record RefundChargeRequestCommand(
+    Guid RequestId, string Reason, string IdempotencyKey) : IRequest<ReconcileChargeRequestResponse>;

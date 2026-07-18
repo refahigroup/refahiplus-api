@@ -16,6 +16,14 @@ public sealed class ChargeFulfillmentAttemptConfiguration : IEntityTypeConfigura
         b.Property(x => x.ChargeRequestId)
             .HasColumnName("charge_request_id");
 
+        b.Property(x => x.ProviderCallLogId)
+            .HasColumnName("provider_call_log_id");
+
+        b.HasOne<ProviderCallLog>()
+            .WithMany()
+            .HasForeignKey(x => x.ProviderCallLogId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         b.Property(x => x.Type)
             .HasColumnName("type").HasConversion<short>();
         
