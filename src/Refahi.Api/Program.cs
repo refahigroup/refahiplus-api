@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.OpenApi;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Refahi.Api;
 using Refahi.Api.Middlewares;
 using Refahi.Api.Services;
@@ -167,6 +168,10 @@ app.MapGet("/api/health", () => {
         status = "healthy",
         ver = fvi.FileVersion
     });
+});
+app.MapHealthChecks("/api/health/eniac", new HealthCheckOptions
+{
+    Predicate = registration => registration.Name == "eniac"
 });
 
 // Map module endpoints

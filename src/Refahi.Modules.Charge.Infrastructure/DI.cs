@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Refahi.Modules.Charge.Application.Contracts.Providers;
 using Refahi.Modules.Charge.Domain.Repositories;
 using Refahi.Modules.Charge.Infrastructure.Persistence.Context;
+using Refahi.Modules.Charge.Infrastructure.Health;
 using Refahi.Modules.Charge.Infrastructure.Persistence.Repositories;
 using Refahi.Modules.Charge.Infrastructure.Providers;
 using Refahi.Modules.Charge.Infrastructure.Providers.Eniac;
@@ -25,6 +26,7 @@ public static class DI
 
         services.AddScoped<IChargeRequestRepository, ChargeRequestRepository>()
                 .AddScoped<IChargeMarkupRuleRepository, ChargeMarkupRuleRepository>()
+                .AddScoped<IProviderCallLogRepository, ProviderCallLogRepository>()
                 .AddScoped<IChargeSecretProtector, ChargeSecretProtector>();
 
         services.AddDataProtection();
@@ -41,6 +43,9 @@ public static class DI
 
         services.AddScoped<IChargeProviderResolver, ChargeProviderResolver>();
         services.AddHostedService<ChargeFulfillmentWorker>();
+        services.AddHostedService<ProviderCallLogRetentionWorker>();
+        services.AddHostedService<ChargeRequestLifecycleWorker>();
+        services.AddHealthChecks().AddCheck<EniacHealthCheck>("eniac", tags: ["provider", "charge"]);
 
         return services;
     }

@@ -15,6 +15,7 @@ public sealed class ChargeDbContext : DbContext
     public DbSet<ChargeFulfillmentAttempt> FulfillmentAttempts => Set<ChargeFulfillmentAttempt>();
     public DbSet<ChargePin> ChargePins => Set<ChargePin>();
     public DbSet<ChargeMarkupRule> MarkupRules => Set<ChargeMarkupRule>();
+    public DbSet<ProviderCallLog> ProviderCallLogs => Set<ProviderCallLog>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

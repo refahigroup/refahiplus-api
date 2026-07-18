@@ -7,6 +7,7 @@ public sealed class ChargeFulfillmentAttempt
     private ChargeFulfillmentAttempt() { }
     public Guid Id { get; private set; }
     public Guid ChargeRequestId { get; private set; }
+    public Guid? ProviderCallLogId { get; private set; }
     public FulfillmentAttemptType Type { get; private set; }
     public bool Success { get; private set; }
     public int? EniacResultCode { get; private set; }
@@ -21,12 +22,13 @@ public sealed class ChargeFulfillmentAttempt
 
     public static ChargeFulfillmentAttempt Create(Guid requestId, FulfillmentAttemptType type, bool success, int? eniacCode,
         string? operatorCode, string? rrn, string? traceId, string? message, string requestJson, string responseJson,
-        long latencyMilliseconds, DateTime nowUtc)
+        long latencyMilliseconds, DateTime nowUtc, Guid? providerCallLogId = null)
     {
         return new()
         {
             Id = Guid.NewGuid(),
             ChargeRequestId = requestId,
+            ProviderCallLogId = providerCallLogId,
             Type = type,
             Success = success,
             EniacResultCode = eniacCode,

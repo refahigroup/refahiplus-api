@@ -59,7 +59,8 @@ public sealed record ProviderPurchaseRequest(
     ChargeOperator Operator, ChargeServiceType ServiceType, string? OriginMobileNumber,
     string DestinationMobileNumber, long AmountMinor, string CustomerInvoiceNumber,
     string ProviderProductId, int ProductCategory, int PayBill, int ChannelId,
-    string? ResellerName, int? PinCategoryId, int PinCount);
+    string? ResellerName, int? PinCategoryId, int PinCount,
+    ProviderCallContext? CallContext = null);
 
 public sealed record ProviderPinDto(string Serial, string Code, long AmountMinor);
 public sealed record ProviderPurchaseResultDto(
@@ -67,7 +68,8 @@ public sealed record ProviderPurchaseResultDto(
     string? Rrn, string? CustomerInvoiceNumber, string? OperatorTraceId,
     IReadOnlyList<ProviderPinDto> Pins, string RequestSnapshotJson, string ResponseSnapshotJson, long LatencyMilliseconds);
 
-public sealed record ProviderTraceRequest(long EniacRrn, string CustomerInvoiceNumber, string ProviderProductId, long AmountMinor, DateOnly Date);
+public sealed record ProviderTraceRequest(long EniacRrn, string CustomerInvoiceNumber, string ProviderProductId, long AmountMinor, DateOnly Date,
+    ProviderCallContext? CallContext = null);
 public sealed record ProviderTraceResultDto(
     bool Success, int EniacResultCode, string? OperatorResultCode, string? Message,
     string? Rrn, string? OperatorTraceId, int? PaymentResultCode, int? ReverseResultCode,

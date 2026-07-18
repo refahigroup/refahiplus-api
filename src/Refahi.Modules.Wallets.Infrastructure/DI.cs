@@ -8,6 +8,7 @@ using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Atomic;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Context;
 using Refahi.Modules.Wallets.Infrastructure.Persistence.Repositories;
+using Refahi.Modules.Wallets.Infrastructure.Workers;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
 using System;
@@ -36,6 +37,9 @@ public static class DI
         // Atomic writers (explicit SQL transaction execution)
         services.AddScoped<IWalletAtomicWriter>(sp => new WalletAtomicWriter(connectionString));
         services.AddScoped<IPaymentAtomicWriter>(sp => new PaymentAtomicWriter(connectionString));
+        services.AddScoped<IPaymentIntegrityRepairer>(sp => new PaymentIntegrityRepairer(connectionString));
+        services.AddHostedService<PaymentIntegrityAuditWorker>(sp => new PaymentIntegrityAuditWorker(
+            connectionString, sp.GetRequiredService<ILogger<PaymentIntegrityAuditWorker>>()));
         
         // Balance rebuilder (reconciliation & drift repair)
         services.AddScoped<IBalanceRebuilder>(sp => 

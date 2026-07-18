@@ -84,7 +84,8 @@ public sealed class ConvertChargeRequestToOrderHandler : IRequestHandler<Convert
                 ],
                 $"charge-request-order-{command.IdempotencyKey.Trim()}",
                 "ChargeRequest",
-                SagaId: request.SagaId
+                SagaId: request.SagaId,
+                PayableUntil: new DateTimeOffset(request.ExpireAt)
             ),
             ct
         );

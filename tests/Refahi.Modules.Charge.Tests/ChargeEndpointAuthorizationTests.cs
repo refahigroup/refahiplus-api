@@ -55,7 +55,12 @@ public sealed class ChargeEndpointAuthorizationTests
                 Assert.NotEmpty(authorization);
         }
 
-        Assert.Equal(23, endpoints.Count(endpoint =>
+        Assert.Equal(27, endpoints.Count(endpoint =>
             endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName?.StartsWith("Charge.", StringComparison.Ordinal) is true));
+
+        var adminEndpoints = endpoints.Where(endpoint =>
+            endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName?.StartsWith("Charge.Admin.", StringComparison.Ordinal) is true);
+        Assert.All(adminEndpoints, endpoint => Assert.Contains(
+            endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>(), data => data.Policy == "AdminOnly"));
     }
 }

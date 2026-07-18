@@ -20,7 +20,8 @@ public sealed record CreateOrderCommand(
     long ShippingFeeMinor = 0,
     string? DiscountCode = null,
     long DiscountCodeAmountMinor = 0,
-    Guid? SagaId = null
+    Guid? SagaId = null,
+    DateTimeOffset? PayableUntil = null
 ) : IRequest<CreateOrderResponse>;
 
 public sealed record CreateOrderItemInput(

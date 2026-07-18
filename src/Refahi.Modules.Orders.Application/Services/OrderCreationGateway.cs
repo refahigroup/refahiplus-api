@@ -76,7 +76,8 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
             shippingFeeMinor: request.ShippingFeeMinor,
             discountCode: request.DiscountCode,
             discountCodeAmountMinor: request.DiscountCodeAmountMinor,
-            sagaId: request.SagaId);
+            sagaId: request.SagaId,
+            payableUntil: request.PayableUntil);
 
         await _orderRepository.AddAsync(order, cancellationToken);
 

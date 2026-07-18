@@ -6,7 +6,7 @@ using Refahi.Modules.Charge.Domain.Repositories;
 
 namespace Refahi.Modules.Charge.Application.Features;
 
-public sealed class ReconcileChargeRequestHandler : IRequestHandler<ReconcileChargeRequestCommand>
+public sealed class ReconcileChargeRequestHandler : IRequestHandler<ReconcileChargeRequestCommand, ReconcileChargeRequestResponse>
 {
     private readonly IChargeRequestRepository _requests; 
     private readonly ChargeFulfillmentProcessor _processor;
@@ -17,7 +17,7 @@ public sealed class ReconcileChargeRequestHandler : IRequestHandler<ReconcileCha
         _processor = processor; 
     }
 
-    public async Task<Unit> Handle(ReconcileChargeRequestCommand c, CancellationToken ct)
+    public async Task<ReconcileChargeRequestResponse> Handle(ReconcileChargeRequestCommand c, CancellationToken ct)
     {
         var request = await _requests.GetAsync(c.RequestId, ct) ?? 
             throw new ArgumentException("درخواست شارژ یافت نشد");
@@ -37,6 +37,8 @@ public sealed class ReconcileChargeRequestHandler : IRequestHandler<ReconcileCha
         
         await _processor.ProcessAsync(request.Id, ct); 
         
-        return Unit.Value;
+        var updated = await _requests.GetAsync(request.Id, ct) ?? request;
+        return new(updated.Id, updated.Status.ToString(), updated.Attempts.Count,
+            updated.NextReconciliationAt, updated.ProviderRrn, updated.ProviderTraceId, updated.ProviderMessage);
     }
 }

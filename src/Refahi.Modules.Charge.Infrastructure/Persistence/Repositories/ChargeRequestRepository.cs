@@ -57,6 +57,16 @@ public sealed class ChargeRequestRepository : IChargeRequestRepository
                         .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<ChargeRequest>> GetExpiredCandidatesAsync(DateTime nowUtc, int take, CancellationToken ct = default)
+    {
+        return await _db.ChargeRequests
+            .Where(x => x.ExpireAt <= nowUtc &&
+                (x.Status == ChargeRequestStatus.Created || x.Status == ChargeRequestStatus.ConvertedToOrder))
+            .OrderBy(x => x.ExpireAt)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
     public async Task AddAsync(ChargeRequest request, CancellationToken ct = default)
     {
         await _db.ChargeRequests.AddAsync(request, ct);

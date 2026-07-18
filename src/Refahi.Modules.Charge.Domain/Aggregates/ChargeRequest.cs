@@ -217,18 +217,21 @@ public sealed class ChargeRequest
         OperatorResultCode = operatorCode;
         ProviderMessage = message;
         Status = ChargeRequestStatus.Failed;
+        NextReconciliationAt = null;
         ReleaseLease(nowUtc);
     }
 
     public void BeginRefund(DateTime nowUtc)
     {
         Status = ChargeRequestStatus.Refunding;
+        NextReconciliationAt = null;
         UpdatedAt = nowUtc;
     }
 
     public void MarkRefunded(DateTime nowUtc)
     {
         Status = ChargeRequestStatus.Refunded;
+        NextReconciliationAt = null;
         UpdatedAt = nowUtc;
     }
 
@@ -236,7 +239,18 @@ public sealed class ChargeRequest
     {
         ProviderMessage = message;
         Status = ChargeRequestStatus.ManualReview;
+        NextReconciliationAt = null;
         ReleaseLease(nowUtc);
+    }
+
+    public void ConfirmFulfilledByAdmin(string rrn, string traceId, string evidence, DateTime nowUtc)
+    {
+        if (Status is not ChargeRequestStatus.ManualReview and not ChargeRequestStatus.ReconciliationPending)
+            throw new InvalidOperationException("درخواست شارژ در وضعیت قابل تایید دستی نیست");
+        if (string.IsNullOrWhiteSpace(rrn) || string.IsNullOrWhiteSpace(traceId) || string.IsNullOrWhiteSpace(evidence))
+            throw new InvalidOperationException("شناسه‌های تامین‌کننده و مستند تایید الزامی است");
+        MarkFulfilled(rrn.Trim(), traceId.Trim(), EniacResultCode, OperatorResultCode,
+            $"تایید دستی: {evidence.Trim()}", nowUtc);
     }
 
     public void MarkExpired(DateTime nowUtc)
@@ -245,6 +259,15 @@ public sealed class ChargeRequest
             return;
 
         Status = ChargeRequestStatus.Expired;
+        UpdatedAt = nowUtc;
+    }
+
+    public void MarkExpiredAfterOrderClosed(DateTime nowUtc)
+    {
+        if (Status is not ChargeRequestStatus.Created and not ChargeRequestStatus.ConvertedToOrder)
+            return;
+        Status = ChargeRequestStatus.Expired;
+        NextReconciliationAt = null;
         UpdatedAt = nowUtc;
     }
 

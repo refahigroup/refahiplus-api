@@ -56,6 +56,7 @@ public sealed class Order
     // --- زمان ---
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTimeOffset? PayableUntil { get; private set; }
 
     // --- Optimistic Concurrency (PostgreSQL xmin) ---
     public uint RowVersion { get; private set; }
@@ -89,7 +90,8 @@ public sealed class Order
         long shippingFeeMinor = 0,
         string? discountCode = null,
         long discountCodeAmountMinor = 0,
-        Guid? sagaId = null)
+        Guid? sagaId = null,
+        DateTimeOffset? payableUntil = null)
     {
         if (items is null || items.Count == 0)
             throw new OrderDomainException("سفارش باید حداقل یک آیتم داشته باشد", "ORDER_EMPTY");
@@ -112,6 +114,7 @@ public sealed class Order
             SourceReferenceId = sourceReferenceId,
             ReferenceType = string.IsNullOrWhiteSpace(referenceType) ? sourceModule : referenceType.Trim(),
             SagaId = sagaId,
+            PayableUntil = payableUntil,
             IdempotencyKey = idempotencyKey,
             ShippingAddressId = shippingAddressId,
             ShippingAddressSnapshotJson = shippingAddressSnapshotJson,
