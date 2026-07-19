@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Charge.Application.Contracts.Providers;
@@ -12,6 +13,30 @@ namespace Refahi.Modules.Charge.Tests;
 
 public sealed class EniacProviderContractTests
 {
+    [Fact]
+    public void Typed_http_client_resolves_with_audited_constructor()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.Configure<EniacOptions>(options =>
+        {
+            options.BaseUrl = "https://provider.test";
+            options.Username = "u";
+            options.Password = "p";
+        });
+        services.AddScoped<IProviderCallLogRepository, RecordingProviderCallLogRepository>();
+        services.AddHttpClient<EniacApiClient>();
+
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes = true
+        });
+        using var scope = provider.CreateScope();
+
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<EniacApiClient>());
+    }
+
     [Fact]
     public async Task Product_contract_maps_documented_fields()
     {
