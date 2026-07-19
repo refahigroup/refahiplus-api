@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Charge.Application.Contracts.Providers;
@@ -23,6 +24,7 @@ public sealed class EniacApiClient
     private string? _token;
     private DateTimeOffset _tokenExpiresAt;
 
+    [ActivatorUtilitiesConstructor]
     public EniacApiClient(
         HttpClient http,
         IOptions<EniacOptions> options,

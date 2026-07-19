@@ -1,21 +1,12 @@
-using FluentValidation;
 using MediatR;
 using Refahi.Modules.Charge.Application.Contracts.Features;
-using Refahi.Modules.Charge.Application.Contracts.Providers;
-using Refahi.Modules.Charge.Domain.Enums;
 using Refahi.Modules.Charge.Application.Services;
+using Refahi.Modules.Charge.Domain.Enums;
 
 namespace Refahi.Modules.Charge.Application.Features.Catalog;
 
 public sealed class GetOperatorsQueryHandlers : IRequestHandler<GetOperatorsQuery, IReadOnlyList<ChargeOperatorDto>>
 {
-    private readonly IChargeProviderResolver _providers;
-
-    public GetOperatorsQueryHandlers(IChargeProviderResolver providers)
-    {
-        _providers = providers;
-    }
-
     public Task<IReadOnlyList<ChargeOperatorDto>> Handle(GetOperatorsQuery q, CancellationToken ct)
     {
         return Task.FromResult<IReadOnlyList<ChargeOperatorDto>>(
