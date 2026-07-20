@@ -4,6 +4,8 @@ namespace Refahi.Modules.Charge.Domain.Aggregates;
 
 public sealed class ChargeRequest
 {
+    public const int ProviderInvoiceNumberMaxLength = 25;
+    private const string ProviderInvoiceNumberPrefix = "CHG";
     private readonly List<ChargeFulfillmentAttempt> _attempts = [];
     private readonly List<ChargePin> _pins = [];
     private ChargeRequest() { }
@@ -117,13 +119,20 @@ public sealed class ChargeRequest
             MarkupFixedMinor = markupFixedMinor,
             MarkupAmountMinor = markupAmountMinor,
             FinalAmountMinor = finalAmountMinor,
-            CustomerInvoiceNumber = $"CHG{id:N}",
+            CustomerInvoiceNumber = CreateProviderInvoiceNumber(id),
             IdempotencyKey = idempotencyKey.Trim(),
             Status = ChargeRequestStatus.Created,
             CreatedAt = nowUtc,
             UpdatedAt = nowUtc,
             ExpireAt = expireAtUtc
         };
+    }
+
+    private static string CreateProviderInvoiceNumber(Guid id)
+    {
+        var suffixLength = ProviderInvoiceNumberMaxLength - ProviderInvoiceNumberPrefix.Length;
+        var suffix = id.ToString("N")[..suffixLength];
+        return $"{ProviderInvoiceNumberPrefix}{suffix}";
     }
 
     public void ConvertToOrder(Guid orderId, DateTime nowUtc)
@@ -181,6 +190,11 @@ public sealed class ChargeRequest
 
         if (isInValid)
             throw new InvalidOperationException("درخواست شارژ قابل پردازش نیست");
+
+        // Requests created before the Eniac 25-character contract fix are normalized
+        // only before their first provider call. Reconciliation must keep the original value.
+        if (Status == ChargeRequestStatus.Paid && CustomerInvoiceNumber.Length > ProviderInvoiceNumberMaxLength)
+            CustomerInvoiceNumber = CreateProviderInvoiceNumber(Id);
 
         Status = ChargeRequestStatus.Processing;
         ProcessingLeaseOwner = leaseOwner;

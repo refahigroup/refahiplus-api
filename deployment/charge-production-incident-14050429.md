@@ -69,12 +69,27 @@ WHERE id = @p13;
 - Refund از وضعیت `Fulfilled` و سایر وضعیت‌های نامعتبر در Domain رد می‌شود.
 - migration `20260720104534_ChargeAddRefundRecovery` برای ستون‌های بازیابی Refund اضافه شد و باید پیش از اجرای نسخه جدید اعمال شود.
 
+## پیگیری لاگ تست دوم (`_prod_api_logs-3.txt`)
+
+در تست دوم، persistence و Refund اصلاح‌شده درست عمل کردند، اما Eniac خرید را با HTTP 400 و پیام «Customer Invoice Number نباید بیشتر از 25 کاراکتر باشد» رد کرد. مقدار قبلی `CHG` به‌علاوه GUID با فرمت `N`، در مجموع ۳۵ کاراکتر بود.
+
+اصلاحات تکمیلی:
+
+- شماره فاکتور درخواست‌های جدید به قالب `CHG` به‌علاوه ۲۲ کاراکتر hex و طول دقیق ۲۵ تغییر کرد.
+- درخواست‌های قدیمی که هنوز اولین provider call خود را اجرا نکرده‌اند، هنگام ورود از `Paid` به `Processing` به همین قالب normalize می‌شوند؛ مقادیر Reconciliation تغییر نمی‌کنند تا traceability تامین‌کننده حفظ شود.
+- Origin تولید `https://refahiplus.com` به CORS policy پیش‌فرض اضافه شد.
+- queryهای Charge که `Pins` و `Attempts` را هم‌زمان بارگذاری می‌کنند با `AsSplitQuery` اجرا می‌شوند.
+- Orders فقط پس از دریافت `CommandStatus.Completed` از Wallet، وضعیت Released/Refunded را ثبت می‌کند. نتیجه `InProgress` exception قابل retry ایجاد می‌کند و Charge با همان idempotency key آن را ادامه می‌دهد.
+- وضعیت `OrderStatus.Refunded` نیز در مسیر تکراری Cancel به‌عنوان نتیجه terminal شناخته می‌شود تا retry پس از Refund موفق، دوباره عملیات مالی اجرا نکند.
+
 ## اعتبارسنجی
 
 - `dotnet test tests/Refahi.Modules.Charge.Tests/Refahi.Modules.Charge.Tests.csproj --no-restore`
-  - 25 Passed، 0 Failed
+  - 27 Passed، 0 Failed
+- `dotnet test tests/Refahi.Modules.Orders.Tests/Refahi.Modules.Orders.Tests.csproj --no-restore`
+  - 3 Passed، 0 Failed
 - `dotnet build Refahi.Backend.slnx --no-restore`
-  - 0 Error، 8 Warning موجود از قبل
+  - 0 Error، 263 Warning موجود از قبل
 - `git diff --check`
   - بدون خطای whitespace
 
