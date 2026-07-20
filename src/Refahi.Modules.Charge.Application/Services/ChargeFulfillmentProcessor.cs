@@ -18,6 +18,7 @@ public sealed class ChargeFulfillmentProcessor
     private readonly IMediator _mediator;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChargeFulfillmentProcessor> _logger;
+    private readonly ChargeRefundProcessor _refunds;
 
     public ChargeFulfillmentProcessor(
         IChargeRequestRepository requests,
@@ -25,7 +26,8 @@ public sealed class ChargeFulfillmentProcessor
         IChargeSecretProtector protector,
         IMediator mediator,
         IConfiguration configuration,
-        ILogger<ChargeFulfillmentProcessor> logger)
+        ILogger<ChargeFulfillmentProcessor> logger,
+        ChargeRefundProcessor refunds)
     {
         _requests = requests;
         _providers = providers;
@@ -33,12 +35,19 @@ public sealed class ChargeFulfillmentProcessor
         _mediator = mediator;
         _configuration = configuration;
         _logger = logger;
+        _refunds = refunds;
     }
 
     public async Task ProcessAsync(Guid requestId, CancellationToken ct)
     {
         var request = await _requests.GetAsync(requestId, ct) ??
             throw new InvalidOperationException("درخواست شارژ یافت نشد");
+
+        if (request.Status == ChargeRequestStatus.Refunding)
+        {
+            await _refunds.ResumeAsync(request, ct);
+            return;
+        }
 
         bool status = request.Status is ChargeRequestStatus.Fulfilled or
                       ChargeRequestStatus.Refunded or
@@ -63,16 +72,25 @@ public sealed class ChargeFulfillmentProcessor
         }
         catch (ChargeProviderException ex)
         {
-            _logger.LogWarning(ex, "Charge provider operation became ambiguous. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}", request.Id, request.OrderId);
+            _logger.LogWarning(ex,
+                "Charge provider operation failed. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, Ambiguous={Ambiguous}",
+                request.Id, request.OrderId, ex.OutcomeAmbiguous);
 
-            request.RecordAttempt(ChargeFulfillmentAttempt.Create(
+            await RecordAttemptAsync(request, ChargeFulfillmentAttempt.Create(
                 request.Id,
                 previousStatus == ChargeRequestStatus.Paid ? FulfillmentAttemptType.Purchase : FulfillmentAttemptType.Trace,
-                false, null, null, null, null, ex.Message, "{}", "{}", 0, DateTime.UtcNow,
-                ex.ProviderCallLogId));
+                false, ex.ProviderResultCode, null, null, null, ex.Message, "{}", "{}", 0, DateTime.UtcNow,
+                ex.ProviderCallLogId), ct);
+
+            if (!ex.OutcomeAmbiguous)
+            {
+                request.MarkFailed(ex.ProviderResultCode, null, ex.Message, DateTime.UtcNow);
+                await RefundAsync(request, ex.Message, ct);
+                return;
+            }
 
             request.MarkReconciliationPending(
-                null,
+                ex.ProviderResultCode,
                 null,
                 "نتیجه عملیات تامین‌کننده نامشخص است",
                 DateTime.UtcNow.AddMinutes(1),
@@ -105,7 +123,7 @@ public sealed class ChargeFulfillmentProcessor
                 ), ct
             );
 
-        request.RecordAttempt(ChargeFulfillmentAttempt.Create(
+        await RecordAttemptAsync(request, ChargeFulfillmentAttempt.Create(
             request.Id, 
             FulfillmentAttemptType.Purchase, 
             result.Success,
@@ -116,9 +134,8 @@ public sealed class ChargeFulfillmentProcessor
             result.Message,
             result.RequestSnapshotJson, 
             result.ResponseSnapshotJson, 
-            result.LatencyMilliseconds, 
-            DateTime.UtcNow)
-        );
+            result.LatencyMilliseconds,
+            DateTime.UtcNow), ct);
 
         bool isValid = IsValidSuccess(
             request, 
@@ -160,7 +177,6 @@ public sealed class ChargeFulfillmentProcessor
             result.Message,
             DateTime.UtcNow);
 
-        await _requests.SaveChangesAsync(ct); 
         await RefundAsync(request, result.Message ?? "خرید شارژ توسط تامین‌کننده ناموفق بود", ct);
     }
 
@@ -183,7 +199,7 @@ public sealed class ChargeFulfillmentProcessor
                 BuildCallContext(request)), ct
             );
 
-        request.RecordAttempt(ChargeFulfillmentAttempt.Create(
+        await RecordAttemptAsync(request, ChargeFulfillmentAttempt.Create(
             request.Id, 
             FulfillmentAttemptType.Trace, 
             result.Success,
@@ -194,9 +210,8 @@ public sealed class ChargeFulfillmentProcessor
             result.Message,
             result.RequestSnapshotJson, 
             result.ResponseSnapshotJson, 
-            result.LatencyMilliseconds, 
-            DateTime.UtcNow)
-        );
+            result.LatencyMilliseconds,
+            DateTime.UtcNow), ct);
 
         if (
             result.Success && 
@@ -222,7 +237,7 @@ public sealed class ChargeFulfillmentProcessor
             await _requests.SaveChangesAsync(ct); return;
         }
         request.MarkFailed(result.EniacResultCode, result.OperatorResultCode, result.Message, DateTime.UtcNow);
-        await _requests.SaveChangesAsync(ct); await RefundAsync(request, result.Message ?? "تراکنش شارژ ناموفق بود", ct);
+        await RefundAsync(request, result.Message ?? "تراکنش شارژ ناموفق بود", ct);
     }
 
     private bool IsUnresolvedExpired(ChargeRequest request)
@@ -241,6 +256,15 @@ public sealed class ChargeFulfillmentProcessor
 
     private static ProviderCallContext BuildCallContext(ChargeRequest request) =>
         new(request.Id, request.OrderId, request.SagaId, request.SagaId.ToString("N"));
+
+    private async Task RecordAttemptAsync(
+        ChargeRequest request,
+        ChargeFulfillmentAttempt attempt,
+        CancellationToken ct)
+    {
+        request.RecordAttempt(attempt);
+        await _requests.AddFulfillmentAttemptAsync(attempt, ct);
+    }
 
     private async Task ApplyUnresolvedPolicyAsync(ChargeRequest request, CancellationToken ct)
     {
@@ -274,16 +298,7 @@ public sealed class ChargeFulfillmentProcessor
             await _requests.SaveChangesAsync(ct); return; 
         }
 
-        request.BeginRefund(DateTime.UtcNow); await _requests.SaveChangesAsync(ct);
-
-        await _mediator.Send(
-            new CancelOrderCommand(request.OrderId.Value, reason, $"charge-refund-{request.Id:N}"), 
-            ct
-         );
-
-        request.MarkRefunded(DateTime.UtcNow); 
-        
-        await _requests.SaveChangesAsync(ct);
+        await _refunds.BeginAsync(request, reason, $"charge-refund-{request.Id:N}", ct);
     }
 
     private static bool IsValidSuccess(ChargeRequest request, bool success, int code, string? rrn, IReadOnlyList<ProviderPinDto> pins)

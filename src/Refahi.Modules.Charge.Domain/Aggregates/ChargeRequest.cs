@@ -49,6 +49,12 @@ public sealed class ChargeRequest
     public int ReconciliationCount { get; private set; }
     public DateTime? ProcessingLeaseUntil { get; private set; }
     public string? ProcessingLeaseOwner { get; private set; }
+    public string? RefundIdempotencyKey { get; private set; }
+    public string? RefundReason { get; private set; }
+    public DateTime? RefundStartedAt { get; private set; }
+    public DateTime? RefundLastAttemptAt { get; private set; }
+    public int RefundAttemptCount { get; private set; }
+    public string? RefundLastError { get; private set; }
     public uint RowVersion { get; private set; }
     public IReadOnlyCollection<ChargeFulfillmentAttempt> Attempts => _attempts.AsReadOnly();
     public IReadOnlyCollection<ChargePin> Pins => _pins.AsReadOnly();
@@ -221,18 +227,79 @@ public sealed class ChargeRequest
         ReleaseLease(nowUtc);
     }
 
-    public void BeginRefund(DateTime nowUtc)
+    public void BeginRefund(string reason, string idempotencyKey, DateTime nowUtc)
     {
+        if (Status == ChargeRequestStatus.Refunded)
+            return;
+
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("دلیل بازگشت وجه الزامی است");
+
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            throw new InvalidOperationException("کلید تکرارپذیری بازگشت وجه الزامی است");
+
+        if (Status == ChargeRequestStatus.Refunding)
+        {
+            RefundReason ??= reason.Trim();
+            RefundIdempotencyKey ??= idempotencyKey.Trim();
+            RefundStartedAt ??= nowUtc;
+            UpdatedAt = nowUtc;
+            return;
+        }
+
+        if (Status is not ChargeRequestStatus.Paid
+            and not ChargeRequestStatus.Processing
+            and not ChargeRequestStatus.ReconciliationPending
+            and not ChargeRequestStatus.Failed
+            and not ChargeRequestStatus.ManualReview)
+            throw new InvalidOperationException("درخواست شارژ در وضعیت قابل بازگشت وجه نیست");
+
         Status = ChargeRequestStatus.Refunding;
+        RefundReason = reason.Trim();
+        RefundIdempotencyKey = idempotencyKey.Trim();
+        RefundStartedAt = nowUtc;
+        RefundLastError = null;
         NextReconciliationAt = null;
+        ReleaseLease(nowUtc);
+    }
+
+    public void StartRefundAttempt(string leaseOwner, DateTime nowUtc, TimeSpan leaseDuration)
+    {
+        if (Status != ChargeRequestStatus.Refunding)
+            throw new InvalidOperationException("درخواست شارژ در وضعیت بازگشت وجه نیست");
+
+        if (ProcessingLeaseUntil > nowUtc)
+            throw new InvalidOperationException("بازگشت وجه درخواست شارژ در حال پردازش است");
+
+        if (string.IsNullOrWhiteSpace(RefundIdempotencyKey) || string.IsNullOrWhiteSpace(RefundReason))
+            throw new InvalidOperationException("اطلاعات بازیابی بازگشت وجه کامل نیست");
+
+        ProcessingLeaseOwner = leaseOwner;
+        ProcessingLeaseUntil = nowUtc.Add(leaseDuration);
+        RefundLastAttemptAt = nowUtc;
+        RefundAttemptCount++;
+        RefundLastError = null;
         UpdatedAt = nowUtc;
+    }
+
+    public void MarkRefundAttemptFailed(string error, DateTime nextAttemptUtc, DateTime nowUtc)
+    {
+        if (Status != ChargeRequestStatus.Refunding)
+            return;
+
+        RefundLastError = string.IsNullOrWhiteSpace(error)
+            ? "اجرای بازگشت وجه ناموفق بود"
+            : error.Trim()[..Math.Min(error.Trim().Length, 2000)];
+        NextReconciliationAt = nextAttemptUtc;
+        ReleaseLease(nowUtc);
     }
 
     public void MarkRefunded(DateTime nowUtc)
     {
         Status = ChargeRequestStatus.Refunded;
         NextReconciliationAt = null;
-        UpdatedAt = nowUtc;
+        RefundLastError = null;
+        ReleaseLease(nowUtc);
     }
 
     public void MarkManualReview(string? message, DateTime nowUtc)

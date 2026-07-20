@@ -19,8 +19,10 @@ public sealed class ChargeProviderException : Exception
         string stage,
         string correlationId,
         bool retryable,
+        bool outcomeAmbiguous,
         Guid? providerCallLogId = null,
         int? httpStatusCode = null,
+        int? providerResultCode = null,
         Exception? innerException = null)
         : base(message, innerException)
     {
@@ -29,8 +31,10 @@ public sealed class ChargeProviderException : Exception
         Stage = stage;
         CorrelationId = correlationId;
         Retryable = retryable;
+        OutcomeAmbiguous = outcomeAmbiguous;
         ProviderCallLogId = providerCallLogId;
         HttpStatusCode = httpStatusCode;
+        ProviderResultCode = providerResultCode;
     }
 
     public ChargeProviderFailureKind FailureKind { get; }
@@ -38,8 +42,10 @@ public sealed class ChargeProviderException : Exception
     public string Stage { get; }
     public string CorrelationId { get; }
     public bool Retryable { get; }
+    public bool OutcomeAmbiguous { get; }
     public Guid? ProviderCallLogId { get; }
     public int? HttpStatusCode { get; }
+    public int? ProviderResultCode { get; }
 }
 
 public sealed record ProviderCallContext(

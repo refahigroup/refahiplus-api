@@ -150,6 +150,24 @@ public sealed class ChargeRequestConfiguration : IEntityTypeConfiguration<Charge
         b.Property(x => x.ProcessingLeaseOwner)
             .HasColumnName("processing_lease_owner").HasMaxLength(100);
 
+        b.Property(x => x.RefundIdempotencyKey)
+            .HasColumnName("refund_idempotency_key").HasMaxLength(200);
+
+        b.Property(x => x.RefundReason)
+            .HasColumnName("refund_reason").HasMaxLength(1000);
+
+        b.Property(x => x.RefundStartedAt)
+            .HasColumnName("refund_started_at");
+
+        b.Property(x => x.RefundLastAttemptAt)
+            .HasColumnName("refund_last_attempt_at");
+
+        b.Property(x => x.RefundAttemptCount)
+            .HasColumnName("refund_attempt_count");
+
+        b.Property(x => x.RefundLastError)
+            .HasColumnName("refund_last_error").HasMaxLength(2000);
+
         b.Property(x => x.RowVersion)
             .HasColumnName("xmin")
             .HasColumnType("xid")
