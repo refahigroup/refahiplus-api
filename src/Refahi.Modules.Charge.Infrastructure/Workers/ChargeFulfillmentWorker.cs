@@ -56,6 +56,10 @@ public sealed class ChargeFulfillmentWorker : BackgroundService
             {
                 await sender.Send(new ReconcileChargeRequestCommand(item.Id), ct);
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                return;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Charge fulfillment item failed. ChargeRequestId={ChargeRequestId}", item.Id);

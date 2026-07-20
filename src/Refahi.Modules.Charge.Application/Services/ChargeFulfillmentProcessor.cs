@@ -12,6 +12,8 @@ namespace Refahi.Modules.Charge.Application.Services;
 public sealed class ChargeFulfillmentProcessor
 {
     private static readonly HashSet<int> AmbiguousCodes = [96, 100, 408, 501, 503];
+    private static readonly TimeSpan InterruptedRecoveryDelay = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan RecoveryPersistenceTimeout = TimeSpan.FromSeconds(5);
     private readonly IChargeRequestRepository _requests;
     private readonly IChargeProviderResolver _providers;
     private readonly IChargeSecretProtector _protector;
@@ -63,8 +65,18 @@ public sealed class ChargeFulfillmentProcessor
 
         await _requests.SaveChangesAsync(ct);
 
+        _logger.LogInformation(
+            "Charge processing lease acquired. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, PreviousStatus={PreviousStatus}, LeaseUntil={LeaseUntil}",
+            request.Id, request.OrderId, previousStatus, request.ProcessingLeaseUntil);
+
         try
         {
+            _logger.LogInformation(
+                "Dispatching charge provider operation. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, Operation={Operation}, Provider={Provider}",
+                request.Id, request.OrderId,
+                previousStatus == ChargeRequestStatus.Paid ? "Purchase" : "Trace",
+                request.ProviderName);
+
             if (previousStatus == ChargeRequestStatus.Paid)
                 await PurchaseAsync(request, ct);
             else
@@ -98,6 +110,58 @@ public sealed class ChargeFulfillmentProcessor
             );
 
             await _requests.SaveChangesAsync(ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            await RecoverInterruptedProcessingAsync(
+                request,
+                "پردازش درخواست شارژ به علت توقف سرویس قطع شد",
+                null);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Unexpected charge fulfillment failure after lease acquisition. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, PreviousStatus={PreviousStatus}",
+                request.Id, request.OrderId, previousStatus);
+
+            await RecoverInterruptedProcessingAsync(
+                request,
+                "پردازش درخواست شارژ به علت خطای داخلی قطع شد و برای استعلام مجدد صف‌بندی شد",
+                ex);
+            throw;
+        }
+    }
+
+    private async Task RecoverInterruptedProcessingAsync(
+        ChargeRequest request,
+        string message,
+        Exception? originalException)
+    {
+        if (request.Status != ChargeRequestStatus.Processing)
+            return;
+
+        var now = DateTime.UtcNow;
+        request.MarkReconciliationPending(
+            request.EniacResultCode,
+            request.OperatorResultCode,
+            message,
+            now.Add(InterruptedRecoveryDelay),
+            now);
+
+        try
+        {
+            using var recoveryTimeout = new CancellationTokenSource(RecoveryPersistenceTimeout);
+            await _requests.SaveChangesAsync(recoveryTimeout.Token);
+            _logger.LogWarning(originalException,
+                "Interrupted charge processing was recovered. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, NextReconciliationAt={NextReconciliationAt}",
+                request.Id, request.OrderId, request.NextReconciliationAt);
+        }
+        catch (Exception recoveryException)
+        {
+            _logger.LogCritical(recoveryException,
+                "Failed to persist interrupted charge processing recovery. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}",
+                request.Id, request.OrderId);
         }
     }
 
