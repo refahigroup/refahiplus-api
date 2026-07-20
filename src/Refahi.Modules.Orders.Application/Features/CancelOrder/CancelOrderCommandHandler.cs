@@ -3,6 +3,7 @@ using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Events;
 using Refahi.Modules.Orders.Domain.Repositories;
+using Refahi.Modules.Wallets.Application.Contracts;
 using Refahi.Modules.Wallets.Application.Contracts.Features.RefundPayment;
 using Refahi.Modules.Wallets.Application.Contracts.Features.ReleasePaymentIntent;
 
@@ -27,7 +28,7 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Can
             ?? throw new InvalidOperationException("سفارش یافت نشد");
 
         // Idempotency: اگر قبلاً لغو شده، همان پاسخ را برگردان (safe retry)
-        if (order.Status == OrderStatus.Cancelled)
+        if (order.Status is OrderStatus.Cancelled or OrderStatus.Refunded)
         {
             var alreadyCancelledAction = order.PaymentState switch
             {
@@ -39,36 +40,41 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Can
         }
 
         var prevPaymentState = order.PaymentState;
-        order.Cancel();
-
         string paymentAction;
 
         if (prevPaymentState == PaymentState.Reserved && order.PaymentIntentId.HasValue)
         {
             // Release (مبلغ رزرو شده → آزاد می‌شود)
-            await _mediator.Send(new ReleasePaymentIntentCommand(
+            var releaseResult = await _mediator.Send(new ReleasePaymentIntentCommand(
                 IntentId: order.PaymentIntentId.Value,
                 IdempotencyKey: $"order-release-{request.IdempotencyKey}"),
                 cancellationToken);
 
+            EnsureCompleted(releaseResult.Status, "آزادسازی مبلغ سفارش هنوز تکمیل نشده است");
+
+            order.Cancel();
             order.MarkAsReleased();
             paymentAction = "Released";
         }
         else if (prevPaymentState == PaymentState.Paid && order.PaymentId.HasValue)
         {
             // Refund (پول برمی‌گردد → مطابق allocation اصلی)
-            await _mediator.Send(new RefundPaymentCommand(
+            var refundResult = await _mediator.Send(new RefundPaymentCommand(
                 PaymentId: order.PaymentId.Value,
                 IdempotencyKey: $"order-refund-{request.IdempotencyKey}",
                 Reason: request.Reason,
                 MetadataJson: null),
                 cancellationToken);
 
+            EnsureCompleted(refundResult.Status, "بازگشت وجه سفارش هنوز تکمیل نشده است");
+
+            order.Cancel();
             order.MarkAsRefunded();
             paymentAction = "Refunded";
         }
         else
         {
+            order.Cancel();
             paymentAction = "NoPayment";
         }
 
@@ -84,5 +90,11 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Can
             OccurredAt: DateTimeOffset.UtcNow), cancellationToken);
 
         return new CancelOrderResponse(order.Id, "Cancelled", paymentAction);
+    }
+
+    private static void EnsureCompleted(CommandStatus status, string message)
+    {
+        if (status != CommandStatus.Completed)
+            throw new InvalidOperationException(message);
     }
 }

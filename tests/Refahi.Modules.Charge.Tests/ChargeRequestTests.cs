@@ -33,6 +33,34 @@ public sealed class ChargeRequestTests
     }
 
     [Fact]
+    public void Provider_invoice_number_respects_eniac_contract()
+    {
+        var first = Create();
+        var second = Create();
+
+        Assert.Equal(ChargeRequest.ProviderInvoiceNumberMaxLength, first.CustomerInvoiceNumber.Length);
+        Assert.Matches("^CHG[0-9a-f]{22}$", first.CustomerInvoiceNumber);
+        Assert.NotEqual(first.CustomerInvoiceNumber, second.CustomerInvoiceNumber);
+    }
+
+    [Fact]
+    public void Legacy_invoice_number_is_normalized_before_first_provider_call()
+    {
+        var now = DateTime.UtcNow;
+        var request = Create(now);
+        typeof(ChargeRequest).GetProperty(nameof(ChargeRequest.CustomerInvoiceNumber))!
+            .SetValue(request, $"CHG{Guid.NewGuid():N}");
+        var orderId = Guid.NewGuid();
+        request.ConvertToOrder(orderId, now);
+        request.MarkPaid(orderId, Guid.NewGuid(), now);
+
+        request.StartProcessing("worker", now, TimeSpan.FromMinutes(5));
+
+        Assert.Equal(ChargeRequest.ProviderInvoiceNumberMaxLength, request.CustomerInvoiceNumber.Length);
+        Assert.Matches("^CHG[0-9a-f]{22}$", request.CustomerInvoiceNumber);
+    }
+
+    [Fact]
     public void Failed_refund_attempt_preserves_recovery_data_and_releases_lease()
     {
         var now = DateTime.UtcNow;
