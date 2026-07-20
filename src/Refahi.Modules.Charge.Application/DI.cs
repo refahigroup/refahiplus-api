@@ -18,6 +18,7 @@ public static class DI
 
         services.AddScoped<ChargePricingService>()
                 .AddScoped<ChargeRequestQuoteService>()
+                .AddScoped<ChargeRefundProcessor>()
                 .AddScoped<ChargeFulfillmentProcessor>();
 
         return services;

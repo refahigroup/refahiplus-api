@@ -51,7 +51,10 @@ public sealed class ChargeRequestRepository : IChargeRequestRepository
         return await _db.ChargeRequests
                         .Where(x => x.Status == ChargeRequestStatus.Paid ||
                                 (x.Status == ChargeRequestStatus.ReconciliationPending && x.NextReconciliationAt <= nowUtc) ||
-                                (x.Status == ChargeRequestStatus.Processing && x.ProcessingLeaseUntil <= nowUtc))
+                                (x.Status == ChargeRequestStatus.Processing && x.ProcessingLeaseUntil <= nowUtc) ||
+                                (x.Status == ChargeRequestStatus.Refunding &&
+                                 (x.NextReconciliationAt == null || x.NextReconciliationAt <= nowUtc) &&
+                                 (x.ProcessingLeaseUntil == null || x.ProcessingLeaseUntil <= nowUtc)))
                         .OrderBy(x => x.UpdatedAt)
                         .Take(take)
                         .ToListAsync(ct);
@@ -70,6 +73,11 @@ public sealed class ChargeRequestRepository : IChargeRequestRepository
     public async Task AddAsync(ChargeRequest request, CancellationToken ct = default)
     {
         await _db.ChargeRequests.AddAsync(request, ct);
+    }
+
+    public Task AddFulfillmentAttemptAsync(ChargeFulfillmentAttempt attempt, CancellationToken ct = default)
+    {
+        return _db.FulfillmentAttempts.AddAsync(attempt, ct).AsTask();
     }
 
     public Task SaveChangesAsync(CancellationToken ct = default)

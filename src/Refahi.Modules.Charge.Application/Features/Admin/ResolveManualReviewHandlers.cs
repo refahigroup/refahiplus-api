@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Refahi.Modules.Charge.Application.Contracts.Features;
+using Refahi.Modules.Charge.Application.Services;
 using Refahi.Modules.Charge.Domain.Repositories;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 
@@ -55,20 +56,16 @@ public sealed class ConfirmChargeFulfilledHandler : IRequestHandler<ConfirmCharg
 public sealed class RefundChargeRequestHandler : IRequestHandler<RefundChargeRequestCommand, ReconcileChargeRequestResponse>
 {
     private readonly IChargeRequestRepository _requests;
-    private readonly ISender _sender;
-    public RefundChargeRequestHandler(IChargeRequestRepository requests, ISender sender)
-    { _requests = requests; _sender = sender; }
+    private readonly ChargeRefundProcessor _refunds;
+    public RefundChargeRequestHandler(IChargeRequestRepository requests, ChargeRefundProcessor refunds)
+    { _requests = requests; _refunds = refunds; }
 
     public async Task<ReconcileChargeRequestResponse> Handle(RefundChargeRequestCommand command, CancellationToken ct)
     {
         var request = await _requests.GetAsync(command.RequestId, ct) ?? throw new ArgumentException("درخواست شارژ یافت نشد");
         if (!request.OrderId.HasValue || !request.PaymentId.HasValue)
             throw new InvalidOperationException("پرداخت قابل بازگشت برای درخواست یافت نشد");
-        request.BeginRefund(DateTime.UtcNow);
-        await _requests.SaveChangesAsync(ct);
-        await _sender.Send(new CancelOrderCommand(request.OrderId.Value, command.Reason, command.IdempotencyKey), ct);
-        request.MarkRefunded(DateTime.UtcNow);
-        await _requests.SaveChangesAsync(ct);
+        await _refunds.BeginAsync(request, command.Reason, command.IdempotencyKey, ct);
         return new(request.Id, request.Status.ToString(), request.Attempts.Count, request.NextReconciliationAt,
             request.ProviderRrn, request.ProviderTraceId, request.ProviderMessage);
     }

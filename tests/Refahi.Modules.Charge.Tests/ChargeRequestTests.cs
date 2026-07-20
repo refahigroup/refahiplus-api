@@ -32,6 +32,58 @@ public sealed class ChargeRequestTests
         Assert.Equal(ChargeRequestStatus.Expired, request.Status);
     }
 
+    [Fact]
+    public void Failed_refund_attempt_preserves_recovery_data_and_releases_lease()
+    {
+        var now = DateTime.UtcNow;
+        var request = Create(now);
+        var orderId = Guid.NewGuid();
+        request.ConvertToOrder(orderId, now);
+        request.MarkPaid(orderId, Guid.NewGuid(), now);
+        request.BeginRefund("عدم انجام شارژ", "refund-key", now);
+        request.StartRefundAttempt("worker-1", now, TimeSpan.FromMinutes(5));
+
+        request.MarkRefundAttemptFailed("temporary failure", now.AddMinutes(2), now.AddSeconds(1));
+
+        Assert.Equal(ChargeRequestStatus.Refunding, request.Status);
+        Assert.Equal("refund-key", request.RefundIdempotencyKey);
+        Assert.Equal("عدم انجام شارژ", request.RefundReason);
+        Assert.Equal(1, request.RefundAttemptCount);
+        Assert.Equal("temporary failure", request.RefundLastError);
+        Assert.Null(request.ProcessingLeaseUntil);
+        Assert.Equal(now.AddMinutes(2), request.NextReconciliationAt);
+    }
+
+    [Fact]
+    public void Refunding_request_reuses_original_idempotency_data()
+    {
+        var now = DateTime.UtcNow;
+        var request = Create(now);
+        var orderId = Guid.NewGuid();
+        request.ConvertToOrder(orderId, now);
+        request.MarkPaid(orderId, Guid.NewGuid(), now);
+        request.BeginRefund("original reason", "original-key", now);
+
+        request.BeginRefund("different reason", "different-key", now.AddMinutes(1));
+
+        Assert.Equal("original-key", request.RefundIdempotencyKey);
+        Assert.Equal("original reason", request.RefundReason);
+    }
+
+    [Fact]
+    public void Fulfilled_request_cannot_be_refunded_as_a_failed_fulfillment()
+    {
+        var now = DateTime.UtcNow;
+        var request = Create(now);
+        var orderId = Guid.NewGuid();
+        request.ConvertToOrder(orderId, now);
+        request.MarkPaid(orderId, Guid.NewGuid(), now);
+        request.MarkFulfilled("rrn", "trace", 0, "0", "ok", now);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            request.BeginRefund("invalid refund", "refund-key", now));
+    }
+
     private static ChargeRequest Create(DateTime? now = null, DateTime? expires = null)
     {
         var created = now ?? DateTime.UtcNow;

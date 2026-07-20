@@ -77,6 +77,9 @@ public sealed class EniacApiClient
                 var responseBody = await response.Content.ReadAsStringAsync(ct);
                 if (!response.IsSuccessStatusCode)
                 {
+                    var (providerResultCode, providerMessage) = ReadProviderError(responseBody);
+                    var outcomeAmbiguous = IsOutcomeAmbiguousHttpFailure(
+                        operation, response.StatusCode, providerResultCode);
                     var retryable = safeToRetry && (int)response.StatusCode >= 500;
                     var kind = response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden
                         ? ChargeProviderFailureKind.Authentication
@@ -85,13 +88,14 @@ public sealed class EniacApiClient
                         ? ProviderCallOutcome.AuthenticationError
                         : ProviderCallOutcome.ProviderRejected;
                     var logId = await WriteLogAsync(context, operation, "Http", outcome, method.Method, path,
-                        (int)response.StatusCode, null, null, retryable, attempt, correlationId,
-                        nameof(HttpRequestException), $"Eniac HTTP {(int)response.StatusCode}", requestSnapshot,
+                        (int)response.StatusCode, providerResultCode, null, retryable, attempt, correlationId,
+                        nameof(HttpRequestException), providerMessage ?? $"Eniac HTTP {(int)response.StatusCode}", requestSnapshot,
                         ProviderPayloadSanitizer.SanitizeJson(responseBody), stopwatch.ElapsedMilliseconds, ct);
 
                     throw new ChargeProviderException(
-                        "ارتباط با تامین‌کننده با پاسخ ناموفق مواجه شد", kind, operation, "Http",
-                        correlationId, retryable, logId, (int)response.StatusCode);
+                        providerMessage ?? "ارتباط با تامین‌کننده با پاسخ ناموفق مواجه شد",
+                        kind, operation, "Http", correlationId, retryable, outcomeAmbiguous,
+                        logId, (int)response.StatusCode, providerResultCode);
                 }
 
                 JsonDocument document;
@@ -107,14 +111,15 @@ public sealed class EniacApiClient
                         ProviderPayloadSanitizer.SanitizeJson(responseBody), stopwatch.ElapsedMilliseconds, ct);
                     throw new ChargeProviderException("پاسخ تامین‌کننده قابل پردازش نیست",
                         ChargeProviderFailureKind.InvalidResponse, operation, "Deserialize", correlationId,
-                        safeToRetry, logId, (int)response.StatusCode, ex);
+                        safeToRetry, outcomeAmbiguous: true, logId, (int)response.StatusCode,
+                        innerException: ex);
                 }
 
                 await LogProviderRejectionIfNeededAsync(document.RootElement, context, operation, method.Method, path,
                     requestSnapshot, responseBody, attempt, correlationId, stopwatch.ElapsedMilliseconds, ct);
                 return document;
             }
-            catch (ChargeProviderException) when (safeToRetry && attempt < attempts && !ct.IsCancellationRequested)
+            catch (ChargeProviderException ex) when (ex.Retryable && attempt < attempts && !ct.IsCancellationRequested)
             {
                 await DelayRetryAsync(attempt, ct);
             }
@@ -127,7 +132,7 @@ public sealed class EniacApiClient
                 if (safeToRetry && attempt < attempts) { await DelayRetryAsync(attempt, ct); continue; }
                 throw new ChargeProviderException("مهلت ارتباط با تامین‌کننده پایان یافت",
                     ChargeProviderFailureKind.Timeout, operation, "Transport", correlationId, safeToRetry,
-                    logId, innerException: ex);
+                    outcomeAmbiguous: true, logId, innerException: ex);
             }
             catch (OperationCanceledException ex) when (ct.IsCancellationRequested)
             {
@@ -146,7 +151,7 @@ public sealed class EniacApiClient
                 if (safeToRetry && attempt < attempts) { await DelayRetryAsync(attempt, ct); continue; }
                 throw new ChargeProviderException("ارتباط با تامین‌کننده برقرار نشد",
                     ChargeProviderFailureKind.Transport, operation, "Transport", correlationId, safeToRetry,
-                    logId, (int?)ex.StatusCode, ex);
+                    outcomeAmbiguous: true, logId, (int?)ex.StatusCode, innerException: ex);
             }
         }
 
@@ -177,7 +182,7 @@ public sealed class EniacApiClient
                     sw.ElapsedMilliseconds, ct);
                 throw new ChargeProviderException("احراز هویت تامین‌کننده ناموفق بود",
                     ChargeProviderFailureKind.Authentication, operation, "Token", correlationId, true,
-                    logId, (int)response.StatusCode);
+                    IsOutcomeAmbiguousBeforeProviderCall(operation), logId, (int)response.StatusCode);
             }
 
             try
@@ -200,7 +205,8 @@ public sealed class EniacApiClient
                     sw.ElapsedMilliseconds, ct);
                 throw new ChargeProviderException("پاسخ احراز هویت تامین‌کننده معتبر نیست",
                     ChargeProviderFailureKind.InvalidResponse, operation, "Token", correlationId, true,
-                    logId, (int)response.StatusCode, ex);
+                    IsOutcomeAmbiguousBeforeProviderCall(operation), logId, (int)response.StatusCode,
+                    innerException: ex);
             }
         }
         finally
@@ -211,6 +217,41 @@ public sealed class EniacApiClient
 
     private bool TokenIsValid() => !string.IsNullOrWhiteSpace(_token) &&
         _tokenExpiresAt > DateTimeOffset.UtcNow.AddSeconds(_options.TokenRefreshSkewSeconds);
+
+    private static bool IsOutcomeAmbiguousBeforeProviderCall(string operation) =>
+        !operation.Equals("Purchase", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsOutcomeAmbiguousHttpFailure(
+        string operation,
+        HttpStatusCode statusCode,
+        int? providerResultCode) =>
+        IsOutcomeAmbiguousBeforeProviderCall(operation) ||
+        providerResultCode is null ||
+        (int)statusCode >= 500 ||
+        statusCode is HttpStatusCode.RequestTimeout or
+            HttpStatusCode.Conflict or
+            HttpStatusCode.TooManyRequests;
+
+    private static (int? ResultCode, string? Message) ReadProviderError(string responseBody)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(responseBody);
+            var root = document.RootElement;
+            var resultCode = root.TryGetProperty("eniacResultCode", out var code) && code.TryGetInt32(out var parsed)
+                ? parsed
+                : (int?)null;
+            var message = root.TryGetProperty("message", out var messageElement) &&
+                          messageElement.ValueKind == JsonValueKind.String
+                ? messageElement.GetString()
+                : null;
+            return (resultCode, ProviderPayloadSanitizer.SafeMessage(message));
+        }
+        catch (JsonException)
+        {
+            return (null, null);
+        }
+    }
 
     private async Task LogProviderRejectionIfNeededAsync(JsonElement root, ProviderCallContext? context,
         string operation, string method, string path, string requestSnapshot, string responseBody,
