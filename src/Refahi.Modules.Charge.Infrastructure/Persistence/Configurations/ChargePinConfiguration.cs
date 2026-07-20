@@ -11,7 +11,8 @@ public sealed class ChargePinConfiguration : IEntityTypeConfiguration<ChargePin>
         b.HasKey(x => x.Id); 
 
         b.Property(x => x.Id)
-            .HasColumnName("id");
+            .HasColumnName("id")
+            .ValueGeneratedNever();
 
         b.Property(x => x.ChargeRequestId)
             .HasColumnName("charge_request_id"); 
