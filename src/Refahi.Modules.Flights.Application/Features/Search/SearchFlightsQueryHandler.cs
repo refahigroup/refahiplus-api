@@ -17,25 +17,33 @@ public sealed class SearchFlightsQueryHandler
 
     private readonly IFlightProviderFactory _providerFactory;
     private readonly IFlightOfferSnapshotRepository _offerSnapshotRepository;
+    private readonly IFlightAirportRepository _airportRepository;
 
     public SearchFlightsQueryHandler(
         IFlightProviderFactory providerFactory,
-        IFlightOfferSnapshotRepository offerSnapshotRepository)
+        IFlightOfferSnapshotRepository offerSnapshotRepository,
+        IFlightAirportRepository airportRepository)
     {
         _providerFactory = providerFactory;
         _offerSnapshotRepository = offerSnapshotRepository;
+        _airportRepository = airportRepository;
     }
 
     public async Task<SearchFlightsResponse> Handle(
         SearchFlightsQuery request,
         CancellationToken cancellationToken)
     {
-        var providerRequest = BuildProviderRequest(request);
+        var routeAirports = await _airportRepository.GetByIataCodesAsync(
+            [request.Origin!, request.Destination!],
+            cancellationToken);
+        var isDomestic = routeAirports.Count == 2
+            && routeAirports.All(airport => airport.CountryCode == "IR");
+        var providerRequest = BuildProviderRequest(request, isDomestic);
         var provider = _providerFactory.GetDefaultProvider();
         var providerResponse = await provider.SearchAsync(providerRequest, cancellationToken);
 
         if (!providerResponse.Success)
-            throw new InvalidOperationException("جست‌وجوی پرواز با خطا مواجه شد.");
+            throw new InvalidOperationException(BuildSafeProviderError(providerResponse.Error));
 
         var nowUtc = DateTime.UtcNow;
         var expiresAtUtc = nowUtc.Add(OfferTimeToLive);
@@ -71,7 +79,7 @@ public sealed class SearchFlightsQueryHandler
         return new SearchFlightsResponse(expiresAtUtc, publicOffers);
     }
 
-    private static FlightSearchRequest BuildProviderRequest(SearchFlightsQuery request)
+    private static FlightSearchRequest BuildProviderRequest(SearchFlightsQuery request, bool isDomestic)
     {
         var origin = request.Origin!.Trim().ToUpperInvariant();
         var destination = request.Destination!.Trim().ToUpperInvariant();
@@ -103,7 +111,7 @@ public sealed class SearchFlightsQueryHandler
             request.Adult,
             request.Child,
             request.Infant,
-            request.IsDomestic,
+            isDomestic,
             legs,
             new FlightTravelPreference(
                 request.CabinType.Trim(),
@@ -231,5 +239,13 @@ public sealed class SearchFlightsQueryHandler
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
+    }
+
+    private static string BuildSafeProviderError(FlightProviderError? error)
+    {
+        if (error?.Code is not null && error.Code.Contains("PASSENGER", StringComparison.OrdinalIgnoreCase))
+            return "ترکیب یا تعداد مسافران توسط تأمین‌کننده پذیرفته نشد.";
+
+        return "جست‌وجوی پرواز در تأمین‌کننده انجام نشد. لطفاً اطلاعات جست‌وجو را بررسی و دوباره تلاش کنید.";
     }
 }

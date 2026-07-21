@@ -33,16 +33,16 @@ public sealed class SearchFlightsQueryValidator : AbstractValidator<SearchFlight
             .WithMessage("تاریخ برگشت باید بعد از تاریخ رفت باشد.");
 
         RuleFor(query => query.Adult)
-            .InclusiveBetween(1, 9)
-            .WithMessage("تعداد بزرگسال باید بین ۱ تا ۹ باشد.");
+            .InclusiveBetween(1, 20)
+            .WithMessage("تعداد بزرگسال باید بین ۱ تا ۲۰ باشد.");
 
         RuleFor(query => query.Child)
-            .InclusiveBetween(0, 9)
-            .WithMessage("تعداد کودک باید بین ۰ تا ۹ باشد.");
+            .InclusiveBetween(0, 20)
+            .WithMessage("تعداد کودک باید بین ۰ تا ۲۰ باشد.");
 
         RuleFor(query => query.Infant)
-            .InclusiveBetween(0, 9)
-            .WithMessage("تعداد نوزاد باید بین ۰ تا ۹ باشد.");
+            .InclusiveBetween(0, 20)
+            .WithMessage("تعداد نوزاد باید بین ۰ تا ۲۰ باشد.");
 
         RuleFor(query => query)
             .Must(query => query.Infant <= query.Adult)
