@@ -22,4 +22,7 @@
     <ProjectReference Include="..\Refahi.Modules.Flights.Domain\Refahi.Modules.Flights.Domain.csproj" />
     <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\airports-20260714.json.gz" />
+  </ItemGroup>
 </Project>

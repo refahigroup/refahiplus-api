@@ -8,6 +8,32 @@ namespace Refahi.Modules.Flights.Tests;
 public sealed class SnappTripFlightMapperTests
 {
     [Fact]
+    public void ToSnappTripRequest_PreservesPassengerUpperBoundary()
+    {
+        var request = new FlightSearchRequest(
+            Adult: 20,
+            Child: 20,
+            Infant: 20,
+            IsDomestic: false,
+            OriginDestinationInformations:
+            [
+                new FlightSearchLeg(
+                    new DateOnly(2026, 7, 15),
+                    "DXB",
+                    "LHR",
+                    "Airport",
+                    "Airport")
+            ],
+            new FlightTravelPreference("Economy", "OneWay", null));
+
+        var mapped = SnappTripFlightMapper.ToSnappTripRequest(request);
+
+        Assert.Equal(20, mapped.Adult);
+        Assert.Equal(20, mapped.Child);
+        Assert.Equal(20, mapped.Infant);
+    }
+
+    [Fact]
     public void ToSnappTripRequest_MapsSearchLegsAndTravelPreference()
     {
         var request = new FlightSearchRequest(

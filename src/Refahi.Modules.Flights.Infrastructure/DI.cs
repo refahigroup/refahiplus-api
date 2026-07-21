@@ -25,6 +25,8 @@ public static class DI
 
         services.AddScoped<IFlightBookingRepository, FlightBookingRepository>();
         services.AddScoped<IFlightOfferSnapshotRepository, FlightOfferSnapshotRepository>();
+        services.AddScoped<IFlightAirportRepository, FlightAirportRepository>();
+        services.AddScoped<FlightAirportDataSeeder>();
         services.UseSnappTripFlightProvider(configuration)
             .AddScoped<IFlightProvider>(sp => sp.GetRequiredService<IFlightProviderFactory>().GetDefaultProvider())
             .AddScoped<IFlightProviderFactory>(sp => new FlightProviderFactory(sp, FlightProviderType.SnappTrip));
@@ -38,5 +40,9 @@ public static class DI
         var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
 
         tools.ApplyMigrations<FlightsDbContext>();
+        scope.ServiceProvider.GetRequiredService<FlightAirportDataSeeder>()
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
     }
 }
