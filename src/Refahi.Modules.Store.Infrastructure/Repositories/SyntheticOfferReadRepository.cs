@@ -89,6 +89,27 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
         return (items, total);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetEligibleAgreementProductIdsAsync(
+        SyntheticOfferQuerySpec spec,
+        CancellationToken ct = default)
+    {
+        if (!HasAgreementProducts(spec))
+            return [];
+
+        var sql = $"""
+            {BuildFilteredOffersCte()}
+            SELECT DISTINCT "AgreementProductId"
+            FROM filtered_offers
+            ORDER BY "AgreementProductId";
+            """;
+
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        var ids = await connection.QueryAsync<Guid>(
+            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct));
+        return ids.AsList();
+    }
+
     public async Task<IReadOnlyList<SyntheticOfferReadModel>> GetProductOffersAsync(
         SyntheticOfferQuerySpec spec,
         CancellationToken ct = default)

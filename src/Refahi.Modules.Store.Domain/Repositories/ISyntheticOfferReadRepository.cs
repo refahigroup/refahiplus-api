@@ -10,6 +10,10 @@ public interface ISyntheticOfferReadRepository
         SyntheticOfferQuerySpec spec,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<Guid>> GetEligibleAgreementProductIdsAsync(
+        SyntheticOfferQuerySpec spec,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<SyntheticOfferReadModel>> GetProductOffersAsync(
         SyntheticOfferQuerySpec spec,
         CancellationToken ct = default);

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Enums;
+using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 using Refahi.Modules.Store.Infrastructure.Repositories;
 using Xunit;
@@ -101,6 +102,78 @@ public sealed class ShopProductRepositoryPostgresTests
             stockIds, sessionIds, today, null, "price-asc", 1, 1);
         Assert.Equal(3, priceTotal);
         Assert.Equal(sessionProduct.Id, Assert.Single(pricePage).ProductId);
+    }
+
+    [Fact]
+    public async Task EligibleAgreementProducts_MatchProductCatalogEligibility()
+    {
+        var connectionString = Environment.GetEnvironmentVariable(ConnectionVariable);
+        if (string.IsNullOrWhiteSpace(connectionString))
+            return;
+
+        var connectionBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+        Assert.Contains("test", connectionBuilder.Database, StringComparison.OrdinalIgnoreCase);
+        await ResetAndMigrateAsync(connectionString);
+
+        var options = new DbContextOptionsBuilder<StoreDbContext>()
+            .UseNpgsql(connectionString)
+            .Options;
+        await using var context = new StoreDbContext(options);
+
+        var activeShop = CreateActiveShop("فروشگاه فعال", "active-shop");
+        var pendingShop = Shop.Create("فروشگاه غیرفعال", "pending-shop", ShopType.Online, Guid.NewGuid());
+        var stockProduct = Product.Create(Guid.NewGuid(), "کالای موجود", "stock", stockCount: 3);
+        var unavailableProduct = Product.Create(Guid.NewGuid(), "کالای ناموجود", "unavailable-stock", stockCount: 0);
+        var inactiveShopProduct = Product.Create(Guid.NewGuid(), "کالای فروشگاه غیرفعال", "inactive-shop", stockCount: 3);
+        var sessionProduct = Product.Create(Guid.NewGuid(), "سانس آینده", "future-session", stockCount: 0);
+        var expiredSessionProduct = Product.Create(Guid.NewGuid(), "سانس گذشته", "expired-session", stockCount: 0);
+        var today = new DateOnly(2026, 7, 22);
+        sessionProduct.AddSession(today.AddDays(1), new TimeOnly(9, 0), new TimeOnly(10, 0), 5);
+        expiredSessionProduct.AddSession(today.AddDays(-1), new TimeOnly(9, 0), new TimeOnly(10, 0), 5);
+
+        context.AddRange(
+            activeShop, pendingShop, stockProduct, unavailableProduct,
+            inactiveShopProduct, sessionProduct, expiredSessionProduct);
+        await context.SaveChangesAsync();
+
+        context.AddRange(
+            ShopProduct.Create(activeShop.Id, stockProduct.Id, 10_000, 0),
+            ShopProduct.Create(activeShop.Id, unavailableProduct.Id, 10_000, 0),
+            ShopProduct.Create(pendingShop.Id, inactiveShopProduct.Id, 10_000, 0),
+            ShopProduct.Create(activeShop.Id, sessionProduct.Id, 20_000, 0),
+            ShopProduct.Create(activeShop.Id, expiredSessionProduct.Id, 20_000, 0));
+        await context.SaveChangesAsync();
+
+        var stockIds = new[]
+        {
+            stockProduct.AgreementProductId,
+            unavailableProduct.AgreementProductId,
+            inactiveShopProduct.AgreementProductId
+        };
+        var sessionIds = new[]
+        {
+            sessionProduct.AgreementProductId,
+            expiredSessionProduct.AgreementProductId
+        };
+        var spec = new SyntheticOfferQuerySpec(
+            stockIds,
+            sessionIds,
+            today,
+            PageSize: 30,
+            CurrentTime: new TimeOnly(12, 0));
+        var repository = new SyntheticOfferReadRepository(connectionString);
+
+        var eligibleIds = await repository.GetEligibleAgreementProductIdsAsync(spec);
+        var (catalog, _) = await repository.GetProductCatalogAsync(spec);
+
+        Assert.Equal(
+            catalog.Select(item => item.AgreementProductId).Distinct().Order(),
+            eligibleIds.Order());
+        Assert.Contains(stockProduct.AgreementProductId, eligibleIds);
+        Assert.Contains(sessionProduct.AgreementProductId, eligibleIds);
+        Assert.DoesNotContain(unavailableProduct.AgreementProductId, eligibleIds);
+        Assert.DoesNotContain(inactiveShopProduct.AgreementProductId, eligibleIds);
+        Assert.DoesNotContain(expiredSessionProduct.AgreementProductId, eligibleIds);
     }
 
     private static Shop CreateActiveShop(string name, string slug)
