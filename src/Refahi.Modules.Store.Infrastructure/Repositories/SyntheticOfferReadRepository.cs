@@ -357,7 +357,8 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
               AND sp."IsActive" = TRUE
               AND sp."IsDeleted" = FALSE
               AND sp."Price" > 0
-              AND (sp."DiscountedPrice" = 0 OR (sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" < sp."Price"))
+              AND (sp."DiscountedPrice" = 0
+                   OR (sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" <= sp."Price"))
               AND NOT EXISTS (
                     SELECT 1 FROM store.product_variants epv WHERE epv."ProductId" = p."Id")
 
@@ -414,7 +415,7 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
               AND spv."IsDeleted" = FALSE
               AND spv."PriceMinor" > 0
               AND (spv."DiscountedPriceMinor" IS NULL
-                   OR (spv."DiscountedPriceMinor" > 0 AND spv."DiscountedPriceMinor" < spv."PriceMinor"))
+                   OR (spv."DiscountedPriceMinor" > 0 AND spv."DiscountedPriceMinor" <= spv."PriceMinor"))
 
             UNION ALL
 
@@ -470,7 +471,8 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
               AND sp."IsActive" = TRUE
               AND sp."IsDeleted" = FALSE
               AND sp."Price" > 0
-              AND (sp."DiscountedPrice" = 0 OR (sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" < sp."Price"))
+              AND (sp."DiscountedPrice" = 0
+                   OR (sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" <= sp."Price"))
               AND (ps."Date" > CAST(@Today AS date)
                    OR (ps."Date" = CAST(@Today AS date)
                        AND ps."EndTime" > CAST(@CurrentTime AS time without time zone)))
@@ -535,7 +537,7 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
               AND spv."IsDeleted" = FALSE
               AND spv."PriceMinor" > 0
               AND (spv."DiscountedPriceMinor" IS NULL
-                   OR (spv."DiscountedPriceMinor" > 0 AND spv."DiscountedPriceMinor" < spv."PriceMinor"))
+                   OR (spv."DiscountedPriceMinor" > 0 AND spv."DiscountedPriceMinor" <= spv."PriceMinor"))
               AND (pv."CapacityType" = 0 OR (pv."CapacityType" IN (1, 2) AND pv."Capacity" > 0))
               AND (pv."CapacityType" <> 2 OR (pv."FromDate" IS NOT NULL AND pv."ToDate" IS NOT NULL))
               AND (pv."ToDate" IS NULL OR pv."ToDate" >= CAST(@Today AS date))
