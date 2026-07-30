@@ -110,7 +110,7 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
         if (discountedPriceMinor is <= 0)
             throw new StoreDomainException("قیمت تخفیف‌خورده باید بیشتر از صفر باشد", "INVALID_DISCOUNTED_PRICE");
 
-        if (discountedPriceMinor >= priceMinor)
-            throw new StoreDomainException("قیمت تخفیف‌خورده باید کمتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
+        if (discountedPriceMinor > priceMinor)
+            throw new StoreDomainException("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
     }
 }

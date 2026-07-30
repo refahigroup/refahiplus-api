@@ -54,7 +54,7 @@ public class ShopProductRepository : IShopProductRepository
                       && offering.PriceMinor > 0
                       && (offering.DiscountedPriceMinor == null
                           || (offering.DiscountedPriceMinor > 0
-                              && offering.DiscountedPriceMinor < offering.PriceMinor))
+                              && offering.DiscountedPriceMinor <= offering.PriceMinor))
                       && ((stockBasedAgreementProductIds.Contains(product.AgreementProductId) && variant.StockCount > 0)
                       || (sessionBasedAgreementProductIds.Contains(product.AgreementProductId)
                           && ((variant.CapacityType == VariantCapacityType.Unlimited || variant.Capacity > 0)
@@ -229,7 +229,7 @@ public class ShopProductRepository : IShopProductRepository
                   && offering.PriceMinor > 0
                   && (offering.DiscountedPriceMinor == null
                       || (offering.DiscountedPriceMinor > 0
-                          && offering.DiscountedPriceMinor < offering.PriceMinor))
+                          && offering.DiscountedPriceMinor <= offering.PriceMinor))
                   && (salesModel == SalesModel.StockBased
                       ? variant.StockCount > 0
                       : ((variant.CapacityType == VariantCapacityType.Unlimited || variant.Capacity > 0)

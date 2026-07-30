@@ -20,8 +20,8 @@ public class UpsertShopProductVariantCommandValidator : AbstractValidator<Upsert
             .GreaterThan(0).WithMessage("قیمت باید بیشتر از صفر باشد");
 
         RuleFor(x => x.DiscountedPriceMinor)
+            .NotNull().WithMessage("قیمت تخفیف‌خورده الزامی است")
             .GreaterThan(0).WithMessage("قیمت تخفیف‌خورده باید بیشتر از صفر باشد")
-            .LessThan(x => x.PriceMinor).WithMessage("قیمت تخفیف‌خورده باید کمتر از قیمت اصلی باشد")
-            .When(x => x.DiscountedPriceMinor.HasValue);
+            .LessThanOrEqualTo(x => x.PriceMinor).WithMessage("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد");
     }
 }

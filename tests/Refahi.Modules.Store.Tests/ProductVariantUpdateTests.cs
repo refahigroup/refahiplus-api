@@ -20,6 +20,7 @@ public sealed class ProductVariantUpdateTests
             [(attribute.Id, red.Id)],
             2,
             1_000,
+            1_000,
             salesModel: SalesModel.StockBased);
 
         product.UpdateVariant(
@@ -51,13 +52,14 @@ public sealed class ProductVariantUpdateTests
             Guid.NewGuid(),
             [],
             0,
+            1_000,
             1_000));
 
         Assert.Equal("VARIANT_NOT_FOUND", exception.ErrorCode);
     }
 
     [Fact]
-    public void Update_validator_rejects_empty_combinations_and_equal_discount()
+    public void Update_validator_rejects_empty_combinations_but_accepts_equal_discount()
     {
         var validator = new UpdateProductVariantCommandValidator();
         var command = new UpdateProductVariantCommand(
@@ -73,7 +75,7 @@ public sealed class ProductVariantUpdateTests
         var result = validator.Validate(command);
 
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(command.Combinations));
-        Assert.Contains(result.Errors, error => error.ErrorMessage.Contains("کمتر از قیمت اصلی"));
+        Assert.DoesNotContain(result.Errors, error => error.PropertyName == nameof(command.DiscountedPriceMinor));
     }
 
     [Fact]

@@ -325,12 +325,12 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
                 NULL::text AS "SessionTitle",
                 sp."Price" AS "OriginalPriceMinor",
                 CASE
-                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" < sp."Price"
+                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" <= sp."Price"
                     THEN sp."DiscountedPrice"
                     ELSE NULL
                 END AS "DiscountedPriceMinor",
                 CASE
-                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" < sp."Price"
+                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" <= sp."Price"
                     THEN sp."DiscountedPrice"
                     ELSE sp."Price"
                 END AS "EffectivePriceMinor",
@@ -439,12 +439,12 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
                 ps."Title" AS "SessionTitle",
                 sp."Price" + ps."PriceAdjustment" AS "OriginalPriceMinor",
                 CASE
-                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" < sp."Price"
+                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" <= sp."Price"
                     THEN sp."DiscountedPrice" + ps."PriceAdjustment"
                     ELSE NULL
                 END AS "DiscountedPriceMinor",
                 CASE
-                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" < sp."Price"
+                    WHEN sp."DiscountedPrice" > 0 AND sp."DiscountedPrice" <= sp."Price"
                     THEN sp."DiscountedPrice" + ps."PriceAdjustment"
                     ELSE sp."Price" + ps."PriceAdjustment"
                 END AS "EffectivePriceMinor",

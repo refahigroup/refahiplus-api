@@ -21,12 +21,13 @@ public class AddProductVariantCommandValidator : AbstractValidator<AddProductVar
             .GreaterThan(0).WithMessage("قیمت باید بیشتر از صفر باشد");
 
         RuleFor(x => x.DiscountedPriceMinor)
-            .GreaterThan(0).When(x => x.DiscountedPriceMinor.HasValue)
+            .NotNull().WithMessage("قیمت تخفیف‌خورده الزامی است")
+            .GreaterThan(0)
             .WithMessage("قیمت تخفیف‌خورده باید بیشتر از صفر باشد");
 
         RuleFor(x => x)
-            .Must(x => !x.DiscountedPriceMinor.HasValue || x.DiscountedPriceMinor.Value < x.PriceMinor)
-            .WithMessage("قیمت تخفیف‌خورده باید کمتر از قیمت اصلی باشد");
+            .Must(x => !x.DiscountedPriceMinor.HasValue || x.DiscountedPriceMinor.Value <= x.PriceMinor)
+            .WithMessage("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد");
 
         RuleFor(x => x)
             .Must(x => x.FromDate.HasValue == x.ToDate.HasValue)

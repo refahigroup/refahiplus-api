@@ -169,15 +169,15 @@ public class BackfillShopProductVariantsCommandHandler
             return false;
         }
 
-        if (variant.DiscountedPriceMinor is <= 0)
+        if (variant.DiscountedPriceMinor is null or <= 0)
         {
             warning = "قیمت تخفیف‌خورده تنوع محصول باید بیشتر از صفر باشد.";
             return false;
         }
 
-        if (variant.DiscountedPriceMinor >= variant.PriceMinor)
+        if (variant.DiscountedPriceMinor > variant.PriceMinor)
         {
-            warning = "قیمت تخفیف‌خورده تنوع محصول باید کمتر از قیمت اصلی باشد.";
+            warning = "قیمت تخفیف‌خورده تنوع محصول نباید بیشتر از قیمت اصلی باشد.";
             return false;
         }
 

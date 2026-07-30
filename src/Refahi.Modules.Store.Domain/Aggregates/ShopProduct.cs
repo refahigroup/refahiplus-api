@@ -22,7 +22,10 @@ public sealed class ShopProduct
     public IReadOnlyList<ShopProductVariant> VariantOfferings => _variantOfferings.AsReadOnly();
 
     public static ShopProduct Create(Guid shopId, Guid productId, long price, long discountedPrice, string? description = null)
-        => new()
+    {
+        ValidatePrice(price, discountedPrice);
+
+        return new()
         {
             Id = Guid.NewGuid(),
             ShopId = shopId,
@@ -35,13 +38,27 @@ public sealed class ShopProduct
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
+    }
 
     public void UpdateDetails(long price, long discountedPrice, string? description)
     {
+        ValidatePrice(price, discountedPrice);
         Price = price;
         DiscountedPrice = discountedPrice;
         Description = description;
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    private static void ValidatePrice(long price, long discountedPrice)
+    {
+        if (price <= 0)
+            throw new StoreDomainException("قیمت باید بیشتر از صفر باشد", "INVALID_PRICE");
+
+        if (discountedPrice <= 0)
+            throw new StoreDomainException("قیمت تخفیف‌خورده باید بیشتر از صفر باشد", "INVALID_DISCOUNTED_PRICE");
+
+        if (discountedPrice > price)
+            throw new StoreDomainException("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
     }
 
     public void Enable()
