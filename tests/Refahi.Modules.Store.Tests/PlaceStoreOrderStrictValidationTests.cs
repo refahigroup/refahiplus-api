@@ -167,6 +167,66 @@ public sealed class PlaceStoreOrderStrictValidationTests
         Assert.Null(fixture.Mediator.CreateOrderCommand);
     }
 
+    [Fact]
+    public async Task Handle_AllowsNonShippingOrderWithoutShippingData_AndClearsStaleValues()
+    {
+        var fixture = TestFixture.StockVariant(1700, 1700, deliveryType: DeliveryType.Download);
+        var itemId = Assert.Single(fixture.Cart.Items).Id;
+
+        await fixture.Handler.Handle(
+            Command(fixture.Cart.ModuleId) with
+            {
+                ShippingAddressId = Guid.NewGuid(),
+                DeliveryDate = new DateOnly(2026, 8, 1),
+                DeliveryTimeSlot = 2,
+                CartItemDeliveryMethods = new Dictionary<Guid, short> { [itemId] = 2 }
+            },
+            CancellationToken.None);
+
+        var order = fixture.Mediator.CreateOrderCommand!;
+        Assert.Null(order.ShippingAddressId);
+        Assert.Null(order.ShippingAddressSnapshotJson);
+        Assert.Null(order.DeliveryDate);
+        Assert.Equal(0, order.DeliveryTimeSlot);
+        Assert.Equal(0, order.ShippingFeeMinor);
+        Assert.Equal(0, Assert.Single(order.Items).DeliveryMethod);
+    }
+
+    [Fact]
+    public async Task Handle_RequiresAddressDateAndDeliveryMethod_ForShippingItem()
+    {
+        var fixture = TestFixture.StockVariant(1700, 1700, deliveryType: DeliveryType.Shipping);
+
+        var exception = await Assert.ThrowsAsync<StoreDomainException>(() =>
+            fixture.Handler.Handle(Command(fixture.Cart.ModuleId), CancellationToken.None));
+
+        Assert.Equal("DELIVERY_METHOD_REQUIRED", exception.ErrorCode);
+        Assert.Null(fixture.Mediator.CreateOrderCommand);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesShippingOrder_WhenShippingDataIsComplete()
+    {
+        var fixture = TestFixture.StockVariant(1700, 1700, deliveryType: DeliveryType.Shipping);
+        var itemId = Assert.Single(fixture.Cart.Items).Id;
+        var addressId = Guid.NewGuid();
+        var deliveryDate = new DateOnly(2026, 8, 1);
+
+        await fixture.Handler.Handle(
+            Command(fixture.Cart.ModuleId) with
+            {
+                ShippingAddressId = addressId,
+                DeliveryDate = deliveryDate,
+                CartItemDeliveryMethods = new Dictionary<Guid, short> { [itemId] = 1 }
+            },
+            CancellationToken.None);
+
+        var order = fixture.Mediator.CreateOrderCommand!;
+        Assert.Equal(addressId, order.ShippingAddressId);
+        Assert.Equal(deliveryDate, order.DeliveryDate);
+        Assert.Equal(1, Assert.Single(order.Items).DeliveryMethod);
+    }
+
     private static PlaceStoreOrderCommand Command(int moduleId, string? idempotencyKey = null)
         => new(
             UserId: UserId,
@@ -198,7 +258,11 @@ public sealed class PlaceStoreOrderStrictValidationTests
         public FakeCartRepository CartRepository { get; }
         public PlaceStoreOrderCommandHandler Handler { get; }
 
-        public static TestFixture StockVariant(long cartUnitPrice, long currentUnitPrice, bool activeShop = true)
+        public static TestFixture StockVariant(
+            long cartUnitPrice,
+            long currentUnitPrice,
+            bool activeShop = true,
+            DeliveryType deliveryType = DeliveryType.Download)
         {
             var agreementProductId = Guid.NewGuid();
             var product = Product.Create(agreementProductId, "محصول تست", "test-product", stockCount: 10);
@@ -213,7 +277,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 currentUnitPrice,
                 originalPrice: 2200,
                 salesModel: SalesModel.StockBased,
-                activeShop);
+                activeShop,
+                deliveryType);
         }
 
         public static TestFixture SessionVariantWithoutUsageDate()
@@ -242,7 +307,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 currentUnitPrice: 15000,
                 originalPrice: 18000,
                 salesModel: SalesModel.SessionBased,
-                activeShop: true);
+                activeShop: true,
+                deliveryType: DeliveryType.Download);
         }
 
         private static TestFixture Create(
@@ -252,7 +318,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
             long currentUnitPrice,
             long originalPrice,
             SalesModel salesModel,
-            bool activeShop)
+            bool activeShop,
+            DeliveryType deliveryType)
         {
             var shop = Shop.Create("فروشگاه تست", "test-shop", ShopType.Online, Guid.NewGuid());
             if (activeShop)
@@ -269,7 +336,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 VariantId: variantId,
                 Source: StorePriceSource.ShopProductVariant));
 
-            var mediator = new CapturingMediator(product.AgreementProductId, salesModel);
+            var mediator = new CapturingMediator(product.AgreementProductId, salesModel, deliveryType);
             var cartRepository = new FakeCartRepository(cart);
             var handler = new PlaceStoreOrderCommandHandler(
                 cartRepository,
@@ -392,12 +459,14 @@ public sealed class PlaceStoreOrderStrictValidationTests
         public static readonly Guid CreatedOrderId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         private readonly Guid _agreementProductId;
         private readonly SalesModel _salesModel;
+        private readonly DeliveryType _deliveryType;
         private readonly Dictionary<string, OrderDto> _ordersByIdempotencyKey = new(StringComparer.Ordinal);
 
-        public CapturingMediator(Guid agreementProductId, SalesModel salesModel)
+        public CapturingMediator(Guid agreementProductId, SalesModel salesModel, DeliveryType deliveryType)
         {
             _agreementProductId = agreementProductId;
             _salesModel = salesModel;
+            _deliveryType = deliveryType;
         }
 
         public CreateOrderCommand? CreateOrderCommand { get; private set; }
@@ -415,7 +484,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
                     CategoryId: 1,
                     CategoryName: "store",
                     ProductType: 1,
-                    DeliveryType: 1,
+                    DeliveryType: (short)_deliveryType,
                     SalesModel: (short)_salesModel,
                     CommissionPercent: 0,
                     IsDeleted: false,

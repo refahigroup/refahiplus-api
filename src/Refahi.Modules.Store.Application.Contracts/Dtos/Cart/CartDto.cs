@@ -29,4 +29,5 @@ public sealed record CartItemDto(
     long? CurrentUnitPriceMinor = null,
     bool HasPriceChanged = false,
     Guid? ShopProductVariantId = null,
-    string? PriceSource = null);
+    string? PriceSource = null,
+    string DeliveryType = "");

@@ -65,6 +65,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         var stockUpdates = new List<(Guid ProductId, Guid? VariantId, int Quantity)>();
         var sessionUpdates = new List<(Guid ProductId, Guid SessionId, int Quantity)>();
         var deliveryItems = new List<DeliveryItemInput>();
+        var requiresShipping = false;
 
         // Cache agreement products per unique AgreementProductId
         var agreementProductCache = new Dictionary<Guid, Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?>();
@@ -107,6 +108,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
 
             var salesModel = (SalesModel)ap.SalesModel;
+            var deliveryType = (DeliveryType)ap.DeliveryType;
+            var itemRequiresShipping = deliveryType == DeliveryType.Shipping;
+            requiresShipping |= itemRequiresShipping;
 
             // CategoryCode via References
             string? categoryCode = null;
@@ -273,13 +277,22 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
             // روش ارسال این آیتم
             short deliveryMethod = 0;
-            if (request.CartItemDeliveryMethods is not null
+            if (itemRequiresShipping
+                && request.CartItemDeliveryMethods is not null
                 && request.CartItemDeliveryMethods.TryGetValue(cartItem.Id, out var dm))
             {
                 deliveryMethod = dm;
             }
 
-            deliveryItems.Add(new DeliveryItemInput(deliveryMethod, cartItem.Quantity));
+            if (itemRequiresShipping)
+            {
+                if (deliveryMethod is not (1 or 2))
+                    throw new StoreDomainException(
+                        $"لطفاً روش ارسال کالای «{product.Title}» را انتخاب کنید",
+                        "DELIVERY_METHOD_REQUIRED");
+
+                deliveryItems.Add(new DeliveryItemInput(deliveryMethod, cartItem.Quantity));
+            }
 
             orderItems.Add(new CreateOrderItemInput(
                 Title: itemTitle,
@@ -294,12 +307,22 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         }
 
         // STEP 3: دریافت آدرس و ساخت Snapshot
+        if (requiresShipping && !request.ShippingAddressId.HasValue)
+            throw new StoreDomainException("انتخاب آدرس ارسال الزامی است", "SHIPPING_ADDRESS_REQUIRED");
+
+        if (requiresShipping && !request.DeliveryDate.HasValue)
+            throw new StoreDomainException("انتخاب تاریخ ارسال الزامی است", "DELIVERY_DATE_REQUIRED");
+
+        var normalizedShippingAddressId = requiresShipping ? request.ShippingAddressId : null;
+        var normalizedDeliveryDate = requiresShipping ? request.DeliveryDate : null;
+        var normalizedDeliveryTimeSlot = requiresShipping ? request.DeliveryTimeSlot : (short)0;
+
         UserAddressDto? addressDto = null;
         string? addressSnapshotJson = null;
-        if (request.ShippingAddressId.HasValue)
+        if (normalizedShippingAddressId.HasValue)
         {
             addressDto = await _mediator.Send(
-                new GetUserAddressByIdQuery(request.ShippingAddressId.Value, request.UserId),
+                new GetUserAddressByIdQuery(normalizedShippingAddressId.Value, request.UserId),
                 cancellationToken);
 
             if (addressDto is null)
@@ -325,7 +348,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         // STEP 4: محاسبه‌ی هزینه ارسال
         var shippingFeeMinor = _deliveryService.CalcPrice(
             deliveryItems,
-            shippingAddressId: request.ShippingAddressId,
+            shippingAddressId: normalizedShippingAddressId,
             shopId: shopId);
 
         // STEP 5: کد تخفیف (فاز ۱: Stub — همیشه ۰)
@@ -339,10 +362,10 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             SourceReferenceId: shopId!.Value,
             Items: orderItems,
             IdempotencyKey: orderIdempotencyKey,
-            ShippingAddressId: request.ShippingAddressId,
+            ShippingAddressId: normalizedShippingAddressId,
             ShippingAddressSnapshotJson: addressSnapshotJson,
-            DeliveryDate: request.DeliveryDate,
-            DeliveryTimeSlot: request.DeliveryTimeSlot,
+            DeliveryDate: normalizedDeliveryDate,
+            DeliveryTimeSlot: normalizedDeliveryTimeSlot,
             ShippingFeeMinor: shippingFeeMinor,
             DiscountCode: request.DiscountCode,
             DiscountCodeAmountMinor: discountCodeAmountMinor);
