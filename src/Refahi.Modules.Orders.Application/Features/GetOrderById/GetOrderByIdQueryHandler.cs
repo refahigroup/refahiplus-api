@@ -56,6 +56,15 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             DeliveryDate: order.DeliveryDate,
             DeliveryTimeSlot: (short)order.DeliveryTimeSlot,
             Items: items,
-            CreatedAt: order.CreatedAt);
+            CreatedAt: order.CreatedAt,
+            SourceOwnerId: order.SourceOwnerId,
+            SourceShopId: order.SourceShopId,
+            CreatedByUserId: order.CreatedByUserId,
+            GrossAmountMinor: order.GrossAmountMinor,
+            CommissionPercent: order.CommissionPercent,
+            CommissionAmountMinor: order.CommissionAmountMinor,
+            VatPercent: order.VatPercent,
+            VatAmountMinor: order.VatAmountMinor,
+            RecipientNetAmountMinor: order.RecipientNetAmountMinor);
     }
 }

@@ -17,6 +17,7 @@ public class IdentityDbContext : DbContext
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AuthorizationGrant> AuthorizationGrants => Set<AuthorizationGrant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +30,7 @@ public class IdentityDbContext : DbContext
         modelBuilder.ApplyConfiguration(new UserAddressConfiguration());
         modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
         modelBuilder.ApplyConfiguration(new RefreshTokenConfiguration());
+        modelBuilder.ApplyConfiguration(new AuthorizationGrantConfiguration());
     }
 }
 

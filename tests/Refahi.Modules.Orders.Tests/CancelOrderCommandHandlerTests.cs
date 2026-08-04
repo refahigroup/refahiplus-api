@@ -44,7 +44,7 @@ public sealed class CancelOrderCommandHandlerTests
         Assert.Equal(OrderStatus.Refunded, order.Status);
         Assert.Equal(PaymentState.Refunded, order.PaymentState);
         Assert.Equal(1, repository.UpdateCount);
-        Assert.Equal(1, mediator.PublishedCount);
+        Assert.Equal(2, mediator.PublishedCount); // cancellation + settlement refund reversal
     }
 
     [Fact]

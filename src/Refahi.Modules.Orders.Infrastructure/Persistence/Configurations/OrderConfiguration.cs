@@ -101,8 +101,23 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasColumnName("source_module");
 
         builder.Property(o => o.SourceReferenceId)
-            .IsRequired()
             .HasColumnName("source_reference_id");
+
+        builder.Property(o => o.SourceOwnerId)
+            .HasColumnName("source_owner_id");
+
+        builder.Property(o => o.SourceShopId)
+            .HasColumnName("source_shop_id");
+
+        builder.Property(o => o.CreatedByUserId)
+            .HasColumnName("created_by_user_id");
+
+        builder.Property(o => o.GrossAmountMinor).HasColumnName("gross_amount_minor");
+        builder.Property(o => o.CommissionPercent).HasColumnName("commission_percent").HasColumnType("numeric(7,4)");
+        builder.Property(o => o.CommissionAmountMinor).HasColumnName("commission_amount_minor");
+        builder.Property(o => o.VatPercent).HasColumnName("vat_percent").HasColumnType("numeric(7,4)");
+        builder.Property(o => o.VatAmountMinor).HasColumnName("vat_amount_minor");
+        builder.Property(o => o.RecipientNetAmountMinor).HasColumnName("recipient_net_amount_minor");
 
         builder.Property(o => o.ReferenceType)
             .IsRequired()
@@ -146,6 +161,15 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(o => new { o.SourceModule, o.SourceReferenceId })
             .HasDatabaseName("ix_orders_source");
 
+        builder.HasIndex(o => new { o.SourceModule, o.SourceOwnerId, o.CreatedAt })
+            .HasDatabaseName("ix_orders_source_owner_created_at");
+
+        builder.HasIndex(o => new { o.SourceModule, o.SourceShopId, o.CreatedAt })
+            .HasDatabaseName("ix_orders_source_shop_created_at");
+
+        builder.HasIndex(o => new { o.CreatedByUserId, o.CreatedAt })
+            .HasDatabaseName("ix_orders_created_by_created_at");
+
         builder.HasIndex(o => new { o.ReferenceType, o.SourceReferenceId })
             .IsUnique()
             .HasDatabaseName("ux_orders_reference_type_source_reference_id");
@@ -164,6 +188,12 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Navigation(o => o.Items)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(o => o.PaymentPostings)
+            .WithOne()
+            .HasForeignKey(x => x.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(o => o.PaymentPostings).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // DomainEvents is an in-memory collection — EF must not map it
         builder.Ignore(o => o.DomainEvents);

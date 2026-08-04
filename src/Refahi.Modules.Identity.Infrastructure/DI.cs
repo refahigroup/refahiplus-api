@@ -29,6 +29,7 @@ public static class DI
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IUserAddressRepository, UserAddressRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IAuthorizationGrantRepository, AuthorizationGrantRepository>();
 
         return services;
     }

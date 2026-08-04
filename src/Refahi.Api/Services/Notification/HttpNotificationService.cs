@@ -73,7 +73,8 @@ public class HttpNotificationService : INotificationService
             var request = new ValidateOtpRequest
             {
                 ReferenceCode = referenceCode,
-                Code = otp
+                Code = otp,
+                Purpose = MapOtpType(otpType)
             };
 
             var response = await _otpApiClient.ValidateAsync(request, cancellationToken);
@@ -174,6 +175,7 @@ public class HttpNotificationService : INotificationService
     {
         OtpType.SignIn => "login",
         OtpType.SignUp => "signup",
+        OtpType.VendorInPersonPayment => "vendor-in-person-payment",
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown OTP type")
     };
 

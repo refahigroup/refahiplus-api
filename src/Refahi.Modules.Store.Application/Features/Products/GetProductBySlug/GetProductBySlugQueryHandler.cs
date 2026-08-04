@@ -175,7 +175,8 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             product.IsAvailable, product.StockCount,
             images, variants, variantAttributes, specifications, sessions,
             averageRating, reviewTotal,
-            product.CreatedAt);
+            product.CreatedAt,
+            ap.PricingMode == 2 ? "InPerson" : "Fixed");
     }
 
     private async Task<Refahi.Modules.Store.Domain.Aggregates.ShopProduct?> ResolveShopProductAsync(

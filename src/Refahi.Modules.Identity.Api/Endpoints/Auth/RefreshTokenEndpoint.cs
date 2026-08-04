@@ -42,7 +42,7 @@ public class RefreshTokenEndpoint : IEndpoint
                 Role: result.Roles ?? "User"
             );
 
-            var tokenResult = tokenService.CreateTokens(userIdentity);
+            var tokenResult = await tokenService.CreateTokensAsync(userIdentity);
 
             // Store new refresh token in database
             var newRefreshToken = Domain.Entities.RefreshToken.Create(

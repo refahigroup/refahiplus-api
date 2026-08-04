@@ -25,6 +25,8 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
 
         var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
             ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+        if (ap.PricingMode == 2)
+            throw new StoreDomainException("برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست", "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED");
 
         var salesModel = (SalesModel)ap.SalesModel;
 

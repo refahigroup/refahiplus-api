@@ -18,6 +18,12 @@ public interface ICartRepository
         int quantity,
         long unitPriceMinor,
         CancellationToken ct = default);
+    Task<Cart> ReplaceItemAsync(
+        Guid userId, int moduleId, Guid shopId, Guid productId,
+        Guid? variantId, Guid? sessionId, DateOnly? usageDate,
+        int quantity, long unitPriceMinor, CancellationToken ct = default)
+        => AddItemAsync(userId, moduleId, shopId, productId, variantId, sessionId,
+            usageDate, quantity, unitPriceMinor, ct);
     Task AddAsync(Cart cart, CancellationToken ct = default);
     Task UpdateAsync(Cart cart, CancellationToken ct = default);
     Task DeleteAsync(Cart cart, CancellationToken ct = default);

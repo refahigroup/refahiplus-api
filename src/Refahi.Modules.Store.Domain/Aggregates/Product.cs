@@ -49,7 +49,8 @@ public sealed class Product
         string title,
         string slug,
         string? description = null,
-        int stockCount = 0)
+        int stockCount = 0,
+        bool? initialAvailability = null)
     {
         return new Product
         {
@@ -59,7 +60,7 @@ public sealed class Product
             Slug = slug.Trim().ToLower(),
             Description = description,
             StockCount = stockCount,
-            IsAvailable = stockCount > 0,
+            IsAvailable = initialAvailability ?? stockCount > 0,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow

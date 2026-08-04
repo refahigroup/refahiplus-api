@@ -47,7 +47,6 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             .HasColumnName("source_module");
 
         builder.Property(i => i.SourceItemId)
-            .IsRequired()
             .HasColumnName("source_item_id");
 
         builder.Property(i => i.CategoryCode)

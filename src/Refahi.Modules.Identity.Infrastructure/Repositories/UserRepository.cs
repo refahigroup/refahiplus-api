@@ -102,7 +102,38 @@ public class UserRepository : IUserRepository
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
-        _db.Users.Update(user);
+        // Queries in this repository return tracked aggregates. Calling Update on an
+        // already tracked User marks the entire graph (Profile and Roles) as modified,
+        // producing unnecessary UPDATE statements and false concurrency failures when
+        // a related row has changed in another request.
+        var autoDetectChangesEnabled = _db.ChangeTracker.AutoDetectChangesEnabled;
+        try
+        {
+            // Reading an entry state normally triggers DetectChanges, which would mark a
+            // newly discovered role as Modified before it can be registered as Added.
+            _db.ChangeTracker.AutoDetectChangesEnabled = false;
+
+            if (_db.Entry(user).State == EntityState.Detached)
+            {
+                _db.Users.Update(user);
+            }
+            else
+            {
+                // UserRole uses a client-generated Guid. EF interprets a new role discovered
+                // through a tracked collection as an existing entity and marks it Modified,
+                // which produces an UPDATE affecting zero rows. Register new roles explicitly.
+                foreach (var role in user.Roles.Where(role =>
+                             _db.Entry(role).State == EntityState.Detached))
+                {
+                    await _db.UserRoles.AddAsync(role, cancellationToken);
+                }
+            }
+        }
+        finally
+        {
+            _db.ChangeTracker.AutoDetectChangesEnabled = autoDetectChangesEnabled;
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
     }
 

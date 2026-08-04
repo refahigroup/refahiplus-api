@@ -9,7 +9,7 @@ namespace Refahi.Modules.Orders.Application.Contracts.Commands;
 public sealed record CreateOrderCommand(
     Guid UserId,
     string SourceModule,
-    Guid SourceReferenceId,
+    Guid? SourceReferenceId,
     List<CreateOrderItemInput> Items,
     string IdempotencyKey,
     string? ReferenceType = null,
@@ -21,15 +21,34 @@ public sealed record CreateOrderCommand(
     string? DiscountCode = null,
     long DiscountCodeAmountMinor = 0,
     Guid? SagaId = null,
-    DateTimeOffset? PayableUntil = null
+    DateTimeOffset? PayableUntil = null,
+    Guid? SourceOwnerId = null,
+    Guid? SourceShopId = null,
+    Guid? CreatedByUserId = null,
+    OrderFinancialSnapshotInput? FinancialSnapshot = null,
+    IReadOnlyList<OrderPaymentPostingInput>? PaymentPostings = null
 ) : IRequest<CreateOrderResponse>;
+
+public sealed record OrderFinancialSnapshotInput(
+    long GrossAmountMinor,
+    decimal CommissionPercent,
+    long CommissionAmountMinor,
+    decimal VatPercent,
+    long VatAmountMinor,
+    long RecipientNetAmountMinor);
+
+public sealed record OrderPaymentPostingInput(
+    Guid WalletId,
+    short Direction,
+    long AmountMinor,
+    string Purpose);
 
 public sealed record CreateOrderItemInput(
     string Title,
     long UnitPriceMinor,
     int Quantity,
     long DiscountAmountMinor,
-    Guid SourceItemId,
+    Guid? SourceItemId,
     string CategoryCode,
     string[]? Tags,
     string? MetadataJson,

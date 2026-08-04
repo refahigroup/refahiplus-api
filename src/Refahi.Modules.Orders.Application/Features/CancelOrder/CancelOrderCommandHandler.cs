@@ -1,5 +1,6 @@
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
+using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
 using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Events;
 using Refahi.Modules.Orders.Domain.Repositories;
@@ -88,6 +89,11 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Can
             UserId: order.UserId,
             PaymentAction: paymentAction,
             OccurredAt: DateTimeOffset.UtcNow), cancellationToken);
+
+        if (paymentAction == "Refunded")
+            await _publisher.Publish(new OrderRefundedIntegrationEvent(
+                order.Id, order.OrderNumber, order.SourceOwnerId, order.SourceShopId,
+                order.FinalAmountMinor, DateTimeOffset.UtcNow), cancellationToken);
 
         return new CancelOrderResponse(order.Id, "Cancelled", paymentAction);
     }

@@ -26,7 +26,7 @@ public class UpdateProductEndpoint : IEndpoint
         })
         .WithName("Store.UpdateProduct")
         .WithTags("Store.Products")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<UpdateProductResponse>>(StatusCodes.Status200OK)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized)

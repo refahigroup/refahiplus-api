@@ -24,13 +24,17 @@ public class UpdateAgreementProductCommandValidator : AbstractValidator<UpdateAg
         });
 
         RuleFor(x => x.ProductType)
-            .InclusiveBetween((short)1, (short)2).WithMessage("نوع محصول نامعتبر است");
+            .InclusiveBetween((short)1, (short)3).WithMessage("نوع محصول نامعتبر است");
 
         RuleFor(x => x.DeliveryType)
             .InclusiveBetween((short)1, (short)3).WithMessage("نوع تحویل نامعتبر است");
 
         RuleFor(x => x.SalesModel)
-            .InclusiveBetween((short)1, (short)2).WithMessage("مدل فروش نامعتبر است");
+            .InclusiveBetween((short)1, (short)3).WithMessage("مدل فروش نامعتبر است");
+
+        RuleFor(x => x)
+            .Must(x => x.DeliveryType == 3 || x.SalesModel != 3)
+            .WithMessage("مدل فروش نامحدود فقط برای تحویل حضوری مجاز است");
 
         RuleFor(x => x.CommissionPercent)
             .InclusiveBetween(0m, 100m).WithMessage("درصد کمیسیون باید بین ۰ تا ۱۰۰ باشد");

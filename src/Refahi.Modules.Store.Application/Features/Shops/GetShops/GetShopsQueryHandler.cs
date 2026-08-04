@@ -50,5 +50,6 @@ public class GetShopsQueryHandler : IRequestHandler<GetShopsQuery, ShopsPagedRes
         s.Status.ToString(),
         s.ProvinceId,
         s.CityId,
-        s.IsPopular);
+        s.IsPopular,
+        s.SupplierId);
 }

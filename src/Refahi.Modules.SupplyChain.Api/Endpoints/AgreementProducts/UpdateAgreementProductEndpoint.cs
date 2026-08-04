@@ -30,7 +30,8 @@ public class UpdateAgreementProductEndpoint : IEndpoint
                 body.ProductType,
                 body.DeliveryType,
                 body.SalesModel,
-                body.CommissionPercent);
+                body.CommissionPercent,
+                body.VatApplicable);
 
             await mediator.Send(command, ct);
             return Results.Ok(ApiResponseHelper.Success<object>(null!, "محصول با موفقیت بروزرسانی شد"));
@@ -53,4 +54,5 @@ public sealed record UpdateAgreementProductRequest(
     short ProductType,
     short DeliveryType,
     short SalesModel,
-    decimal CommissionPercent);
+    decimal CommissionPercent,
+    bool VatApplicable);

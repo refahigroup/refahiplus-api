@@ -37,7 +37,7 @@ public class LoginEndpoint : IEndpoint
                 user.MobileNumber ?? user.Email ?? "Unknown",
                 string.Join(",", user.Roles));
 
-            var tokens = tokenService.CreateTokens(identity);
+            var tokens = await tokenService.CreateTokensAsync(identity);
 
             // Store refresh token in database
             var refreshToken = Domain.Entities.RefreshToken.Create(

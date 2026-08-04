@@ -53,7 +53,8 @@ public sealed class GetProductCatalogV2QueryHandler
             Sort: request.Sort.ToLowerInvariant(),
             PageNumber: request.PageNumber,
             PageSize: request.PageSize,
-            CurrentTime: now.Time);
+            CurrentTime: now.Time,
+            ManualAgreementProductIds: context.ManualAgreementProductIds);
 
         var (rows, total) = await _repository.GetProductCatalogAsync(spec, ct);
         var items = rows
@@ -71,7 +72,7 @@ public sealed class GetProductCatalogV2QueryHandler
                     ((SalesModel)ap.SalesModel).ToString(),
                     ap.CategoryId,
                     ap.CategoryName,
-                    x.MinEffectivePriceMinor == x.MaxEffectivePriceMinor ? "Exact" : "Range",
+                    ap.PricingMode == 2 ? "InPerson" : x.MinEffectivePriceMinor == x.MaxEffectivePriceMinor ? "Exact" : "Range",
                     x.MinEffectivePriceMinor,
                     x.MaxEffectivePriceMinor,
                     x.DefaultOriginalPriceMinor,

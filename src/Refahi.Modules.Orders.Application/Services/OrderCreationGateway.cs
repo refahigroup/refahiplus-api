@@ -77,7 +77,22 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
             discountCode: request.DiscountCode,
             discountCodeAmountMinor: request.DiscountCodeAmountMinor,
             sagaId: request.SagaId,
-            payableUntil: request.PayableUntil);
+            payableUntil: request.PayableUntil,
+            sourceOwnerId: request.SourceOwnerId,
+            sourceShopId: request.SourceShopId,
+            createdByUserId: request.CreatedByUserId,
+            financialSnapshot: request.FinancialSnapshot is null ? null : new OrderFinancialSnapshotData(
+                request.FinancialSnapshot.GrossAmountMinor,
+                request.FinancialSnapshot.CommissionPercent,
+                request.FinancialSnapshot.CommissionAmountMinor,
+                request.FinancialSnapshot.VatPercent,
+                request.FinancialSnapshot.VatAmountMinor,
+                request.FinancialSnapshot.RecipientNetAmountMinor),
+            paymentPostings: request.PaymentPostings?.Select(x => new OrderPaymentPostingData(
+                x.WalletId,
+                (PaymentPostingDirection)x.Direction,
+                x.AmountMinor,
+                x.Purpose)).ToList());
 
         await _orderRepository.AddAsync(order, cancellationToken);
 
@@ -124,7 +139,9 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
         }
 
         var hotelRequest = await _mediator.Send(
-            new ValidateHotelRequestForOrderCommand(request.SourceReferenceId, request.UserId),
+            new ValidateHotelRequestForOrderCommand(
+                request.SourceReferenceId ?? throw new InvalidOperationException("رفرنس درخواست هتل الزامی است"),
+                request.UserId),
             cancellationToken);
 
         if (hotelRequest.TotalPrice != request.Items.Sum(i => (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor))
@@ -144,6 +161,8 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
         if (existing.UserId != request.UserId ||
             !existing.SourceModule.Equals(request.SourceModule, StringComparison.OrdinalIgnoreCase) ||
             existing.SourceReferenceId != request.SourceReferenceId ||
+            existing.SourceOwnerId != request.SourceOwnerId ||
+            existing.SourceShopId != request.SourceShopId ||
             !existing.ReferenceType.Equals(referenceType, StringComparison.OrdinalIgnoreCase) ||
             existing.SagaId != request.SagaId)
         {

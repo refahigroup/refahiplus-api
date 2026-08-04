@@ -17,7 +17,7 @@ public class CreateShopCommandValidator : AbstractValidator<CreateShopCommand>
             .Matches(@"^[a-z0-9-]+$").WithMessage("اسلاگ فقط می‌تواند شامل حروف کوچک انگلیسی، اعداد و خط تیره باشد");
 
         RuleFor(x => x.ShopType)
-            .Must(t => t is 1 or 2 or 3).WithMessage("نوع فروشگاه نامعتبر است");
+            .Must(t => t is 1 or 2).WithMessage("نوع فروشگاه باید آنلاین یا حضوری باشد");
 
         RuleFor(x => x.SupplierId)
             .NotEmpty().WithMessage("شناسه تامین‌کننده الزامی است");

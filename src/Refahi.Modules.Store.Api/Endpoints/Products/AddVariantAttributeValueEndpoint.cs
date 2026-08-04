@@ -29,7 +29,7 @@ public class AddVariantAttributeValueEndpoint : IEndpoint
         })
         .WithName("Store.AddVariantAttributeValue")
         .WithTags("Store.Products")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<AddVariantAttributeValueResponse>>(StatusCodes.Status201Created)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized)

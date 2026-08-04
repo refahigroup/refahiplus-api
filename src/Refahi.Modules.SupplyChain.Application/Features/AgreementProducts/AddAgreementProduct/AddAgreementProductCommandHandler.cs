@@ -25,7 +25,8 @@ public class AddAgreementProductCommandHandler : IRequestHandler<AddAgreementPro
             (ProductType)request.ProductType,
             (DeliveryType)request.DeliveryType,
             (SalesModel)request.SalesModel,
-            request.CommissionPercent);
+            request.CommissionPercent,
+            request.VatApplicable);
 
         // Explicitly register the new entity as Added — EF cannot auto-detect
         // new items added to a List<T> backing field as Added vs Modified.

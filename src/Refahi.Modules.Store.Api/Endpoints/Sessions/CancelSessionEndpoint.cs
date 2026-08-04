@@ -23,7 +23,7 @@ public class CancelSessionEndpoint : IEndpoint
         })
         .WithName("Store.CancelSession")
         .WithTags("Store.Sessions")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<CancelSessionResponse>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound);

@@ -92,13 +92,24 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
 
             // 4d. Resolve authoritative shop/product price
             var salesModel = (SalesModel)ap.SalesModel;
+            var isManual = ap.PricingMode == (short)PricingMode.Manual;
+            if (isManual && (request.Items.Count != 1 || cart.Items.Count != 0 || item.Quantity != 1 ||
+                             item.VariantId.HasValue || item.SessionId.HasValue || item.UsageDate.HasValue ||
+                             item.UnitPriceMinor <= 0))
+            {
+                warnings.Add(new CartSyncWarning("MANUAL_CART_MUST_BE_SINGLE_ITEM",
+                    "سبد خرید حضوری فقط می‌تواند شامل یک محصول با تعداد یک باشد",
+                    item.ProductId, item.VariantId, item.SessionId));
+                continue;
+            }
             var priceVariantId = salesModel == SalesModel.SessionBased && item.SessionId.HasValue
                 ? null
                 : item.VariantId;
-            StoreResolvedPrice resolvedPrice;
+            StoreResolvedPrice? resolvedPrice = null;
             try
             {
-                resolvedPrice = await _priceResolver.ResolveAsync(item.ShopId, product, priceVariantId, cancellationToken);
+                if (!isManual)
+                    resolvedPrice = await _priceResolver.ResolveAsync(item.ShopId, product, priceVariantId, cancellationToken);
             }
             catch (StoreDomainException ex) when (ex.ErrorCode == "SHOP_PRODUCT_VARIANT_INACTIVE")
             {
@@ -129,11 +140,15 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
                 continue;
             }
 
-            long authoritativePrice = resolvedPrice.UnitPriceMinor;
+            long authoritativePrice = isManual ? item.UnitPriceMinor : resolvedPrice!.UnitPriceMinor;
             int allowedQuantity = item.Quantity;
             DateOnly? normalizedUsageDate = null;
 
-            if (salesModel == SalesModel.StockBased)
+            if (salesModel == SalesModel.Unlimited)
+            {
+                allowedQuantity = 1;
+            }
+            else if (salesModel == SalesModel.StockBased)
             {
                 if (item.VariantId.HasValue)
                 {
@@ -257,7 +272,7 @@ public class SyncCartCommandHandler : IRequestHandler<SyncCartCommand, SyncCartR
             }
 
             // 4e. Price-changed warning (still proceed)
-            if (authoritativePrice != item.UnitPriceMinor)
+            if (!isManual && authoritativePrice != item.UnitPriceMinor)
             {
                 warnings.Add(new CartSyncWarning(
                     "PRICE_CHANGED", "قیمت محصول تغییر کرده است",

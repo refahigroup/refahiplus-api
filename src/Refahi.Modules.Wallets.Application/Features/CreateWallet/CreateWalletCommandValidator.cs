@@ -9,7 +9,8 @@ public class CreateWalletCommandValidator : AbstractValidator<CreateWalletComman
 {
     private static readonly HashSet<string> AllowedWalletTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "REFAHI"
+        WalletTypeCodes.Refahi,
+        WalletTypeCodes.Provider
     };
 
     public CreateWalletCommandValidator()
@@ -20,7 +21,7 @@ public class CreateWalletCommandValidator : AbstractValidator<CreateWalletComman
         RuleFor(x => x.WalletType)
             .NotEmpty().WithMessage("نوع کیف‌پول الزامی است")
             .Must(t => AllowedWalletTypes.Contains(t))
-            .WithMessage("نوع کیف‌پول باید REFAHI باشد");
+            .WithMessage("نوع کیف‌پول باید REFAHI یا PROVIDER باشد");
 
         RuleFor(x => x.Currency)
             .NotEmpty().WithMessage("ارز الزامی است")

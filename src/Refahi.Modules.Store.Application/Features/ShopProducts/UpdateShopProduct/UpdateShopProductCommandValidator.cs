@@ -14,10 +14,10 @@ public class UpdateShopProductCommandValidator : AbstractValidator<UpdateShopPro
             .NotEmpty().WithMessage("شناسه محصول الزامی است");
 
         RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("قیمت باید بزرگتر از صفر باشد");
+            .GreaterThanOrEqualTo(0).WithMessage("قیمت نمی‌تواند منفی باشد");
 
         RuleFor(x => x.DiscountedPrice)
-            .GreaterThan(0).WithMessage("قیمت با تخفیف باید بزرگتر از صفر باشد")
+            .GreaterThanOrEqualTo(0).WithMessage("قیمت با تخفیف نمی‌تواند منفی باشد")
             .LessThanOrEqualTo(x => x.Price).WithMessage("قیمت با تخفیف نباید بیشتر از قیمت اصلی باشد");
 
         RuleFor(x => x.Description)

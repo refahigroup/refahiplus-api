@@ -38,7 +38,9 @@ public interface IPaymentAtomicWriter
         string currency,
         List<AllocationInput> allocations,
         string? metadataJson,
-        CancellationToken ct);
+        Guid? destinationWalletId,
+        CancellationToken ct,
+        IReadOnlyList<PaymentPostingInput>? postings = null);
 
     /// <summary>
     /// Atomically capture a payment intent (finalize payment).
@@ -107,6 +109,12 @@ public interface IPaymentAtomicWriter
 public sealed record AllocationInput(
     Guid WalletId,
     long AmountMinor);
+
+public sealed record PaymentPostingInput(
+    Guid WalletId,
+    short Direction,
+    long AmountMinor,
+    string Purpose);
 
 /// <summary>
 /// Result of create intent execution.

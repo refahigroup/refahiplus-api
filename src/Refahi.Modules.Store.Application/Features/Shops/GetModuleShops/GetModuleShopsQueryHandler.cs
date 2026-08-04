@@ -53,5 +53,5 @@ public class GetModuleShopsQueryHandler : IRequestHandler<GetModuleShopsQuery, S
         s.Id, s.Name, s.Slug,
         s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
         s.ShopType.ToString(), s.Status.ToString(),
-        s.ProvinceId, s.CityId, s.IsPopular);
+        s.ProvinceId, s.CityId, s.IsPopular, s.SupplierId);
 }

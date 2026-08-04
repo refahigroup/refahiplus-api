@@ -14,6 +14,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Refahi.Modules.Wallets.Application\Refahi.Modules.Wallets.Application.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Wallets.Infrastructure\Refahi.Modules.Wallets.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

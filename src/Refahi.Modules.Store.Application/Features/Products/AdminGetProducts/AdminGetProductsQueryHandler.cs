@@ -52,7 +52,8 @@ public class AdminGetProductsQueryHandler : IRequestHandler<AdminGetProductsQuer
                 ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
                 mainImageUrl,
                 p.IsAvailable,
-                ap?.CommissionPercent ?? 0));
+                ap?.CommissionPercent ?? 0,
+                ap?.PricingMode == 2 ? "InPerson" : "Fixed"));
         }
 
         var dtos = dtoList.ToArray();

@@ -6,7 +6,7 @@ namespace Refahi.Modules.Store.Application.Features.Products.GetSyntheticOffersV
 
 public sealed class GetSyntheticOffersV2QueryValidator : AbstractValidator<GetSyntheticOffersV2Query>
 {
-    private static readonly string[] OfferKinds = ["StockProduct", "StockVariant", "ProductSession", "SessionVariant"];
+    private static readonly string[] OfferKinds = ["StockProduct", "StockVariant", "ProductSession", "SessionVariant", "ManualProduct"];
 
     public GetSyntheticOffersV2QueryValidator()
     {

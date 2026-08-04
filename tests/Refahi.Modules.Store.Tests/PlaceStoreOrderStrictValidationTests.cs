@@ -277,11 +277,20 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 new FakeShopRepository(shop),
                 new FakeProductSessionRepository(),
                 priceResolver,
+                new ThrowingFinancialPlanner(),
                 new FreeDeliveryService(),
                 mediator);
 
             return new TestFixture(cart, shopProductVariantId, priceResolver, mediator, cartRepository, handler);
         }
+    }
+
+    private sealed class ThrowingFinancialPlanner : IStoreInPersonFinancialPlanner
+    {
+        public Task<StoreInPersonFinancialPlan> BuildAsync(
+            Guid supplierId, long grossAmountMinor, decimal commissionPercent,
+            bool vatApplicable, CancellationToken ct)
+            => throw new NotSupportedException("این تست فقط مسیر قیمت ثابت را پوشش می‌دهد.");
     }
 
     private sealed class FakeCartRepository : ICartRepository
@@ -349,6 +358,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
 
         public Task<Shop?> GetBySlugAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<List<Shop>> GetBySupplierIdAsync(Guid supplierId, CancellationToken ct = default) => Task.FromResult(new List<Shop>());
         public Task<(List<Shop> Items, int Total)> GetPagedAsync(ShopType? shopType, ShopStatus? status, int page, int size, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default) => throw new NotSupportedException();

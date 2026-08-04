@@ -41,9 +41,9 @@ public class GetShopProductsQueryHandler : IRequestHandler<GetShopProductsQuery,
             .Distinct()
             .ToList();
 
-        var commissions = agreementProductIds.Count > 0
-            ? await _mediator.Send(new GetCommissionPercentsByAgreementProductIdsQuery(agreementProductIds), cancellationToken)
-            : new Dictionary<Guid, decimal>();
+        var agreementProducts = agreementProductIds.Count > 0
+            ? await _mediator.Send(new GetAgreementProductsByIdsQuery(agreementProductIds), cancellationToken)
+            : new Dictionary<Guid, Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto>();
 
         var dtos = items.Select(sp =>
         {
@@ -51,8 +51,10 @@ public class GetShopProductsQueryHandler : IRequestHandler<GetShopProductsQuery,
             var mainImage = product?.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
                          ?? product?.Images.FirstOrDefault()?.ImageUrl;
 
-            var commissionPercent = product is not null
-                && commissions.TryGetValue(product.AgreementProductId, out var pct) ? pct : 0m;
+            var agreementProduct = product is not null
+                ? agreementProducts.GetValueOrDefault(product.AgreementProductId)
+                : null;
+            var commissionPercent = agreementProduct?.CommissionPercent ?? 0m;
             var commissionPrice = (long)Math.Round(sp.DiscountedPrice * commissionPercent / 100m);
 
             return new ShopProductDto(
@@ -68,7 +70,8 @@ public class GetShopProductsQueryHandler : IRequestHandler<GetShopProductsQuery,
                 sp.Description,
                 sp.IsActive,
                 sp.IsDeleted,
-                sp.CreatedAt);
+                sp.CreatedAt,
+                agreementProduct?.PricingMode == 2 ? "InPerson" : "Fixed");
         }).ToArray();
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);

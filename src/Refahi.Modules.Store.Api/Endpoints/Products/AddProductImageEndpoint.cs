@@ -28,7 +28,7 @@ public class AddProductImageEndpoint : IEndpoint
         })
         .WithName("Store.AddProductImage")
         .WithTags("Store.Products")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<AddProductImageResponse>>(StatusCodes.Status201Created)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized)

@@ -26,7 +26,8 @@ public class UpdateAgreementProductCommandHandler : IRequestHandler<UpdateAgreem
             (ProductType)request.ProductType,
             (DeliveryType)request.DeliveryType,
             (SalesModel)request.SalesModel,
-            request.CommissionPercent);
+            request.CommissionPercent,
+            request.VatApplicable);
 
         await _repository.SaveChangesAsync(cancellationToken);
 

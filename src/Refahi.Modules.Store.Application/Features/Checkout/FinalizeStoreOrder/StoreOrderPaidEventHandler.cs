@@ -32,6 +32,8 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
     {
         if (!notification.SourceModule.Equals("Store", StringComparison.OrdinalIgnoreCase))
             return;
+        if (notification.ReferenceType.Equals("StoreInPerson", StringComparison.OrdinalIgnoreCase))
+            return;
 
         var order = await _mediator.Send(
             new GetOrderByIdQuery(notification.OrderId, notification.UserId, "Admin"),
@@ -66,7 +68,7 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
                     throw new StoreDomainException("خرید این خدمت با تنظیمات فعلی امکان‌پذیر نیست.", "INVALID_SESSION_VARIANT");
 
                 await EnsureSessionVariantCapacityAfterPaymentAsync(
-                    item.SourceItemId,
+                    item.SourceItemId ?? throw new StoreDomainException("شناسه محصول سفارش فروشگاه موجود نیست", "SOURCE_ITEM_REQUIRED"),
                     variantId.Value,
                     usageDate,
                     item.Quantity,
@@ -76,7 +78,9 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
                 continue;
             }
 
-            await DecreaseStockAsync(item.SourceItemId, variantId, item.Quantity, cancellationToken);
+            await DecreaseStockAsync(
+                item.SourceItemId ?? throw new StoreDomainException("شناسه محصول سفارش فروشگاه موجود نیست", "SOURCE_ITEM_REQUIRED"),
+                variantId, item.Quantity, cancellationToken);
         }
 
         var cart = await _cartRepository.GetByUserIdAsync(order.UserId, cancellationToken);

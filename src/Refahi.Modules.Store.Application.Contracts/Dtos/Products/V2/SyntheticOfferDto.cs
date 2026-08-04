@@ -32,7 +32,8 @@ public sealed record SyntheticOfferDto(
     int? CategoryId,
     string? CategoryName,
     string? MainImageUrl,
-    SyntheticOfferPurchaseSelectionDto PurchaseSelection);
+    SyntheticOfferPurchaseSelectionDto PurchaseSelection,
+    string PriceDisplayMode = "Fixed");
 
 public sealed record SyntheticOfferPurchaseSelectionDto(
     Guid ShopId,

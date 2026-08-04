@@ -28,7 +28,8 @@ public class AddAgreementProductEndpoint : IEndpoint
                 body.ProductType,
                 body.DeliveryType,
                 body.SalesModel,
-                body.CommissionPercent);
+                body.CommissionPercent,
+                body.VatApplicable);
 
             var result = await mediator.Send(command, ct);
             return Results.Created(
@@ -53,4 +54,5 @@ public sealed record AddAgreementProductRequest(
     short ProductType,
     short DeliveryType,
     short SalesModel,
-    decimal CommissionPercent);
+    decimal CommissionPercent,
+    bool VatApplicable);

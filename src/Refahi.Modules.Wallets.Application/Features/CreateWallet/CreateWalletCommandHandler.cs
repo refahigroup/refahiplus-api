@@ -32,7 +32,8 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, C
         if (existing)
         {
             var owned = await _readRepo.GetByOwnerIdAsync(request.OwnerId, cancellationToken);
-            var match = owned.First(w => w.WalletType == request.WalletType);
+            var match = owned.First(w =>
+                string.Equals(w.WalletType, request.WalletType, StringComparison.OrdinalIgnoreCase));
             return new CreateWalletResponse(match.WalletId, match.WalletType, match.Currency);
         }
 
@@ -49,7 +50,8 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, C
     private static WalletType MapWalletType(string walletType) =>
         walletType.ToUpperInvariant() switch
         {
-            "REFAHI" => WalletType.User,
+            WalletTypeCodes.Refahi => WalletType.User,
+            WalletTypeCodes.Provider => WalletType.Provider,
             _ => throw new ArgumentException($"نوع کیف‌پول '{walletType}' پشتیبانی نمی‌شود", nameof(walletType))
         };
 }

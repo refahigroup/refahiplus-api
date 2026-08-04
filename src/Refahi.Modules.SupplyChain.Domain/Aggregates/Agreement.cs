@@ -129,12 +129,13 @@ public sealed class Agreement
         SupplyChainProductType productType,
         SupplyChainDeliveryType deliveryType,
         SupplyChainSalesModel salesModel,
-        decimal commissionPercent)
+        decimal commissionPercent,
+        bool vatApplicable)
     {
         if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
             throw new SupplyChainDomainException("افزودن محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است", "STATUS_IMMUTABLE");
 
-        var product = AgreementProduct.Create(Id, name, description, categoryId, productType, deliveryType, salesModel, commissionPercent);
+        var product = AgreementProduct.Create(Id, name, description, categoryId, productType, deliveryType, salesModel, commissionPercent, vatApplicable);
         _products.Add(product);
         UpdatedAt = DateTimeOffset.UtcNow;
         return product;
@@ -148,7 +149,8 @@ public sealed class Agreement
         SupplyChainProductType productType,
         SupplyChainDeliveryType deliveryType,
         SupplyChainSalesModel salesModel,
-        decimal commissionPercent)
+        decimal commissionPercent,
+        bool vatApplicable)
     {
         if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
             throw new SupplyChainDomainException("ویرایش محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است", "STATUS_IMMUTABLE");
@@ -156,7 +158,7 @@ public sealed class Agreement
         var product = _products.FirstOrDefault(p => p.Id == productId && !p.IsDeleted)
             ?? throw new SupplyChainDomainException("محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
 
-        product.Update(name, description, categoryId, productType, deliveryType, salesModel, commissionPercent);
+        product.Update(name, description, categoryId, productType, deliveryType, salesModel, commissionPercent, vatApplicable);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

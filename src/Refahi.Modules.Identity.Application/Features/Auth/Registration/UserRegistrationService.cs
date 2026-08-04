@@ -58,7 +58,7 @@ public sealed class UserRegistrationService : IUserRegistrationService
 
         try
         {
-            await _mediator.Send(new CreateWalletCommand(user.Id, "REFAHI", "IRR"), cancellationToken);
+            await _mediator.Send(new CreateWalletCommand(user.Id, WalletTypeCodes.Refahi, "IRR"), cancellationToken);
         }
         catch (Exception ex)
         {

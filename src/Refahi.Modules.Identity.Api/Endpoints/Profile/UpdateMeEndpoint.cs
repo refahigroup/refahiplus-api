@@ -34,7 +34,7 @@ public class UpdateMeEndpoint : IEndpoint
 
             return Results.Ok(ApiResponseHelper.Success(result.Me, "اطلاعات حساب با موفقیت ذخیره شد"));
         })
-        .RequireAuthorization("UserOrAdmin")
+        .RequireAuthorization()
         .WithName("Identity.UpdateMe")
         .WithTags("Identity.Profile")
         .Produces(StatusCodes.Status200OK)

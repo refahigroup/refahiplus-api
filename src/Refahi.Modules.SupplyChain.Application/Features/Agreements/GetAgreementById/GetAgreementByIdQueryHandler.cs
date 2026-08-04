@@ -57,7 +57,9 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
                 (short)p.SalesModel,
                 p.CommissionPercent,
                 p.IsDeleted,
-                p.CreatedAt))
+                p.CreatedAt,
+                (short)p.PricingMode,
+                p.VatApplicable))
             .ToList();
 
         return new AgreementDto(

@@ -12,6 +12,6 @@ public sealed record OrderDeliveredIntegrationEvent(
     string OrderNumber,
     Guid UserId,
     string SourceModule,
-    Guid SourceReferenceId,
+    Guid? SourceReferenceId,
     DateTimeOffset OccurredAt
 ) : IIntegrationEvent;

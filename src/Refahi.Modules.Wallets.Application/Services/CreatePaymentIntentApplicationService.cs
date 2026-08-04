@@ -53,6 +53,40 @@ public sealed class CreatePaymentIntentApplicationService
                 throw new InvalidOperationException($"Allocation amount must be positive: {alloc.WalletId}");
         }
 
+        var postings = command.Postings ?? Array.Empty<PaymentPostingRequest>();
+        foreach (var posting in postings)
+        {
+            if (posting.WalletId == Guid.Empty || posting.AmountMinor <= 0 ||
+                posting.Direction is not 1 and not 2 || string.IsNullOrWhiteSpace(posting.Purpose))
+                throw new InvalidOperationException("طرح ثبت‌های مالی معتبر نیست.");
+
+            var wallet = await _walletReadRepo.GetByIdAsync(posting.WalletId, ct)
+                ?? throw new WalletNotFoundException(posting.WalletId);
+            if (!string.Equals(wallet.Currency, currency, StringComparison.Ordinal))
+                throw new InvalidOperationException("واحد پول کیف ثبت مالی با پرداخت یکسان نیست.");
+        }
+
+        if (postings.Count > 0)
+        {
+            if (command.DestinationWalletId.HasValue)
+                throw new InvalidOperationException("پرداخت چندمقصدی نمی‌تواند کیف مقصد قدیمی داشته باشد.");
+            var credits = postings.Where(x => x.Direction == 1).Sum(x => x.AmountMinor);
+            var debits = postings.Where(x => x.Direction == 2).Sum(x => x.AmountMinor);
+            if (command.AmountMinor + debits != credits)
+                throw new InvalidOperationException("طرح ثبت‌های مالی تراز نیست.");
+        }
+
+        if (command.DestinationWalletId.HasValue)
+        {
+            var destination = await _walletReadRepo.GetByIdAsync(command.DestinationWalletId.Value, ct)
+                ?? throw new WalletNotFoundException(command.DestinationWalletId.Value);
+            if (destination.WalletType != (short)WalletType.Provider)
+                throw new WalletOperationNotAllowedException(command.DestinationWalletId.Value,
+                    "کیف مقصد باید از نوع Provider باشد.");
+            if (!string.Equals(destination.Currency, currency, StringComparison.Ordinal))
+                throw new InvalidOperationException("واحد پول کیف مقصد با پرداخت یکسان نیست.");
+        }
+
         // 3) OrgCredit wallet validation: check contract validity and category code restriction
         foreach (var alloc in command.Allocations)
         {
@@ -92,7 +126,10 @@ public sealed class CreatePaymentIntentApplicationService
             currency: currency,
             allocations: allocInput,
             metadataJson: command.MetadataJson,
-            ct: ct);
+            destinationWalletId: command.DestinationWalletId,
+            ct: ct,
+            postings: postings.Select(x => new PaymentPostingInput(
+                x.WalletId, x.Direction, x.AmountMinor, x.Purpose.Trim())).ToList());
 
         // 6) Interpret outcome and build response
         return atomicResult.Outcome switch

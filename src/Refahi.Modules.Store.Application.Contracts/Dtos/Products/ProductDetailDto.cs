@@ -12,4 +12,5 @@ public sealed record ProductDetailDto(
     List<ProductSpecificationDto> Specifications,
     List<ProductSessionDto>? Sessions,
     double AverageRating, int ReviewCount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string PricingMode = "Fixed");

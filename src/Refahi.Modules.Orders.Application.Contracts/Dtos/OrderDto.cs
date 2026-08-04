@@ -13,7 +13,7 @@ public sealed record OrderDto(
     string Status,
     string PaymentState,
     string SourceModule,
-    Guid SourceReferenceId,
+    Guid? SourceReferenceId,
     string ReferenceType,
     Guid? ShippingAddressId,
     string? ShippingAddressSnapshotJson,
@@ -21,7 +21,16 @@ public sealed record OrderDto(
     short DeliveryTimeSlot,
     List<OrderItemDto> Items,
     DateTimeOffset CreatedAt,
-    string Currency = "IRR");
+    string Currency = "IRR",
+    Guid? SourceOwnerId = null,
+    Guid? SourceShopId = null,
+    Guid? CreatedByUserId = null,
+    long? GrossAmountMinor = null,
+    decimal? CommissionPercent = null,
+    long? CommissionAmountMinor = null,
+    decimal? VatPercent = null,
+    long? VatAmountMinor = null,
+    long? RecipientNetAmountMinor = null);
 
 public sealed record OrderSummaryDto(
     Guid Id,

@@ -64,7 +64,8 @@ public sealed class GetProductDetailV2QueryHandler
                 ShopId: context.ShopId,
                 ProductId: product.Id,
                 ProductSlug: product.Slug,
-                CurrentTime: now.Time),
+                CurrentTime: now.Time,
+                ManualAgreementProductIds: context.ManualAgreementProductIds),
             ct);
         if (allOffers.Count == 0)
             return null;
@@ -113,7 +114,7 @@ public sealed class GetProductDetailV2QueryHandler
             ap.CategoryId,
             ap.CategoryName,
             product.IsAvailable,
-            selectedOffers.Min(x => x.EffectivePriceMinor) == selectedOffers.Max(x => x.EffectivePriceMinor) ? "Exact" : "Range",
+            ap.PricingMode == 2 ? "InPerson" : selectedOffers.Min(x => x.EffectivePriceMinor) == selectedOffers.Max(x => x.EffectivePriceMinor) ? "Exact" : "Range",
             selectedOffers.Min(x => x.EffectivePriceMinor),
             selectedOffers.Max(x => x.EffectivePriceMinor),
             defaultOffer.OfferKey,

@@ -35,7 +35,8 @@ public sealed record SyntheticOfferQuerySpec(
     string Sort = "newest",
     int PageNumber = 1,
     int PageSize = 30,
-    TimeOnly? CurrentTime = null);
+    TimeOnly? CurrentTime = null,
+    IReadOnlyList<Guid>? ManualAgreementProductIds = null);
 
 public sealed class SyntheticOfferReadModel
 {

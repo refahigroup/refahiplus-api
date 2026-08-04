@@ -18,6 +18,7 @@ public class GetAgreementProductByIdQueryHandler : IRequestHandler<GetAgreementP
 
         if (product is null || product.IsDeleted)
             return null;
+        var agreement = await _repository.GetByIdAsync(product.AgreementId, false, cancellationToken);
 
         return new AgreementProductDto(
             product.Id,
@@ -31,6 +32,9 @@ public class GetAgreementProductByIdQueryHandler : IRequestHandler<GetAgreementP
             (short)product.SalesModel,
             product.CommissionPercent,
             product.IsDeleted,
-            product.CreatedAt);
+            product.CreatedAt,
+            (short)product.PricingMode,
+            product.VatApplicable,
+            agreement?.SupplierId);
     }
 }

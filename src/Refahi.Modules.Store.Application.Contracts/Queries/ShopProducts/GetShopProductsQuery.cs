@@ -22,7 +22,8 @@ public sealed record ShopProductDto(
     string? Description,
     bool IsActive,
     bool IsDeleted,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string PricingMode = "Fixed");
 
 public sealed record ShopProductsPagedResponse(
     IEnumerable<ShopProductDto> Data,

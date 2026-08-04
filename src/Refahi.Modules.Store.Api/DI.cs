@@ -3,7 +3,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using Refahi.Modules.Store.Api.Security;
 using Refahi.Modules.Store.Application;
+using Refahi.Modules.Store.Application.Contracts.Vendor;
 using Refahi.Modules.Store.Infrastructure;
 using Refahi.Shared.Presentation;
 
@@ -13,6 +17,20 @@ public static class DI
 {
     public static IServiceCollection RegisterStoreModule(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddRateLimiter(options =>
+            options.AddPolicy("VendorPos", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.User.FindFirst("sub")?.Value ??
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    })));
+        services.AddScoped<StoreProviderOwnershipFilter>();
+        services.AddSingleton<IInPersonOtpReferenceProtector, InPersonOtpReferenceProtector>();
         services
             .RegisterApplication(configuration)
             .RegisterInfrastructure(configuration);
@@ -37,6 +55,7 @@ public static class DI
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);
+        group.AddEndpointFilter<StoreProviderOwnershipFilter>();
 
         foreach (var type in endpointTypes)
         {

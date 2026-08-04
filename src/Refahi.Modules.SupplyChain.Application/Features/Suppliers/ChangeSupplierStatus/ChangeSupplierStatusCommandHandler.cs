@@ -3,15 +3,20 @@ using Refahi.Modules.SupplyChain.Application.Abstractions;
 using Refahi.Modules.SupplyChain.Application.Contracts.Commands.Suppliers;
 using Refahi.Modules.SupplyChain.Domain.Enums;
 using Refahi.Modules.SupplyChain.Domain.Exceptions;
+using Refahi.Modules.Wallets.Application.Contracts.Features.CreateWallet;
 
 namespace Refahi.Modules.SupplyChain.Application.Features.Suppliers.ChangeSupplierStatus;
 
 public class ChangeSupplierStatusCommandHandler : IRequestHandler<ChangeSupplierStatusCommand, Unit>
 {
     private readonly ISupplierRepository _repository;
+    private readonly IMediator _mediator;
 
-    public ChangeSupplierStatusCommandHandler(ISupplierRepository repository)
-        => _repository = repository;
+    public ChangeSupplierStatusCommandHandler(ISupplierRepository repository, IMediator mediator)
+    {
+        _repository = repository;
+        _mediator = mediator;
+    }
 
     public async Task<Unit> Handle(ChangeSupplierStatusCommand request, CancellationToken cancellationToken)
     {
@@ -27,6 +32,8 @@ public class ChangeSupplierStatusCommandHandler : IRequestHandler<ChangeSupplier
                 break;
             case SupplierStatus.Approved:
                 supplier.Approve();
+                await _mediator.Send(new CreateWalletCommand(
+                    supplier.Id, WalletTypeCodes.Provider, "IRR"), cancellationToken);
                 break;
             case SupplierStatus.Rejected:
                 supplier.Reject(request.Note ?? string.Empty);

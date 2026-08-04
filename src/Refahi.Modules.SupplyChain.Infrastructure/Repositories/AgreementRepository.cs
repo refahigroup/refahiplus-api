@@ -132,16 +132,19 @@ public class AgreementRepository : IAgreementRepository
         if (ids.Count == 0)
             return new Dictionary<Guid, AgreementProductDto>();
 
-        return await _context.AgreementProducts
-            .Where(ap => ids.Contains(ap.Id) && !ap.IsDeleted)
-            .ToDictionaryAsync(
-                ap => ap.Id,
-                ap => new AgreementProductDto(
+        var products = await (
+            from ap in _context.AgreementProducts
+            join agreement in _context.Agreements on ap.AgreementId equals agreement.Id
+            where ids.Contains(ap.Id) && !ap.IsDeleted
+            select new AgreementProductDto(
                     ap.Id, ap.AgreementId, ap.Name, ap.Description, ap.CategoryId,
                     null,
                     (short)ap.ProductType, (short)ap.DeliveryType, (short)ap.SalesModel,
-                    ap.CommissionPercent, ap.IsDeleted, ap.CreatedAt),
-                ct);
+                    ap.CommissionPercent, ap.IsDeleted, ap.CreatedAt,
+                    (short)ap.PricingMode, ap.VatApplicable, agreement.SupplierId))
+            .AsNoTracking()
+            .ToListAsync(ct);
+        return products.ToDictionary(x => x.Id);
     }
 
     public async Task<IReadOnlyDictionary<Guid, decimal>> GetCommissionPercentsByIdsAsync(

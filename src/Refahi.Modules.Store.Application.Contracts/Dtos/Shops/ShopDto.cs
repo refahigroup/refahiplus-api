@@ -32,4 +32,5 @@ public sealed record ShopSummaryDto(
     string Status,
     int? ProvinceId,
     int? CityId,
-    bool IsPopular);
+    bool IsPopular,
+    Guid SupplierId);

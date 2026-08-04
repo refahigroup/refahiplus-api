@@ -10,7 +10,8 @@ public sealed record AddAgreementProductCommand(
     short ProductType,
     short DeliveryType,
     short SalesModel,
-    decimal CommissionPercent
+    decimal CommissionPercent,
+    bool VatApplicable
 ) : IRequest<AddAgreementProductResponse>;
 
 public sealed record AddAgreementProductResponse(Guid ProductId);

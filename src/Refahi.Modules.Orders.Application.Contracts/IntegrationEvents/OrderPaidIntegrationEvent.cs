@@ -7,7 +7,7 @@ public sealed record OrderPaidIntegrationEvent(
     string OrderNumber,
     Guid UserId,
     string SourceModule,
-    Guid SourceReferenceId,
+    Guid? SourceReferenceId,
     string ReferenceType,
     Guid? SagaId,
     Guid PaymentId,

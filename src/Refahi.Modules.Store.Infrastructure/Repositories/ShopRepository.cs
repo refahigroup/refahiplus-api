@@ -21,6 +21,13 @@ public class ShopRepository : IShopRepository
     public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default)
         => _db.Shops.FirstOrDefaultAsync(s => s.SupplierId == providerId, ct);
 
+    public Task<List<Shop>> GetBySupplierIdAsync(Guid supplierId, CancellationToken ct = default)
+        => _db.Shops
+            .AsNoTracking()
+            .Where(s => s.SupplierId == supplierId)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task<(List<Shop> Items, int Total)> GetPagedAsync(
         ShopType? shopType, ShopStatus? status, int page, int size, CancellationToken ct = default)
     {

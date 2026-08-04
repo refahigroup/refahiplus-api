@@ -26,7 +26,7 @@ public class UpdateSessionEndpoint : IEndpoint
         })
         .WithName("Store.UpdateSession")
         .WithTags("Store.Sessions")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<UpdateSessionResponse>>(StatusCodes.Status200OK)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized)

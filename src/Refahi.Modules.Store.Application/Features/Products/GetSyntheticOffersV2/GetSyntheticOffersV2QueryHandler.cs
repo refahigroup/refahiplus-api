@@ -83,7 +83,8 @@ public sealed class GetSyntheticOffersV2QueryHandler
             request.Sort.ToLowerInvariant(),
             request.PageNumber,
             request.PageSize,
-            now.Time);
+            now.Time,
+            context.ManualAgreementProductIds);
 
         var (rows, total) = await _repository.GetOffersAsync(spec, ct);
         var items = rows
@@ -113,6 +114,7 @@ public sealed class GetSyntheticOffersV2QueryHandler
             { } x when x.Equals("StockVariant", StringComparison.OrdinalIgnoreCase) => "StockVariant",
             { } x when x.Equals("ProductSession", StringComparison.OrdinalIgnoreCase) => "ProductSession",
             { } x when x.Equals("SessionVariant", StringComparison.OrdinalIgnoreCase) => "SessionVariant",
+            { } x when x.Equals("ManualProduct", StringComparison.OrdinalIgnoreCase) => "ManualProduct",
             _ => null
         };
 }

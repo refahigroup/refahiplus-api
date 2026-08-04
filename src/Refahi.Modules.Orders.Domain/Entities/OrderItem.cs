@@ -22,7 +22,7 @@ public sealed class OrderItem
 
     // --- ماژول مبدا ---
     public string SourceModule { get; private set; } = string.Empty;   // "Store"
-    public Guid SourceItemId { get; private set; }                     // رفرنس به Product/Room/...
+    public Guid? SourceItemId { get; private set; }                    // رفرنس اختیاری به Product/Room/...
 
     // --- دسته‌بندی و برچسب (برای گزارشات و Wallet restriction) ---
     public string CategoryCode { get; private set; } = string.Empty;  // "store.clothing"
@@ -43,7 +43,7 @@ public sealed class OrderItem
         int quantity,
         long discountAmountMinor,
         string sourceModule,
-        Guid sourceItemId,
+        Guid? sourceItemId,
         string categoryCode,
         string[]? tags,
         string? metadataJson,

@@ -24,7 +24,7 @@ public class DeleteProductVariantEndpoint : IEndpoint
         })
         .WithName("Store.DeleteProductVariant")
         .WithTags("Store.Products")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized)

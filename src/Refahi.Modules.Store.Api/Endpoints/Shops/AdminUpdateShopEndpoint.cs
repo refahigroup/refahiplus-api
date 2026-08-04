@@ -35,7 +35,8 @@ public class AdminUpdateShopEndpoint : IEndpoint
                 request.RepresentativePhone,
                 request.ContactPhone,
                 request.LogoUrl,
-                request.CoverImageUrl);
+                request.CoverImageUrl,
+                request.ShopType);
 
             var result = await mediator.Send(command, ct);
             return Results.Ok(ApiResponseHelper.Success(result, "اطلاعات فروشگاه با موفقیت بروزرسانی شد"));
@@ -65,4 +66,5 @@ public sealed record AdminUpdateShopRequest(
     string? RepresentativePhone,
     string? ContactPhone,
     string? LogoUrl,
-    string? CoverImageUrl);
+    string? CoverImageUrl,
+    short? ShopType = null);

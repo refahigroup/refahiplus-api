@@ -21,6 +21,10 @@ public class CreateWalletEndpoint : IEndpoint
             IMediator mediator,
             CancellationToken ct) =>
         {
+            if (!string.Equals(request.WalletType, WalletTypeCodes.Refahi, StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(ApiResponseHelper.Error(
+                    "کاربر فقط می‌تواند کیف‌پول REFAHI برای خود ایجاد کند", statusCode: 400));
+
             var userIdClaim = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? httpContext.User.FindFirstValue("sub");
 

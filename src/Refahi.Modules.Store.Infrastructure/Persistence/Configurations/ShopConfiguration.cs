@@ -8,7 +8,10 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
 {
     public void Configure(EntityTypeBuilder<Shop> builder)
     {
-        builder.ToTable("shops");
+        builder.ToTable("shops", table =>
+            table.HasCheckConstraint(
+                "CK_shops_shop_type",
+                "\"ShopType\" IN (1, 2)"));
 
         builder.HasKey(s => s.Id);
 

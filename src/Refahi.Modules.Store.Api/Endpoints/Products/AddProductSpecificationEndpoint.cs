@@ -28,7 +28,7 @@ public class AddProductSpecificationEndpoint : IEndpoint
         })
         .WithName("Store.AddProductSpecification")
         .WithTags("Store.Products")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<AddProductSpecificationResponse>>(StatusCodes.Status201Created)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized)

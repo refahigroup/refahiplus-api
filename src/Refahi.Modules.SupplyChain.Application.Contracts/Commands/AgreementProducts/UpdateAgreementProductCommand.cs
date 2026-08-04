@@ -11,5 +11,6 @@ public sealed record UpdateAgreementProductCommand(
     short ProductType,
     short DeliveryType,
     short SalesModel,
-    decimal CommissionPercent
+    decimal CommissionPercent,
+    bool VatApplicable
 ) : IRequest<Unit>;

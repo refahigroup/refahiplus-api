@@ -36,7 +36,7 @@ public class VerifyLoginOtpEndpoint : IEndpoint
                 result.User.MobileNumber ?? result.User.Email ?? "Unknown",
                 string.Join(",", result.User.Roles));
 
-            var tokens = tokenService.CreateTokens(identity);
+            var tokens = await tokenService.CreateTokensAsync(identity);
 
             var refreshToken = Domain.Entities.RefreshToken.Create(
                 userId: result.User.Id,

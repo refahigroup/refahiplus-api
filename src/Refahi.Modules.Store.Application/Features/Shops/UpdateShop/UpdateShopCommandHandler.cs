@@ -1,5 +1,6 @@
 using MediatR;
 using Refahi.Modules.Store.Application.Contracts.Commands.Shops;
+using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 
@@ -32,7 +33,8 @@ public class UpdateShopCommandHandler : IRequestHandler<UpdateShopCommand, Updat
             request.RepresentativePhone,
             request.ContactPhone,
             request.LogoUrl,
-            request.CoverImageUrl);
+            request.CoverImageUrl,
+            request.ShopType.HasValue ? (ShopType)request.ShopType.Value : null);
 
         await _shopRepository.UpdateAsync(shop, cancellationToken);
 

@@ -30,12 +30,14 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         if (await _productRepo.SlugExistsAsync(request.Slug.Trim().ToLower(), cancellationToken))
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
 
+        var isUnlimited = agreementProduct.SalesModel == (short)Domain.Enums.SalesModel.Unlimited;
         var product = Product.Create(
             request.AgreementProductId,
             request.Title,
             request.Slug,
             request.Description,
-            request.StockCount);
+            isUnlimited ? 0 : request.StockCount,
+            initialAvailability: isUnlimited ? true : null);
 
         await _productRepo.AddAsync(product, cancellationToken);
 

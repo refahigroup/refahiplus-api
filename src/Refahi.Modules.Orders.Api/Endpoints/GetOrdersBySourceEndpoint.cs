@@ -27,7 +27,7 @@ public class GetOrdersBySourceEndpoint : IEndpoint
         })
         .WithName("Orders.GetOrdersBySource")
         .WithTags("Orders")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<PaginatedResponse<object>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);

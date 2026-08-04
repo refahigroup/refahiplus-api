@@ -43,14 +43,53 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
             ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
 
         var salesModel = (SalesModel)ap.SalesModel;
+        var isManual = ap.PricingMode == (short)PricingMode.Manual;
+        if (isManual)
+        {
+            if (request.Quantity != 1 || request.VariantId.HasValue || request.SessionId.HasValue || request.UsageDate.HasValue)
+                throw new StoreDomainException("محصول حضوری فقط با تعداد یک و بدون تنوع یا سانس قابل خرید است", "INVALID_MANUAL_PRODUCT_SELECTION");
+            if (!request.ManualAmountMinor.HasValue || request.ManualAmountMinor.Value <= 0)
+                throw new StoreDomainException("مبلغ خرید حضوری الزامی است", "MANUAL_AMOUNT_REQUIRED");
+        }
+        else if (request.ManualAmountMinor.HasValue)
+        {
+            throw new StoreDomainException("مبلغ دستی برای این محصول مجاز نیست", "MANUAL_AMOUNT_NOT_ALLOWED");
+        }
+
+        var currentCart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken);
+        if (currentCart is { Items.Count: > 0 })
+        {
+            var sameManualItem = isManual && currentCart.Items.Count == 1 &&
+                currentCart.Items[0].ShopId == request.ShopId && currentCart.Items[0].ProductId == request.ProductId;
+            if (isManual && !sameManualItem)
+                throw new StoreDomainException("سبد خرید حضوری فقط می‌تواند شامل یک محصول باشد", "MANUAL_CART_MUST_BE_SINGLE_ITEM");
+
+            if (!isManual)
+            {
+                foreach (var item in currentCart.Items)
+                {
+                    var existingProduct = await _productRepo.GetByIdAsync(item.ProductId, cancellationToken);
+                    if (existingProduct is null) continue;
+                    var existingAp = await _mediator.Send(
+                        new GetAgreementProductByIdQuery(existingProduct.AgreementProductId), cancellationToken);
+                    if (existingAp?.PricingMode == (short)PricingMode.Manual)
+                        throw new StoreDomainException("محصول دیگری را نمی‌توان به سبد خرید حضوری اضافه کرد", "MANUAL_CART_MUST_BE_SINGLE_ITEM");
+                }
+            }
+        }
+
         var priceVariantId = salesModel == SalesModel.SessionBased && request.SessionId.HasValue
             ? null
             : request.VariantId;
-        var resolvedPrice = await _priceResolver.ResolveAsync(request.ShopId, product, priceVariantId, cancellationToken);
-        long unitPrice = resolvedPrice.UnitPriceMinor;
+        var resolvedPrice = isManual ? null : await _priceResolver.ResolveAsync(request.ShopId, product, priceVariantId, cancellationToken);
+        long unitPrice = isManual ? request.ManualAmountMinor!.Value : resolvedPrice!.UnitPriceMinor;
         var normalizedUsageDate = request.UsageDate;
 
-        if (salesModel == SalesModel.StockBased)
+        if (salesModel == SalesModel.Unlimited)
+        {
+            normalizedUsageDate = null;
+        }
+        else if (salesModel == SalesModel.StockBased)
         {
             normalizedUsageDate = null;
 
@@ -110,7 +149,7 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
             }
         }
 
-        var cart = await _cartRepo.AddItemAsync(
+        var cart = await (isManual ? _cartRepo.ReplaceItemAsync(
             request.UserId,
             request.ModuleId,
             request.ShopId,
@@ -120,7 +159,17 @@ public class AddToCartCommandHandler : IRequestHandler<AddToCartCommand, AddToCa
             normalizedUsageDate,
             request.Quantity,
             unitPrice,
-            cancellationToken);
+            cancellationToken) : _cartRepo.AddItemAsync(
+            request.UserId,
+            request.ModuleId,
+            request.ShopId,
+            request.ProductId,
+            request.VariantId,
+            request.SessionId,
+            normalizedUsageDate,
+            request.Quantity,
+            unitPrice,
+            cancellationToken));
 
         return new AddToCartResponse(cart.Id, cart.Items.Sum(i => i.Quantity));
     }

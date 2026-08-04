@@ -132,13 +132,16 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
     }
 
     private static bool HasAgreementProducts(SyntheticOfferQuerySpec spec)
-        => spec.StockBasedAgreementProductIds.Count > 0 || spec.SessionBasedAgreementProductIds.Count > 0;
+        => spec.StockBasedAgreementProductIds.Count > 0
+           || spec.SessionBasedAgreementProductIds.Count > 0
+           || spec.ManualAgreementProductIds?.Count > 0;
 
     private static object BuildParameters(SyntheticOfferQuerySpec spec)
         => new
         {
             StockAgreementProductIds = spec.StockBasedAgreementProductIds.ToArray(),
             SessionAgreementProductIds = spec.SessionBasedAgreementProductIds.ToArray(),
+            ManualAgreementProductIds = spec.ManualAgreementProductIds?.ToArray() ?? [],
             Today = spec.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             CurrentTime = (spec.CurrentTime ?? TimeOnly.MinValue)
                 .ToString("HH:mm:ss.fffffff", CultureInfo.InvariantCulture),
@@ -158,15 +161,15 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
 
     private static string GetOfferOrderBy(string sort) => sort switch
     {
-        "price-asc" => "\"EffectivePriceMinor\", \"OfferKey\"",
-        "price-desc" => "\"EffectivePriceMinor\" DESC, \"OfferKey\"",
+        "price-asc" => "CASE WHEN \"OfferKind\" = 'ManualProduct' THEN 1 ELSE 0 END, \"EffectivePriceMinor\", \"OfferKey\"",
+        "price-desc" => "CASE WHEN \"OfferKind\" = 'ManualProduct' THEN 1 ELSE 0 END, \"EffectivePriceMinor\" DESC, \"OfferKey\"",
         _ => "\"ProductCreatedAt\" DESC, \"OfferKey\""
     };
 
     private static string GetCatalogOrderBy(string sort) => sort switch
     {
-        "price-asc" => "\"MinEffectivePriceMinor\", \"ProductId\"",
-        "price-desc" => "\"MaxEffectivePriceMinor\" DESC, \"ProductId\"",
+        "price-asc" => "CASE WHEN \"DefaultOfferKey\" LIKE 'manual:%' THEN 1 ELSE 0 END, \"MinEffectivePriceMinor\", \"ProductId\"",
+        "price-desc" => "CASE WHEN \"DefaultOfferKey\" LIKE 'manual:%' THEN 1 ELSE 0 END, \"MaxEffectivePriceMinor\" DESC, \"ProductId\"",
         _ => "\"ProductCreatedAt\" DESC, \"ProductId\""
     };
 
@@ -180,6 +183,7 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
               AND (@ProductId IS NULL OR "ProductId" = @ProductId)
               AND (@ProductSlug IS NULL OR "ProductSlug" = @ProductSlug)
               AND (@OfferKind IS NULL OR "OfferKind" = @OfferKind)
+              AND ((@MinPriceMinor IS NULL AND @MaxPriceMinor IS NULL) OR "OfferKind" <> 'ManualProduct')
               AND (@MinPriceMinor IS NULL OR "EffectivePriceMinor" >= @MinPriceMinor)
               AND (@MaxPriceMinor IS NULL OR "EffectivePriceMinor" <= @MaxPriceMinor)
               AND (
@@ -305,6 +309,58 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
         ),
         eligible_offers AS
         (
+            SELECT
+                'manual:' || REPLACE(sp."Id"::text, '-', '') AS "OfferKey",
+                'ManualProduct'::text AS "OfferKind",
+                p."Id" AS "ProductId",
+                p."AgreementProductId",
+                p."Title" AS "ProductTitle",
+                p."Slug" AS "ProductSlug",
+                p."CreatedAt" AS "ProductCreatedAt",
+                s."Id" AS "ShopId",
+                s."Name" AS "ShopName",
+                s."Slug" AS "ShopSlug",
+                NULL::uuid AS "VariantId",
+                NULL::text AS "VariantLabel",
+                NULL::uuid AS "SessionId",
+                NULL::date AS "SessionDate",
+                NULL::time AS "SessionStartTime",
+                NULL::time AS "SessionEndTime",
+                NULL::text AS "SessionTitle",
+                0::bigint AS "OriginalPriceMinor",
+                NULL::bigint AS "DiscountedPriceMinor",
+                0::bigint AS "EffectivePriceMinor",
+                NULL::int AS "AvailableStock",
+                NULL::int AS "ConfiguredCapacity",
+                FALSE AS "RequiresUsageDate",
+                NULL::date AS "FromDate",
+                NULL::date AS "ToDate",
+                NULL::date AS "FixedUsageDate",
+                mi."ImageUrl" AS "ImageUrl",
+                mi."ImageUrl" AS "ProductImageUrl",
+                FALSE AS "HasVariants",
+                FALSE AS "HasSessions"
+            FROM store.shop_products sp
+            INNER JOIN store.products p ON p."Id" = sp."ProductId"
+            INNER JOIN store.shops s ON s."Id" = sp."ShopId"
+            LEFT JOIN main_images mi ON mi."ProductId" = p."Id"
+            WHERE p."AgreementProductId" = ANY(@ManualAgreementProductIds)
+              AND p."IsAvailable" = TRUE
+              AND p."IsDeleted" = FALSE
+              AND s."Status" = 2
+              AND s."ShopType" = 2
+              AND EXISTS (
+                    SELECT 1
+                    FROM supplychain.agreement_products ap
+                    INNER JOIN supplychain.agreements a ON a."Id" = ap."AgreementId"
+                    WHERE ap."Id" = p."AgreementProductId"
+                      AND a."SupplierId" = s."SupplierId"
+                      AND ap."IsDeleted" = FALSE)
+              AND sp."IsActive" = TRUE
+              AND sp."IsDeleted" = FALSE
+
+            UNION ALL
+
             SELECT
                 'sp:' || REPLACE(sp."Id"::text, '-', '') AS "OfferKey",
                 'StockProduct'::text AS "OfferKind",

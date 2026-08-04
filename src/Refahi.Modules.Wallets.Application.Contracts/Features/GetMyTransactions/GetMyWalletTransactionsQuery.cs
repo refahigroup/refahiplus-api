@@ -24,4 +24,7 @@ public sealed record MyWalletTransactionDto(
     DateTimeOffset CreatedAt,
     Guid? RelatedEntryId,
     short RelationType,
-    string? ExternalReference);
+    string? ExternalReference,
+    string? Purpose = null,
+    Guid? OrderId = null,
+    Guid? PaymentId = null);

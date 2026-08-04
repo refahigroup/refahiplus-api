@@ -57,6 +57,10 @@ public class WalletsDbContext : DbContext
                 .IsRequired(false);
 
             b.HasIndex(x => x.OwnerId).HasDatabaseName("idx_wallets_owner");
+            b.HasIndex(x => new { x.OwnerId, x.Currency })
+                .HasFilter("wallet_type = 3")
+                .IsUnique()
+                .HasDatabaseName("ux_wallets_provider_owner_currency");
             b.Ignore(x => x.DomainEvents);
         });
 

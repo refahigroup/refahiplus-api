@@ -22,6 +22,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
     private readonly IShopRepository _shopRepo;
     private readonly IProductSessionRepository _sessionRepo;
     private readonly IStoreProductPriceResolver _priceResolver;
+    private readonly IStoreInPersonFinancialPlanner _financialPlanner;
     private readonly IDeliveryService _deliveryService;
     private readonly IMediator _mediator;
 
@@ -31,6 +32,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         IShopRepository shopRepo,
         IProductSessionRepository sessionRepo,
         IStoreProductPriceResolver priceResolver,
+        IStoreInPersonFinancialPlanner financialPlanner,
         IDeliveryService deliveryService,
         IMediator mediator)
     {
@@ -39,6 +41,7 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
         _shopRepo = shopRepo;
         _sessionRepo = sessionRepo;
         _priceResolver = priceResolver;
+        _financialPlanner = financialPlanner;
         _deliveryService = deliveryService;
         _mediator = mediator;
     }
@@ -58,6 +61,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
 
         if (cart is null || !cart.Items.Any())
             throw new StoreDomainException("سبد خرید خالی است", "CART_EMPTY");
+
+        var manualResult = await TryPlaceManualOrderAsync(cart, request, orderIdempotencyKey, cancellationToken);
+        if (manualResult is not null) return manualResult;
 
         // STEP 2: Validate all products and build order items
         Guid? shopId = null;
@@ -166,6 +172,11 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                 {
                     source_module = "Store",
                     shop_id = cartItem.ShopId.ToString(),
+                    agreement_product_id = ap.Id.ToString(),
+                    commission_percent = ap.CommissionPercent,
+                    gross_amount_minor = authoritativeUnitPrice * cartItem.Quantity,
+                    commission_amount_minor = CalculateCommission(authoritativeUnitPrice * cartItem.Quantity, ap.CommissionPercent),
+                    net_amount_minor = authoritativeUnitPrice * cartItem.Quantity - CalculateCommission(authoritativeUnitPrice * cartItem.Quantity, ap.CommissionPercent),
                     product_id = cartItem.ProductId.ToString(),
                     product_type = ap?.ProductType.ToString(),
                     sales_model = salesModel.ToString(),
@@ -198,6 +209,11 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                     {
                         source_module = "Store",
                         shop_id = cartItem.ShopId.ToString(),
+                        agreement_product_id = ap.Id.ToString(),
+                        commission_percent = ap.CommissionPercent,
+                        gross_amount_minor = authoritativeUnitPrice * cartItem.Quantity,
+                        commission_amount_minor = CalculateCommission(authoritativeUnitPrice * cartItem.Quantity, ap.CommissionPercent),
+                        net_amount_minor = authoritativeUnitPrice * cartItem.Quantity - CalculateCommission(authoritativeUnitPrice * cartItem.Quantity, ap.CommissionPercent),
                         product_id = cartItem.ProductId.ToString(),
                         product_type = ap?.ProductType.ToString(),
                         sales_model = salesModel.ToString(),
@@ -243,6 +259,11 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
                     {
                         source_module = "Store",
                         shop_id = cartItem.ShopId.ToString(),
+                        agreement_product_id = ap.Id.ToString(),
+                        commission_percent = ap.CommissionPercent,
+                        gross_amount_minor = authoritativeUnitPrice * cartItem.Quantity,
+                        commission_amount_minor = CalculateCommission(authoritativeUnitPrice * cartItem.Quantity, ap.CommissionPercent),
+                        net_amount_minor = authoritativeUnitPrice * cartItem.Quantity - CalculateCommission(authoritativeUnitPrice * cartItem.Quantity, ap.CommissionPercent),
                         product_id = cartItem.ProductId.ToString(),
                         product_type = ap?.ProductType.ToString(),
                         sales_model = salesModel.ToString(),
@@ -345,7 +366,9 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             DeliveryTimeSlot: request.DeliveryTimeSlot,
             ShippingFeeMinor: shippingFeeMinor,
             DiscountCode: request.DiscountCode,
-            DiscountCodeAmountMinor: discountCodeAmountMinor);
+            DiscountCodeAmountMinor: discountCodeAmountMinor,
+            SourceOwnerId: shopCache[shopId.Value]!.SupplierId,
+            SourceShopId: shopId.Value);
 
         var orderResult = await _mediator.Send(createOrderCommand, cancellationToken);
 
@@ -403,6 +426,84 @@ public class PlaceStoreOrderCommandHandler : IRequestHandler<PlaceStoreOrderComm
             OrderNumber: orderResult.OrderNumber,
             FinalAmountMinor: orderResult.FinalAmountMinor,
             Status: paymentStatus);
+    }
+
+    private static long CalculateCommission(long grossAmountMinor, decimal commissionPercent)
+        => checked((long)Math.Round(
+            grossAmountMinor * commissionPercent / 100m,
+            0,
+            MidpointRounding.AwayFromZero));
+
+    private async Task<PlaceStoreOrderResponse?> TryPlaceManualOrderAsync(
+        Refahi.Modules.Store.Domain.Aggregates.Cart cart,
+        PlaceStoreOrderCommand request,
+        string orderIdempotencyKey,
+        CancellationToken ct)
+    {
+        var resolved = new List<(Refahi.Modules.Store.Domain.Entities.CartItem Item,
+            Refahi.Modules.Store.Domain.Aggregates.Product Product,
+            Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto AgreementProduct)>();
+        foreach (var item in cart.Items)
+        {
+            var product = await _productRepo.GetByIdAsync(item.ProductId, ct)
+                ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
+            var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), ct)
+                ?? throw new StoreDomainException("محصول قرارداد یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+            resolved.Add((item, product, ap));
+        }
+
+        var manualItems = resolved.Where(x => x.AgreementProduct.PricingMode == (short)PricingMode.Manual).ToList();
+        if (manualItems.Count == 0) return null;
+        if (resolved.Count != 1 || manualItems.Count != 1)
+            throw new StoreDomainException("سفارش حضوری فقط می‌تواند شامل یک آیتم باشد", "MANUAL_CART_MUST_BE_SINGLE_ITEM");
+
+        var selected = manualItems[0];
+        if (selected.Item.Quantity != 1 || selected.Item.VariantId.HasValue || selected.Item.SessionId.HasValue ||
+            selected.Item.UsageDate.HasValue || selected.Item.UnitPriceMinor <= 0 ||
+            selected.AgreementProduct.DeliveryType != (short)DeliveryType.InPerson ||
+            selected.AgreementProduct.SalesModel != (short)SalesModel.Unlimited ||
+            !selected.Product.IsAvailable || selected.Product.IsDeleted)
+            throw new StoreDomainException("ساختار محصول حضوری معتبر نیست", "INVALID_MANUAL_PRODUCT");
+
+        var shop = await _shopRepo.GetByIdAsync(selected.Item.ShopId, ct)
+            ?? throw new StoreDomainException("فروشگاه یافت نشد", "SHOP_NOT_FOUND");
+        if (shop.Status != ShopStatus.Active || shop.ShopType != ShopType.Physical ||
+            selected.AgreementProduct.SupplierId != shop.SupplierId)
+            throw new StoreDomainException("فروشگاه حضوری معتبر یا فعال نیست", "INVALID_IN_PERSON_SHOP");
+
+        var financial = await _financialPlanner.BuildAsync(shop.SupplierId, selected.Item.UnitPriceMinor,
+            selected.AgreementProduct.CommissionPercent, selected.AgreementProduct.VatApplicable, ct);
+        string categoryCode = "store.in-person";
+        if (selected.AgreementProduct.CategoryId.HasValue)
+        {
+            var category = await _mediator.Send(new GetCategoryByIdQuery(selected.AgreementProduct.CategoryId.Value), ct);
+            categoryCode = category?.CategoryCode ?? categoryCode;
+        }
+
+        var metadata = JsonSerializer.Serialize(new
+        {
+            source_module = "Store", shop_id = shop.Id, product_id = selected.Product.Id,
+            agreement_product_id = selected.AgreementProduct.Id,
+            pricing_mode = "Manual", gross_amount_minor = financial.GrossAmountMinor,
+            commission_percent = financial.CommissionPercent,
+            commission_amount_minor = financial.CommissionAmountMinor,
+            vat_percent = financial.VatPercent, vat_amount_minor = financial.VatAmountMinor,
+            vendor_net_amount_minor = financial.VendorNetAmountMinor
+        });
+
+        var created = await _mediator.Send(new CreateOrderCommand(
+            UserId: request.UserId, SourceModule: "Store", SourceReferenceId: null,
+            Items: [new CreateOrderItemInput(selected.Product.Title, selected.Item.UnitPriceMinor, 1, 0,
+                selected.Product.Id, categoryCode, null, metadata)],
+            IdempotencyKey: orderIdempotencyKey, ReferenceType: "StoreInPerson",
+            SourceOwnerId: shop.SupplierId, SourceShopId: shop.Id, CreatedByUserId: request.UserId,
+            FinancialSnapshot: new OrderFinancialSnapshotInput(financial.GrossAmountMinor,
+                financial.CommissionPercent, financial.CommissionAmountMinor, financial.VatPercent,
+                financial.VatAmountMinor, financial.VendorNetAmountMinor),
+            PaymentPostings: financial.Postings), ct);
+
+        return new PlaceStoreOrderResponse(created.OrderId, created.OrderNumber,
+            created.FinalAmountMinor, "Unpaid");
     }
 
     private static string BuildStoreOrderIdempotencyKey(string idempotencyKey)

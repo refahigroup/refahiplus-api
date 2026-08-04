@@ -12,4 +12,7 @@ public sealed record AgreementProductDto(
     short SalesModel,
     decimal CommissionPercent,
     bool IsDeleted,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    short PricingMode = 1,
+    bool VatApplicable = false,
+    Guid? SupplierId = null);

@@ -74,7 +74,8 @@ internal sealed class SyntheticOfferQueryContextService : ISyntheticOfferQueryCo
             moduleAgreementProducts.Select(x => x.Id).ToHashSet(),
             map,
             map.Values.Where(x => x.SalesModel == (short)SalesModel.StockBased).Select(x => x.Id).ToArray(),
-            map.Values.Where(x => x.SalesModel == (short)SalesModel.SessionBased).Select(x => x.Id).ToArray());
+            map.Values.Where(x => x.SalesModel == (short)SalesModel.SessionBased).Select(x => x.Id).ToArray(),
+            map.Values.Where(x => x.PricingMode == 2).Select(x => x.Id).ToArray());
     }
 
     private async Task<(bool IsValid, Guid? ShopId)> ResolveShopAsync(
@@ -115,11 +116,12 @@ public sealed record SyntheticOfferQueryContext(
     IReadOnlySet<Guid> ModuleAgreementProductIds,
     IReadOnlyDictionary<Guid, AgreementProductDto> AgreementProducts,
     IReadOnlyList<Guid> StockBasedAgreementProductIds,
-    IReadOnlyList<Guid> SessionBasedAgreementProductIds)
+    IReadOnlyList<Guid> SessionBasedAgreementProductIds,
+    IReadOnlyList<Guid>? ManualAgreementProductIds = null)
 {
     public static SyntheticOfferQueryContext InvalidShop { get; } =
-        new(false, null, new HashSet<Guid>(), new Dictionary<Guid, AgreementProductDto>(), [], []);
+        new(false, null, new HashSet<Guid>(), new Dictionary<Guid, AgreementProductDto>(), [], [], []);
 
     public static SyntheticOfferQueryContext Empty(Guid? shopId) =>
-        new(true, shopId, new HashSet<Guid>(), new Dictionary<Guid, AgreementProductDto>(), [], []);
+        new(true, shopId, new HashSet<Guid>(), new Dictionary<Guid, AgreementProductDto>(), [], [], []);
 }

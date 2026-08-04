@@ -25,6 +25,7 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.Orders
             .Include(o => o.Items)
+            .Include(o => o.PaymentPostings)
             .FirstOrDefaultAsync(o => o.Id == orderId, ct);
     }
 
@@ -38,6 +39,7 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.Orders
             .Include(o => o.Items)
+            .Include(o => o.PaymentPostings)
             .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey, ct);
     }
 
@@ -136,6 +138,67 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.Orders
             .CountAsync(o => o.SourceModule == sourceModule && o.SourceReferenceId == sourceReferenceId, ct);
+    }
+
+    public async Task<(List<Order> Orders, int Total)> GetVendorOrdersAsync(
+        IReadOnlyCollection<Guid> supplierIds, IReadOnlyCollection<Guid> shopIds,
+        IReadOnlyCollection<Guid> ownShopIds, Guid actorUserId, int page, int pageSize,
+        string? status, string? paymentState, string? orderNumber,
+        IReadOnlyCollection<Guid>? userIds, Guid? shopId,
+        DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct = default)
+    {
+        var query = _context.Orders.AsNoTracking()
+            .Where(x => x.SourceModule == "Store" && (
+                (x.SourceOwnerId.HasValue && supplierIds.Contains(x.SourceOwnerId.Value)) ||
+                (x.SourceShopId.HasValue && shopIds.Contains(x.SourceShopId.Value)) ||
+                (x.SourceShopId.HasValue && ownShopIds.Contains(x.SourceShopId.Value) &&
+                    x.CreatedByUserId == actorUserId)));
+        if (Enum.TryParse<OrderStatus>(status, true, out var parsedStatus))
+            query = query.Where(x => x.Status == parsedStatus);
+        if (Enum.TryParse<PaymentState>(paymentState, true, out var parsedPayment))
+            query = query.Where(x => x.PaymentState == parsedPayment);
+        if (!string.IsNullOrWhiteSpace(orderNumber))
+            query = query.Where(x => x.OrderNumber.Contains(orderNumber.Trim()));
+        if (userIds is not null)
+        {
+            if (userIds.Count == 0) return ([], 0);
+            query = query.Where(x => userIds.Contains(x.UserId));
+        }
+        if (shopId.HasValue) query = query.Where(x => x.SourceShopId == shopId.Value);
+        if (from.HasValue) query = query.Where(x => x.CreatedAt >= from.Value);
+        if (to.HasValue) query = query.Where(x => x.CreatedAt <= to.Value);
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var total = await query.CountAsync(ct);
+        var orders = await query.OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        return (orders, total);
+    }
+
+    public Task<Order?> GetVendorOrderByIdAsync(
+        Guid orderId, IReadOnlyCollection<Guid> supplierIds, IReadOnlyCollection<Guid> shopIds,
+        IReadOnlyCollection<Guid> ownShopIds, Guid actorUserId, CancellationToken ct = default)
+        => _context.Orders.Include(x => x.Items).FirstOrDefaultAsync(
+            x => x.Id == orderId && x.SourceModule == "Store" &&
+                 ((x.SourceOwnerId.HasValue && supplierIds.Contains(x.SourceOwnerId.Value)) ||
+                  (x.SourceShopId.HasValue && shopIds.Contains(x.SourceShopId.Value)) ||
+                  (x.SourceShopId.HasValue && ownShopIds.Contains(x.SourceShopId.Value) &&
+                   x.CreatedByUserId == actorUserId)), ct);
+
+    public async Task<(int Pending, int Processing)> GetVendorStatusCountsAsync(
+        IReadOnlyCollection<Guid> supplierIds, IReadOnlyCollection<Guid> shopIds,
+        IReadOnlyCollection<Guid> ownShopIds, Guid actorUserId, CancellationToken ct = default)
+    {
+        var query = _context.Orders.AsNoTracking().Where(x =>
+            x.SourceModule == "Store" && (
+                (x.SourceOwnerId.HasValue && supplierIds.Contains(x.SourceOwnerId.Value)) ||
+                (x.SourceShopId.HasValue && shopIds.Contains(x.SourceShopId.Value)) ||
+                (x.SourceShopId.HasValue && ownShopIds.Contains(x.SourceShopId.Value) &&
+                 x.CreatedByUserId == actorUserId)));
+        return (
+            await query.CountAsync(x =>
+                x.Status == OrderStatus.Pending || x.Status == OrderStatus.Confirmed, ct),
+            await query.CountAsync(x => x.Status == OrderStatus.Processing, ct));
     }
 
     public async Task AddAsync(Order order, CancellationToken ct = default)

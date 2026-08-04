@@ -14,7 +14,9 @@ public sealed class AgreementProduct
     public ProductType ProductType { get; private set; }
     public DeliveryType DeliveryType { get; private set; }
     public SalesModel SalesModel { get; private set; }
+    public PricingMode PricingMode { get; private set; }
     public decimal CommissionPercent { get; private set; }
+    public bool VatApplicable { get; private set; }
     public bool IsDeleted { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -27,7 +29,8 @@ public sealed class AgreementProduct
         ProductType productType,
         DeliveryType deliveryType,
         SalesModel salesModel,
-        decimal commissionPercent)
+        decimal commissionPercent,
+        bool vatApplicable)
         => new()
         {
             Id = Guid.NewGuid(),
@@ -37,8 +40,10 @@ public sealed class AgreementProduct
             CategoryId = categoryId,
             ProductType = productType,
             DeliveryType = deliveryType,
-            SalesModel = salesModel,
+            SalesModel = NormalizeSalesModel(deliveryType, salesModel),
+            PricingMode = ResolvePricingMode(deliveryType),
             CommissionPercent = commissionPercent,
+            VatApplicable = vatApplicable,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -51,15 +56,18 @@ public sealed class AgreementProduct
         ProductType productType,
         DeliveryType deliveryType,
         SalesModel salesModel,
-        decimal commissionPercent)
+        decimal commissionPercent,
+        bool vatApplicable)
     {
         Name = name.Trim();
         Description = description?.Trim();
         CategoryId = categoryId;
         ProductType = productType;
         DeliveryType = deliveryType;
-        SalesModel = salesModel;
+        SalesModel = NormalizeSalesModel(deliveryType, salesModel);
+        PricingMode = ResolvePricingMode(deliveryType);
         CommissionPercent = commissionPercent;
+        VatApplicable = vatApplicable;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -68,4 +76,16 @@ public sealed class AgreementProduct
         IsDeleted = true;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    private static SalesModel NormalizeSalesModel(DeliveryType deliveryType, SalesModel salesModel)
+    {
+        if (deliveryType == DeliveryType.InPerson)
+            return SalesModel.Unlimited;
+        if (salesModel == SalesModel.Unlimited)
+            throw new InvalidOperationException("مدل فروش نامحدود فقط برای تحویل حضوری مجاز است");
+        return salesModel;
+    }
+
+    private static PricingMode ResolvePricingMode(DeliveryType deliveryType)
+        => deliveryType == DeliveryType.InPerson ? PricingMode.Manual : PricingMode.Fixed;
 }

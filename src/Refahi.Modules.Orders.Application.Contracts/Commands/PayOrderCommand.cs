@@ -10,7 +10,8 @@ public sealed record PayOrderCommand(
     Guid CallerUserId,
     string CallerRole,
     List<WalletAllocationInput> Allocations,
-    string IdempotencyKey
+    string IdempotencyKey,
+    Guid? DestinationWalletId = null
 ) : IRequest<PayOrderResponse>;
 
 public sealed record WalletAllocationInput(Guid WalletId, long AmountMinor);

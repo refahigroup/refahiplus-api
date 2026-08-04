@@ -15,7 +15,8 @@ public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
             .MaximumLength(50).WithMessage("ماژول مبدا نمی‌تواند بیشتر از ۵۰ کاراکتر باشد");
 
         RuleFor(x => x.SourceReferenceId)
-            .NotEmpty().WithMessage("شناسه مرجع مبدا الزامی است");
+            .NotEmpty().WithMessage("شناسه مرجع مبدا الزامی است")
+            .Unless(x => string.Equals(x.ReferenceType, "StoreInPerson", StringComparison.OrdinalIgnoreCase));
 
         RuleFor(x => x.IdempotencyKey)
             .NotEmpty().WithMessage("کلید یکتایی الزامی است")

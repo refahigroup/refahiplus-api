@@ -50,7 +50,8 @@ public sealed class GetStoreCategoriesQueryHandler
                 context.StockBasedAgreementProductIds,
                 context.SessionBasedAgreementProductIds,
                 now.Date,
-                CurrentTime: now.Time),
+                CurrentTime: now.Time,
+                ManualAgreementProductIds: context.ManualAgreementProductIds),
             ct);
 
         if (eligibleAgreementProductIds.Count == 0)

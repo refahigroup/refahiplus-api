@@ -55,6 +55,7 @@ internal static class SyntheticOfferDtoMapper
                 row.ProductId,
                 row.VariantId,
                 row.SessionId,
-                row.FixedUsageDate));
+                row.FixedUsageDate),
+            agreementProduct.PricingMode == 2 ? "InPerson" : "Fixed");
     }
 }

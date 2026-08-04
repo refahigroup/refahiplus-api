@@ -141,7 +141,10 @@ public sealed class WalletReadRepository : IWalletReadRepository
                     le.created_at AS CreatedAt,
                     le.related_entry_id AS RelatedEntryId,
                     le.relation_type AS RelationType,
-                    le.external_reference AS ExternalReference
+                    le.external_reference AS ExternalReference,
+                    le.metadata ->> 'purpose' AS Purpose,
+                    NULLIF(substring(le.external_reference from 'order:([0-9a-fA-F-]{36})'), '')::uuid AS OrderId,
+                    NULLIF(substring(le.external_reference from 'payment:([0-9a-fA-F-]{36})'), '')::uuid AS PaymentId
                 FROM wallets.ledger_entries le
                 INNER JOIN wallets.wallets w ON w.wallet_id = le.wallet_id
                 WHERE w."OwnerId" = @OwnerId
@@ -179,7 +182,10 @@ public sealed class WalletReadRepository : IWalletReadRepository
                 ToDateTimeOffset(row.CreatedAt),
                 row.RelatedEntryId,
                 row.RelationType,
-                row.ExternalReference))
+                row.ExternalReference,
+                row.Purpose,
+                row.OrderId,
+                row.PaymentId))
             .ToList()
             .AsReadOnly();
     }
@@ -270,5 +276,8 @@ public sealed class WalletReadRepository : IWalletReadRepository
         public Guid? RelatedEntryId { get; set; }
         public short RelationType { get; set; }
         public string? ExternalReference { get; set; }
+        public string? Purpose { get; set; }
+        public Guid? OrderId { get; set; }
+        public Guid? PaymentId { get; set; }
     }
 }

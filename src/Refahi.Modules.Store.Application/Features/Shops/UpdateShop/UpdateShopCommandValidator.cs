@@ -14,6 +14,10 @@ public class UpdateShopCommandValidator : AbstractValidator<UpdateShopCommand>
             .NotEmpty().WithMessage("نام فروشگاه الزامی است")
             .MaximumLength(200).WithMessage("نام فروشگاه نمی‌تواند بیشتر از ۲۰۰ کاراکتر باشد");
 
+        RuleFor(x => x.ShopType)
+            .Must(t => !t.HasValue || t.Value is 1 or 2)
+            .WithMessage("نوع فروشگاه باید آنلاین یا حضوری باشد");
+
         RuleFor(x => x.Address)
             .MaximumLength(500).WithMessage("آدرس نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد");
 

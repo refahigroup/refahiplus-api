@@ -71,9 +71,13 @@ public static class DI
             options.AddPolicy("UserOrAdmin", policy =>
                 policy.RequireRole("User", "Admin"));
 
-            // Provider or Admin policy
-            options.AddPolicy("ProviderOrAdmin", policy =>
-                policy.RequireRole("Provider", "Admin"));
+            // Vendor or Admin policy
+            options.AddPolicy("VendorOrAdmin", policy =>
+                policy.RequireRole("Vendor", "Admin"));
+
+            // Vendor-only policy used by the vendor panel APIs
+            options.AddPolicy("VendorOnly", policy =>
+                policy.RequireRole("Vendor"));
         });
 
         return services;

@@ -87,7 +87,13 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
                 Currency: order.Currency,
                 Allocations: allocations,
                 IdempotencyKey: $"order-reserve-{request.IdempotencyKey}",
-                OrderItemCategoryCode: categoryCodesForIntent),
+                OrderItemCategoryCode: categoryCodesForIntent,
+                DestinationWalletId: order.PaymentPostings.Count > 0 ? null : request.DestinationWalletId,
+                Postings: order.PaymentPostings
+                    .OrderBy(x => x.SortOrder)
+                    .Select(x => new PaymentPostingRequest(
+                        x.WalletId, (short)x.Direction, x.AmountMinor, x.Purpose))
+                    .ToList()),
                 cancellationToken);
 
             if (intentResult.Data is null)

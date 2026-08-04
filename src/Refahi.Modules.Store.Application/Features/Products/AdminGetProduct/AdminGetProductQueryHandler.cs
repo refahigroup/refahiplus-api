@@ -106,6 +106,7 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
             product.IsAvailable, product.StockCount,
             images, variants, variantAttributes, specifications, sessions,
             averageRating, reviewTotal,
-            product.CreatedAt);
+            product.CreatedAt,
+            ap?.PricingMode == 2 ? "InPerson" : "Fixed");
     }
 }

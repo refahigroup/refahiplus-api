@@ -26,7 +26,7 @@ public class CreateShopEndpoint : IEndpoint
         })
         .WithName("Store.CreateShop")
         .WithTags("Store.Shops")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<CreateShopResponse>>(StatusCodes.Status201Created)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized);

@@ -4,7 +4,7 @@ public static class Roles
 {
     public const string User = "User";
     public const string Admin = "Admin";
-    public const string Provider = "Provider";
+    public const string Vendor = "Vendor";
     public const string ProviderStaff = "ProviderStaff";
     public const string Supervisor = "Supervisor";
 
@@ -12,7 +12,15 @@ public static class Roles
     {
         User,
         Admin,
-        Provider,
+        Vendor,
+        ProviderStaff,
+        Supervisor
+    };
+
+    public static readonly string[] ManuallyAssignable =
+    {
+        User,
+        Admin,
         ProviderStaff,
         Supervisor
     };
@@ -20,5 +28,10 @@ public static class Roles
     public static bool IsValid(string role)
     {
         return All.Contains(role, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public static bool IsManuallyAssignable(string role)
+    {
+        return ManuallyAssignable.Contains(role, StringComparer.OrdinalIgnoreCase);
     }
 }

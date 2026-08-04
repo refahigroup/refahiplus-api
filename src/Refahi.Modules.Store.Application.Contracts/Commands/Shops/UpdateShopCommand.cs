@@ -17,7 +17,8 @@ public sealed record UpdateShopCommand(
     string? RepresentativePhone,
     string? ContactPhone,
     string? LogoUrl,
-    string? CoverImageUrl
+    string? CoverImageUrl,
+    short? ShopType = null
 ) : IRequest<UpdateShopResponse>;
 
 public sealed record UpdateShopResponse(Guid Id, string Name);

@@ -19,7 +19,7 @@ public class AssignRoleCommandValidator : AbstractValidator<AssignRoleCommand>
             .MaximumLength(50)
             .WithMessage("Role name must not exceed 50 characters")
             .Must(BeValidRole)
-            .WithMessage(x => $"Invalid role '{x.Role}'. Valid roles are: {string.Join(", ", DomainRoles.All)}");
+            .WithMessage(x => $"Invalid role '{x.Role}'. Valid manually assignable roles are: {string.Join(", ", DomainRoles.ManuallyAssignable)}");
 
         // AssignedBy validation (optional in command, but should be valid GUID if provided)
         When(x => x.AssignedBy.HasValue, () =>
@@ -35,6 +35,6 @@ public class AssignRoleCommandValidator : AbstractValidator<AssignRoleCommand>
         if (string.IsNullOrWhiteSpace(role))
             return false;
 
-        return DomainRoles.IsValid(role);
+        return DomainRoles.IsManuallyAssignable(role);
     }
 }

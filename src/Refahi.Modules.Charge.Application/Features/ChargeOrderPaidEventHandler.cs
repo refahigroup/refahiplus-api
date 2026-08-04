@@ -24,7 +24,13 @@ public sealed class ChargeOrderPaidEventHandler : INotificationHandler<OrderPaid
         if (isCharge) 
             return;
 
-        var request = await _requests.GetAsync(e.SourceReferenceId, ct);
+        if (!e.SourceReferenceId.HasValue)
+        {
+            _logger.LogWarning("Charge paid event has no source reference. OrderId={OrderId}", e.OrderId);
+            return;
+        }
+
+        var request = await _requests.GetAsync(e.SourceReferenceId.Value, ct);
 
         if (request is null || request.UserId != e.UserId)
         { 

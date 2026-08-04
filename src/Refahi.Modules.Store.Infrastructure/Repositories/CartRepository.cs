@@ -28,7 +28,7 @@ public class CartRepository : ICartRepository
             .Include(c => c.Items)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
-    public async Task<Cart> AddItemAsync(
+    public Task<Cart> AddItemAsync(
         Guid userId,
         int moduleId,
         Guid shopId,
@@ -39,6 +39,20 @@ public class CartRepository : ICartRepository
         int quantity,
         long unitPriceMinor,
         CancellationToken ct = default)
+        => AddOrReplaceItemAsync(userId, moduleId, shopId, productId, variantId,
+            sessionId, usageDate, quantity, unitPriceMinor, false, ct);
+
+    public Task<Cart> ReplaceItemAsync(
+        Guid userId, int moduleId, Guid shopId, Guid productId,
+        Guid? variantId, Guid? sessionId, DateOnly? usageDate,
+        int quantity, long unitPriceMinor, CancellationToken ct = default)
+        => AddOrReplaceItemAsync(userId, moduleId, shopId, productId, variantId,
+            sessionId, usageDate, quantity, unitPriceMinor, true, ct);
+
+    private async Task<Cart> AddOrReplaceItemAsync(
+        Guid userId, int moduleId, Guid shopId, Guid productId,
+        Guid? variantId, Guid? sessionId, DateOnly? usageDate,
+        int quantity, long unitPriceMinor, bool replaceExisting, CancellationToken ct)
     {
         if (quantity <= 0)
             throw new StoreDomainException("تعداد باید بیشتر از صفر باشد", "INVALID_QUANTITY");
@@ -73,7 +87,8 @@ public class CartRepository : ICartRepository
         var affectedRows = await _db.Database.ExecuteSqlInterpolatedAsync($@"
             UPDATE store.cart_items
             SET
-                ""Quantity"" = ""Quantity"" + {quantity}
+                ""Quantity"" = CASE WHEN {replaceExisting} THEN {quantity} ELSE ""Quantity"" + {quantity} END,
+                ""UnitPriceMinor"" = CASE WHEN {replaceExisting} THEN {unitPriceMinor} ELSE ""UnitPriceMinor"" END
             WHERE ""CartId"" = {cartId}
               AND ""ShopId"" = {shopId}
               AND ""ProductId"" = {productId}

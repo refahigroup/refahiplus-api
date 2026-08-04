@@ -15,6 +15,7 @@ public class OrdersDbContext : DbContext
 
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<OrderPaymentPosting> OrderPaymentPostings => Set<OrderPaymentPosting>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -25,6 +26,7 @@ public class OrdersDbContext : DbContext
 
         modelBuilder.ApplyConfiguration(new OrderConfiguration());
         modelBuilder.ApplyConfiguration(new OrderItemConfiguration());
+        modelBuilder.ApplyConfiguration(new OrderPaymentPostingConfiguration());
         modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
     }
 

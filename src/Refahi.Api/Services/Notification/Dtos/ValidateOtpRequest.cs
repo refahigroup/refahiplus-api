@@ -18,4 +18,7 @@ public record ValidateOtpRequest
     /// </summary>
     [JsonPropertyName("code")]
     public required string Code { get; init; }
+
+    [JsonPropertyName("purpose")]
+    public required string Purpose { get; init; }
 }

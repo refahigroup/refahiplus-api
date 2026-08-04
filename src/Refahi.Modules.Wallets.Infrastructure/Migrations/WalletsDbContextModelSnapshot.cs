@@ -128,6 +128,11 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("idx_wallets_owner");
 
+                    b.HasIndex("OwnerId", "Currency")
+                        .IsUnique()
+                        .HasDatabaseName("ux_wallets_provider_owner_currency")
+                        .HasFilter("wallet_type = 3");
+
                     b.ToTable("wallets", "wallets");
                 });
 

@@ -10,7 +10,8 @@ public sealed record AddToCartCommand(
     Guid? VariantId,
     Guid? SessionId,
     DateOnly? UsageDate,
-    int Quantity
+    int Quantity,
+    long? ManualAmountMinor = null
 ) : IRequest<AddToCartResponse>;
 
 public sealed record AddToCartResponse(Guid CartId, int TotalItems);

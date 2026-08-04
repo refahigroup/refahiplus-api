@@ -23,7 +23,7 @@ public class DeleteProductEndpoint : IEndpoint
         })
         .WithName("Store.DeleteProduct")
         .WithTags("Store.Products")
-        .RequireAuthorization("ProviderOrAdmin")
+        .RequireAuthorization("VendorOrAdmin")
         .Produces<ApiResponse<DeleteProductResponse>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound);

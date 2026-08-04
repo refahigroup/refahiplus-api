@@ -6,4 +6,5 @@ public sealed record ProductSummaryDto(
     string ProductType, string DeliveryType, string SalesModel,
     string? MainImageUrl,
     bool IsAvailable,
-    decimal CommissionPercent);
+    decimal CommissionPercent,
+    string PricingMode = "Fixed");

@@ -6,7 +6,7 @@ public sealed record OrderItemDto(
     long UnitPriceMinor,
     int Quantity,
     long FinalPriceMinor,
-    Guid SourceItemId,
+    Guid? SourceItemId,
     string CategoryCode,
     string[]? Tags,
     string? MetadataJson,

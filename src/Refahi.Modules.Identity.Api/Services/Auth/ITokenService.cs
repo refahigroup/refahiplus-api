@@ -2,6 +2,6 @@
 
 public interface ITokenService
 {
-    TokenResult CreateTokens(UserIdentity user);
+    Task<TokenResult> CreateTokensAsync(UserIdentity user, CancellationToken ct = default);
 }
 

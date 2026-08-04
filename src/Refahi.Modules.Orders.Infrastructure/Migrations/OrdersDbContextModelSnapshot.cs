@@ -30,9 +30,21 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<long?>("CommissionAmountMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("commission_amount_minor");
+
+                    b.Property<decimal?>("CommissionPercent")
+                        .HasColumnType("numeric(7,4)")
+                        .HasColumnName("commission_percent");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -73,6 +85,10 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("final_amount_minor");
 
+                    b.Property<long?>("GrossAmountMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("gross_amount_minor");
+
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -100,6 +116,10 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                     b.Property<short>("PaymentState")
                         .HasColumnType("smallint")
                         .HasColumnName("payment_state");
+
+                    b.Property<long?>("RecipientNetAmountMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("recipient_net_amount_minor");
 
                     b.Property<string>("ReferenceType")
                         .IsRequired()
@@ -139,9 +159,17 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("source_module");
 
-                    b.Property<Guid>("SourceReferenceId")
+                    b.Property<Guid?>("SourceOwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_owner_id");
+
+                    b.Property<Guid?>("SourceReferenceId")
                         .HasColumnType("uuid")
                         .HasColumnName("source_reference_id");
+
+                    b.Property<Guid?>("SourceShopId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_shop_id");
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint")
@@ -159,6 +187,14 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
+                    b.Property<long?>("VatAmountMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("vat_amount_minor");
+
+                    b.Property<decimal?>("VatPercent")
+                        .HasColumnType("numeric(7,4)")
+                        .HasColumnName("vat_percent");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IdempotencyKey")
@@ -175,6 +211,9 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_orders_user_id");
 
+                    b.HasIndex("CreatedByUserId", "CreatedAt")
+                        .HasDatabaseName("ix_orders_created_by_created_at");
+
                     b.HasIndex("ReferenceType", "SourceReferenceId")
                         .IsUnique()
                         .HasDatabaseName("ux_orders_reference_type_source_reference_id");
@@ -184,6 +223,12 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
 
                     b.HasIndex("Status", "PayableUntil")
                         .HasDatabaseName("ix_orders_status_payable_until");
+
+                    b.HasIndex("SourceModule", "SourceOwnerId", "CreatedAt")
+                        .HasDatabaseName("ix_orders_source_owner_created_at");
+
+                    b.HasIndex("SourceModule", "SourceShopId", "CreatedAt")
+                        .HasDatabaseName("ix_orders_source_shop_created_at");
 
                     b.ToTable("orders", "orders");
                 });
@@ -235,7 +280,7 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("sort_order");
 
-                    b.Property<Guid>("SourceItemId")
+                    b.Property<Guid?>("SourceItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("source_item_id");
 
@@ -268,6 +313,47 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasDatabaseName("ix_order_items_order_id");
 
                     b.ToTable("order_items", "orders");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Orders.Domain.Entities.OrderPaymentPosting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long>("AmountMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_minor");
+
+                    b.Property<short>("Direction")
+                        .HasColumnType("smallint")
+                        .HasColumnName("direction");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("purpose");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("wallet_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("order_payment_postings", "orders");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Orders.Infrastructure.Outbox.OutboxMessage", b =>
@@ -334,9 +420,20 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Orders.Domain.Entities.OrderPaymentPosting", b =>
+                {
+                    b.HasOne("Refahi.Modules.Orders.Domain.Aggregates.Order", null)
+                        .WithMany("PaymentPostings")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Refahi.Modules.Orders.Domain.Aggregates.Order", b =>
                 {
                     b.Navigation("Items");
+
+                    b.Navigation("PaymentPostings");
                 });
 #pragma warning restore 612, 618
         }

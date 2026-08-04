@@ -19,7 +19,8 @@ public class OrderDeliveredIntegrationEventHandler : INotificationHandler<OrderD
         if (!string.Equals(notification.SourceModule, "Store", StringComparison.OrdinalIgnoreCase))
             return;
 
-        var shop = await _shopRepository.GetByIdAsync(notification.SourceReferenceId, cancellationToken);
+        if (!notification.SourceReferenceId.HasValue) return;
+        var shop = await _shopRepository.GetByIdAsync(notification.SourceReferenceId.Value, cancellationToken);
         if (shop is null) return;
 
         shop.RecordDelivery();

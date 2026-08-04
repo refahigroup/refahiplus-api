@@ -203,7 +203,10 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("shops", "store");
+                    b.ToTable("shops", "store", t =>
+                        {
+                            t.HasCheckConstraint("CK_shops_shop_type", "\"ShopType\" IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.ShopProduct", b =>

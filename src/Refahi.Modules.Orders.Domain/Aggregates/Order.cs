@@ -13,7 +13,7 @@ namespace Refahi.Modules.Orders.Domain.Aggregates;
 /// </summary>
 public sealed class Order
 {
-    private Order() { _items = new List<OrderItem>(); _domainEvents = new List<IDomainEvent>(); }
+    private Order() { _items = new List<OrderItem>(); _paymentPostings = new List<OrderPaymentPosting>(); _domainEvents = new List<IDomainEvent>(); }
 
     public Guid Id { get; private set; }
     public string OrderNumber { get; private set; } = string.Empty;    // شماره سفارش یکتا (مثل "ORD-240413-XXXX")
@@ -38,11 +38,20 @@ public sealed class Order
 
     // --- ماژول مبدا ---
     public string SourceModule { get; private set; } = string.Empty;  // "Store", "Hotel", "Flight"
-    public Guid SourceReferenceId { get; private set; }               // رفرنس به رکورد اصلی در ماژول مبدا
+    public Guid? SourceReferenceId { get; private set; }              // رفرنس اختیاری به رکورد اصلی در ماژول مبدا
+    public Guid? SourceOwnerId { get; private set; }                  // مالک منبع (برای Store برابر SupplierId)
+    public Guid? SourceShopId { get; private set; }                   // فروشگاه مبدا
+    public Guid? CreatedByUserId { get; private set; }                // اپراتور ایجادکننده سفارش
     public string ReferenceType { get; private set; } = string.Empty; // "HotelRequest", "Cart", ...
     public Guid? SagaId { get; private set; }                         // optional workflow correlation id
+    public long? GrossAmountMinor { get; private set; }
+    public decimal? CommissionPercent { get; private set; }
+    public long? CommissionAmountMinor { get; private set; }
+    public decimal? VatPercent { get; private set; }
+    public long? VatAmountMinor { get; private set; }
+    public long? RecipientNetAmountMinor { get; private set; }
     public string Module => SourceModule;
-    public Guid ReferenceId => SourceReferenceId;
+    public Guid? ReferenceId => SourceReferenceId;
 
     // --- اطلاعات ارسال (Snapshot از Identity) ---
     public Guid? ShippingAddressId { get; private set; }              // FK soft → Identity.UserAddress
@@ -65,6 +74,9 @@ public sealed class Order
     private readonly List<OrderItem> _items;
     public IReadOnlyList<OrderItem> Items => _items.AsReadOnly();
 
+    private readonly List<OrderPaymentPosting> _paymentPostings;
+    public IReadOnlyList<OrderPaymentPosting> PaymentPostings => _paymentPostings.AsReadOnly();
+
     // --- Domain Events ---
     private readonly List<IDomainEvent> _domainEvents;
     public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -79,7 +91,7 @@ public sealed class Order
     public static Order Create(
         Guid userId,
         string sourceModule,
-        Guid sourceReferenceId,
+        Guid? sourceReferenceId,
         string idempotencyKey,
         string? referenceType,
         List<OrderItemData> items,
@@ -91,7 +103,12 @@ public sealed class Order
         string? discountCode = null,
         long discountCodeAmountMinor = 0,
         Guid? sagaId = null,
-        DateTimeOffset? payableUntil = null)
+        DateTimeOffset? payableUntil = null,
+        Guid? sourceOwnerId = null,
+        Guid? sourceShopId = null,
+        Guid? createdByUserId = null,
+        OrderFinancialSnapshotData? financialSnapshot = null,
+        IReadOnlyList<OrderPaymentPostingData>? paymentPostings = null)
     {
         if (items is null || items.Count == 0)
             throw new OrderDomainException("سفارش باید حداقل یک آیتم داشته باشد", "ORDER_EMPTY");
@@ -112,6 +129,15 @@ public sealed class Order
             PaymentState = PaymentState.Unpaid,
             SourceModule = sourceModule,
             SourceReferenceId = sourceReferenceId,
+            SourceOwnerId = sourceOwnerId,
+            SourceShopId = sourceShopId,
+            CreatedByUserId = createdByUserId,
+            GrossAmountMinor = financialSnapshot?.GrossAmountMinor,
+            CommissionPercent = financialSnapshot?.CommissionPercent,
+            CommissionAmountMinor = financialSnapshot?.CommissionAmountMinor,
+            VatPercent = financialSnapshot?.VatPercent,
+            VatAmountMinor = financialSnapshot?.VatAmountMinor,
+            RecipientNetAmountMinor = financialSnapshot?.RecipientNetAmountMinor,
             ReferenceType = string.IsNullOrWhiteSpace(referenceType) ? sourceModule : referenceType.Trim(),
             SagaId = sagaId,
             PayableUntil = payableUntil,
@@ -146,6 +172,7 @@ public sealed class Order
         }
 
         order.RecalculateAmounts();
+        order.ValidateAndAddPaymentPlan(financialSnapshot, paymentPostings);
 
         order.AddDomainEvent(new OrderCreatedEvent(
             OrderId: order.Id,
@@ -303,6 +330,50 @@ public sealed class Order
         FinalAmountMinor = final;
     }
 
+    private void ValidateAndAddPaymentPlan(
+        OrderFinancialSnapshotData? snapshot,
+        IReadOnlyList<OrderPaymentPostingData>? postings)
+    {
+        var isInPerson = string.Equals(ReferenceType, "StoreInPerson", StringComparison.OrdinalIgnoreCase);
+        if (!isInPerson)
+        {
+            if (snapshot is not null || postings is { Count: > 0 })
+                throw new OrderDomainException("طرح مالی فقط برای سفارش حضوری پشتیبانی می‌شود", "UNSUPPORTED_PAYMENT_PLAN");
+            return;
+        }
+
+        if (_items.Count != 1 || _items[0].Quantity != 1 || _items[0].DiscountAmountMinor != 0 ||
+            ShippingFeeMinor != 0 || DiscountCodeAmountMinor != 0 || SourceReferenceId.HasValue ||
+            !_items[0].SourceItemId.HasValue)
+            throw new OrderDomainException("ساختار سفارش حضوری معتبر نیست", "INVALID_IN_PERSON_ORDER");
+
+        if (snapshot is null || postings is null || postings.Count == 0)
+            throw new OrderDomainException("اطلاعات مالی سفارش حضوری الزامی است", "IN_PERSON_FINANCIAL_PLAN_REQUIRED");
+
+        var expectedCommission = CalculatePercentage(snapshot.GrossAmountMinor, snapshot.CommissionPercent);
+        var expectedVat = CalculatePercentage(expectedCommission, snapshot.VatPercent);
+        if (snapshot.GrossAmountMinor != FinalAmountMinor || snapshot.GrossAmountMinor != _items[0].UnitPriceMinor ||
+            snapshot.CommissionAmountMinor != expectedCommission || snapshot.VatAmountMinor != expectedVat ||
+            snapshot.RecipientNetAmountMinor != snapshot.GrossAmountMinor - expectedCommission - expectedVat ||
+            snapshot.RecipientNetAmountMinor < 0)
+            throw new OrderDomainException("محاسبات مالی سفارش حضوری معتبر نیست", "INVALID_IN_PERSON_FINANCIAL_SNAPSHOT");
+
+        var credits = postings.Where(x => x.Direction == PaymentPostingDirection.Credit).Sum(x => x.AmountMinor);
+        var debits = postings.Where(x => x.Direction == PaymentPostingDirection.Debit).Sum(x => x.AmountMinor);
+        if (FinalAmountMinor + debits != credits)
+            throw new OrderDomainException("ثبت‌های مالی سفارش تراز نیستند", "UNBALANCED_PAYMENT_POSTINGS");
+
+        for (var i = 0; i < postings.Count; i++)
+        {
+            var posting = postings[i];
+            _paymentPostings.Add(OrderPaymentPosting.Create(Id, posting.WalletId,
+                posting.Direction, posting.AmountMinor, posting.Purpose, i));
+        }
+    }
+
+    private static long CalculatePercentage(long amountMinor, decimal percent)
+        => checked((long)Math.Round(amountMinor * percent / 100m, 0, MidpointRounding.AwayFromZero));
+
     private static string GenerateOrderNumber()
     {
         var datePart = DateTime.UtcNow.ToString("yyMMdd");
@@ -319,8 +390,22 @@ public sealed record OrderItemData(
     long UnitPriceMinor,
     int Quantity,
     long DiscountAmountMinor,
-    Guid SourceItemId,
+    Guid? SourceItemId,
     string CategoryCode,
     string[]? Tags,
     string? MetadataJson,
     DeliveryMethod DeliveryMethod = DeliveryMethod.None);
+
+public sealed record OrderFinancialSnapshotData(
+    long GrossAmountMinor,
+    decimal CommissionPercent,
+    long CommissionAmountMinor,
+    decimal VatPercent,
+    long VatAmountMinor,
+    long RecipientNetAmountMinor);
+
+public sealed record OrderPaymentPostingData(
+    Guid WalletId,
+    PaymentPostingDirection Direction,
+    long AmountMinor,
+    string Purpose);

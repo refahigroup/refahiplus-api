@@ -190,6 +190,7 @@ public sealed class GetProductBySlugEligibilityTests
         public Task<Shop?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(id == shop.Id ? shop : null);
         public Task<Shop?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(slug == shop.Slug ? shop : null);
         public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<List<Shop>> GetBySupplierIdAsync(Guid supplierId, CancellationToken ct = default) => Task.FromResult(new List<Shop>());
         public Task<(List<Shop> Items, int Total)> GetPagedAsync(ShopType? shopType, ShopStatus? status, int page, int size, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default) => throw new NotSupportedException();

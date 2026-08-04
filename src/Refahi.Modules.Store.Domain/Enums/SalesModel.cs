@@ -6,5 +6,6 @@ namespace Refahi.Modules.Store.Domain.Enums;
 public enum SalesModel : short
 {
     StockBased = 1,     // موجودی عددی ساده
-    SessionBased = 2    // سانس/ظرفیت
+    SessionBased = 2,   // سانس/ظرفیت
+    Unlimited = 3
 }

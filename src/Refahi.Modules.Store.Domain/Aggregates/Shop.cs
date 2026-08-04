@@ -86,7 +86,8 @@ public sealed class Shop
         double? latitude, double? longitude,
         string? managerName, string? managerPhone,
         string? representativeName, string? representativePhone,
-        string? contactPhone, string? logoUrl, string? coverImageUrl)
+        string? contactPhone, string? logoUrl, string? coverImageUrl,
+        ShopType? shopType = null)
     {
         Name = name.Trim();
         Description = description;
@@ -102,6 +103,8 @@ public sealed class Shop
         ContactPhone = contactPhone;
         LogoUrl = logoUrl;
         CoverImageUrl = coverImageUrl;
+        if (shopType.HasValue)
+            ShopType = shopType.Value;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }
