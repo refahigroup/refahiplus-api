@@ -33,34 +33,34 @@ public sealed class ShopProductRepositoryPostgresTests
         var secondShop = CreateActiveShop("فروشگاه دوم", "second-shop");
 
         var firstProduct = Product.Create(Guid.NewGuid(), "محصول مشترک", "shared-product", stockCount: 10);
-        var firstVariant = firstProduct.AddVariant([], 10, 6_000, sku: "first");
-        var secondVariant = firstProduct.AddVariant([], 10, 4_000, sku: "second");
+        var firstVariant = firstProduct.AddVariant([], 10, 6_000, 6_000, sku: "first");
+        var secondVariant = firstProduct.AddVariant([], 10, 4_000, 4_000, sku: "second");
 
         var secondProduct = Product.Create(Guid.NewGuid(), "محصول مستقل", "other-product", stockCount: 10);
-        var otherVariant = secondProduct.AddVariant([], 10, 5_000);
+        var otherVariant = secondProduct.AddVariant([], 10, 5_000, 5_000);
 
         var unavailableProduct = Product.Create(Guid.NewGuid(), "ناموجود", "unavailable", stockCount: 1);
-        var unavailableVariant = unavailableProduct.AddVariant([], 0, 1_000);
+        var unavailableVariant = unavailableProduct.AddVariant([], 0, 1_000, 1_000);
 
         var sessionProduct = Product.Create(Guid.NewGuid(), "خدمت ظرفیت‌محور", "capacity-session", stockCount: 1);
         var sessionVariant = sessionProduct.AddVariant(
-            [], 0, 2_000, capacityType: VariantCapacityType.Unlimited, salesModel: SalesModel.SessionBased);
+            [], 0, 2_000, 2_000, capacityType: VariantCapacityType.Unlimited, salesModel: SalesModel.SessionBased);
         var today = new DateOnly(2026, 7, 13);
         sessionProduct.AddSession(today.AddDays(-1), new TimeOnly(10, 0), new TimeOnly(11, 0), 5);
 
         context.AddRange(firstShop, secondShop, firstProduct, secondProduct, unavailableProduct, sessionProduct);
         await context.SaveChangesAsync();
 
-        var firstShopProduct = ShopProduct.Create(firstShop.Id, firstProduct.Id, 6_000, 0);
+        var firstShopProduct = ShopProduct.Create(firstShop.Id, firstProduct.Id, 6_000, 6_000);
         firstShopProduct.AddVariantOffering(firstVariant.Id, 6_000, 5_000, isActive: true);
-        var cheaperShopProduct = ShopProduct.Create(secondShop.Id, firstProduct.Id, 4_000, 0);
+        var cheaperShopProduct = ShopProduct.Create(secondShop.Id, firstProduct.Id, 4_000, 4_000);
         var cheapestOffering = cheaperShopProduct.AddVariantOffering(secondVariant.Id, 4_000, 2_500, isActive: true);
-        var otherShopProduct = ShopProduct.Create(secondShop.Id, secondProduct.Id, 5_000, 0);
+        var otherShopProduct = ShopProduct.Create(secondShop.Id, secondProduct.Id, 5_000, 5_000);
         otherShopProduct.AddVariantOffering(otherVariant.Id, 5_000, 4_000, isActive: true);
-        var unavailableShopProduct = ShopProduct.Create(firstShop.Id, unavailableProduct.Id, 1_000, 0);
-        unavailableShopProduct.AddVariantOffering(unavailableVariant.Id, 1_000, null, isActive: true);
-        var sessionShopProduct = ShopProduct.Create(secondShop.Id, sessionProduct.Id, 2_000, 0);
-        sessionShopProduct.AddVariantOffering(sessionVariant.Id, 2_000, null, isActive: true);
+        var unavailableShopProduct = ShopProduct.Create(firstShop.Id, unavailableProduct.Id, 1_000, 1_000);
+        unavailableShopProduct.AddVariantOffering(unavailableVariant.Id, 1_000, 1_000, isActive: true);
+        var sessionShopProduct = ShopProduct.Create(secondShop.Id, sessionProduct.Id, 2_000, 2_000);
+        sessionShopProduct.AddVariantOffering(sessionVariant.Id, 2_000, 2_000, isActive: true);
 
         context.AddRange(
             firstShopProduct,
@@ -137,11 +137,11 @@ public sealed class ShopProductRepositoryPostgresTests
         await context.SaveChangesAsync();
 
         context.AddRange(
-            ShopProduct.Create(activeShop.Id, stockProduct.Id, 10_000, 0),
-            ShopProduct.Create(activeShop.Id, unavailableProduct.Id, 10_000, 0),
-            ShopProduct.Create(pendingShop.Id, inactiveShopProduct.Id, 10_000, 0),
-            ShopProduct.Create(activeShop.Id, sessionProduct.Id, 20_000, 0),
-            ShopProduct.Create(activeShop.Id, expiredSessionProduct.Id, 20_000, 0));
+            ShopProduct.Create(activeShop.Id, stockProduct.Id, 10_000, 10_000),
+            ShopProduct.Create(activeShop.Id, unavailableProduct.Id, 10_000, 10_000),
+            ShopProduct.Create(pendingShop.Id, inactiveShopProduct.Id, 10_000, 10_000),
+            ShopProduct.Create(activeShop.Id, sessionProduct.Id, 20_000, 20_000),
+            ShopProduct.Create(activeShop.Id, expiredSessionProduct.Id, 20_000, 20_000));
         await context.SaveChangesAsync();
 
         var stockIds = new[]

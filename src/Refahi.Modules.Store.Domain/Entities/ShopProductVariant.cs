@@ -77,11 +77,11 @@ public sealed class ShopProductVariant
         if (priceMinor <= 0)
             throw new StoreDomainException("قیمت باید بیشتر از صفر باشد", "INVALID_PRICE");
 
-        if (discountedPriceMinor is <= 0)
+        if (discountedPriceMinor is null or <= 0)
             throw new StoreDomainException("قیمت تخفیف‌خورده باید بیشتر از صفر باشد", "INVALID_DISCOUNTED_PRICE");
 
-        if (discountedPriceMinor >= priceMinor)
-            throw new StoreDomainException("قیمت تخفیف‌خورده باید کمتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
+        if (discountedPriceMinor > priceMinor)
+            throw new StoreDomainException("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
     }
 
     private void EnsureNotDeleted()

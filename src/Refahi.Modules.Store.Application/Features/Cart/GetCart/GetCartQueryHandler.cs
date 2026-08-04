@@ -91,6 +91,9 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
             var agreementProduct = await ResolveAgreementProductAsync(product.AgreementProductId, agreementProductCache, cancellationToken);
             var salesModel = agreementProduct is null ? (SalesModel?)null : (SalesModel)agreementProduct.SalesModel;
             var isManual = agreementProduct?.PricingMode == (short)PricingMode.Manual;
+            var deliveryType = agreementProduct is null
+                ? string.Empty
+                : ((DeliveryType)agreementProduct.DeliveryType).ToString();
             var isUnsupportedSessionVariant = salesModel.HasValue
                 && StoreSalesModelRules.IsUnsupportedSessionVariant(salesModel.Value, item.VariantId);
 
@@ -237,7 +240,8 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 HasPriceChanged: hasPriceChanged,
                 ShopProductVariantId: shopProductVariantId,
                 PriceSource: priceSource,
-                PriceDisplayMode: isManual ? "InPerson" : "Fixed"));
+                PriceDisplayMode: isManual ? "InPerson" : "Fixed",
+                DeliveryType: deliveryType));
         }
 
         var totalMinor = itemDtos.Sum(i => i.TotalPriceMinor);

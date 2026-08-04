@@ -30,4 +30,5 @@ public sealed record CartItemDto(
     bool HasPriceChanged = false,
     Guid? ShopProductVariantId = null,
     string? PriceSource = null,
-    string PriceDisplayMode = "Fixed");
+    string PriceDisplayMode = "Fixed",
+    string DeliveryType = "");

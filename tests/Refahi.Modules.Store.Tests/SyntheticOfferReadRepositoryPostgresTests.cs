@@ -33,8 +33,8 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
         var fullPriceProduct = Product.Create(Guid.NewGuid(), "محصول بدون تخفیف", "full-price-stock", stockCount: 5);
 
         var variantProduct = Product.Create(Guid.NewGuid(), "لباس", "clothing", stockCount: 1);
-        var red = variantProduct.AddVariant([], 3, 1_000, sku: "red");
-        var blue = variantProduct.AddVariant([], 2, 2_000, sku: "blue");
+        var red = variantProduct.AddVariant([], 3, 1_000, 1_000, sku: "red");
+        var blue = variantProduct.AddVariant([], 2, 2_000, 2_000, sku: "blue");
 
         var sessionProduct = Product.Create(Guid.NewGuid(), "استخر", "pool", stockCount: 1);
         sessionProduct.AddSession(today, new TimeOnly(13, 0), new TimeOnly(15, 0), 20, "ظرفیت تکمیل", 100_000);
@@ -45,7 +45,7 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
 
         var datedProduct = Product.Create(Guid.NewGuid(), "بلیط سینما", "cinema", stockCount: 1);
         var datedVariant = datedProduct.AddVariant(
-            [], 0, 300_000, sku: "evening",
+            [], 0, 300_000, 300_000, sku: "evening",
             fromDate: today, toDate: today.AddDays(3),
             capacityType: VariantCapacityType.PerEligibleDay, capacity: 50,
             salesModel: SalesModel.SessionBased);
@@ -55,12 +55,12 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
 
         var simpleShopProduct = ShopProduct.Create(shop.Id, simpleProduct.Id, 500_000, 450_000);
         var fullPriceShopProduct = ShopProduct.Create(shop.Id, fullPriceProduct.Id, 500_000, 500_000);
-        var variantShopProduct = ShopProduct.Create(shop.Id, variantProduct.Id, 999_999, 0);
-        variantShopProduct.AddVariantOffering(red.Id, 1_000, null, isActive: true);
+        var variantShopProduct = ShopProduct.Create(shop.Id, variantProduct.Id, 999_999, 999_999);
+        variantShopProduct.AddVariantOffering(red.Id, 1_000, 1_000, isActive: true);
         variantShopProduct.AddVariantOffering(blue.Id, 2_000, 1_800, isActive: true);
-        var sessionShopProduct = ShopProduct.Create(shop.Id, sessionProduct.Id, 200_000, 0);
-        var datedShopProduct = ShopProduct.Create(shop.Id, datedProduct.Id, 300_000, 0);
-        datedShopProduct.AddVariantOffering(datedVariant.Id, 300_000, null, isActive: true);
+        var sessionShopProduct = ShopProduct.Create(shop.Id, sessionProduct.Id, 200_000, 200_000);
+        var datedShopProduct = ShopProduct.Create(shop.Id, datedProduct.Id, 300_000, 300_000);
+        datedShopProduct.AddVariantOffering(datedVariant.Id, 300_000, 300_000, isActive: true);
         context.AddRange(simpleShopProduct, fullPriceShopProduct, variantShopProduct, sessionShopProduct, datedShopProduct);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
@@ -77,7 +77,7 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
         Assert.Equal(6, offerTotal);
         Assert.Contains(offers, x => x.OfferKind == "StockProduct" && x.ProductId == simpleProduct.Id);
         var fullPrice = Assert.Single(offers, x => x.ProductId == fullPriceProduct.Id);
-        Assert.Null(fullPrice.DiscountedPriceMinor);
+        Assert.Equal(500_000, fullPrice.DiscountedPriceMinor);
         Assert.Equal(500_000, fullPrice.EffectivePriceMinor);
         Assert.Equal(2, offers.Count(x => x.OfferKind == "StockVariant" && x.ProductId == variantProduct.Id));
         var fullSession = Assert.Single(offers, x => x.OfferKind == "ProductSession");

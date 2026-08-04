@@ -21,14 +21,14 @@ public sealed class GetProductBySlugEligibilityTests
     public async Task Handle_ReturnsOnlyInStockShopVariants_AndUsesCheapestEffectivePrice()
     {
         var product = Product.Create(Guid.NewGuid(), "محصول", "product", stockCount: 10);
-        var expensive = product.AddVariant([], 5, 5_000, sku: "expensive");
-        var cheapest = product.AddVariant([], 3, 4_000, sku: "cheapest");
-        var outOfStock = product.AddVariant([], 0, 1_000, sku: "out");
+        var expensive = product.AddVariant([], 5, 5_000, 5_000, sku: "expensive");
+        var cheapest = product.AddVariant([], 3, 4_000, 4_000, sku: "cheapest");
+        var outOfStock = product.AddVariant([], 0, 1_000, 1_000, sku: "out");
         var shop = CreateActiveShop();
         var shopProduct = ShopProduct.Create(shop.Id, product.Id, 9_000, 8_000);
         shopProduct.AddVariantOffering(expensive.Id, 5_000, 4_500, isActive: true);
         shopProduct.AddVariantOffering(cheapest.Id, 4_000, 3_000, isActive: true);
-        shopProduct.AddVariantOffering(outOfStock.Id, 1_000, null, isActive: true);
+        shopProduct.AddVariantOffering(outOfStock.Id, 1_000, 1_000, isActive: true);
 
         var handler = CreateHandler(product, shop, shopProduct, SalesModel.StockBased);
         var result = await handler.Handle(
@@ -47,10 +47,10 @@ public sealed class GetProductBySlugEligibilityTests
     public async Task Handle_ReturnsNull_WhenProductIsOutsideModuleCatalog()
     {
         var product = Product.Create(Guid.NewGuid(), "محصول", "outside-module", stockCount: 1);
-        var variant = product.AddVariant([], 1, 1_000);
+        var variant = product.AddVariant([], 1, 1_000, 1_000);
         var shop = CreateActiveShop();
-        var shopProduct = ShopProduct.Create(shop.Id, product.Id, 1_000, 0);
-        shopProduct.AddVariantOffering(variant.Id, 1_000, null, isActive: true);
+        var shopProduct = ShopProduct.Create(shop.Id, product.Id, 1_000, 1_000);
+        shopProduct.AddVariantOffering(variant.Id, 1_000, 1_000, isActive: true);
 
         var handler = CreateHandler(product, shop, shopProduct, SalesModel.StockBased, catalogContainsProduct: false);
         var result = await handler.Handle(
@@ -66,15 +66,15 @@ public sealed class GetProductBySlugEligibilityTests
         var today = DateOnly.FromDateTime(Now.UtcDateTime);
         var product = Product.Create(Guid.NewGuid(), "محصول جلسه‌ای", "session-product", stockCount: 1);
         var variant = product.AddVariant(
-            [], 0, 2_000, capacityType: VariantCapacityType.Unlimited, salesModel: SalesModel.SessionBased);
+            [], 0, 2_000, 2_000, capacityType: VariantCapacityType.Unlimited, salesModel: SalesModel.SessionBased);
         product.AddSession(today.AddDays(-1), new TimeOnly(10, 0), new TimeOnly(11, 0), 10);
         product.AddSession(today.AddDays(1), new TimeOnly(10, 0), new TimeOnly(11, 0), 10, "آینده");
         product.AddSession(today.AddDays(2), new TimeOnly(10, 0), new TimeOnly(11, 0), 10, "لغوشده");
         product.Sessions[^1].Cancel();
 
         var shop = CreateActiveShop();
-        var shopProduct = ShopProduct.Create(shop.Id, product.Id, 2_000, 0);
-        shopProduct.AddVariantOffering(variant.Id, 2_000, null, isActive: true);
+        var shopProduct = ShopProduct.Create(shop.Id, product.Id, 2_000, 2_000);
+        shopProduct.AddVariantOffering(variant.Id, 2_000, 2_000, isActive: true);
         var handler = CreateHandler(product, shop, shopProduct, SalesModel.SessionBased);
 
         var result = await handler.Handle(
@@ -95,6 +95,7 @@ public sealed class GetProductBySlugEligibilityTests
             [],
             stockCount: 0,
             priceMinor: 2_000,
+            discountedPriceMinor: 2_000,
             capacityType: VariantCapacityType.TotalPeriod,
             capacity: 10,
             salesModel: SalesModel.SessionBased);

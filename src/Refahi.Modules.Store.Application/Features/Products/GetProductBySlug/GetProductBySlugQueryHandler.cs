@@ -251,7 +251,7 @@ public class GetProductBySlugQueryHandler : IRequestHandler<GetProductBySlugQuer
             || !offering.IsActive
             || offering.PriceMinor <= 0
             || offering.DiscountedPriceMinor is <= 0
-            || offering.DiscountedPriceMinor >= offering.PriceMinor)
+            || offering.DiscountedPriceMinor > offering.PriceMinor)
             return null;
 
         return new VariantShopPrice(

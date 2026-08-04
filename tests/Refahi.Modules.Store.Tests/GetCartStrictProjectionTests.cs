@@ -51,6 +51,7 @@ public sealed class GetCartStrictProjectionTests
         Assert.Equal(fixture.ShopProductVariantId, item.ShopProductVariantId);
         Assert.Equal(StorePriceSource.ShopProductVariant.ToString(), item.PriceSource);
         Assert.Equal(2200, item.OriginalUnitPriceMinor);
+        Assert.Equal(DeliveryType.Shipping.ToString(), item.DeliveryType);
     }
 
     private sealed class TestFixture

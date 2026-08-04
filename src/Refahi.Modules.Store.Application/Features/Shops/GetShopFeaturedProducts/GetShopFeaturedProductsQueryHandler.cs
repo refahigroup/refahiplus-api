@@ -50,7 +50,7 @@ public class GetShopFeaturedProductsQueryHandler : IRequestHandler<GetShopFeatur
                          ?? product.Images.FirstOrDefault()?.ImageUrl;
             var mainImageUrl = mainImage is null ? null : _pathService.MakeAbsoluteMediaUrl(mainImage);
 
-            var hasDiscount = sp.DiscountedPrice > 0 && sp.DiscountedPrice < sp.Price;
+            var hasValidDiscountedPrice = sp.DiscountedPrice > 0 && sp.DiscountedPrice <= sp.Price;
 
             result.Add(new ShopFeaturedProductDto(
                 product.Id,
@@ -58,7 +58,7 @@ public class GetShopFeaturedProductsQueryHandler : IRequestHandler<GetShopFeatur
                 product.Slug,
                 mainImageUrl,
                 sp.Price,
-                hasDiscount ? sp.DiscountedPrice : null));
+                hasValidDiscountedPrice ? sp.DiscountedPrice : null));
         }
 
         return result;
