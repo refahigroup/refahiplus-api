@@ -40,7 +40,6 @@ public sealed class ShopProduct
         long discountedPrice,
         string? description)
     {
-
         return new()
         {
             Id = Guid.NewGuid(),

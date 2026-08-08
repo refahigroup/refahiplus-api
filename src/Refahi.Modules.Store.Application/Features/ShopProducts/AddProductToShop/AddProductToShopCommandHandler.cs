@@ -44,7 +44,8 @@ public class AddProductToShopCommandHandler : IRequestHandler<AddProductToShopCo
         var isManual = agreementProduct.PricingMode == (short)PricingMode.Manual;
         if (isManual)
         {
-            if (agreementProduct.DeliveryType != 3 || agreementProduct.SalesModel != 3
+            if (agreementProduct.DeliveryType != (short)DeliveryType.InPerson
+                || agreementProduct.SalesModel != (short)SalesModel.Unlimited
                 || shop.ShopType != ShopType.Physical || shop.Status != ShopStatus.Active
                 || agreementProduct.SupplierId != shop.SupplierId)
                 throw new StoreDomainException("محصول حضوری با فروشگاه انتخاب‌شده سازگار نیست", "INVALID_MANUAL_SHOP_PRODUCT");
