@@ -6,6 +6,7 @@ using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Orders.Infrastructure.Outbox;
 using Refahi.Modules.Orders.Infrastructure.Persistence.Context;
 using Refahi.Modules.Orders.Infrastructure.Repositories;
+using Refahi.Modules.Orders.Infrastructure.Concurrency;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
 
@@ -21,6 +22,7 @@ public static class DI
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IOrderMutationLock>(_ => new PostgresOrderMutationLock(connectionString));
         services.AddScoped<IOrderQueryService, OrderQueryService>();
         services.AddHostedService<ProcessOutboxMessagesJob>();
 

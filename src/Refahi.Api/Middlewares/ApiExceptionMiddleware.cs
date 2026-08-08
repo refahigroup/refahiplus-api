@@ -46,6 +46,11 @@ public sealed class ApiExceptionMiddleware
             _logger.LogWarning(ex, "Order domain rule violation");
             await HandleDomainExceptionAsync(context, ex.Message);
         }
+        catch (OrderStateConflictException ex)
+        {
+            _logger.LogWarning(ex, "Order state conflict");
+            await HandleConcurrencyExceptionAsync(context, ex.Message);
+        }
         catch (ReferencesDomainException ex)
         {
             _logger.LogWarning(ex, "References domain rule violation");

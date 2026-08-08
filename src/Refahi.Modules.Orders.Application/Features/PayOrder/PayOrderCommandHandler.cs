@@ -4,6 +4,8 @@ using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Domain.Aggregates;
 using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Repositories;
+using Refahi.Modules.Orders.Domain.Exceptions;
+using Refahi.Modules.Orders.Application.Services;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CapturePaymentIntent;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CreatePaymentIntent;
 using System.Linq;
@@ -15,19 +17,26 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
     private readonly IOrderRepository _orderRepository;
     private readonly IMediator _mediator;
     private readonly ILogger<PayOrderCommandHandler> _logger;
+    private readonly IOrderMutationLock _mutationLock;
+    private readonly OrderCancellationService _cancellationService;
 
     public PayOrderCommandHandler(
         IOrderRepository orderRepository,
         IMediator mediator,
-        ILogger<PayOrderCommandHandler> logger)
+        ILogger<PayOrderCommandHandler> logger,
+        IOrderMutationLock mutationLock,
+        OrderCancellationService cancellationService)
     {
         _orderRepository = orderRepository;
         _mediator = mediator;
         _logger = logger;
+        _mutationLock = mutationLock;
+        _cancellationService = cancellationService;
     }
 
     public async Task<PayOrderResponse> Handle(PayOrderCommand request, CancellationToken cancellationToken)
     {
+        await using var heldLock = await _mutationLock.AcquireAsync(request.OrderId, cancellationToken);
         var order = await _orderRepository.GetByIdWithItemsAsync(request.OrderId, cancellationToken)
             ?? throw new InvalidOperationException("سفارش یافت نشد");
 
@@ -58,10 +67,12 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
             return new PayOrderResponse(order.Id, order.PaymentId.Value, "Paid");
         }
 
-        await RejectExpiredOrderAsync(order, request.IdempotencyKey, cancellationToken);
+        await RejectExpiredOrderAsync(order, cancellationToken);
 
-        if (order.PaymentState is not PaymentState.Unpaid and not PaymentState.Reserved)
-            throw new InvalidOperationException("سفارش در وضعیت قابل پرداخت نیست");
+        var eligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
+        if (!eligibility.CanPay)
+            throw new OrderStateConflictException(
+                eligibility.UnavailableReason ?? "سفارش در وضعیت قابل پرداخت نیست");
 
         var allocations = request.Allocations
             .Select(a => new AllocationRequest(a.WalletId, a.AmountMinor))
@@ -86,7 +97,7 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
                 AmountMinor: order.FinalAmountMinor,
                 Currency: order.Currency,
                 Allocations: allocations,
-                IdempotencyKey: $"order-reserve-{request.IdempotencyKey}",
+                IdempotencyKey: $"order-reserve-{order.Id:N}",
                 OrderItemCategoryCode: categoryCodesForIntent,
                 DestinationWalletId: order.PaymentPostings.Count > 0 ? null : request.DestinationWalletId,
                 Postings: order.PaymentPostings
@@ -105,7 +116,7 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
             // Persist reserved state immediately — if Capture fails, PaymentIntentId is saved and Release is possible
             await _orderRepository.UpdateAsync(order, cancellationToken);
 
-            await RejectExpiredOrderAsync(order, request.IdempotencyKey, cancellationToken);
+            await RejectExpiredOrderAsync(order, cancellationToken);
 
             _logger.LogInformation(
                 "Order payment intent reserved. OrderId={OrderId}, PaymentIntentId={PaymentIntentId}, SagaId={SagaId}",
@@ -117,7 +128,7 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
         // Step 2: Capture via Wallet (CapturePaymentIntent)
         var captureResult = await _mediator.Send(new CapturePaymentIntentCommand(
             IntentId: paymentIntentId,
-            IdempotencyKey: $"order-capture-{request.IdempotencyKey}"),
+            IdempotencyKey: $"order-capture-{order.Id:N}"),
             cancellationToken);
 
         if (captureResult.Data is null)
@@ -137,15 +148,11 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
         return new PayOrderResponse(order.Id, captureResult.Data.PaymentId, "Paid");
     }
 
-    private async Task RejectExpiredOrderAsync(Order order, string idempotencyKey, CancellationToken ct)
+    private async Task RejectExpiredOrderAsync(Order order, CancellationToken ct)
     {
         if (!order.PayableUntil.HasValue || order.PayableUntil.Value > DateTimeOffset.UtcNow) return;
 
-        await _mediator.Send(new CancelOrderCommand(
-            order.Id,
-            "مهلت پرداخت سفارش به پایان رسیده است",
-            $"expired-{idempotencyKey}"), ct);
-
-        throw new InvalidOperationException("مهلت پرداخت سفارش به پایان رسیده است");
+        await _cancellationService.CancelAsync(order, "مهلت پرداخت سفارش به پایان رسیده است", ct);
+        throw new OrderStateConflictException("مهلت پرداخت سفارش به پایان رسیده است");
     }
 }

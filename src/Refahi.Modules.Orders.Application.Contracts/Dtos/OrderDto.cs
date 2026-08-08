@@ -30,7 +30,10 @@ public sealed record OrderDto(
     long? CommissionAmountMinor = null,
     decimal? VatPercent = null,
     long? VatAmountMinor = null,
-    long? RecipientNetAmountMinor = null);
+    long? RecipientNetAmountMinor = null,
+    bool CanPay = false,
+    string? PaymentUnavailableReason = null,
+    DateTimeOffset? PayableUntil = null);
 
 public sealed record OrderSummaryDto(
     Guid Id,

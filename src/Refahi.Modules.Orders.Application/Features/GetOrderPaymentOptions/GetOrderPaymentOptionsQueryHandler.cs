@@ -1,6 +1,7 @@
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Domain.Repositories;
+using Refahi.Modules.Orders.Domain.Exceptions;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
 
 namespace Refahi.Modules.Orders.Application.Features.GetOrderPaymentOptions;
@@ -27,6 +28,11 @@ public sealed class GetOrderPaymentOptionsQueryHandler
 
         if (request.CallerRole == "User" && order.UserId != request.CallerUserId)
             return null;
+
+        var eligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
+        if (!eligibility.CanPay)
+            throw new OrderStateConflictException(
+                eligibility.UnavailableReason ?? "سفارش در وضعیت قابل پرداخت نیست");
 
         var wallets = await _mediator.Send(new GetMyWalletsQuery(order.UserId), cancellationToken);
         var categoryCodes = order.Items

@@ -36,6 +36,8 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             MetadataJson: i.MetadataJson,
             DeliveryMethod: (short)i.DeliveryMethod)).ToList();
 
+        var paymentEligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
+
         return new OrderDto(
             Id: order.Id,
             OrderNumber: order.OrderNumber,
@@ -65,6 +67,9 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             CommissionAmountMinor: order.CommissionAmountMinor,
             VatPercent: order.VatPercent,
             VatAmountMinor: order.VatAmountMinor,
-            RecipientNetAmountMinor: order.RecipientNetAmountMinor);
+            RecipientNetAmountMinor: order.RecipientNetAmountMinor,
+            CanPay: paymentEligibility.CanPay,
+            PaymentUnavailableReason: paymentEligibility.UnavailableReason,
+            PayableUntil: order.PayableUntil);
     }
 }

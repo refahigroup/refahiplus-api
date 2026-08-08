@@ -1,6 +1,7 @@
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Features.CancelOrder;
+using Refahi.Modules.Orders.Application.Services;
 using Refahi.Modules.Orders.Domain.Aggregates;
 using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Repositories;
@@ -17,7 +18,7 @@ public sealed class CancelOrderCommandHandlerTests
         var order = CreatePaidOrder();
         var repository = new FakeOrderRepository(order);
         var mediator = new RefundMediator(CommandStatus.InProgress);
-        var handler = new CancelOrderCommandHandler(repository, mediator, mediator);
+        var handler = CreateHandler(repository, mediator);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(
             new CancelOrderCommand(order.Id, "provider failure", "refund-key"), default));
@@ -35,7 +36,7 @@ public sealed class CancelOrderCommandHandlerTests
         var order = CreatePaidOrder();
         var repository = new FakeOrderRepository(order);
         var mediator = new RefundMediator(CommandStatus.Completed);
-        var handler = new CancelOrderCommandHandler(repository, mediator, mediator);
+        var handler = CreateHandler(repository, mediator);
 
         var response = await handler.Handle(
             new CancelOrderCommand(order.Id, "provider failure", "refund-key"), default);
@@ -53,7 +54,7 @@ public sealed class CancelOrderCommandHandlerTests
         var order = CreatePaidOrder();
         var repository = new FakeOrderRepository(order);
         var mediator = new RefundMediator(CommandStatus.Completed);
-        var handler = new CancelOrderCommandHandler(repository, mediator, mediator);
+        var handler = CreateHandler(repository, mediator);
         var command = new CancelOrderCommand(order.Id, "provider failure", "refund-key");
 
         await handler.Handle(command, default);
@@ -78,6 +79,24 @@ public sealed class CancelOrderCommandHandlerTests
         order.MarkAsPaid(Guid.NewGuid());
         order.ClearDomainEvents();
         return order;
+    }
+
+    private static CancelOrderCommandHandler CreateHandler(
+        FakeOrderRepository repository,
+        RefundMediator mediator) => new(
+            repository,
+            new ImmediateOrderMutationLock(),
+            new OrderCancellationService(repository, mediator, mediator));
+
+    private sealed class ImmediateOrderMutationLock : IOrderMutationLock
+    {
+        public Task<IAsyncDisposable> AcquireAsync(Guid orderId, CancellationToken ct) =>
+            Task.FromResult<IAsyncDisposable>(new Handle());
+
+        private sealed class Handle : IAsyncDisposable
+        {
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 
     private sealed class RefundMediator(CommandStatus status) : IMediator

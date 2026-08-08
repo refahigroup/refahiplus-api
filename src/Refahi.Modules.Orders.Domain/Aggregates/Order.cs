@@ -85,6 +85,23 @@ public sealed class Order
 
     private void AddDomainEvent(IDomainEvent evt) => _domainEvents.Add(evt);
 
+    public OrderPaymentEligibility GetPaymentEligibility(DateTimeOffset now)
+    {
+        if (Status != OrderStatus.Pending)
+            return OrderPaymentEligibility.Unavailable("وضعیت سفارش برای پرداخت معتبر نیست");
+
+        if (PaymentState is not PaymentState.Unpaid and not PaymentState.Reserved)
+            return OrderPaymentEligibility.Unavailable("وضعیت پرداخت سفارش برای ادامه پرداخت معتبر نیست");
+
+        if (PayableUntil.HasValue && PayableUntil.Value <= now)
+            return OrderPaymentEligibility.Unavailable("مهلت پرداخت سفارش به پایان رسیده است");
+
+        if (FinalAmountMinor <= 0)
+            return OrderPaymentEligibility.Unavailable("مبلغ قابل پرداخت سفارش معتبر نیست");
+
+        return OrderPaymentEligibility.Available;
+    }
+
     // =========================================================
     // Factory Method
     // =========================================================
@@ -409,3 +426,10 @@ public sealed record OrderPaymentPostingData(
     PaymentPostingDirection Direction,
     long AmountMinor,
     string Purpose);
+
+public sealed record OrderPaymentEligibility(bool CanPay, string? UnavailableReason)
+{
+    public static OrderPaymentEligibility Available { get; } = new(true, null);
+
+    public static OrderPaymentEligibility Unavailable(string reason) => new(false, reason);
+}

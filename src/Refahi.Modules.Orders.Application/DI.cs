@@ -17,6 +17,7 @@ public static class DI
             .AddValidatorsFromAssembly(assembly);
 
         services.AddScoped<IOrderCreationGateway, OrderCreationGateway>();
+        services.AddScoped<OrderCancellationService>();
 
         //services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BuildingBlocks.ValidationBehavior<,>));
 
