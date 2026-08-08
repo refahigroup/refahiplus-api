@@ -46,7 +46,18 @@ public sealed class VendorIncomeWalletEndpoints : IEndpoint
             foreach (var context in contexts.Where(x => x.Permissions.Contains(StorePermissions.ViewIncomeWallet)))
                 result.AddRange(await mediator.Send(new GetMyWalletTransactionsQuery(
                     context.VendorId, Math.Clamp(take ?? 50, 1, 100), "Provider"), ct));
-            return Results.Ok(ApiResponseHelper.Success(result.OrderByDescending(x => x.CreatedAt).Take(take ?? 50).ToArray()));
+            var ordered = result
+                .GroupBy(x => x.OperationId)
+                .OrderByDescending(group => group.Max(x => x.CreatedAt))
+                .SelectMany(group => group
+                    .OrderBy(x => x.EntryType == 1 ? 0 : x.EntryType == 2 ? 1 : 2)
+                    .ThenBy(x => x.OperationType == 5
+                        ? -(x.PostingSequence ?? 0)
+                        : x.PostingSequence ?? 0)
+                    .ThenBy(x => x.LedgerEntryId))
+                .Take(take ?? 50)
+                .ToArray();
+            return Results.Ok(ApiResponseHelper.Success(ordered));
         }).WithName("Store.Vendor.IncomeWalletTransactions").WithTags("Store.Vendor.Wallet")
           .RequireAuthorization("VendorOnly");
     }

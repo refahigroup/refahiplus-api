@@ -27,4 +27,6 @@ public sealed record MyWalletTransactionDto(
     string? ExternalReference,
     string? Purpose = null,
     Guid? OrderId = null,
-    Guid? PaymentId = null);
+    Guid? PaymentId = null,
+    long? BalanceAfterMinor = null,
+    int? PostingSequence = null);

@@ -122,6 +122,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
         var rows = await conn.QueryAsync<OwnerWalletTransactionRow>(
             new CommandDefinition(
                 """
+                WITH owner_entries AS (
                 SELECT
                     le.ledger_entry_id AS LedgerEntryId,
                     le.wallet_id AS WalletId,
@@ -144,14 +145,43 @@ public sealed class WalletReadRepository : IWalletReadRepository
                     le.external_reference AS ExternalReference,
                     le.metadata ->> 'purpose' AS Purpose,
                     NULLIF(substring(le.external_reference from 'order:([0-9a-fA-F-]{36})'), '')::uuid AS OrderId,
-                    NULLIF(substring(le.external_reference from 'payment:([0-9a-fA-F-]{36})'), '')::uuid AS PaymentId
+                    NULLIF(substring(le.external_reference from 'payment:([0-9a-fA-F-]{36})'), '')::uuid AS PaymentId,
+                    pp.sequence AS PostingSequence,
+                    SUM(CASE
+                        WHEN le.entry_type = 1 THEN le.amount_minor
+                        WHEN le.entry_type = 2 AND le.operation_type = 3
+                             AND le.metadata ->> 'purpose' IS NULL THEN 0
+                        WHEN le.entry_type = 2 THEN -le.amount_minor
+                        WHEN le.entry_type = 3 THEN -le.amount_minor
+                        WHEN le.entry_type = 4 THEN le.amount_minor
+                        ELSE 0
+                    END) OVER (
+                        PARTITION BY le.wallet_id
+                        ORDER BY le.created_at,
+                            CASE le.entry_type WHEN 1 THEN 0 WHEN 2 THEN 1 ELSE 2 END,
+                            CASE WHEN le.operation_type = 5
+                                 THEN -COALESCE(pp.sequence, 0)
+                                 ELSE COALESCE(pp.sequence, 0) END,
+                            le.ledger_entry_id
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    ) AS BalanceAfterMinor
                 FROM wallets.ledger_entries le
                 INNER JOIN wallets.wallets w ON w.wallet_id = le.wallet_id
+                LEFT JOIN wallets.payment_postings pp
+                    ON pp.ledger_entry_id = COALESCE(le.related_entry_id, le.ledger_entry_id)
                 WHERE w."OwnerId" = @OwnerId
                   AND (@WalletType IS NULL OR w.wallet_type = @WalletType)
-                  AND (@OperationType IS NULL OR le.operation_type = @OperationType)
-                  AND (@EntryType IS NULL OR le.entry_type = @EntryType)
-                ORDER BY le.created_at DESC
+                )
+                SELECT *
+                FROM owner_entries
+                WHERE (@OperationType IS NULL OR OperationType = @OperationType)
+                  AND (@EntryType IS NULL OR EntryType = @EntryType)
+                ORDER BY CreatedAt DESC,
+                    CASE EntryType WHEN 1 THEN 0 WHEN 2 THEN 1 ELSE 2 END,
+                    CASE WHEN OperationType = 5
+                         THEN -COALESCE(PostingSequence, 0)
+                         ELSE COALESCE(PostingSequence, 0) END,
+                    LedgerEntryId
                 LIMIT @Take
                 """,
                 new
@@ -185,7 +215,9 @@ public sealed class WalletReadRepository : IWalletReadRepository
                 row.ExternalReference,
                 row.Purpose,
                 row.OrderId,
-                row.PaymentId))
+                row.PaymentId,
+                row.BalanceAfterMinor,
+                row.PostingSequence))
             .ToList()
             .AsReadOnly();
     }
@@ -279,5 +311,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
         public string? Purpose { get; set; }
         public Guid? OrderId { get; set; }
         public Guid? PaymentId { get; set; }
+        public long BalanceAfterMinor { get; set; }
+        public int? PostingSequence { get; set; }
     }
 }
