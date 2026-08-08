@@ -17,17 +17,15 @@ public sealed class StoreInPersonFinancialPlanner(
     {
         if (grossAmountMinor <= 0) throw new StoreDomainException("مبلغ فروش باید بیشتر از صفر باشد", "INVALID_MANUAL_AMOUNT");
         var settings = options.Value;
-        var revenueWallet = await RequireSystemWalletAsync(settings.RefahiRevenueWalletId, ct);
-        var vatWallet = await RequireSystemWalletAsync(settings.RefahiVatWalletId, ct);
-        var providerWallet = (await mediator.Send(new GetMyWalletsQuery(supplierId), ct))
-            .SingleOrDefault(x => x.WalletType.Equals("Provider", StringComparison.OrdinalIgnoreCase) && x.Currency == "IRR")
-            ?? throw new StoreDomainException("کیف درآمد فروشنده یافت نشد", "PROVIDER_WALLET_NOT_FOUND");
-
         var commission = Percentage(grossAmountMinor, commissionPercent);
         var vatPercent = vatApplicable ? settings.VatRatePercent : 0m;
         var vat = Percentage(commission, vatPercent);
         var net = grossAmountMinor - commission - vat;
         if (net < 0) throw new StoreDomainException("مجموع کارمزد و مالیات از مبلغ فروش بیشتر است", "INVALID_FINANCIAL_BREAKDOWN");
+
+        var providerWallet = (await mediator.Send(new GetMyWalletsQuery(supplierId), ct))
+            .SingleOrDefault(x => x.WalletType.Equals("Provider", StringComparison.OrdinalIgnoreCase) && x.Currency == "IRR")
+            ?? throw new StoreDomainException("کیف درآمد فروشنده یافت نشد", "PROVIDER_WALLET_NOT_FOUND");
 
         var postings = new List<OrderPaymentPostingInput>
         {
@@ -35,11 +33,13 @@ public sealed class StoreInPersonFinancialPlanner(
         };
         if (commission > 0)
         {
+            var revenueWallet = await RequireSystemWalletAsync(settings.RefahiRevenueWalletId, ct);
             postings.Add(new(providerWallet.WalletId, 2, commission, "store.commission"));
             postings.Add(new(revenueWallet.WalletId, 1, commission, "store.platform-revenue"));
         }
         if (vat > 0)
         {
+            var vatWallet = await RequireSystemWalletAsync(settings.RefahiVatWalletId, ct);
             postings.Add(new(providerWallet.WalletId, 2, vat, "store.vat"));
             postings.Add(new(vatWallet.WalletId, 1, vat, "store.platform-vat"));
         }
