@@ -25,6 +25,22 @@ public sealed class ShopProduct
     {
         ValidatePrice(price, discountedPrice);
 
+        return CreateCore(shopId, productId, price, discountedPrice, description);
+    }
+
+    public static ShopProduct CreateWithManualPricing(Guid shopId, Guid productId, string? description = null)
+    {
+        return CreateCore(shopId, productId, 0, 0, description);
+    }
+
+    private static ShopProduct CreateCore(
+        Guid shopId,
+        Guid productId,
+        long price,
+        long discountedPrice,
+        string? description)
+    {
+
         return new()
         {
             Id = Guid.NewGuid(),
@@ -45,6 +61,14 @@ public sealed class ShopProduct
         ValidatePrice(price, discountedPrice);
         Price = price;
         DiscountedPrice = discountedPrice;
+        Description = description;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UpdateDetailsWithManualPricing(string? description)
+    {
+        Price = 0;
+        DiscountedPrice = 0;
         Description = description;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

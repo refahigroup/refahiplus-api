@@ -55,6 +55,44 @@ public sealed class StorePricingRuleTests
         Assert.Equal(10_000, offering.DiscountedPriceMinor);
     }
 
+    [Fact]
+    public void Shop_product_with_manual_pricing_is_created_without_price()
+    {
+        var shopProduct = ShopProduct.CreateWithManualPricing(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "فروش حضوری");
+
+        Assert.Equal(0, shopProduct.Price);
+        Assert.Equal(0, shopProduct.DiscountedPrice);
+        Assert.Equal("فروش حضوری", shopProduct.Description);
+    }
+
+    [Fact]
+    public void Fixed_price_shop_product_still_rejects_zero_price()
+    {
+        var exception = Assert.Throws<StoreDomainException>(
+            () => ShopProduct.Create(Guid.NewGuid(), Guid.NewGuid(), 0, 0));
+
+        Assert.Equal("INVALID_PRICE", exception.ErrorCode);
+    }
+
+    [Fact]
+    public void Shop_product_can_switch_to_manual_pricing_without_price()
+    {
+        var shopProduct = ShopProduct.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            10_000,
+            9_000);
+
+        shopProduct.UpdateDetailsWithManualPricing("قیمت هنگام فروش تعیین می‌شود");
+
+        Assert.Equal(0, shopProduct.Price);
+        Assert.Equal(0, shopProduct.DiscountedPrice);
+        Assert.Equal("قیمت هنگام فروش تعیین می‌شود", shopProduct.Description);
+    }
+
     [Theory]
     [InlineData(0L)]
     [InlineData(-1L)]

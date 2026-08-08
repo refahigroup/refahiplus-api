@@ -41,7 +41,7 @@ public class AddProductToShopCommandHandler : IRequestHandler<AddProductToShopCo
         var agreementProduct = await _mediator.Send(
             new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
             ?? throw new StoreDomainException("محصول قرارداد یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
-        var isManual = agreementProduct.PricingMode == 2;
+        var isManual = agreementProduct.PricingMode == (short)PricingMode.Manual;
         if (isManual)
         {
             if (agreementProduct.DeliveryType != 3 || agreementProduct.SalesModel != 3
@@ -61,7 +61,9 @@ public class AddProductToShopCommandHandler : IRequestHandler<AddProductToShopCo
         if (existing is not null && !existing.IsDeleted)
             throw new StoreDomainException("این محصول قبلاً به فروشگاه اضافه شده است", "SHOP_PRODUCT_EXISTS");
 
-        var shopProduct = ShopProduct.Create(request.ShopId, request.ProductId, request.Price, request.DiscountedPrice, request.Description);
+        var shopProduct = isManual
+            ? ShopProduct.CreateWithManualPricing(request.ShopId, request.ProductId, request.Description)
+            : ShopProduct.Create(request.ShopId, request.ProductId, request.Price, request.DiscountedPrice, request.Description);
         await _shopProductRepo.AddAsync(shopProduct, cancellationToken);
 
         return new AddProductToShopResponse(shopProduct.Id);
