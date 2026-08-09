@@ -22,11 +22,20 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
     {
         var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
-        var agreementProduct = await _mediator.Send(
-                new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
-            ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
-        if (agreementProduct.PricingMode == 2)
-            throw new StoreDomainException("برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست", "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED");
+        SalesModel salesModel;
+        if (product.AgreementProductId == Guid.Empty)
+        {
+            salesModel = product.SalesModel;
+        }
+        else
+        {
+            var agreementProduct = await _mediator.Send(
+                    new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
+                ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+            if (agreementProduct.PricingMode == 2)
+                throw new StoreDomainException("برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست", "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED");
+            salesModel = (SalesModel)agreementProduct.SalesModel;
+        }
 
         product.UpdateVariant(
             request.VariantId,
@@ -40,7 +49,7 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
             request.ToDate,
             request.CapacityType,
             request.Capacity,
-            (SalesModel)agreementProduct.SalesModel);
+            salesModel);
         await _productRepo.UpdateAsync(product, cancellationToken);
 
         return Unit.Value;

@@ -4,6 +4,7 @@ using Refahi.Modules.Orders.Domain.Exceptions;
 using Refahi.Modules.References.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.SupplyChain.Domain.Exceptions;
+using Refahi.Modules.Store.Application.Contracts.Vouchers;
 using Refahi.Shared.Presentation;
 using System.Net;
 
@@ -50,6 +51,17 @@ public sealed class ApiExceptionMiddleware
         {
             _logger.LogWarning(ex, "Order state conflict");
             await HandleConcurrencyExceptionAsync(context, ex.Message);
+        }
+        catch (VoucherApplicationException ex)
+        {
+            _logger.LogWarning("Voucher application conflict. Code={Code}", ex.Code);
+            var status = ex.Code.EndsWith("_FORBIDDEN", StringComparison.Ordinal)
+                ? StatusCodes.Status403Forbidden
+                : StatusCodes.Status409Conflict;
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = status;
+            await context.Response.WriteAsJsonAsync(
+                new VoucherErrorResponse(false, ex.Code, ex.Message, status));
         }
         catch (ReferencesDomainException ex)
         {

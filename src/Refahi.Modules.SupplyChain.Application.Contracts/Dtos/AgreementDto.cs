@@ -15,4 +15,5 @@ public sealed record AgreementDto(
     bool IsDeleted,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    IReadOnlyList<AgreementProductDto> Products);
+    IReadOnlyList<AgreementProductDto> Products,
+    IReadOnlyList<AgreementCategoryTermDto> Terms);

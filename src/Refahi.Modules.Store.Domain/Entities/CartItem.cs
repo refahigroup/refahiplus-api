@@ -10,11 +10,13 @@ public sealed class CartItem
     public Guid CartId { get; private set; }
     public Guid ShopId { get; private set; }
     public Guid ProductId { get; private set; }
+    public Guid? OfferId { get; private set; }
     public Guid? VariantId { get; private set; }
     public Guid? SessionId { get; private set; }    // v1.1 — برای محصولات SessionBased
     public DateOnly? UsageDate { get; private set; }
     public int Quantity { get; private set; }
     public long UnitPriceMinor { get; private set; }
+    public long OriginalUnitPriceMinor { get; private set; }
 
     internal static CartItem Create(
         Guid cartId, Guid shopId, Guid productId, Guid? variantId,
@@ -32,11 +34,41 @@ public sealed class CartItem
             UnitPriceMinor = unitPriceMinor
         };
 
+    internal static CartItem CreateFromOffer(
+        Guid cartId, Guid shopId, Guid productId, Guid offerId, Guid? variantId,
+        Guid? sessionId, DateOnly? usageDate, int quantity, long originalUnitPriceMinor,
+        long finalUnitPriceMinor)
+        => new()
+        {
+            Id = Guid.NewGuid(), CartId = cartId, ShopId = shopId, ProductId = productId,
+            OfferId = offerId, VariantId = variantId, SessionId = sessionId,
+            UsageDate = usageDate, Quantity = quantity,
+            OriginalUnitPriceMinor = originalUnitPriceMinor, UnitPriceMinor = finalUnitPriceMinor
+        };
+
     internal void UpdateQuantity(int newQuantity)
     {
         if (newQuantity <= 0)
             throw new StoreDomainException("تعداد باید بیشتر از صفر باشد", "INVALID_QUANTITY");
         Quantity = newQuantity;
+    }
+
+    internal void RefreshOffer(Guid offerId, Guid productId, Guid shopId,
+        Guid? variantId, Guid? sessionId, DateOnly? usageDate, int quantity,
+        long originalUnitPriceMinor, long finalUnitPriceMinor)
+    {
+        if (offerId == Guid.Empty || quantity <= 0 || originalUnitPriceMinor <= 0 || finalUnitPriceMinor < 0)
+            throw new StoreDomainException("اطلاعات پیشنهاد سبد خرید معتبر نیست", "INVALID_CART_OFFER");
+
+        OfferId = offerId;
+        ProductId = productId;
+        ShopId = shopId;
+        VariantId = variantId;
+        SessionId = sessionId;
+        UsageDate = usageDate;
+        Quantity = quantity;
+        OriginalUnitPriceMinor = originalUnitPriceMinor;
+        UnitPriceMinor = finalUnitPriceMinor;
     }
 
 }

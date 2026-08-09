@@ -98,6 +98,7 @@
 		<Project Path="tests/Refahi.Modules.Orders.Tests/Refahi.Modules.Orders.Tests.csproj" />
 		<Project Path="tests/Refahi.Modules.PaymentGateway.Tests/Refahi.Modules.PaymentGateway.Tests.csproj" />
 		<Project Path="tests/Refahi.Modules.Store.Tests/Refahi.Modules.Store.Tests.csproj" />
+		<Project Path="tests/Refahi.Modules.SupplyChain.Tests/Refahi.Modules.SupplyChain.Tests.csproj" />
 		<Project Path="tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" />
 	</Folder>
 	<Project Path="src/Refahi.Api/Refahi.Api.csproj" />

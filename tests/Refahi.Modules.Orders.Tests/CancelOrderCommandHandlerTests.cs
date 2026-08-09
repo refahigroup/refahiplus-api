@@ -7,6 +7,7 @@ using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Wallets.Application.Contracts;
 using Refahi.Modules.Wallets.Application.Contracts.Features.RefundPayment;
+using Refahi.Modules.Store.Application.Contracts.Vouchers;
 
 namespace Refahi.Modules.Orders.Tests;
 
@@ -66,6 +67,24 @@ public sealed class CancelOrderCommandHandlerTests
         Assert.Equal(1, mediator.SendCount);
     }
 
+    [Fact]
+    public async Task Redeemed_voucher_guard_blocks_before_any_wallet_refund_mutation()
+    {
+        var order = CreatePaidStoreOrder();
+        var repository = new FakeOrderRepository(order);
+        var mediator = new RefundMediator(CommandStatus.Completed, blockVoucherRefund: true);
+        var handler = CreateHandler(repository, mediator);
+
+        var ex = await Assert.ThrowsAsync<VoucherApplicationException>(() => handler.Handle(
+            new CancelOrderCommand(order.Id, "بازگشت وجه", "refund-key"), default));
+
+        Assert.Equal("REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE", ex.Code);
+        Assert.Equal(1, mediator.VoucherGuardSendCount);
+        Assert.Equal(0, mediator.WalletRefundSendCount);
+        Assert.Equal(PaymentState.Paid, order.PaymentState);
+        Assert.Equal(0, repository.UpdateCount);
+    }
+
     private static Order CreatePaidOrder()
     {
         var order = Order.Create(
@@ -75,6 +94,16 @@ public sealed class CancelOrderCommandHandlerTests
             Guid.NewGuid().ToString("N"),
             "ChargeRequest",
             [new OrderItemData("شارژ", 50_000, 1, 0, Guid.NewGuid(), "charge", null, null)]);
+        order.MarkAsReserved(Guid.NewGuid());
+        order.MarkAsPaid(Guid.NewGuid());
+        order.ClearDomainEvents();
+        return order;
+    }
+
+    private static Order CreatePaidStoreOrder()
+    {
+        var order = Order.Create(Guid.NewGuid(), "Store", Guid.NewGuid(), Guid.NewGuid().ToString("N"),
+            "StoreOrder", [new OrderItemData("ووچر", 50_000, 1, 0, Guid.NewGuid(), "store.voucher", null, null)]);
         order.MarkAsReserved(Guid.NewGuid());
         order.MarkAsPaid(Guid.NewGuid());
         order.ClearDomainEvents();
@@ -99,17 +128,28 @@ public sealed class CancelOrderCommandHandlerTests
         }
     }
 
-    private sealed class RefundMediator(CommandStatus status) : IMediator
+    private sealed class RefundMediator(CommandStatus status, bool blockVoucherRefund = false) : IMediator
     {
         public int PublishedCount { get; private set; }
         public int SendCount { get; private set; }
+        public int WalletRefundSendCount { get; private set; }
+        public int VoucherGuardSendCount { get; private set; }
 
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
+            if (request is PrepareStoreOrderRefundCommand prepare)
+            {
+                VoucherGuardSendCount++;
+                if (blockVoucherRefund)
+                    throw new VoucherApplicationException("REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE",
+                        "به دلیل استفاده شدن ووچر، بازگشت وجه خودکار امکان‌پذیر نیست");
+                return Task.FromResult((TResponse)(object)new PrepareStoreOrderRefundResponse(Guid.NewGuid(), 1));
+            }
             if (request is not RefundPaymentCommand command)
                 throw new NotSupportedException(request.GetType().FullName);
 
             SendCount++;
+            WalletRefundSendCount++;
 
             var data = status == CommandStatus.Completed
                 ? new RefundPaymentResponse(Guid.NewGuid(), command.PaymentId, Guid.NewGuid(), "Completed",

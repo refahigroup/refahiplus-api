@@ -18,6 +18,10 @@ public interface ICartRepository
         int quantity,
         long unitPriceMinor,
         CancellationToken ct = default);
+    Task<Cart> AddOfferItemAsync(Guid userId, int moduleId, Guid shopId, Guid productId,
+        Guid offerId, Guid? variantId, Guid? sessionId, DateOnly? usageDate, int quantity,
+        long originalUnitPriceMinor, long finalUnitPriceMinor, CancellationToken ct = default)
+        => throw new NotSupportedException("این repository از سبد Offer-based پشتیبانی نمی‌کند");
     Task<Cart> ReplaceItemAsync(
         Guid userId, int moduleId, Guid shopId, Guid productId,
         Guid? variantId, Guid? sessionId, DateOnly? usageDate,

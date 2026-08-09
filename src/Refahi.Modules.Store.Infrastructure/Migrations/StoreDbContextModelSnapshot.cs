@@ -49,6 +49,87 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.ToTable("carts", "store");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.Offer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<DateTimeOffset?>("EndDateUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("FinalPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("OriginalPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProductSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProductVariantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartDateUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductSessionId");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("ShopId");
+
+                    b.HasIndex("ProductId", "ShopId", "ProductVariantId", "ProductSessionId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_offers_open_coordinate")
+                        .HasFilter("\"IsDeleted\" = false AND \"EndDateUtc\" IS NULL");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ProductId", "ShopId", "ProductVariantId", "ProductSessionId"), false);
+
+                    b.HasIndex("ProductId", "ShopId", "IsActive", "IsDeleted", "StartDateUtc", "EndDateUtc");
+
+                    b.ToTable("offers", "store", t =>
+                        {
+                            t.HasCheckConstraint("CK_offers_discount", "\"DiscountPercent\" >= 0 AND \"DiscountPercent\" <= 100");
+
+                            t.HasCheckConstraint("CK_offers_original_price", "\"OriginalPriceMinor\" > 0");
+
+                            t.HasCheckConstraint("CK_offers_window", "\"EndDateUtc\" IS NULL OR \"StartDateUtc\" < \"EndDateUtc\"");
+                        });
+                });
+
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58,6 +139,9 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.Property<Guid>("AgreementProductId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -65,11 +149,20 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("character varying(5000)");
 
+                    b.Property<short>("FulfillmentMethod")
+                        .HasColumnType("smallint");
+
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<short>("ProductType")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("SalesModel")
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -78,6 +171,9 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
 
                     b.Property<int>("StockCount")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -101,6 +197,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
 
                     b.HasIndex("Slug")
                         .IsUnique();
+
+                    b.HasIndex("SupplierId", "CategoryId");
 
                     b.ToTable("products", "store");
                 });
@@ -258,6 +356,116 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.ToTable("shop_products", "store");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.StoreOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("DeliveryDate")
+                        .HasColumnType("date");
+
+                    b.Property<short>("DeliveryTimeSlot")
+                        .HasColumnType("smallint");
+
+                    b.Property<long>("DiscountAmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("FinalAmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("InitiatorType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int>("ModuleId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("OriginalAmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("OtpDispatchStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("OtpExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OtpReferenceCode")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<DateTimeOffset?>("OtpVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<short>("SalesChannel")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("ShippingAddressId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceModule")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasFilter("\"OrderId\" IS NOT NULL");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("SalesChannel", "ShopId", "CreatedAt");
+
+                    b.ToTable("store_orders", "store", t =>
+                        {
+                            t.HasCheckConstraint("CK_store_orders_amounts", "\"OriginalAmountMinor\" >= \"FinalAmountMinor\" AND \"FinalAmountMinor\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.Banner", b =>
                 {
                     b.Property<int>("Id")
@@ -333,6 +541,14 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.Property<Guid>("CartId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("OfferId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("OriginalUnitPriceMinor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
 
@@ -357,6 +573,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CartId");
+
+                    b.HasIndex("OfferId");
 
                     b.HasIndex("ProductId");
 
@@ -721,6 +939,120 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.ToTable("modules", "store");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.StoreOrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgreementCategoryTermId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgreementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("CommissionAmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("CommissionPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<long?>("DeclaredGrossAmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("DeliveryMethod")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<long>("FinalUnitPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("FulfillmentMethod")
+                        .HasColumnType("smallint");
+
+                    b.Property<long>("GrossAmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("OfferId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("OriginalUnitPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProductSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductTitle")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<short>("ProductType")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("ProductVariantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("SalesChannel")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("SalesModel")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("SessionTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceCartItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StoreOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("UnitPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateOnly?>("UsageDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("VariantTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OfferId")
+                        .HasFilter("\"OfferId\" IS NOT NULL");
+
+                    b.HasIndex("StoreOrderId");
+
+                    b.ToTable("store_order_items", "store");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VariantAttribute", b =>
                 {
                     b.Property<Guid>("Id")
@@ -767,6 +1099,291 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     b.HasIndex("VariantAttributeId");
 
                     b.ToTable("variant_attribute_values", "store");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.Voucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CodeCiphertext")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("IssuedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductTitle")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTimeOffset?>("RedeemedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RedeemedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RedeemedShopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RedeemedShopName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ShopName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("StoreOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StoreOrderItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("StoreOrderId", "Status");
+
+                    b.HasIndex("StoreOrderItemId", "SequenceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "IssuedAtUtc");
+
+                    b.ToTable("vouchers", "store", t =>
+                        {
+                            t.HasCheckConstraint("CK_vouchers_sequence", "\"SequenceNumber\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VoucherRedemption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("RedeemedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VendorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VoucherId");
+
+                    b.HasIndex("VendorUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("SupplierId", "ShopId", "RedeemedAtUtc");
+
+                    b.ToTable("voucher_redemptions", "store");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VoucherRefundOverride", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdminUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("StoreOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VoucherSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrelationId")
+                        .IsUnique();
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.HasIndex("StoreOrderId")
+                        .IsUnique();
+
+                    b.ToTable("voucher_refund_overrides", "store");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VoucherRefundOverrideAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("FailureMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("PaymentAction")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("VoucherRefundOverrideId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VoucherRefundOverrideId", "SequenceNumber")
+                        .IsUnique();
+
+                    b.ToTable("voucher_refund_override_attempts", "store");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.Offer", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Aggregates.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Refahi.Modules.Store.Domain.Entities.ProductSession", null)
+                        .WithMany()
+                        .HasForeignKey("ProductSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Refahi.Modules.Store.Domain.Entities.ProductVariant", null)
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Refahi.Modules.Store.Domain.Aggregates.Shop", null)
+                        .WithMany()
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.Banner", b =>
@@ -864,6 +1481,15 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.StoreOrderItem", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Aggregates.StoreOrder", null)
+                        .WithMany("Items")
+                        .HasForeignKey("StoreOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VariantAttribute", b =>
                 {
                     b.HasOne("Refahi.Modules.Store.Domain.Aggregates.Product", null)
@@ -879,6 +1505,48 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         .WithMany("Values")
                         .HasForeignKey("VariantAttributeId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.Voucher", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Aggregates.StoreOrder", null)
+                        .WithMany()
+                        .HasForeignKey("StoreOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Refahi.Modules.Store.Domain.Entities.StoreOrderItem", null)
+                        .WithMany()
+                        .HasForeignKey("StoreOrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VoucherRedemption", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Entities.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VoucherRefundOverride", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Aggregates.StoreOrder", null)
+                        .WithMany()
+                        .HasForeignKey("StoreOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.VoucherRefundOverrideAttempt", b =>
+                {
+                    b.HasOne("Refahi.Modules.Store.Domain.Entities.VoucherRefundOverride", null)
+                        .WithMany()
+                        .HasForeignKey("VoucherRefundOverrideId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -903,6 +1571,11 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.ShopProduct", b =>
                 {
                     b.Navigation("VariantOfferings");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Store.Domain.Aggregates.StoreOrder", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Store.Domain.Entities.ProductVariant", b =>

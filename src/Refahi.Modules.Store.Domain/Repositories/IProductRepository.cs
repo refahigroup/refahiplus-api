@@ -17,6 +17,12 @@ public interface IProductRepository
     Task<(List<Product> Items, int Total)> GetPagedAdminAsync(
         Guid? shopId, bool? isDeleted,
         int page, int pageSize, CancellationToken ct = default);
+    Task<(List<Product> Items, int Total)> GetCatalogPagedAsync(Guid? supplierId, int? categoryId,
+        bool includeInactive, int page, int pageSize, CancellationToken ct = default);
+    Task<List<Product>> GetCatalogEligibilityCandidatesAsync(Guid? supplierId, int? categoryId,
+        CancellationToken ct = default);
+    Task<(List<Product> Items, int Total)> GetCatalogPageByIdsAsync(IReadOnlyCollection<Guid> eligibleIds,
+        int page, int pageSize, CancellationToken ct = default);
     Task<(List<Product> Items, int Total)> SearchAsync(
         string query, int page, int pageSize, CancellationToken ct = default);
     /// <summary>Full-text search scoped to products whose AgreementProductId ∈ allowedAgreementProductIds.</summary>

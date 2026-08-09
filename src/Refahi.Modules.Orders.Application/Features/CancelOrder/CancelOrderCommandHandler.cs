@@ -17,6 +17,7 @@ public sealed class CancelOrderCommandHandler(
         var order = await orderRepository.GetByIdWithItemsAsync(request.OrderId, ct)
             ?? throw new InvalidOperationException("سفارش یافت نشد");
 
-        return await cancellationService.CancelAsync(order, request.Reason, ct);
+        return await cancellationService.CancelAsync(order, request.Reason,
+            request.VoucherRefundOverrideId, ct);
     }
 }

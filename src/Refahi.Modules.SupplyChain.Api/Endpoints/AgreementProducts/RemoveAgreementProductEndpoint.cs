@@ -7,6 +7,7 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.SupplyChain.Api.Endpoints.AgreementProducts;
 
+[Obsolete("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations.")]
 public class RemoveAgreementProductEndpoint : IEndpoint
 {
     public void Map(object app)
@@ -24,6 +25,7 @@ public class RemoveAgreementProductEndpoint : IEndpoint
         })
         .WithName("SupplyChain.RemoveAgreementProduct")
         .WithTags("SupplyChain.AgreementProducts")
+        .WithMetadata(new ObsoleteAttribute("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."))
         .RequireAuthorization("AdminOnly")
         .Produces(StatusCodes.Status204NoContent)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)

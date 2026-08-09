@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 using Refahi.Modules.Store.Infrastructure.Repositories;
+using Refahi.Modules.Store.Infrastructure.Concurrency;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
 
@@ -22,6 +23,8 @@ public static class DI
 
         services.AddScoped<IShopRepository, ShopRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IOfferRepository, OfferRepository>();
+        services.AddScoped<IPublicCatalogRepository, PublicCatalogRepository>();
         services.AddScoped<IShopProductRepository, ShopProductRepository>();
         services.AddScoped<ISyntheticOfferReadRepository>(_ =>
             new SyntheticOfferReadRepository(configuration.GetConnectionString()));
@@ -30,6 +33,11 @@ public static class DI
         services.AddScoped<IDailyDealRepository, DailyDealRepository>();
         services.AddScoped<IReviewRepository, ReviewRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
+        services.AddScoped<IStoreOrderRepository, StoreOrderRepository>();
+        services.AddScoped<IVoucherRepository, VoucherRepository>();
+        services.AddScoped<IVoucherRefundOverrideRepository, VoucherRefundOverrideRepository>();
+        services.AddSingleton<IStoreOrderMutationLock>(_ =>
+            new PostgresStoreOrderMutationLock(configuration.GetConnectionString()));
         services.AddScoped<IStoreModuleRepository, StoreModuleRepository>();
 
         return services;

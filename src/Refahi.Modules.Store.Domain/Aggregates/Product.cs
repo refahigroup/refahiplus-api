@@ -16,7 +16,13 @@ public sealed class Product
     }
 
     public Guid Id { get; private set; }
+    [Obsolete("فقط برای سازگاری APIهای legacy است؛ مسیر v3 از SupplierId و CategoryId استفاده می‌کند.")]
     public Guid AgreementProductId { get; private set; }             // FK → SupplyChain.AgreementProduct
+    public Guid SupplierId { get; private set; }
+    public int CategoryId { get; private set; }
+    public ProductType ProductType { get; private set; }
+    public SalesModel SalesModel { get; private set; }
+    public FulfillmentMethod FulfillmentMethod { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Slug { get; private set; } = string.Empty;
     public string? Description { get; private set; }
@@ -65,6 +71,73 @@ public sealed class Product
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
+    }
+
+    public static Product CreateCatalogProduct(
+        Guid supplierId,
+        int categoryId,
+        ProductType productType,
+        SalesModel salesModel,
+        FulfillmentMethod fulfillmentMethod,
+        string title,
+        string slug,
+        string? description = null)
+    {
+        if (supplierId == Guid.Empty)
+            throw new StoreDomainException("شناسه تامین‌کننده الزامی است", "SUPPLIER_REQUIRED");
+        if (categoryId <= 0)
+            throw new StoreDomainException("دسته‌بندی محصول نامعتبر است", "INVALID_CATEGORY");
+        if (!Enum.IsDefined(productType))
+            throw new StoreDomainException("نوع محصول نامعتبر است", "INVALID_PRODUCT_TYPE");
+        if (!Enum.IsDefined(salesModel))
+            throw new StoreDomainException("مدل فروش محصول نامعتبر است", "INVALID_SALES_MODEL");
+        if (!Enum.IsDefined(fulfillmentMethod))
+            throw new StoreDomainException("روش تحویل محصول نامعتبر است", "INVALID_FULFILLMENT_METHOD");
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(slug))
+            throw new StoreDomainException("عنوان و اسلاگ محصول الزامی است", "INVALID_PRODUCT_CONTENT");
+
+        var now = DateTimeOffset.UtcNow;
+        return new Product
+        {
+            Id = Guid.NewGuid(),
+            AgreementProductId = Guid.Empty,
+            SupplierId = supplierId,
+            CategoryId = categoryId,
+            ProductType = productType,
+            SalesModel = salesModel,
+            FulfillmentMethod = fulfillmentMethod,
+            Title = title.Trim(),
+            Slug = slug.Trim().ToLowerInvariant(),
+            Description = description?.Trim(),
+            StockCount = 0,
+            IsAvailable = true,
+            IsDeleted = false,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+    }
+
+    public void UpdateCatalogContent(string title, string? description)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new StoreDomainException("عنوان محصول الزامی است", "PRODUCT_TITLE_REQUIRED");
+        Title = title.Trim();
+        Description = description?.Trim();
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Activate()
+    {
+        if (IsDeleted)
+            throw new StoreDomainException("محصول حذف‌شده قابل فعال‌سازی نیست", "PRODUCT_DELETED");
+        IsAvailable = true;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Suspend()
+    {
+        IsAvailable = false;
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     // --- StockBased Behaviors ---

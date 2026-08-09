@@ -59,5 +59,11 @@ public class AgreementConfiguration : IEntityTypeConfiguration<Agreement>
             .HasForeignKey("AgreementId")
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(a => a.Products).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(a => a.CategoryTerms)
+            .WithOne()
+            .HasForeignKey("AgreementId")
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(a => a.CategoryTerms).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

@@ -36,9 +36,14 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
         if (product is null)
             return null;
 
-        var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
-        var salesModel = ap is null ? (SalesModel?)null : (SalesModel)ap.SalesModel;
-        var sp = (await _shopProductRepo.GetByProductAsync(product.Id, isActive: null, 1, 1, cancellationToken)).Items.FirstOrDefault();
+        var isCatalogV3 = product.AgreementProductId == Guid.Empty;
+        var ap = isCatalogV3
+            ? null
+            : await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
+        var salesModel = isCatalogV3 ? product.SalesModel : ap is null ? (SalesModel?)null : (SalesModel)ap.SalesModel;
+        var sp = isCatalogV3
+            ? null
+            : (await _shopProductRepo.GetByProductAsync(product.Id, isActive: null, 1, 1, cancellationToken)).Items.FirstOrDefault();
 
         var averageRating = await _reviewRepo.GetAverageRatingAsync(product.Id, cancellationToken);
         var (_, reviewTotal) = await _reviewRepo.GetPagedAsync(product.Id, approvedOnly: true, page: 1, pageSize: 1, cancellationToken);
@@ -84,7 +89,7 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
             .ToList();
 
         List<ProductSessionDto>? sessions = null;
-        if (ap is not null && (SalesModel)ap.SalesModel == SalesModel.SessionBased)
+        if (salesModel == SalesModel.SessionBased)
         {
             sessions = product.Sessions
                 .Select(s => new ProductSessionDto(
@@ -99,14 +104,14 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
             product.Id, product.AgreementProductId,
             product.Title, product.Slug, product.Description,
             sp?.Price ?? 0, sp?.DiscountedPrice ?? 0,
-            ap is not null ? ((ProductType)ap.ProductType).ToString() : string.Empty,
-            ap is not null ? ((DeliveryType)ap.DeliveryType).ToString() : string.Empty,
-            ap is not null ? ((SalesModel)ap.SalesModel).ToString() : string.Empty,
-            ap?.CategoryId, null,
+            isCatalogV3 ? product.ProductType.ToString() : ap is not null ? ((ProductType)ap.ProductType).ToString() : string.Empty,
+            isCatalogV3 ? product.FulfillmentMethod.ToString() : ap is not null ? ((DeliveryType)ap.DeliveryType).ToString() : string.Empty,
+            salesModel?.ToString() ?? string.Empty,
+            isCatalogV3 ? product.CategoryId : ap?.CategoryId, null,
             product.IsAvailable, product.StockCount,
             images, variants, variantAttributes, specifications, sessions,
             averageRating, reviewTotal,
             product.CreatedAt,
-            ap?.PricingMode == 2 ? "InPerson" : "Fixed");
+            isCatalogV3 ? "Offer" : ap?.PricingMode == 2 ? "InPerson" : "Fixed");
     }
 }

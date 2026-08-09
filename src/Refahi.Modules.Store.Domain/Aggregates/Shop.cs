@@ -14,6 +14,7 @@ public sealed class Shop
     public string? LogoUrl { get; private set; }
     public string? CoverImageUrl { get; private set; }
     public ShopType ShopType { get; private set; }
+    public SalesChannel Channel => (SalesChannel)ShopType;
     public ShopStatus Status { get; private set; }
     public Guid SupplierId { get; private set; }
     
@@ -103,8 +104,8 @@ public sealed class Shop
         ContactPhone = contactPhone;
         LogoUrl = logoUrl;
         CoverImageUrl = coverImageUrl;
-        if (shopType.HasValue)
-            ShopType = shopType.Value;
+        if (shopType.HasValue && shopType.Value != ShopType)
+            throw new StoreDomainException("کانال فروشگاه پس از ایجاد قابل تغییر نیست", "SHOP_CHANNEL_IMMUTABLE");
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

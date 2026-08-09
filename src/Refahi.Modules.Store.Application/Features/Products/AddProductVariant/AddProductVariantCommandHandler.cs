@@ -23,12 +23,19 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
         var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
-            ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
-        if (ap.PricingMode == 2)
-            throw new StoreDomainException("برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست", "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED");
-
-        var salesModel = (SalesModel)ap.SalesModel;
+        SalesModel salesModel;
+        if (product.AgreementProductId == Guid.Empty)
+        {
+            salesModel = product.SalesModel;
+        }
+        else
+        {
+            var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
+                ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+            if (ap.PricingMode == 2)
+                throw new StoreDomainException("برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست", "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED");
+            salesModel = (SalesModel)ap.SalesModel;
+        }
 
         var combinations = request.Combinations
             .Select(c => (c.AttributeId, c.ValueId))

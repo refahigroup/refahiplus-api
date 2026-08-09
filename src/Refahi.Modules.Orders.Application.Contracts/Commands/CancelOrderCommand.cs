@@ -8,7 +8,8 @@ namespace Refahi.Modules.Orders.Application.Contracts.Commands;
 public sealed record CancelOrderCommand(
     Guid OrderId,
     string? Reason,
-    string IdempotencyKey
+    string IdempotencyKey,
+    Guid? VoucherRefundOverrideId = null
 ) : IRequest<CancelOrderResponse>;
 
 public sealed record CancelOrderResponse(Guid OrderId, string Status, string PaymentAction);

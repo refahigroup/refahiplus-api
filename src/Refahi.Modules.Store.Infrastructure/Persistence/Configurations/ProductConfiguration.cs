@@ -13,6 +13,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.AgreementProductId).IsRequired();
+        builder.Property(p => p.SupplierId).IsRequired();
+        builder.Property(p => p.CategoryId).IsRequired();
+        builder.Property(p => p.ProductType).HasColumnType("smallint").IsRequired();
+        builder.Property(p => p.SalesModel).HasColumnType("smallint").IsRequired();
+        builder.Property(p => p.FulfillmentMethod).HasColumnType("smallint").IsRequired();
         builder.Property(p => p.Title).HasMaxLength(300).IsRequired();
         builder.Property(p => p.Slug).HasMaxLength(300).IsRequired();
         builder.Property(p => p.Description).HasMaxLength(5000);
@@ -24,6 +29,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasIndex(p => p.Slug).IsUnique();
         builder.HasIndex(p => p.AgreementProductId);
+        builder.HasIndex(p => new { p.SupplierId, p.CategoryId });
         builder.HasIndex(p => p.IsDeleted);
 
         // Optimistic concurrency via PostgreSQL system column xmin.

@@ -42,6 +42,28 @@ public class CartRepository : ICartRepository
         => AddOrReplaceItemAsync(userId, moduleId, shopId, productId, variantId,
             sessionId, usageDate, quantity, unitPriceMinor, false, ct);
 
+    public async Task<Cart> AddOfferItemAsync(Guid userId, int moduleId, Guid shopId, Guid productId,
+        Guid offerId, Guid? variantId, Guid? sessionId, DateOnly? usageDate, int quantity,
+        long originalUnitPriceMinor, long finalUnitPriceMinor, CancellationToken ct = default)
+    {
+        _db.ChangeTracker.Clear();
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        var lockKey = CreateCartLockKey(userId, moduleId);
+        await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({lockKey})", ct);
+        var cart = await _db.Carts.Include(x => x.Items)
+            .SingleOrDefaultAsync(x => x.UserId == userId && x.ModuleId == moduleId, ct);
+        if (cart is null)
+        {
+            cart = Cart.Create(userId, moduleId);
+            await _db.Carts.AddAsync(cart, ct);
+        }
+        cart.AddOfferItem(shopId, productId, offerId, variantId, sessionId, usageDate,
+            quantity, originalUnitPriceMinor, finalUnitPriceMinor);
+        await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return cart;
+    }
+
     public Task<Cart> ReplaceItemAsync(
         Guid userId, int moduleId, Guid shopId, Guid productId,
         Guid? variantId, Guid? sessionId, DateOnly? usageDate,

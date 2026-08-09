@@ -9,6 +9,7 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Store.Api.Endpoints.Products.V2;
 
+[Obsolete("Legacy synthetic pricing endpoint. Use Store v3 persisted offers.")]
 public sealed class GetSyntheticOffersV2Endpoint : IEndpoint
 {
     public void Map(object app)
@@ -64,6 +65,7 @@ public sealed class GetSyntheticOffersV2Endpoint : IEndpoint
                     result.Data, result.PageNumber, result.PageSize, result.TotalCount));
         })
         .WithName("Store.V2.GetSyntheticOffers")
+        .WithMetadata(new ObsoleteAttribute("Legacy synthetic pricing endpoint. Use Store v3 persisted offers."))
         .WithTags("Store.Products.V2")
         .Produces<PaginatedResponse<SyntheticOfferDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
