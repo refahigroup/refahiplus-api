@@ -338,7 +338,7 @@ public class ProductRepository : IProductRepository
 
     private IQueryable<Product> QueryWithDetails() =>
         _db
-            .Products.AsSplitQuery()
+            .Products.AsNoTracking().AsSplitQuery()
             .Include(p => p.Images)
             .Include(p => p.Variants)
                 .ThenInclude(v => v.Combinations)
