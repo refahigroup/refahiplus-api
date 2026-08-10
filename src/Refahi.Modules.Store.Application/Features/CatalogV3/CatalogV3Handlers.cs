@@ -10,6 +10,7 @@ using Refahi.Modules.Store.Domain.Entities;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Shared.Services.Path;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementCategoryTerms;
 
 namespace Refahi.Modules.Store.Application.Features.CatalogV3;
@@ -56,11 +57,11 @@ internal static class CatalogV3Mapper
             x.Version
         );
 
-    public static ProductVariantV3Dto MapVariant(Product product, ProductVariant x) =>
+    public static ProductVariantV3Dto MapVariant(Product product, ProductVariant x, IPathService pathService) =>
         new(
             x.Id,
             x.SKU,
-            x.ImageUrl,
+            x.ImageUrl is null ? null : pathService.MakeAbsoluteMediaUrl(x.ImageUrl),
             x.StockCount,
             x.FromDate,
             x.ToDate,
@@ -397,14 +398,18 @@ public sealed class GetProductV3ManagementDetailHandler(IMediator mediator)
     }
 }
 
-public sealed class ProductV3SubresourceHandlers(IProductRepository products, IMediator mediator)
-    : IRequestHandler<CreateProductVariantV3Command, ProductVariantV3Dto>,
+public sealed class ProductV3SubresourceHandlers(
+    IProductRepository products,
+    IMediator mediator,
+    IPathService pathService
+) : IRequestHandler<CreateProductVariantV3Command, ProductVariantV3Dto>,
         IRequestHandler<UpdateProductVariantV3Command, ProductVariantV3Dto>,
         IRequestHandler<DeleteProductVariantV3Command, Unit>,
         IRequestHandler<CreateProductSessionV3Command, ProductSessionV3Dto>,
         IRequestHandler<UpdateProductSessionV3Command, ProductSessionV3Dto>
 {
     private const long NeutralLegacyPrice = 1;
+    private readonly IPathService _pathService = pathService;
 
     public async Task<ProductVariantV3Dto> Handle(
         CreateProductVariantV3Command r,
@@ -434,7 +439,7 @@ public sealed class ProductV3SubresourceHandlers(IProductRepository products, IM
             product.SalesModel
         );
         await products.AddProductVariantAsync(product, variant, ct);
-        return CatalogV3Mapper.MapVariant(product, variant);
+        return CatalogV3Mapper.MapVariant(product, variant, _pathService);
     }
 
     public async Task<ProductVariantV3Dto> Handle(
@@ -468,7 +473,8 @@ public sealed class ProductV3SubresourceHandlers(IProductRepository products, IM
         await products.UpdateAsync(product, ct);
         return CatalogV3Mapper.MapVariant(
             product,
-            product.Variants.Single(x => x.Id == r.VariantId)
+            product.Variants.Single(x => x.Id == r.VariantId),
+            _pathService
         );
     }
 

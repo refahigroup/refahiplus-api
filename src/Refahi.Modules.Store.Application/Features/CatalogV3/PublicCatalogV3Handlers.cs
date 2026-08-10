@@ -6,15 +6,18 @@ using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementCategoryTerms;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.CatalogV3;
 
 public sealed class GetPublicProductCatalogV3Handler(
     IPublicCatalogRepository catalog,
     IStoreModuleRepository modules,
-    IMediator mediator
+    IMediator mediator,
+    IPathService pathService
 ) : IRequestHandler<GetPublicProductCatalogV3Query, PublicProductCatalogV3Page?>
 {
+    private readonly IPathService _pathService = pathService;
     public async Task<PublicProductCatalogV3Page?> Handle(
         GetPublicProductCatalogV3Query request,
         CancellationToken ct
@@ -46,7 +49,7 @@ public sealed class GetPublicProductCatalogV3Handler(
             (!request.MinPriceMinor.HasValue || x.FinalPriceMinor >= request.MinPriceMinor)
             && (!request.MaxPriceMinor.HasValue || x.FinalPriceMinor <= request.MaxPriceMinor)
         );
-        var groups = priceScoped.GroupBy(x => x.ProductId).Select(PublicCatalogMapping.MapGroup);
+        var groups = priceScoped.GroupBy(x => x.ProductId).Select(x => PublicCatalogMapping.MapGroup(x, _pathService));
 
         groups = NormalizeSort(request.Sort) switch
         {
@@ -116,9 +119,11 @@ public sealed class GetPublicProductDetailV3Handler(
     IPublicCatalogRepository catalog,
     IStoreModuleRepository modules,
     IProductRepository products,
-    IMediator mediator
+    IMediator mediator,
+    IPathService pathService
 ) : IRequestHandler<GetPublicProductDetailV3Query, PublicProductDetailV3Dto?>
 {
+    private readonly IPathService _pathService = pathService;
     public async Task<PublicProductDetailV3Dto?> Handle(
         GetPublicProductDetailV3Query request,
         CancellationToken ct
@@ -188,7 +193,12 @@ public sealed class GetPublicProductDetailV3Handler(
             dto,
             product
                 .Images.OrderBy(x => x.SortOrder)
-                .Select(x => new ProductImageDto(x.Id, x.ImageUrl, x.IsMain, x.SortOrder))
+                .Select(x => new ProductImageDto(
+                    x.Id,
+                    _pathService.MakeAbsoluteMediaUrl(x.ImageUrl),
+                    x.IsMain,
+                    x.SortOrder
+                ))
                 .ToArray(),
             product
                 .Specifications.OrderBy(x => x.SortOrder)
@@ -205,7 +215,7 @@ public sealed class GetPublicProductDetailV3Handler(
                         .ToList()
                 ))
                 .ToArray(),
-            product.Variants.Select(x => CatalogV3Mapper.MapVariant(product, x)).ToArray(),
+            product.Variants.Select(x => CatalogV3Mapper.MapVariant(product, x, _pathService)).ToArray(),
             product.Sessions.Select(CatalogV3Mapper.MapSession).ToArray(),
             offers,
             summary,
@@ -252,7 +262,8 @@ internal static class PublicCatalogEligibility
 internal static class PublicCatalogMapping
 {
     public static PublicProductCatalogItemV3Dto MapGroup(
-        IGrouping<Guid, PublicCatalogOfferCandidate> group
+        IGrouping<Guid, PublicCatalogOfferCandidate> group,
+        IPathService pathService
     )
     {
         var first = group.First();
@@ -261,7 +272,7 @@ internal static class PublicCatalogMapping
             first.ProductTitle,
             first.ProductSlug,
             first.ProductDescription,
-            first.MainImageUrl,
+            first.MainImageUrl is null ? null : pathService.MakeAbsoluteMediaUrl(first.MainImageUrl),
             (short)first.ProductType,
             (short)first.SalesModel,
             (short)first.FulfillmentMethod,
