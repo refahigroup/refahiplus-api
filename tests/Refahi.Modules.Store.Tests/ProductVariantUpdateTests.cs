@@ -21,7 +21,8 @@ public sealed class ProductVariantUpdateTests
             2,
             1_000,
             1_000,
-            salesModel: SalesModel.StockBased);
+            salesModel: SalesModel.StockBased
+        );
 
         product.UpdateVariant(
             variant.Id,
@@ -31,7 +32,8 @@ public sealed class ProductVariantUpdateTests
             1_500,
             "/media/blue.png",
             "BLUE",
-            salesModel: SalesModel.StockBased);
+            salesModel: SalesModel.StockBased
+        );
 
         Assert.Equal(5, variant.StockCount);
         Assert.Equal(2_000, variant.PriceMinor);
@@ -48,12 +50,9 @@ public sealed class ProductVariantUpdateTests
     {
         var product = CreateProduct();
 
-        var exception = Assert.Throws<StoreDomainException>(() => product.UpdateVariant(
-            Guid.NewGuid(),
-            [],
-            0,
-            1_000,
-            1_000));
+        var exception = Assert.Throws<StoreDomainException>(() =>
+            product.UpdateVariant(Guid.NewGuid(), [], 0, 1_000, 1_000)
+        );
 
         Assert.Equal("VARIANT_NOT_FOUND", exception.ErrorCode);
     }
@@ -70,12 +69,16 @@ public sealed class ProductVariantUpdateTests
             0,
             1_000,
             1_000,
-            null);
+            null
+        );
 
         var result = validator.Validate(command);
 
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(command.Combinations));
-        Assert.DoesNotContain(result.Errors, error => error.PropertyName == nameof(command.DiscountedPriceMinor));
+        Assert.DoesNotContain(
+            result.Errors,
+            error => error.PropertyName == nameof(command.DiscountedPriceMinor)
+        );
     }
 
     [Fact]
@@ -90,11 +93,12 @@ public sealed class ProductVariantUpdateTests
             1,
             1_000,
             900,
-            "SKU");
+            "SKU"
+        );
 
         Assert.True(validator.Validate(command).IsValid);
     }
 
-    private static Product CreateProduct()
-        => Product.Create(Guid.NewGuid(), "محصول", $"product-{Guid.NewGuid():N}");
+    private static Product CreateProduct() =>
+        Product.Create(Guid.NewGuid(), "محصول", $"product-{Guid.NewGuid():N}");
 }

@@ -15,19 +15,26 @@ namespace Refahi.Modules.Media.Infrastructure;
 public static class DI
 {
     public static IServiceCollection RegisterInfrastructure(
-        this IServiceCollection services, IConfiguration configuration, bool isDevelopment = false)
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool isDevelopment = false
+    )
     {
         services.Configure<MediaStorageOptions>(
-            configuration.GetSection(MediaStorageOptions.Section));
+            configuration.GetSection(MediaStorageOptions.Section)
+        );
 
         services.AddDbContext<MediaDbContext>(options =>
         {
             string connectionString = configuration.GetConnectionString();
 
-            options.UseNpgsql(connectionString, npgsqlOptions =>
-            {
-                npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "media");
-            });
+            options.UseNpgsql(
+                connectionString,
+                npgsqlOptions =>
+                {
+                    npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "media");
+                }
+            );
         });
 
         services.AddScoped<IMediaAssetRepository, MediaAssetRepository>();

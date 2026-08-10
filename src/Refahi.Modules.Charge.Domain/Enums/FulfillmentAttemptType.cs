@@ -4,5 +4,5 @@ public enum FulfillmentAttemptType : short
 {
     Purchase = 1,
     Trace = 2,
-    Refund = 3
+    Refund = 3,
 }

@@ -19,8 +19,15 @@ public sealed class GetStoreCategoriesQueryHandlerTests
     public async Task Returns_pruned_preorder_tree_with_local_parent_metadata()
     {
         var root = Category(10, "ریشه", "root", "store", 999, 5);
-        var first = Category(11, "الف", "first", "store.first", 10, 1,
-            [Category(13, "برگ", "leaf", "store.first.leaf", 11, 3)]);
+        var first = Category(
+            11,
+            "الف",
+            "first",
+            "store.first",
+            10,
+            1,
+            [Category(13, "برگ", "leaf", "store.first.leaf", 11, 3)]
+        );
         var empty = Category(12, "بدون محصول", "empty", "store.empty", 10, 2);
         var second = Category(14, "ب", "second", "store.second", 10, 1);
         var outside = Category(99, "خارج", "outside", "outside", null, 0);
@@ -32,7 +39,7 @@ public sealed class GetStoreCategoriesQueryHandlerTests
         {
             [leafAgreementProductId] = AgreementProduct(leafAgreementProductId, 13),
             [secondAgreementProductId] = AgreementProduct(secondAgreementProductId, 14),
-            [outsideAgreementProductId] = AgreementProduct(outsideAgreementProductId, 99)
+            [outsideAgreementProductId] = AgreementProduct(outsideAgreementProductId, 99),
         };
 
         var handler = CreateHandler(
@@ -40,7 +47,8 @@ public sealed class GetStoreCategoriesQueryHandlerTests
             agreementProducts,
             [leafAgreementProductId, secondAgreementProductId, outsideAgreementProductId],
             root,
-            [empty, first, second, outside]);
+            [empty, first, second, outside]
+        );
 
         var result = await handler.Handle(new GetStoreCategoriesQuery(1), CancellationToken.None);
 
@@ -62,10 +70,13 @@ public sealed class GetStoreCategoriesQueryHandlerTests
             new Dictionary<Guid, AgreementProductDto>(),
             [],
             null,
-            []);
+            []
+        );
 
         var withoutCategory = await noCategoryHandler.Handle(
-            new GetStoreCategoriesQuery(1), CancellationToken.None);
+            new GetStoreCategoriesQuery(1),
+            CancellationToken.None
+        );
 
         var root = Category(10, "ریشه", "root", "store", null, 0);
         var agreementProductId = Guid.NewGuid();
@@ -73,14 +84,17 @@ public sealed class GetStoreCategoriesQueryHandlerTests
             StoreModule.Create("فروشگاه", "market-two", categoryId: 10),
             new Dictionary<Guid, AgreementProductDto>
             {
-                [agreementProductId] = AgreementProduct(agreementProductId, 10)
+                [agreementProductId] = AgreementProduct(agreementProductId, 10),
             },
             [],
             root,
-            []);
+            []
+        );
 
         var withoutOffer = await noOfferHandler.Handle(
-            new GetStoreCategoriesQuery(1), CancellationToken.None);
+            new GetStoreCategoriesQuery(1),
+            CancellationToken.None
+        );
 
         Assert.Empty(withoutCategory);
         Assert.Empty(withoutOffer);
@@ -91,13 +105,15 @@ public sealed class GetStoreCategoriesQueryHandlerTests
         IReadOnlyDictionary<Guid, AgreementProductDto> agreementProducts,
         IReadOnlyList<Guid> eligibleAgreementProductIds,
         CategoryDto? root,
-        IReadOnlyList<CategoryDto> descendants)
-        => new(
+        IReadOnlyList<CategoryDto> descendants
+    ) =>
+        new(
             new FakeModuleRepository(module),
             new FakeContextService(agreementProducts),
             new FakeOfferRepository(eligibleAgreementProductIds),
             new FakeClock(),
-            new FakeMediator(root, descendants));
+            new FakeMediator(root, descendants)
+        );
 
     private static CategoryDto Category(
         int id,
@@ -106,44 +122,84 @@ public sealed class GetStoreCategoriesQueryHandlerTests
         string code,
         int? parentId,
         int sortOrder,
-        List<CategoryDto>? children = null)
-        => new(id, name, slug, code, $"/{slug}.png", parentId, sortOrder, true, children);
+        List<CategoryDto>? children = null
+    ) => new(id, name, slug, code, $"/{slug}.png", parentId, sortOrder, true, children);
 
-    private static AgreementProductDto AgreementProduct(Guid id, int categoryId)
-        => new(id, Guid.NewGuid(), "محصول", null, categoryId, null, 1, 1, 1, 0, false, Now);
+    private static AgreementProductDto AgreementProduct(Guid id, int categoryId) =>
+        new(id, Guid.NewGuid(), "محصول", null, categoryId, null, 1, 1, 1, 0, false, Now);
 
     private sealed class FakeModuleRepository(StoreModule module) : IStoreModuleRepository
     {
-        public Task<StoreModule?> GetByIdAsync(int id, CancellationToken ct = default) => Task.FromResult<StoreModule?>(module);
-        public Task<StoreModule?> GetBySlugAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<List<StoreModule>> GetAllAsync(bool includeInactive = false, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<bool> SlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task AddAsync(StoreModule value, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task UpdateAsync(StoreModule value, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<StoreModule?> GetByIdAsync(int id, CancellationToken ct = default) =>
+            Task.FromResult<StoreModule?>(module);
+
+        public Task<StoreModule?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<List<StoreModule>> GetAllAsync(
+            bool includeInactive = false,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<bool> SlugExistsAsync(
+            string slug,
+            int? excludeId = null,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task AddAsync(StoreModule value, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task UpdateAsync(StoreModule value, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeContextService(IReadOnlyDictionary<Guid, AgreementProductDto> products)
         : ISyntheticOfferQueryContextService
     {
         public Task<SyntheticOfferQueryContext> ResolveAsync(
-            int moduleId, int? categoryId, Guid? shopId, string? shopSlug,
-            string? salesModel, CancellationToken ct)
-            => Task.FromResult(new SyntheticOfferQueryContext(
-                true,
-                null,
-                products.Keys.ToHashSet(),
-                products,
-                products.Keys.ToArray(),
-                []));
+            int moduleId,
+            int? categoryId,
+            Guid? shopId,
+            string? shopSlug,
+            string? salesModel,
+            CancellationToken ct
+        ) =>
+            Task.FromResult(
+                new SyntheticOfferQueryContext(
+                    true,
+                    null,
+                    products.Keys.ToHashSet(),
+                    products,
+                    products.Keys.ToArray(),
+                    []
+                )
+            );
     }
 
-    private sealed class FakeOfferRepository(IReadOnlyList<Guid> eligibleIds) : ISyntheticOfferReadRepository
+    private sealed class FakeOfferRepository(IReadOnlyList<Guid> eligibleIds)
+        : ISyntheticOfferReadRepository
     {
-        public Task<IReadOnlyList<Guid>> GetEligibleAgreementProductIdsAsync(SyntheticOfferQuerySpec spec, CancellationToken ct = default)
-            => Task.FromResult(eligibleIds);
-        public Task<(IReadOnlyList<SyntheticOfferReadModel> Items, int Total)> GetOffersAsync(SyntheticOfferQuerySpec spec, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<(IReadOnlyList<SyntheticProductCatalogReadModel> Items, int Total)> GetProductCatalogAsync(SyntheticOfferQuerySpec spec, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<IReadOnlyList<SyntheticOfferReadModel>> GetProductOffersAsync(SyntheticOfferQuerySpec spec, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<Guid>> GetEligibleAgreementProductIdsAsync(
+            SyntheticOfferQuerySpec spec,
+            CancellationToken ct = default
+        ) => Task.FromResult(eligibleIds);
+
+        public Task<(IReadOnlyList<SyntheticOfferReadModel> Items, int Total)> GetOffersAsync(
+            SyntheticOfferQuerySpec spec,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<(
+            IReadOnlyList<SyntheticProductCatalogReadModel> Items,
+            int Total
+        )> GetProductCatalogAsync(SyntheticOfferQuerySpec spec, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<SyntheticOfferReadModel>> GetProductOffersAsync(
+            SyntheticOfferQuerySpec spec,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
     }
 
     private sealed class FakeClock : IStoreBusinessClock
@@ -151,23 +207,43 @@ public sealed class GetStoreCategoriesQueryHandlerTests
         public StoreBusinessMoment Current => new(new DateOnly(2026, 7, 22), new TimeOnly(10, 0));
     }
 
-    private sealed class FakeMediator(CategoryDto? root, IReadOnlyList<CategoryDto> descendants) : IMediator
+    private sealed class FakeMediator(CategoryDto? root, IReadOnlyList<CategoryDto> descendants)
+        : IMediator
     {
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        public Task<TResponse> Send<TResponse>(
+            IRequest<TResponse> request,
+            CancellationToken cancellationToken = default
+        )
         {
             object? response = request switch
             {
                 GetCategoryByIdQuery => root,
                 GetCategoriesQuery => descendants.ToList(),
-                _ => throw new NotSupportedException(request.GetType().FullName)
+                _ => throw new NotSupportedException(request.GetType().FullName),
             };
             return Task.FromResult((TResponse)response!);
         }
 
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task Publish(object notification, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification => Task.CompletedTask;
+        public Task<object?> Send(object request, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
+            IStreamRequest<TResponse> request,
+            CancellationToken cancellationToken = default
+        ) => throw new NotSupportedException();
+
+        public IAsyncEnumerable<object?> CreateStream(
+            object request,
+            CancellationToken cancellationToken = default
+        ) => throw new NotSupportedException();
+
+        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task Publish<TNotification>(
+            TNotification notification,
+            CancellationToken cancellationToken = default
+        )
+            where TNotification : INotification => Task.CompletedTask;
     }
 }

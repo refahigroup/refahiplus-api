@@ -12,4 +12,5 @@ public sealed record WalletInfoDto(
     short Status,
     string Currency,
     string? AllowedCategoryCode,
-    DateTimeOffset? ContractExpiresAt);
+    DateTimeOffset? ContractExpiresAt
+);

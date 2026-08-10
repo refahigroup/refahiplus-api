@@ -20,9 +20,22 @@ public sealed class AuthorizationGrantConfiguration : IEntityTypeConfiguration<A
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
         builder.Property(x => x.RevokedAt).HasColumnName("revoked_at");
         builder.Property(x => x.RevokedBy).HasColumnName("revoked_by");
-        builder.HasIndex(x => new { x.UserId, x.Issuer, x.Value }).IsUnique()
+        builder
+            .HasIndex(x => new
+            {
+                x.UserId,
+                x.Issuer,
+                x.Value,
+            })
+            .IsUnique()
             .HasDatabaseName("ux_authorization_grants_user_issuer_value");
-        builder.HasIndex(x => new { x.UserId, x.Issuer, x.IsActive })
+        builder
+            .HasIndex(x => new
+            {
+                x.UserId,
+                x.Issuer,
+                x.IsActive,
+            })
             .HasDatabaseName("ix_authorization_grants_lookup");
     }
 }

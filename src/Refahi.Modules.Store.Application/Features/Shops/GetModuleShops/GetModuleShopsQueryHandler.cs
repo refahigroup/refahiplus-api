@@ -19,7 +19,8 @@ public class GetModuleShopsQueryHandler : IRequestHandler<GetModuleShopsQuery, S
         IStoreModuleCatalogService catalog,
         IShopProductRepository shopProductRepository,
         IShopRepository shopRepository,
-        IPathService pathService)
+        IPathService pathService
+    )
     {
         _catalog = catalog;
         _shopProductRepository = shopProductRepository;
@@ -35,23 +36,42 @@ public class GetModuleShopsQueryHandler : IRequestHandler<GetModuleShopsQuery, S
         if (apIds.Count == 0)
             return empty;
 
-        var shopIds = await _shopProductRepository
-            .GetDisplayableShopIdsByAgreementProductIdsAsync(apIds, ct);
+        var shopIds = await _shopProductRepository.GetDisplayableShopIdsByAgreementProductIdsAsync(
+            apIds,
+            ct
+        );
 
         if (shopIds.Count == 0)
             return empty;
 
         var (items, total) = await _shopRepository.GetPagedByIdsAsync(
-            shopIds, request.PageNumber, request.PageSize, ct);
+            shopIds,
+            request.PageNumber,
+            request.PageSize,
+            ct
+        );
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
         return new ShopsPagedResponse(
-            items.Select(MapToDto), request.PageNumber, request.PageSize, total, totalPages);
+            items.Select(MapToDto),
+            request.PageNumber,
+            request.PageSize,
+            total,
+            totalPages
+        );
     }
 
-    private ShopSummaryDto MapToDto(Shop s) => new(
-        s.Id, s.Name, s.Slug,
-        s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
-        s.ShopType.ToString(), s.Status.ToString(),
-        s.ProvinceId, s.CityId, s.IsPopular, s.SupplierId);
+    private ShopSummaryDto MapToDto(Shop s) =>
+        new(
+            s.Id,
+            s.Name,
+            s.Slug,
+            s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
+            s.ShopType.ToString(),
+            s.Status.ToString(),
+            s.ProvinceId,
+            s.CityId,
+            s.IsPopular,
+            s.SupplierId
+        );
 }

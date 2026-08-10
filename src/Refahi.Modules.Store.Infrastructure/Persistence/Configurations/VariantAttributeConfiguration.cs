@@ -18,7 +18,8 @@ public class VariantAttributeConfiguration : IEntityTypeConfiguration<VariantAtt
 
         builder.HasIndex(a => a.ProductId);
 
-        builder.HasMany(a => a.Values)
+        builder
+            .HasMany(a => a.Values)
             .WithOne()
             .HasForeignKey("VariantAttributeId")
             .OnDelete(DeleteBehavior.Cascade);

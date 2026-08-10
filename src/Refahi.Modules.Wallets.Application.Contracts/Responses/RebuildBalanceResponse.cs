@@ -11,16 +11,19 @@ public record RebuildBalanceResponse(
     BalanceSnapshotResponse Before,
     BalanceSnapshotResponse After,
     DriftInfoResponse Drift,
-    DateTimeOffset RebuiltAt);
+    DateTimeOffset RebuiltAt
+);
 
 public record BalanceSnapshotResponse(
     long AvailableMinor,
     long PendingMinor,
     long Version,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt
+);
 
 public record DriftInfoResponse(
     bool HasDrift,
     long AvailableDelta,
     long PendingDelta,
-    long VersionDelta);
+    long VersionDelta
+);

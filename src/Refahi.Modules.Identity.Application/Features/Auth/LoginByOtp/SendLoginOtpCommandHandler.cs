@@ -18,14 +18,18 @@ public class SendLoginOtpCommandHandler : IRequestHandler<SendLoginOtpCommand, S
     public SendLoginOtpCommandHandler(
         IUserRepository userRepository,
         INotificationService notificationService,
-        IOptions<IdentityOptions> options)
+        IOptions<IdentityOptions> options
+    )
     {
         _userRepository = userRepository;
         _notificationService = notificationService;
         _options = options.Value;
     }
 
-    public async Task<SendLoginOtpResult> Handle(SendLoginOtpCommand request, CancellationToken cancellationToken)
+    public async Task<SendLoginOtpResult> Handle(
+        SendLoginOtpCommand request,
+        CancellationToken cancellationToken
+    )
     {
         OtpReceiptType receiptType;
         bool userExists;
@@ -33,12 +37,18 @@ public class SendLoginOtpCommandHandler : IRequestHandler<SendLoginOtpCommand, S
         if (Regex.IsMatch(request.Contact, @"^09\d{9}$"))
         {
             receiptType = OtpReceiptType.Sms;
-            userExists = await _userRepository.ExistsByMobileNumberAsync(request.Contact, cancellationToken);
+            userExists = await _userRepository.ExistsByMobileNumberAsync(
+                request.Contact,
+                cancellationToken
+            );
         }
         else
         {
             receiptType = OtpReceiptType.Email;
-            userExists = await _userRepository.ExistsByEmailAsync(request.Contact, cancellationToken);
+            userExists = await _userRepository.ExistsByEmailAsync(
+                request.Contact,
+                cancellationToken
+            );
         }
 
         if (!userExists)
@@ -49,17 +59,34 @@ public class SendLoginOtpCommandHandler : IRequestHandler<SendLoginOtpCommand, S
             if (!_options.AutoRegistrationEnabled)
                 return new SendLoginOtpResult(false, "کاربری با این شماره موبایل یافت نشد");
 
-            var signUpOtpResult = await _notificationService.SendOtp(request.Contact, receiptType, OtpType.SignUp, cancellationToken);
+            var signUpOtpResult = await _notificationService.SendOtp(
+                request.Contact,
+                receiptType,
+                OtpType.SignUp,
+                cancellationToken
+            );
             return new SendLoginOtpResult(
                 true,
                 null,
                 signUpOtpResult.ReferenceCode,
                 signUpOtpResult.ExpiresAt,
-                AuthFlow.SignUp);
+                AuthFlow.SignUp
+            );
         }
 
-        var otpResult = await _notificationService.SendOtp(request.Contact, receiptType, OtpType.SignIn, cancellationToken);
+        var otpResult = await _notificationService.SendOtp(
+            request.Contact,
+            receiptType,
+            OtpType.SignIn,
+            cancellationToken
+        );
 
-        return new SendLoginOtpResult(true, null, otpResult.ReferenceCode, otpResult.ExpiresAt, AuthFlow.SignIn);
+        return new SendLoginOtpResult(
+            true,
+            null,
+            otpResult.ReferenceCode,
+            otpResult.ExpiresAt,
+            AuthFlow.SignIn
+        );
     }
 }

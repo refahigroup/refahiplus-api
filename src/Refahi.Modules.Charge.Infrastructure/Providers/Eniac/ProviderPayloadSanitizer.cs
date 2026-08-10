@@ -9,9 +9,20 @@ public static partial class ProviderPayloadSanitizer
     public const int MaxSnapshotLength = 16 * 1024;
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "authorization", "password", "username", "token", "accessToken", "refreshToken",
-        "pin", "pinCode", "pinChargeCode", "serial", "pinChargeSerial", "securePan",
-        "hashedCardNumber", "providerRawCallback"
+        "authorization",
+        "password",
+        "username",
+        "token",
+        "accessToken",
+        "refreshToken",
+        "pin",
+        "pinCode",
+        "pinChargeCode",
+        "serial",
+        "pinChargeSerial",
+        "securePan",
+        "hashedCardNumber",
+        "providerRawCallback",
     };
 
     public static string SanitizeObject(object? value) =>
@@ -19,7 +30,8 @@ public static partial class ProviderPayloadSanitizer
 
     public static string SanitizeJson(string? json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return "{}";
+        if (string.IsNullOrWhiteSpace(json))
+            return "{}";
 
         try
         {
@@ -29,7 +41,9 @@ public static partial class ProviderPayloadSanitizer
         }
         catch (JsonException)
         {
-            return LimitJson(JsonSerializer.Serialize(new { invalidJson = true, body = MaskMobiles(json) }));
+            return LimitJson(
+                JsonSerializer.Serialize(new { invalidJson = true, body = MaskMobiles(json) })
+            );
         }
     }
 
@@ -44,7 +58,10 @@ public static partial class ProviderPayloadSanitizer
             {
                 if (SensitiveKeys.Contains(property.Key))
                     obj[property.Key] = "***";
-                else if (property.Value is JsonValue value && value.TryGetValue<string>(out var text))
+                else if (
+                    property.Value is JsonValue value
+                    && value.TryGetValue<string>(out var text)
+                )
                     obj[property.Key] = MaskMobiles(text);
                 else
                     Redact(property.Value);
@@ -52,22 +69,30 @@ public static partial class ProviderPayloadSanitizer
         }
         else if (node is JsonArray array)
         {
-            foreach (var item in array) Redact(item);
+            foreach (var item in array)
+                Redact(item);
         }
     }
 
-    private static string MaskMobiles(string value) => MobileRegex().Replace(value, m => $"{m.Value[..4]}***{m.Value[^4..]}");
-    private static string Limit(string value, int max = MaxSnapshotLength) => value.Length <= max ? value : value[..max];
+    private static string MaskMobiles(string value) =>
+        MobileRegex().Replace(value, m => $"{m.Value[..4]}***{m.Value[^4..]}");
+
+    private static string Limit(string value, int max = MaxSnapshotLength) =>
+        value.Length <= max ? value : value[..max];
 
     private static string LimitJson(string json)
     {
-        if (json.Length <= MaxSnapshotLength) return json;
+        if (json.Length <= MaxSnapshotLength)
+            return json;
 
         var bodyLength = Math.Min(json.Length, MaxSnapshotLength - 128);
         while (bodyLength > 0)
         {
-            var result = JsonSerializer.Serialize(new { truncated = true, body = json[..bodyLength] });
-            if (result.Length <= MaxSnapshotLength) return result;
+            var result = JsonSerializer.Serialize(
+                new { truncated = true, body = json[..bodyLength] }
+            );
+            if (result.Length <= MaxSnapshotLength)
+                return result;
             bodyLength -= Math.Max(64, result.Length - MaxSnapshotLength);
         }
 

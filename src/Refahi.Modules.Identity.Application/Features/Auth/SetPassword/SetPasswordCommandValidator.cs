@@ -45,7 +45,8 @@ public class SetPasswordCommandValidator : AbstractValidator<SetPasswordCommand>
         {
             var emailRegex = new System.Text.RegularExpressions.Regex(
                 @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
             return emailRegex.IsMatch(mobileOrEmail);
         }
 

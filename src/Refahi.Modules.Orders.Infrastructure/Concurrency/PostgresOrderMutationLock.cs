@@ -15,7 +15,9 @@ internal sealed class PostgresOrderMutationLock(string connectionString) : IOrde
         try
         {
             await using var command = new NpgsqlCommand(
-                "select pg_advisory_lock(@namespace, hashtext(@order_id::text));", connection);
+                "select pg_advisory_lock(@namespace, hashtext(@order_id::text));",
+                connection
+            );
             command.Parameters.AddWithValue("namespace", LockNamespace);
             command.Parameters.AddWithValue("order_id", orderId);
             await command.ExecuteNonQueryAsync(ct);
@@ -40,7 +42,9 @@ internal sealed class PostgresOrderMutationLock(string connectionString) : IOrde
             try
             {
                 await using var command = new NpgsqlCommand(
-                    "select pg_advisory_unlock(@namespace, hashtext(@order_id::text));", connection);
+                    "select pg_advisory_unlock(@namespace, hashtext(@order_id::text));",
+                    connection
+                );
                 command.Parameters.AddWithValue("namespace", LockNamespace);
                 command.Parameters.AddWithValue("order_id", orderId);
                 await command.ExecuteNonQueryAsync();

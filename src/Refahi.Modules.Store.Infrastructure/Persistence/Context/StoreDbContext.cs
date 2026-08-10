@@ -7,7 +7,8 @@ namespace Refahi.Modules.Store.Infrastructure.Persistence.Context;
 
 public class StoreDbContext : DbContext
 {
-    public StoreDbContext(DbContextOptions<StoreDbContext> options) : base(options) { }
+    public StoreDbContext(DbContextOptions<StoreDbContext> options)
+        : base(options) { }
 
     public DbSet<StoreModule> Modules => Set<StoreModule>();
     public DbSet<Shop> Shops => Set<Shop>();
@@ -19,7 +20,8 @@ public class StoreDbContext : DbContext
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<VariantAttribute> VariantAttributes => Set<VariantAttribute>();
     public DbSet<VariantAttributeValue> VariantAttributeValues => Set<VariantAttributeValue>();
-    public DbSet<ProductVariantCombination> ProductVariantCombinations => Set<ProductVariantCombination>();
+    public DbSet<ProductVariantCombination> ProductVariantCombinations =>
+        Set<ProductVariantCombination>();
     public DbSet<ProductSpecification> ProductSpecifications => Set<ProductSpecification>();
     public DbSet<ProductSession> ProductSessions => Set<ProductSession>();
     public DbSet<Banner> Banners => Set<Banner>();
@@ -32,7 +34,8 @@ public class StoreDbContext : DbContext
     public DbSet<Voucher> Vouchers => Set<Voucher>();
     public DbSet<VoucherRedemption> VoucherRedemptions => Set<VoucherRedemption>();
     public DbSet<VoucherRefundOverride> VoucherRefundOverrides => Set<VoucherRefundOverride>();
-    public DbSet<VoucherRefundOverrideAttempt> VoucherRefundOverrideAttempts => Set<VoucherRefundOverrideAttempt>();
+    public DbSet<VoucherRefundOverrideAttempt> VoucherRefundOverrideAttempts =>
+        Set<VoucherRefundOverrideAttempt>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

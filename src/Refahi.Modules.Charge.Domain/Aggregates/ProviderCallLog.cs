@@ -30,16 +30,35 @@ public sealed class ProviderCallLog
     public DateTime CreatedAt { get; private set; }
 
     public static ProviderCallLog Create(
-        Guid? chargeRequestId, Guid? orderId, Guid? sagaId,
-        string providerName, string operation, string stage, ProviderCallOutcome outcome,
-        string httpMethod, string endpoint, int? httpStatusCode,
-        int? providerResultCode, string? operatorResultCode, bool retryable,
-        int attemptNumber, string correlationId, string? exceptionType, string? errorMessage,
-        string requestSnapshotJson, string responseSnapshotJson, long latencyMilliseconds,
-        DateTime nowUtc)
+        Guid? chargeRequestId,
+        Guid? orderId,
+        Guid? sagaId,
+        string providerName,
+        string operation,
+        string stage,
+        ProviderCallOutcome outcome,
+        string httpMethod,
+        string endpoint,
+        int? httpStatusCode,
+        int? providerResultCode,
+        string? operatorResultCode,
+        bool retryable,
+        int attemptNumber,
+        string correlationId,
+        string? exceptionType,
+        string? errorMessage,
+        string requestSnapshotJson,
+        string responseSnapshotJson,
+        long latencyMilliseconds,
+        DateTime nowUtc
+    )
     {
-        if (string.IsNullOrWhiteSpace(providerName) || string.IsNullOrWhiteSpace(operation) ||
-            string.IsNullOrWhiteSpace(stage) || string.IsNullOrWhiteSpace(correlationId))
+        if (
+            string.IsNullOrWhiteSpace(providerName)
+            || string.IsNullOrWhiteSpace(operation)
+            || string.IsNullOrWhiteSpace(stage)
+            || string.IsNullOrWhiteSpace(correlationId)
+        )
             throw new InvalidOperationException("اطلاعات لاگ تامین‌کننده کامل نیست");
 
         return new ProviderCallLog
@@ -62,10 +81,14 @@ public sealed class ProviderCallLog
             CorrelationId = correlationId.Trim(),
             ExceptionType = exceptionType,
             ErrorMessage = errorMessage,
-            RequestSnapshotJson = string.IsNullOrWhiteSpace(requestSnapshotJson) ? "{}" : requestSnapshotJson,
-            ResponseSnapshotJson = string.IsNullOrWhiteSpace(responseSnapshotJson) ? "{}" : responseSnapshotJson,
+            RequestSnapshotJson = string.IsNullOrWhiteSpace(requestSnapshotJson)
+                ? "{}"
+                : requestSnapshotJson,
+            ResponseSnapshotJson = string.IsNullOrWhiteSpace(responseSnapshotJson)
+                ? "{}"
+                : responseSnapshotJson,
             LatencyMilliseconds = Math.Max(0, latencyMilliseconds),
-            CreatedAt = nowUtc
+            CreatedAt = nowUtc,
         };
     }
 }

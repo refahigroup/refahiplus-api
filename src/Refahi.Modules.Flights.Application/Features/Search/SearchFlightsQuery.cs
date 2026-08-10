@@ -16,8 +16,10 @@ public sealed record SearchFlightsQuery(
     bool? IsDomestic,
     int? MaxStopsQuantity,
     IReadOnlyCollection<string>? VendorExcludeCodes,
-    IReadOnlyCollection<string>? VendorPreferenceCodes) : IRequest<SearchFlightsResponse>;
+    IReadOnlyCollection<string>? VendorPreferenceCodes
+) : IRequest<SearchFlightsResponse>;
 
 public sealed record SearchFlightsResponse(
     DateTime OffersExpireAtUtc,
-    IReadOnlyCollection<FlightOfferDto> Offers);
+    IReadOnlyCollection<FlightOfferDto> Offers
+);

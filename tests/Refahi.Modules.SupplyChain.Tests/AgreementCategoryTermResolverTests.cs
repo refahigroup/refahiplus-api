@@ -41,18 +41,29 @@ public sealed class AgreementCategoryTermResolverTests
     {
         var oldestAgreement = Candidate(3, 1) with { AgreementFromDate = At.AddDays(-20) };
         var newestAgreement = Candidate(3, 2) with { AgreementFromDate = At.AddDays(-10) };
-        Assert.Equal(newestAgreement.TermId, (await ResolveAsync([oldestAgreement, newestAgreement]))!.TermId);
+        Assert.Equal(
+            newestAgreement.TermId,
+            (await ResolveAsync([oldestAgreement, newestAgreement]))!.TermId
+        );
 
         var createdAt = At.AddDays(-2);
-        var olderTerm = Candidate(3, 3) with { AgreementFromDate = At.AddDays(-10), TermCreatedAt = createdAt.AddHours(-1) };
-        var newerTerm = Candidate(3, 4) with { AgreementFromDate = At.AddDays(-10), TermCreatedAt = createdAt };
+        var olderTerm = Candidate(3, 3) with
+        {
+            AgreementFromDate = At.AddDays(-10),
+            TermCreatedAt = createdAt.AddHours(-1),
+        };
+        var newerTerm = Candidate(3, 4) with
+        {
+            AgreementFromDate = At.AddDays(-10),
+            TermCreatedAt = createdAt,
+        };
         Assert.Equal(newerTerm.TermId, (await ResolveAsync([olderTerm, newerTerm]))!.TermId);
 
         var lowerId = Candidate(3, 5) with
         {
             TermId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             AgreementFromDate = At.AddDays(-10),
-            TermCreatedAt = createdAt
+            TermCreatedAt = createdAt,
         };
         var higherId = lowerId with { TermId = Guid.Parse("00000000-0000-0000-0000-000000000002") };
         Assert.Equal(lowerId.TermId, (await ResolveAsync([higherId, lowerId]))!.TermId);
@@ -65,7 +76,7 @@ public sealed class AgreementCategoryTermResolverTests
     {
         var candidate = Candidate(3, 10) with
         {
-            AllowedSalesChannels = SalesChannel.Online | SalesChannel.InPerson
+            AllowedSalesChannels = SalesChannel.Online | SalesChannel.InPerson,
         };
         Assert.NotNull(await ResolveAsync([candidate], requestedChannel));
     }
@@ -83,7 +94,7 @@ public sealed class AgreementCategoryTermResolverTests
         var candidate = Candidate(3, 10) with
         {
             AgreementFromDate = At,
-            AgreementToDate = At.AddHours(1)
+            AgreementToDate = At.AddHours(1),
         };
         Assert.NotNull(await ResolveAsync([candidate], at: At));
         Assert.NotNull(await ResolveAsync([candidate], at: At.AddHours(1).AddTicks(-1)));
@@ -97,13 +108,16 @@ public sealed class AgreementCategoryTermResolverTests
     [InlineData(AgreementStatus.Approved, true, false)]
     [InlineData(AgreementStatus.Approved, false, true)]
     public async Task Rejected_or_deleted_agreement_and_deleted_term_do_not_resolve(
-        AgreementStatus status, bool agreementDeleted, bool termDeleted)
+        AgreementStatus status,
+        bool agreementDeleted,
+        bool termDeleted
+    )
     {
         var candidate = Candidate(3, 10) with
         {
             AgreementStatus = status,
             AgreementIsDeleted = agreementDeleted,
-            TermIsDeleted = termDeleted
+            TermIsDeleted = termDeleted,
         };
         Assert.Null(await ResolveAsync([candidate]));
     }
@@ -124,8 +138,18 @@ public sealed class AgreementCategoryTermResolverTests
         var mediator = provider.GetRequiredService<IMediator>();
         var requests = new[]
         {
-            new AgreementCategoryTermResolutionRequest(SupplierId, 2, (short)SalesChannel.Online, At),
-            new AgreementCategoryTermResolutionRequest(SupplierId, 3, (short)SalesChannel.Online, At)
+            new AgreementCategoryTermResolutionRequest(
+                SupplierId,
+                2,
+                (short)SalesChannel.Online,
+                At
+            ),
+            new AgreementCategoryTermResolutionRequest(
+                SupplierId,
+                3,
+                (short)SalesChannel.Online,
+                At
+            ),
         };
 
         var result = await mediator.Send(new ResolveAgreementCategoryTermsBatchQuery(requests));
@@ -138,30 +162,43 @@ public sealed class AgreementCategoryTermResolverTests
     [Fact]
     public async Task Batch_honors_cancellation()
     {
-        using var provider = BuildProvider(new FakeAgreementRepository([]), new FakeCategoryTreeHandler());
+        using var provider = BuildProvider(
+            new FakeAgreementRepository([]),
+            new FakeCategoryTreeHandler()
+        );
         var mediator = provider.GetRequiredService<IMediator>();
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => mediator.Send(
-            new ResolveAgreementCategoryTermsBatchQuery([
-                new(SupplierId, 3, (short)SalesChannel.Online, At)
-            ]), cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            mediator.Send(
+                new ResolveAgreementCategoryTermsBatchQuery([
+                    new(SupplierId, 3, (short)SalesChannel.Online, At),
+                ]),
+                cts.Token
+            )
+        );
     }
 
     private static async Task<ResolvedAgreementCategoryTermDto?> ResolveAsync(
         IReadOnlyList<AgreementCategoryTermCandidate> candidates,
         short channel = (short)SalesChannel.Online,
-        DateTimeOffset? at = null)
+        DateTimeOffset? at = null
+    )
     {
-        using var provider = BuildProvider(new FakeAgreementRepository(candidates), new FakeCategoryTreeHandler());
-        return await provider.GetRequiredService<IMediator>().Send(
-            new ResolveAgreementCategoryTermQuery(SupplierId, 3, channel, at ?? At));
+        using var provider = BuildProvider(
+            new FakeAgreementRepository(candidates),
+            new FakeCategoryTreeHandler()
+        );
+        return await provider
+            .GetRequiredService<IMediator>()
+            .Send(new ResolveAgreementCategoryTermQuery(SupplierId, 3, channel, at ?? At));
     }
 
     private static ServiceProvider BuildProvider(
         FakeAgreementRepository repository,
-        FakeCategoryTreeHandler categories)
+        FakeCategoryTreeHandler categories
+    )
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -171,58 +208,131 @@ public sealed class AgreementCategoryTermResolverTests
         return services.BuildServiceProvider();
     }
 
-    private static AgreementCategoryTermCandidate Candidate(int categoryId, decimal commission) => new(
-        Guid.NewGuid(), Guid.NewGuid(), SupplierId, categoryId,
-        SalesChannel.Online, commission, false, At.AddDays(-1),
-        AgreementStatus.Approved, false, At.AddDays(-10), At.AddDays(10));
+    private static AgreementCategoryTermCandidate Candidate(int categoryId, decimal commission) =>
+        new(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            SupplierId,
+            categoryId,
+            SalesChannel.Online,
+            commission,
+            false,
+            At.AddDays(-1),
+            AgreementStatus.Approved,
+            false,
+            At.AddDays(-10),
+            At.AddDays(10)
+        );
 
-    private sealed class FakeCategoryTreeHandler : IRequestHandler<GetCategoriesQuery, List<CategoryDto>>
+    private sealed class FakeCategoryTreeHandler
+        : IRequestHandler<GetCategoriesQuery, List<CategoryDto>>
     {
         public int CallCount { get; private set; }
 
-        public Task<List<CategoryDto>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
+        public Task<List<CategoryDto>> Handle(
+            GetCategoriesQuery request,
+            CancellationToken cancellationToken
+        )
         {
             CallCount++;
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult<List<CategoryDto>>([
-                new(1, "ریشه", "root", "store", null, null, 0, true,
-                [
-                    new(2, "والد", "parent", "store.parent", null, 1, 0, true,
+                new(
+                    1,
+                    "ریشه",
+                    "root",
+                    "store",
+                    null,
+                    null,
+                    0,
+                    true,
                     [
-                        new(3, "فرزند", "child", "store.parent.child", null, 2, 0, true)
-                    ])
-                ])
+                        new(
+                            2,
+                            "والد",
+                            "parent",
+                            "store.parent",
+                            null,
+                            1,
+                            0,
+                            true,
+                            [new(3, "فرزند", "child", "store.parent.child", null, 2, 0, true)]
+                        ),
+                    ]
+                ),
             ]);
         }
     }
 
-    private sealed class FakeAgreementRepository(IReadOnlyList<AgreementCategoryTermCandidate> candidates)
-        : IAgreementRepository
+    private sealed class FakeAgreementRepository(
+        IReadOnlyList<AgreementCategoryTermCandidate> candidates
+    ) : IAgreementRepository
     {
         public int CandidateReadCount { get; private set; }
 
         public Task<IReadOnlyList<AgreementCategoryTermCandidate>> GetCategoryTermCandidatesAsync(
-            IReadOnlyCollection<Guid> supplierIds, IReadOnlyCollection<int> categoryIds, CancellationToken ct)
+            IReadOnlyCollection<Guid> supplierIds,
+            IReadOnlyCollection<int> categoryIds,
+            CancellationToken ct
+        )
         {
             CandidateReadCount++;
             ct.ThrowIfCancellationRequested();
             return Task.FromResult(candidates);
         }
 
-        public Task<Agreement?> GetByIdAsync(Guid id, bool includeProducts, CancellationToken ct) => throw new NotSupportedException();
-        public Task<AgreementProduct?> GetProductByIdAsync(Guid productId, CancellationToken ct) => throw new NotSupportedException();
-        public Task<(IReadOnlyList<Agreement> Items, int Total)> GetPagedAsync(Guid? supplierId, AgreementStatus? status, AgreementType? type, string? search, int page, int size, CancellationToken ct) => throw new NotSupportedException();
-        public Task<bool> ExistsByAgreementNoAsync(string agreementNo, Guid? excludeId, CancellationToken ct) => throw new NotSupportedException();
+        public Task<Agreement?> GetByIdAsync(Guid id, bool includeProducts, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public Task<AgreementProduct?> GetProductByIdAsync(Guid productId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public Task<(IReadOnlyList<Agreement> Items, int Total)> GetPagedAsync(
+            Guid? supplierId,
+            AgreementStatus? status,
+            AgreementType? type,
+            string? search,
+            int page,
+            int size,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
+
+        public Task<bool> ExistsByAgreementNoAsync(
+            string agreementNo,
+            Guid? excludeId,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
 #pragma warning disable CS0618
-        public Task<IReadOnlyList<Guid>> GetApprovedProductIdsByCategoryAsync(int categoryId, CancellationToken ct) => throw new NotSupportedException();
-        public Task<IReadOnlyList<Guid>> GetDisplayableProductIdsByCategoriesAsync(IReadOnlyList<int> categoryIds, CancellationToken ct) => throw new NotSupportedException();
-        public Task<IReadOnlyDictionary<Guid, AgreementProductDto>> GetProductsByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<Guid>> GetApprovedProductIdsByCategoryAsync(
+            int categoryId,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<Guid>> GetDisplayableProductIdsByCategoriesAsync(
+            IReadOnlyList<int> categoryIds,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
+
+        public Task<IReadOnlyDictionary<Guid, AgreementProductDto>> GetProductsByIdsAsync(
+            IReadOnlyList<Guid> ids,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
 #pragma warning restore CS0618
-        public Task<IReadOnlyDictionary<Guid, decimal>> GetCommissionPercentsByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct) => throw new NotSupportedException();
-        public Task AddAsync(Agreement agreement, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyDictionary<Guid, decimal>> GetCommissionPercentsByIdsAsync(
+            IReadOnlyList<Guid> ids,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
+
+        public Task AddAsync(Agreement agreement, CancellationToken ct) =>
+            throw new NotSupportedException();
+
         public void Update(Agreement agreement) => throw new NotSupportedException();
+
         public void AddProduct(AgreementProduct product) => throw new NotSupportedException();
-        public void AddCategoryTerm(AgreementCategoryTerm term) => throw new NotSupportedException();
+
+        public void AddCategoryTerm(AgreementCategoryTerm term) =>
+            throw new NotSupportedException();
+
         public Task SaveChangesAsync(CancellationToken ct) => throw new NotSupportedException();
     }
 }

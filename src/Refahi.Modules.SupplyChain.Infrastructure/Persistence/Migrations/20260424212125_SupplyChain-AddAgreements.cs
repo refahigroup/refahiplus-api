@@ -14,7 +14,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_suppliers_NationalId",
                 schema: "supplychain",
-                table: "suppliers");
+                table: "suppliers"
+            );
 
             migrationBuilder.CreateTable(
                 name: "agreements",
@@ -22,16 +23,36 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    AgreementNo = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    AgreementNo = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
                     AgreementType = table.Column<short>(type: "smallint", nullable: false),
                     SupplierId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FromDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    ToDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    FromDate = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    ToDate = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                     Status = table.Column<short>(type: "smallint", nullable: false),
-                    StatusNote = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    StatusNote = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
@@ -42,8 +63,10 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                         principalSchema: "supplychain",
                         principalTable: "suppliers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+                        onDelete: ReferentialAction.Restrict
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "agreement_products",
@@ -52,16 +75,33 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     AgreementId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Name = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    Description = table.Column<string>(
+                        type: "character varying(1000)",
+                        maxLength: 1000,
+                        nullable: true
+                    ),
                     CategoryId = table.Column<int>(type: "integer", nullable: true),
                     Price = table.Column<long>(type: "bigint", nullable: false),
                     DiscountedPrice = table.Column<long>(type: "bigint", nullable: false),
-                    CommissionPercent = table.Column<decimal>(type: "numeric(5,2)", nullable: false),
+                    CommissionPercent = table.Column<decimal>(
+                        type: "numeric(5,2)",
+                        nullable: false
+                    ),
                     CommissionPrice = table.Column<long>(type: "bigint", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
@@ -72,8 +112,10 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                         principalSchema: "supplychain",
                         principalTable: "agreements",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_suppliers_NationalId",
@@ -81,19 +123,22 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "suppliers",
                 column: "NationalId",
                 unique: true,
-                filter: "\"NationalId\" IS NOT NULL AND \"IsDeleted\" = false");
+                filter: "\"NationalId\" IS NOT NULL AND \"IsDeleted\" = false"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_agreement_products_AgreementId",
                 schema: "supplychain",
                 table: "agreement_products",
-                column: "AgreementId");
+                column: "AgreementId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_agreement_products_AgreementId_IsDeleted",
                 schema: "supplychain",
                 table: "agreement_products",
-                columns: new[] { "AgreementId", "IsDeleted" });
+                columns: new[] { "AgreementId", "IsDeleted" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_agreements_AgreementNo",
@@ -101,36 +146,36 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreements",
                 column: "AgreementNo",
                 unique: true,
-                filter: "\"AgreementNo\" IS NOT NULL AND \"IsDeleted\" = false");
+                filter: "\"AgreementNo\" IS NOT NULL AND \"IsDeleted\" = false"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_agreements_Status_IsDeleted",
                 schema: "supplychain",
                 table: "agreements",
-                columns: new[] { "Status", "IsDeleted" });
+                columns: new[] { "Status", "IsDeleted" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_agreements_SupplierId_Status",
                 schema: "supplychain",
                 table: "agreements",
-                columns: new[] { "SupplierId", "Status" });
+                columns: new[] { "SupplierId", "Status" }
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "agreement_products",
-                schema: "supplychain");
+            migrationBuilder.DropTable(name: "agreement_products", schema: "supplychain");
 
-            migrationBuilder.DropTable(
-                name: "agreements",
-                schema: "supplychain");
+            migrationBuilder.DropTable(name: "agreements", schema: "supplychain");
 
             migrationBuilder.DropIndex(
                 name: "IX_suppliers_NationalId",
                 schema: "supplychain",
-                table: "suppliers");
+                table: "suppliers"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_suppliers_NationalId",
@@ -138,7 +183,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "suppliers",
                 column: "NationalId",
                 unique: true,
-                filter: "national_id IS NOT NULL AND is_deleted = false");
+                filter: "national_id IS NOT NULL AND is_deleted = false"
+            );
         }
     }
 }

@@ -8,6 +8,5 @@ namespace Refahi.Modules.Wallets.Application.Contracts.Commands;
 /// <summary>
 /// Admin command to rebuild balance for a single wallet from ledger.
 /// </summary>
-public record RebuildBalanceCommand(
-    Guid WalletId
-) : IRequest<CommandResponse<RebuildBalanceResponse>>;
+public record RebuildBalanceCommand(Guid WalletId)
+    : IRequest<CommandResponse<RebuildBalanceResponse>>;

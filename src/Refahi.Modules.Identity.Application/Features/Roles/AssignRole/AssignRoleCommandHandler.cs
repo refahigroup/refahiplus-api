@@ -17,10 +17,13 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand, Assig
         _userRepository = userRepository;
     }
 
-    public async Task<AssignRoleResult> Handle(AssignRoleCommand request, CancellationToken cancellationToken)
+    public async Task<AssignRoleResult> Handle(
+        AssignRoleCommand request,
+        CancellationToken cancellationToken
+    )
     {
         // Note: Basic validation (Role format, UserId validation) is handled by FluentValidation pipeline
-        
+
         // Find user
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
 

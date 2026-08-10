@@ -16,8 +16,8 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
         {
             new OpenApiSecurityRequirement
             {
-                { new OpenApiSecuritySchemeReference("Bearer"), new List<string>() }
-            }
+                { new OpenApiSecuritySchemeReference("Bearer"), new List<string>() },
+            },
         };
     }
 }

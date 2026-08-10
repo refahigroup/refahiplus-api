@@ -9,13 +9,16 @@ public class SuspendShopCommandHandler : IRequestHandler<SuspendShopCommand, Sus
 {
     private readonly IShopRepository _shopRepository;
 
-    public SuspendShopCommandHandler(IShopRepository shopRepository)
-        => _shopRepository = shopRepository;
+    public SuspendShopCommandHandler(IShopRepository shopRepository) =>
+        _shopRepository = shopRepository;
 
     public async Task<SuspendShopResponse> Handle(
-        SuspendShopCommand request, CancellationToken cancellationToken)
+        SuspendShopCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var shop = await _shopRepository.GetByIdAsync(request.ShopId, cancellationToken)
+        var shop =
+            await _shopRepository.GetByIdAsync(request.ShopId, cancellationToken)
             ?? throw new StoreDomainException("فروشگاه یافت نشد", "SHOP_NOT_FOUND");
 
         shop.Suspend();

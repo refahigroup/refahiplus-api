@@ -12,22 +12,32 @@ public class GetCategoriesEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/categories", async (
-            IMediator mediator,
-            CancellationToken ct,
-            string? categoryCodePrefix = null,
-            int? parentId = null,
-            bool includeInactive = false) =>
-        {
-            var query = new GetCategoriesQuery(categoryCodePrefix, parentId, includeInactive);
-            var result = await mediator.Send(query, ct);
-            return Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("References.GetCategories")
-        .WithTags("References.Categories")
-        .Produces<ApiResponse<List<CategoryDto>>>(StatusCodes.Status200OK);
+        routes
+            .MapGet(
+                "/categories",
+                async (
+                    IMediator mediator,
+                    CancellationToken ct,
+                    string? categoryCodePrefix = null,
+                    int? parentId = null,
+                    bool includeInactive = false
+                ) =>
+                {
+                    var query = new GetCategoriesQuery(
+                        categoryCodePrefix,
+                        parentId,
+                        includeInactive
+                    );
+                    var result = await mediator.Send(query, ct);
+                    return Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("References.GetCategories")
+            .WithTags("References.Categories")
+            .Produces<ApiResponse<List<CategoryDto>>>(StatusCodes.Status200OK);
         // Public endpoint
     }
 }

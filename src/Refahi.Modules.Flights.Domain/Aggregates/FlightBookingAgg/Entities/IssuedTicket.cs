@@ -17,7 +17,8 @@ public sealed class IssuedTicket
         DateTime issuedAtUtc,
         string? providerTicketId = null,
         string? providerTraceId = null,
-        string? snapshotJson = null)
+        string? snapshotJson = null
+    )
     {
         if (passengerId == Guid.Empty)
         {
@@ -38,8 +39,12 @@ public sealed class IssuedTicket
         TicketNumber = ticketNumber.Trim();
         PassengerNameSnapshot = passengerNameSnapshot.Trim();
         IssuedAtUtc = issuedAtUtc;
-        ProviderTicketId = string.IsNullOrWhiteSpace(providerTicketId) ? null : providerTicketId.Trim();
-        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId) ? null : providerTraceId.Trim();
+        ProviderTicketId = string.IsNullOrWhiteSpace(providerTicketId)
+            ? null
+            : providerTicketId.Trim();
+        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId)
+            ? null
+            : providerTraceId.Trim();
         SnapshotJson = string.IsNullOrWhiteSpace(snapshotJson) ? null : snapshotJson.Trim();
     }
 

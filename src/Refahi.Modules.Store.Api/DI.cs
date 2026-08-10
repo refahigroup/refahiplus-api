@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
 using Refahi.Modules.Store.Api.Security;
 using Refahi.Modules.Store.Application;
 using Refahi.Modules.Store.Application.Contracts.Vendor;
@@ -16,45 +16,67 @@ namespace Refahi.Modules.Store.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterStoreModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterStoreModule(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.AddRateLimiter(options =>
         {
-            options.AddPolicy("VendorPos", context =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    context.User.FindFirst("sub")?.Value ??
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 10,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueLimit = 0,
-                        AutoReplenishment = true
-                    }));
-            options.AddPolicy("StoreCart", context =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    context.User.FindFirst("sub")?.Value ??
-                    context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 60,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueLimit = 0,
-                        AutoReplenishment = true
-                    }));
-            options.AddPolicy("VoucherRedeem", context =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    context.User.FindFirst("sub")?.Value ??
-                    context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 20,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueLimit = 0,
-                        AutoReplenishment = true
-                    }));
+            options.AddPolicy(
+                "VendorPos",
+                context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        context.User.FindFirst("sub")?.Value
+                            ?? context.Connection.RemoteIpAddress?.ToString()
+                            ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                            AutoReplenishment = true,
+                        }
+                    )
+            );
+            options.AddPolicy(
+                "StoreCart",
+                context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        context.User.FindFirst("sub")?.Value
+                            ?? context
+                                .User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                                ?.Value
+                            ?? context.Connection.RemoteIpAddress?.ToString()
+                            ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 60,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                            AutoReplenishment = true,
+                        }
+                    )
+            );
+            options.AddPolicy(
+                "VoucherRedeem",
+                context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        context.User.FindFirst("sub")?.Value
+                            ?? context
+                                .User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                                ?.Value
+                            ?? context.Connection.RemoteIpAddress?.ToString()
+                            ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 20,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                            AutoReplenishment = true,
+                        }
+                    )
+            );
         });
         services.AddScoped<StoreProviderOwnershipFilter>();
         services.AddScoped<InPersonTypedErrorFilter>();
@@ -62,9 +84,7 @@ public static class DI
         services.AddSingleton<IInPersonOtpReferenceProtector, InPersonOtpReferenceProtector>();
         services.AddSingleton<IVoucherCodeProtector, VoucherCodeProtector>();
         services.AddDataProtection();
-        services
-            .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration);
+        services.RegisterApplication(configuration).RegisterInfrastructure(configuration);
 
         return services;
     }
@@ -82,7 +102,8 @@ public static class DI
     {
         var assembly = typeof(DI).Assembly;
 
-        var endpointTypes = assembly.GetTypes()
+        var endpointTypes = assembly
+            .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);

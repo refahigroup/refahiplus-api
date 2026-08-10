@@ -14,10 +14,12 @@ public record BatchRebuildResponse(
     List<WalletRebuildSummaryResponse> Details,
     DateTimeOffset StartedAt,
     DateTimeOffset CompletedAt,
-    double DurationSeconds);
+    double DurationSeconds
+);
 
 public record WalletRebuildSummaryResponse(
     Guid WalletId,
     bool Success,
     bool HadDrift,
-    string? ErrorMessage);
+    string? ErrorMessage
+);

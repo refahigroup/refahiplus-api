@@ -12,21 +12,25 @@ public class GetShopFeaturedProductsEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/shops/{slug}/featured-products", async (
-            string slug,
-            int? limit,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var actualLimit = limit ?? 12;
-            var result = await mediator.Send(new GetShopFeaturedProductsQuery(slug, actualLimit), ct);
-            return Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Store.GetShopFeaturedProducts")
-        .WithTags("Store.Shops")
-        .Produces<ApiResponse<List<ShopFeaturedProductDto>>>(StatusCodes.Status200OK);
+        routes
+            .MapGet(
+                "/shops/{slug}/featured-products",
+                async (string slug, int? limit, IMediator mediator, CancellationToken ct) =>
+                {
+                    var actualLimit = limit ?? 12;
+                    var result = await mediator.Send(
+                        new GetShopFeaturedProductsQuery(slug, actualLimit),
+                        ct
+                    );
+                    return Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Store.GetShopFeaturedProducts")
+            .WithTags("Store.Shops")
+            .Produces<ApiResponse<List<ShopFeaturedProductDto>>>(StatusCodes.Status200OK);
         // Public endpoint
     }
 }

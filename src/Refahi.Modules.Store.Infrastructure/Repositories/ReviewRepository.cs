@@ -11,26 +11,36 @@ public class ReviewRepository : IReviewRepository
 
     public ReviewRepository(StoreDbContext db) => _db = db;
 
-    public Task<Review?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _db.Reviews.FirstOrDefaultAsync(r => r.Id == id, ct);
+    public Task<Review?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.Reviews.FirstOrDefaultAsync(r => r.Id == id, ct);
 
-    public Task<List<Review>> GetByProductIdAsync(Guid productId, bool approvedOnly = true,
-        CancellationToken ct = default)
-        => _db.Reviews
-            .Where(r => r.ProductId == productId && (!approvedOnly || r.IsApproved))
+    public Task<List<Review>> GetByProductIdAsync(
+        Guid productId,
+        bool approvedOnly = true,
+        CancellationToken ct = default
+    ) =>
+        _db
+            .Reviews.Where(r => r.ProductId == productId && (!approvedOnly || r.IsApproved))
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(ct);
 
-    public Task<bool> UserHasReviewedAsync(Guid productId, Guid userId, CancellationToken ct = default)
-        => _db.Reviews.AnyAsync(r => r.ProductId == productId && r.UserId == userId, ct);
+    public Task<bool> UserHasReviewedAsync(
+        Guid productId,
+        Guid userId,
+        CancellationToken ct = default
+    ) => _db.Reviews.AnyAsync(r => r.ProductId == productId && r.UserId == userId, ct);
 
     public async Task<(List<Review> Items, int Total)> GetPagedAsync(
-        Guid productId, bool approvedOnly, int page, int pageSize, CancellationToken ct = default)
+        Guid productId,
+        bool approvedOnly,
+        int page,
+        int pageSize,
+        CancellationToken ct = default
+    )
     {
         var q = _db.Reviews.Where(r => r.ProductId == productId && (!approvedOnly || r.IsApproved));
         var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderByDescending(r => r.CreatedAt)
+        var items = await q.OrderByDescending(r => r.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -39,8 +49,8 @@ public class ReviewRepository : IReviewRepository
 
     public async Task<double> GetAverageRatingAsync(Guid productId, CancellationToken ct = default)
     {
-        var avg = await _db.Reviews
-            .Where(r => r.ProductId == productId && r.IsApproved)
+        var avg = await _db
+            .Reviews.Where(r => r.ProductId == productId && r.IsApproved)
             .AverageAsync(r => (double?)r.Rating, ct);
         return avg ?? 0.0;
     }

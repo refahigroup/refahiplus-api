@@ -13,7 +13,8 @@ public static class DI
 {
     public static IServiceCollection RegisterPaymentGatewayModule(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration
+    )
     {
         services.RegisterApplication(configuration);
         services.RegisterInfrastructure(configuration);
@@ -23,7 +24,8 @@ public static class DI
 
     public static WebApplication UsePaymentGatewayModule(
         this WebApplication app,
-        string endPointsPrefix)
+        string endPointsPrefix
+    )
     {
         app.Services.UseInfrastructure(app.Environment.IsDevelopment());
 
@@ -36,7 +38,8 @@ public static class DI
     {
         var assembly = typeof(DI).Assembly;
 
-        var endpointTypes = assembly.GetTypes()
+        var endpointTypes = assembly
+            .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);

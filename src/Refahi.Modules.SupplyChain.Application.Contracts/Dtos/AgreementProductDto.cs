@@ -1,6 +1,8 @@
 namespace Refahi.Modules.SupplyChain.Application.Contracts.Dtos;
 
-[Obsolete("AgreementProduct یک قرارداد سازگاری legacy است؛ برای توسعه جدید از AgreementCategoryTerm استفاده کنید.")]
+[Obsolete(
+    "AgreementProduct یک قرارداد سازگاری legacy است؛ برای توسعه جدید از AgreementCategoryTerm استفاده کنید."
+)]
 public sealed record AgreementProductDto(
     Guid Id,
     Guid AgreementId,
@@ -16,4 +18,5 @@ public sealed record AgreementProductDto(
     DateTimeOffset CreatedAt,
     short PricingMode = 1,
     bool VatApplicable = false,
-    Guid? SupplierId = null);
+    Guid? SupplierId = null
+);

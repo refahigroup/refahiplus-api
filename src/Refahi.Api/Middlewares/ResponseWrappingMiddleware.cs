@@ -1,7 +1,7 @@
-﻿using Refahi.Shared.Presentation;
-using System.Text;
+﻿using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Refahi.Shared.Presentation;
 
 namespace Refahi.Api.Middlewares;
 
@@ -27,7 +27,10 @@ public sealed class ResponseWrappingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         // Only apply to API endpoints (avoid swagger, static files, UI)
-        if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase) || context.Request.Path.StartsWithSegments("/api/swagger"))
+        if (
+            !context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+            || context.Request.Path.StartsWithSegments("/api/swagger")
+        )
         {
             await _next(context);
             return;
@@ -46,7 +49,12 @@ public sealed class ResponseWrappingMiddleware
             // Only wrap successful responses (2xx status codes)
             if (context.Response.StatusCode >= 200 && context.Response.StatusCode < 300)
             {
-                await WrapResponseAsync(context, responseBody, originalBodyStream, context.Response.StatusCode);
+                await WrapResponseAsync(
+                    context,
+                    responseBody,
+                    originalBodyStream,
+                    context.Response.StatusCode
+                );
             }
             else
             {
@@ -54,7 +62,6 @@ public sealed class ResponseWrappingMiddleware
                 responseBody.Seek(0, SeekOrigin.Begin);
                 await responseBody.CopyToAsync(originalBodyStream);
             }
-
         }
         finally
         {
@@ -65,13 +72,24 @@ public sealed class ResponseWrappingMiddleware
     /// <summary>
     /// Wrap response data in unified format
     /// </summary>
-    private static async Task WrapResponseAsync(HttpContext context, MemoryStream responseBody, Stream originalBodyStream, int statusCode)
+    private static async Task WrapResponseAsync(
+        HttpContext context,
+        MemoryStream responseBody,
+        Stream originalBodyStream,
+        int statusCode
+    )
     {
         responseBody.Seek(0, SeekOrigin.Begin);
         var responseData = await new StreamReader(responseBody).ReadToEndAsync();
 
         // Only process JSON responses
-        if (!context.Response.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) ?? true)
+        if (
+            !context.Response.ContentType?.Contains(
+                "application/json",
+                StringComparison.OrdinalIgnoreCase
+            )
+            ?? true
+        )
         {
             responseBody.Seek(0, SeekOrigin.Begin);
             await responseBody.CopyToAsync(originalBodyStream);
@@ -79,14 +97,18 @@ public sealed class ResponseWrappingMiddleware
         }
 
         // Handle empty body (e.g., 204 No Content) — respond with unified envelope
-            if (string.IsNullOrWhiteSpace(responseData))
+        if (string.IsNullOrWhiteSpace(responseData))
         {
             // Create empty success envelope for 204 or other successful but empty responses
-            var emptyWrapped = ApiResponseHelper.Success<object>(null, "عملیات با موفقیت انجام شد", statusCode);
-                context.Response.ContentType = "application/json; charset=utf-8";
-                var wrappedJsonEmpty = JsonSerializer.Serialize(emptyWrapped, JsonOptions);
-                var wrappedBytesEmpty = Encoding.UTF8.GetBytes(wrappedJsonEmpty);
-                await originalBodyStream.WriteAsync(wrappedBytesEmpty, 0, wrappedBytesEmpty.Length);
+            var emptyWrapped = ApiResponseHelper.Success<object>(
+                null,
+                "عملیات با موفقیت انجام شد",
+                statusCode
+            );
+            context.Response.ContentType = "application/json; charset=utf-8";
+            var wrappedJsonEmpty = JsonSerializer.Serialize(emptyWrapped, JsonOptions);
+            var wrappedBytesEmpty = Encoding.UTF8.GetBytes(wrappedJsonEmpty);
+            await originalBodyStream.WriteAsync(wrappedBytesEmpty, 0, wrappedBytesEmpty.Length);
             return;
         }
 
@@ -104,9 +126,21 @@ public sealed class ResponseWrappingMiddleware
         // Create wrapped response based on status code
         var wrappedResponse = statusCode switch
         {
-            StatusCodes.Status200OK => ApiResponseHelper.Success(jsonElement, "درخواست با موفقیت انجام شد", StatusCodes.Status200OK),
-            StatusCodes.Status201Created => ApiResponseHelper.Success(jsonElement, "منبع با موفقیت ایجاد شد", StatusCodes.Status201Created),
-            StatusCodes.Status204NoContent => ApiResponseHelper.Success(jsonElement, "عملیات با موفقیت انجام شد", StatusCodes.Status204NoContent),
+            StatusCodes.Status200OK => ApiResponseHelper.Success(
+                jsonElement,
+                "درخواست با موفقیت انجام شد",
+                StatusCodes.Status200OK
+            ),
+            StatusCodes.Status201Created => ApiResponseHelper.Success(
+                jsonElement,
+                "منبع با موفقیت ایجاد شد",
+                StatusCodes.Status201Created
+            ),
+            StatusCodes.Status204NoContent => ApiResponseHelper.Success(
+                jsonElement,
+                "عملیات با موفقیت انجام شد",
+                StatusCodes.Status204NoContent
+            ),
             _ => ApiResponseHelper.Success(jsonElement, "درخواست با موفقیت انجام شد", statusCode),
         };
 
@@ -130,8 +164,7 @@ public sealed class ResponseWrappingMiddleware
         {
             var json = JsonSerializer.Deserialize<JsonElement>(responseData);
             // Check if response has "success" and "data" properties (ApiResponse structure)
-            return json.TryGetProperty("success", out _) &&
-                   json.TryGetProperty("data", out _);
+            return json.TryGetProperty("success", out _) && json.TryGetProperty("data", out _);
         }
         catch
         {
@@ -149,7 +182,7 @@ public static class ResponseWrappingMiddlewareExtensions
     /// Register response wrapping middleware
     /// Should be registered after exception middleware but before routing
     /// </summary>
-    public static IApplicationBuilder UseResponseWrappingMiddleware(this IApplicationBuilder builder)
-        => builder.UseMiddleware<ResponseWrappingMiddleware>();
+    public static IApplicationBuilder UseResponseWrappingMiddleware(
+        this IApplicationBuilder builder
+    ) => builder.UseMiddleware<ResponseWrappingMiddleware>();
 }
-

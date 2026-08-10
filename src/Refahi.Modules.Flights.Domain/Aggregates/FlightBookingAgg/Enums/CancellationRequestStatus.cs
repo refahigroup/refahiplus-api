@@ -4,5 +4,5 @@ public enum CancellationRequestStatus
 {
     Requested = 1,
     Cancelled = 2,
-    Failed = 3
+    Failed = 3,
 }

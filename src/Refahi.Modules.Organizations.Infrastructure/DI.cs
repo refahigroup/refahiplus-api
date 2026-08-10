@@ -1,16 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
-using System;
-using System.Linq;
 
 namespace Refahi.Modules.Organizations.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         //services.AddDbContext<OrganizationsDbContext>(options =>
         //{
@@ -31,6 +34,5 @@ public static class DI
         //var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
 
         //tools.ApplyMigrations<OrganizationsDbContext>();
-
     }
 }

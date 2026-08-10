@@ -9,7 +9,8 @@ public interface IUserRegistrationService
     Task<RegistrationResult> RegisterAsync(
         string? mobileNumber,
         string? email,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }
 
 public sealed record RegistrationResult(
@@ -17,4 +18,5 @@ public sealed record RegistrationResult(
     string? ErrorMessage = null,
     UserDto? User = null,
     string? MobileNumber = null,
-    string? Email = null);
+    string? Email = null
+);

@@ -1,30 +1,33 @@
-using FluentValidation;
-using Refahi.Modules.Wallets.Application.Contracts.Features.CreateWallet;
 using System;
 using System.Collections.Generic;
+using FluentValidation;
+using Refahi.Modules.Wallets.Application.Contracts.Features.CreateWallet;
 
 namespace Refahi.Modules.Wallets.Application.Features.CreateWallet;
 
 public class CreateWalletCommandValidator : AbstractValidator<CreateWalletCommand>
 {
-    private static readonly HashSet<string> AllowedWalletTypes = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> AllowedWalletTypes = new(
+        StringComparer.OrdinalIgnoreCase
+    )
     {
         WalletTypeCodes.Refahi,
-        WalletTypeCodes.Provider
+        WalletTypeCodes.Provider,
     };
 
     public CreateWalletCommandValidator()
     {
-        RuleFor(x => x.OwnerId)
-            .NotEmpty().WithMessage("شناسه مالک الزامی است");
+        RuleFor(x => x.OwnerId).NotEmpty().WithMessage("شناسه مالک الزامی است");
 
         RuleFor(x => x.WalletType)
-            .NotEmpty().WithMessage("نوع کیف‌پول الزامی است")
+            .NotEmpty()
+            .WithMessage("نوع کیف‌پول الزامی است")
             .Must(t => AllowedWalletTypes.Contains(t))
             .WithMessage("نوع کیف‌پول باید REFAHI یا PROVIDER باشد");
 
         RuleFor(x => x.Currency)
-            .NotEmpty().WithMessage("ارز الزامی است")
+            .NotEmpty()
+            .WithMessage("ارز الزامی است")
             .Must(c => string.Equals(c, "IRR", StringComparison.OrdinalIgnoreCase))
             .WithMessage("تنها ارز پشتیبانی‌شده IRR است");
     }

@@ -4,19 +4,23 @@ public interface ISyntheticOfferReadRepository
 {
     Task<(IReadOnlyList<SyntheticOfferReadModel> Items, int Total)> GetOffersAsync(
         SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 
     Task<(IReadOnlyList<SyntheticProductCatalogReadModel> Items, int Total)> GetProductCatalogAsync(
         SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 
     Task<IReadOnlyList<Guid>> GetEligibleAgreementProductIdsAsync(
         SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 
     Task<IReadOnlyList<SyntheticOfferReadModel>> GetProductOffersAsync(
         SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 }
 
 public sealed record SyntheticOfferQuerySpec(
@@ -36,7 +40,8 @@ public sealed record SyntheticOfferQuerySpec(
     int PageNumber = 1,
     int PageSize = 30,
     TimeOnly? CurrentTime = null,
-    IReadOnlyList<Guid>? ManualAgreementProductIds = null);
+    IReadOnlyList<Guid>? ManualAgreementProductIds = null
+);
 
 public sealed class SyntheticOfferReadModel
 {

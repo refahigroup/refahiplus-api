@@ -13,7 +13,11 @@ public interface IDeliveryService
     /// <param name="shippingAddressId">شناسه آدرس ارسال (اختیاری برای فاز فعلی)</param>
     /// <param name="shopId">شناسه فروشگاه (اختیاری برای فاز فعلی)</param>
     /// <returns>هزینه ارسال به ریال (Minor unit)</returns>
-    long CalcPrice(IReadOnlyList<DeliveryItemInput> items, Guid? shippingAddressId = null, Guid? shopId = null);
+    long CalcPrice(
+        IReadOnlyList<DeliveryItemInput> items,
+        Guid? shippingAddressId = null,
+        Guid? shopId = null
+    );
 }
 
 public sealed record DeliveryItemInput(short DeliveryMethod, int Quantity);

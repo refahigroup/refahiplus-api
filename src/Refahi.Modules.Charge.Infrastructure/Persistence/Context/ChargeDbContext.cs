@@ -7,16 +7,14 @@ public sealed class ChargeDbContext : DbContext
 {
     public const string Schema = "charge";
 
-    public ChargeDbContext(DbContextOptions<ChargeDbContext> options) : base(options) 
-    { 
-    }
+    public ChargeDbContext(DbContextOptions<ChargeDbContext> options)
+        : base(options) { }
 
     public DbSet<ChargeRequest> ChargeRequests => Set<ChargeRequest>();
     public DbSet<ChargeFulfillmentAttempt> FulfillmentAttempts => Set<ChargeFulfillmentAttempt>();
     public DbSet<ChargePin> ChargePins => Set<ChargePin>();
     public DbSet<ChargeMarkupRule> MarkupRules => Set<ChargeMarkupRule>();
     public DbSet<ProviderCallLog> ProviderCallLogs => Set<ProviderCallLog>();
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

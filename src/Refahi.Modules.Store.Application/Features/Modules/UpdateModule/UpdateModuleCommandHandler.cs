@@ -9,16 +9,25 @@ public class UpdateModuleCommandHandler : IRequestHandler<UpdateModuleCommand, U
 {
     private readonly IStoreModuleRepository _moduleRepo;
 
-    public UpdateModuleCommandHandler(IStoreModuleRepository moduleRepo)
-        => _moduleRepo = moduleRepo;
+    public UpdateModuleCommandHandler(IStoreModuleRepository moduleRepo) =>
+        _moduleRepo = moduleRepo;
 
     public async Task<UpdateModuleResponse> Handle(
-        UpdateModuleCommand request, CancellationToken cancellationToken)
+        UpdateModuleCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var module = await _moduleRepo.GetByIdAsync(request.Id, cancellationToken)
+        var module =
+            await _moduleRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("ماژول یافت نشد", "MODULE_NOT_FOUND");
 
-        module.UpdateInfo(request.Name, request.Description, request.IconUrl, request.SortOrder, request.CategoryId);
+        module.UpdateInfo(
+            request.Name,
+            request.Description,
+            request.IconUrl,
+            request.SortOrder,
+            request.CategoryId
+        );
 
         await _moduleRepo.UpdateAsync(module, cancellationToken);
 

@@ -1,3 +1,6 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
@@ -5,9 +8,6 @@ using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep.Api;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep.Config;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep.Contract;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using Xunit;
 
 namespace Refahi.Modules.PaymentGateway.Tests;
@@ -28,12 +28,12 @@ public class SepPaymentGatewayProviderTests
     public void TokenResponse_DeserializesErrorCode()
     {
         var json = """
-        {
-            "status": -1,
-            "errorCode": "5",
-            "errorDesc": "Invalid parameters"
-        }
-        """;
+            {
+                "status": -1,
+                "errorCode": "5",
+                "errorDesc": "Invalid parameters"
+            }
+            """;
 
         var response = JsonSerializer.Deserialize<SepTokenResponse>(json);
 
@@ -63,7 +63,8 @@ public class SepPaymentGatewayProviderTests
         var provider = CreateProvider(request =>
             request.RequestUri!.AbsoluteUri.Contains("VerifyTransaction")
                 ? SuccessfulVerifyJson(1000)
-                : "{}");
+                : "{}"
+        );
 
         var result = await provider.VerifyAsync(new VerifyRequest("ref-1", 1000));
 
@@ -78,7 +79,8 @@ public class SepPaymentGatewayProviderTests
         var provider = CreateProvider(request =>
             request.RequestUri!.AbsoluteUri.Contains("VerifyTransaction")
                 ? SuccessfulVerifyJson(900)
-                : "{}");
+                : "{}"
+        );
 
         var result = await provider.VerifyAsync(new VerifyRequest("ref-1", 1000));
 
@@ -100,13 +102,14 @@ public class SepPaymentGatewayProviderTests
         var provider = CreateProvider(request =>
             request.RequestUri!.AbsoluteUri.Contains("VerifyTransaction")
                 ? $$"""
-                  {
-                      "TransactionDetail": null,
-                      "ResultCode": {{resultCode}},
-                      "Success": false
-                  }
-                  """
-                : "{}");
+                    {
+                        "TransactionDetail": null,
+                        "ResultCode": {{resultCode}},
+                        "Success": false
+                    }
+                    """
+                : "{}"
+        );
 
         var result = await provider.VerifyAsync(new VerifyRequest("ref-1", 1000));
 
@@ -115,16 +118,22 @@ public class SepPaymentGatewayProviderTests
         Assert.Contains(expectedMessagePart, result.ErrorMessage);
     }
 
-    private static SepPaymentGatewayProvider CreateProvider(Func<HttpRequestMessage, string> responseFactory)
+    private static SepPaymentGatewayProvider CreateProvider(
+        Func<HttpRequestMessage, string> responseFactory
+    )
     {
-        var options = Options.Create(new SepOptions
-        {
-            TerminalId = "2015",
-            TokenUrl = "https://sep.shaparak.ir/onlinepg/onlinepg",
-            PaymentBaseUrl = "https://sep.shaparak.ir/OnlinePG/SendToken",
-            VerifyUrl = "https://sep.shaparak.ir/verifyTxnRandomSessionkey/ipg/VerifyTransaction",
-            ReverseUrl = "https://sep.shaparak.ir/verifyTxnRandomSessionkey/ipg/ReverseTransaction"
-        });
+        var options = Options.Create(
+            new SepOptions
+            {
+                TerminalId = "2015",
+                TokenUrl = "https://sep.shaparak.ir/onlinepg/onlinepg",
+                PaymentBaseUrl = "https://sep.shaparak.ir/OnlinePG/SendToken",
+                VerifyUrl =
+                    "https://sep.shaparak.ir/verifyTxnRandomSessionkey/ipg/VerifyTransaction",
+                ReverseUrl =
+                    "https://sep.shaparak.ir/verifyTxnRandomSessionkey/ipg/ReverseTransaction",
+            }
+        );
 
         var client = new HttpClient(new StubHttpMessageHandler(responseFactory));
         var apiClient = new SepApiClient(client, options, new TestLogger<SepApiClient>());
@@ -133,23 +142,23 @@ public class SepPaymentGatewayProviderTests
 
     private static string SuccessfulVerifyJson(long amount) =>
         $$"""
-        {
-            "TransactionDetail": {
-                "RRN": "14226761817",
-                "RefNum": "ref-1",
-                "MaskedPan": "621986****8080",
-                "HashedPan": "hash",
-                "TerminalNumber": 2015,
-                "OrginalAmount": {{amount}},
-                "AffectiveAmount": {{amount}},
-                "StraceDate": "2019-09-16 18:11:06",
-                "StraceNo": "100428"
-            },
-            "ResultCode": 0,
-            "ResultDescription": "OK",
-            "Success": true
-        }
-        """;
+            {
+                "TransactionDetail": {
+                    "RRN": "14226761817",
+                    "RefNum": "ref-1",
+                    "MaskedPan": "621986****8080",
+                    "HashedPan": "hash",
+                    "TerminalNumber": 2015,
+                    "OrginalAmount": {{amount}},
+                    "AffectiveAmount": {{amount}},
+                    "StraceDate": "2019-09-16 18:11:06",
+                    "StraceNo": "100428"
+                },
+                "ResultCode": 0,
+                "ResultDescription": "OK",
+                "Success": true
+            }
+            """;
 
     private sealed class StubHttpMessageHandler : HttpMessageHandler
     {
@@ -160,11 +169,18 @@ public class SepPaymentGatewayProviderTests
             _responseFactory = responseFactory;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(_responseFactory(request), Encoding.UTF8, "application/json")
+                Content = new StringContent(
+                    _responseFactory(request),
+                    Encoding.UTF8,
+                    "application/json"
+                ),
             };
 
             return Task.FromResult(response);
@@ -173,23 +189,24 @@ public class SepPaymentGatewayProviderTests
 
     private sealed class TestLogger<T> : ILogger<T>
     {
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NoopDisposable.Instance;
+        public IDisposable BeginScope<TState>(TState state)
+            where TState : notnull => NoopDisposable.Instance;
+
         public bool IsEnabled(LogLevel logLevel) => false;
+
         public void Log<TState>(
             LogLevel logLevel,
             EventId eventId,
             TState state,
             Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-        }
+            Func<TState, Exception?, string> formatter
+        ) { }
     }
 
     private sealed class NoopDisposable : IDisposable
     {
         public static readonly NoopDisposable Instance = new();
-        public void Dispose()
-        {
-        }
+
+        public void Dispose() { }
     }
 }

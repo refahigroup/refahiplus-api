@@ -9,7 +9,8 @@ using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Products.GetProducts;
 
-public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ProductsPagedResponse>
+public sealed class GetProductsQueryHandler
+    : IRequestHandler<GetProductsQuery, ProductsPagedResponse>
 {
     private readonly IStoreModuleCatalogService _catalog;
     private readonly IShopProductRepository _shopProductRepository;
@@ -22,7 +23,8 @@ public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, 
         IShopProductRepository shopProductRepository,
         IMediator mediator,
         IPathService pathService,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider
+    )
     {
         _catalog = catalog;
         _shopProductRepository = shopProductRepository;
@@ -34,19 +36,24 @@ public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, 
     public async Task<ProductsPagedResponse> Handle(GetProductsQuery request, CancellationToken ct)
     {
         var empty = new ProductsPagedResponse([], request.PageNumber, request.PageSize, 0, 0);
-        var agreementProductIds = await _catalog.GetDisplayableAgreementProductIdsAsync(request.ModuleId, ct);
+        var agreementProductIds = await _catalog.GetDisplayableAgreementProductIdsAsync(
+            request.ModuleId,
+            ct
+        );
         if (agreementProductIds.Count == 0)
             return empty;
 
         var agreementProducts = await _mediator.Send(
-            new GetAgreementProductsByIdsQuery(agreementProductIds), ct);
+            new GetAgreementProductsByIdsQuery(agreementProductIds),
+            ct
+        );
 
-        var stockBasedIds = agreementProducts.Values
-            .Where(x => x.SalesModel == (short)SalesModel.StockBased)
+        var stockBasedIds = agreementProducts
+            .Values.Where(x => x.SalesModel == (short)SalesModel.StockBased)
             .Select(x => x.Id)
             .ToList();
-        var sessionBasedIds = agreementProducts.Values
-            .Where(x => x.SalesModel == (short)SalesModel.SessionBased)
+        var sessionBasedIds = agreementProducts
+            .Values.Where(x => x.SalesModel == (short)SalesModel.SessionBased)
             .Select(x => x.Id)
             .ToList();
 
@@ -59,36 +66,55 @@ public sealed class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, 
             request.Sort,
             request.PageNumber,
             request.PageSize,
-            ct);
+            ct
+        );
 
-        var data = offerings.Select(x =>
-        {
-            agreementProducts.TryGetValue(x.AgreementProductId, out var agreementProduct);
-            var discountPercent = x.DiscountedPriceMinor.HasValue
-                ? (int?)Math.Round((x.PriceMinor - x.DiscountedPriceMinor.Value) * 100m / x.PriceMinor)
-                : null;
+        var data = offerings
+            .Select(x =>
+            {
+                agreementProducts.TryGetValue(x.AgreementProductId, out var agreementProduct);
+                var discountPercent = x.DiscountedPriceMinor.HasValue
+                    ? (int?)
+                        Math.Round(
+                            (x.PriceMinor - x.DiscountedPriceMinor.Value) * 100m / x.PriceMinor
+                        )
+                    : null;
 
-            return new ProductOfferingSummaryDto(
-                x.ProductId,
-                x.ProductVariantId,
-                x.ShopProductVariantId,
-                x.ShopId,
-                x.ProductTitle,
-                x.ProductSlug,
-                x.VariantLabel,
-                x.ShopName,
-                x.ShopSlug,
-                x.PriceMinor,
-                x.DiscountedPriceMinor,
-                discountPercent,
-                agreementProduct is null ? string.Empty : ((ProductType)agreementProduct.ProductType).ToString(),
-                agreementProduct is null ? string.Empty : ((DeliveryType)agreementProduct.DeliveryType).ToString(),
-                agreementProduct is null ? string.Empty : ((SalesModel)agreementProduct.SalesModel).ToString(),
-                x.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(x.ImageUrl),
-                true);
-        }).ToList();
+                return new ProductOfferingSummaryDto(
+                    x.ProductId,
+                    x.ProductVariantId,
+                    x.ShopProductVariantId,
+                    x.ShopId,
+                    x.ProductTitle,
+                    x.ProductSlug,
+                    x.VariantLabel,
+                    x.ShopName,
+                    x.ShopSlug,
+                    x.PriceMinor,
+                    x.DiscountedPriceMinor,
+                    discountPercent,
+                    agreementProduct is null
+                        ? string.Empty
+                        : ((ProductType)agreementProduct.ProductType).ToString(),
+                    agreementProduct is null
+                        ? string.Empty
+                        : ((DeliveryType)agreementProduct.DeliveryType).ToString(),
+                    agreementProduct is null
+                        ? string.Empty
+                        : ((SalesModel)agreementProduct.SalesModel).ToString(),
+                    x.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(x.ImageUrl),
+                    true
+                );
+            })
+            .ToList();
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
-        return new ProductsPagedResponse(data, request.PageNumber, request.PageSize, total, totalPages);
+        return new ProductsPagedResponse(
+            data,
+            request.PageNumber,
+            request.PageSize,
+            total,
+            totalPages
+        );
     }
 }

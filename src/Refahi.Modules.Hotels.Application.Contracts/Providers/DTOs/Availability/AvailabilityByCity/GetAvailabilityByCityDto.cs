@@ -8,7 +8,10 @@ public record GetAvailabilityByCityDto
         Items = null;
     }
 
-    public GetAvailabilityByCityDto(AvailabilityByCitiesFilter? filter, List<AvailabilityByCitiesItem>? items)
+    public GetAvailabilityByCityDto(
+        AvailabilityByCitiesFilter? filter,
+        List<AvailabilityByCitiesItem>? items
+    )
     {
         Filter = filter;
         Items = items;
@@ -18,11 +21,9 @@ public record GetAvailabilityByCityDto
 
     public List<AvailabilityByCitiesItem>? Items { get; set; }
 
-
     public static GetAvailabilityByCityDto Create(GetAvailabilityByCityQuery query)
     {
-        var filter = new AvailabilityByCitiesFilter
-        (
+        var filter = new AvailabilityByCitiesFilter(
             query.MinPrice,
             query.MaxPrice,
             query.Adults,
@@ -36,8 +37,7 @@ public record GetAvailabilityByCityDto
     }
 }
 
-public record AvailabilityByCitiesFilter
-(
+public record AvailabilityByCitiesFilter(
     int? MinPrice,
     int? MaxPrice,
     int? Adults,
@@ -47,32 +47,29 @@ public record AvailabilityByCitiesFilter
     List<string>? Accommodations
 );
 
-public record AvailabilityByCitiesItem
-(
+public record AvailabilityByCitiesItem(
     int CityId,
     AvailabilityByCitiesHotel? Hotel,
     AvailabilityByCitiesRoom? Room
 );
 
-public record AvailabilityByCitiesHotel
-(
-     int Id,
-     string Title,
-     string? AccommodationType,
-     string? AccommodationTitle,
-     string? Address,
-     int? Stars,
-     IReadOnlyList<string>? Images = null
+public record AvailabilityByCitiesHotel(
+    int Id,
+    string Title,
+    string? AccommodationType,
+    string? AccommodationTitle,
+    string? Address,
+    int? Stars,
+    IReadOnlyList<string>? Images = null
 );
 
-public record AvailabilityByCitiesRoom
-(
-     int Id,
-     string Title,
-     int Price,
-     int? PriceOff,
-     int? DiscountPercent,
-     int? ChildPrice,
-     int? ExtraBedPrice,
-     int? Children
+public record AvailabilityByCitiesRoom(
+    int Id,
+    string Title,
+    int Price,
+    int? PriceOff,
+    int? DiscountPercent,
+    int? ChildPrice,
+    int? ExtraBedPrice,
+    int? Children
 );

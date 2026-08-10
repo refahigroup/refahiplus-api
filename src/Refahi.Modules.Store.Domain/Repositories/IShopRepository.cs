@@ -10,12 +10,22 @@ public interface IShopRepository
     Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default);
     Task<List<Shop>> GetBySupplierIdAsync(Guid supplierId, CancellationToken ct = default);
     Task<(List<Shop> Items, int Total)> GetPagedAsync(
-        ShopType? shopType, ShopStatus? status, int page, int size, CancellationToken ct = default);
+        ShopType? shopType,
+        ShopStatus? status,
+        int page,
+        int size,
+        CancellationToken ct = default
+    );
     Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default);
     Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default);
+
     /// <summary>Returns a paginated subset of active shops whose IDs are in <paramref name="ids"/>.</summary>
     Task<(List<Shop> Items, int Total)> GetPagedByIdsAsync(
-        IEnumerable<Guid> ids, int page, int size, CancellationToken ct = default);
+        IEnumerable<Guid> ids,
+        int page,
+        int size,
+        CancellationToken ct = default
+    );
     Task<List<Shop>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
     Task AddAsync(Shop shop, CancellationToken ct = default);
     Task UpdateAsync(Shop shop, CancellationToken ct = default);

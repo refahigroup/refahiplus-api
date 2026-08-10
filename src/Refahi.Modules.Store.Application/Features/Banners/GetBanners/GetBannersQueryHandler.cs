@@ -19,7 +19,10 @@ public class GetBannersQueryHandler : IRequestHandler<GetBannersQuery, List<Bann
         _pathService = pathService;
     }
 
-    public async Task<List<BannerDto>> Handle(GetBannersQuery request, CancellationToken cancellationToken)
+    public async Task<List<BannerDto>> Handle(
+        GetBannersQuery request,
+        CancellationToken cancellationToken
+    )
     {
         List<Banner> banners;
 
@@ -48,10 +51,16 @@ public class GetBannersQueryHandler : IRequestHandler<GetBannersQuery, List<Bann
         return filtered
             .OrderBy(b => b.SortOrder)
             .Select(b => new BannerDto(
-                b.Id, b.Title, _pathService.MakeAbsoluteMediaUrl(b.ImageUrl), b.LinkUrl,
+                b.Id,
+                b.Title,
+                _pathService.MakeAbsoluteMediaUrl(b.ImageUrl),
+                b.LinkUrl,
                 b.BannerType.ToString(),
-                b.SortOrder, b.IsActive,
-                b.StartDate, b.EndDate))
+                b.SortOrder,
+                b.IsActive,
+                b.StartDate,
+                b.EndDate
+            ))
             .ToList();
     }
 }

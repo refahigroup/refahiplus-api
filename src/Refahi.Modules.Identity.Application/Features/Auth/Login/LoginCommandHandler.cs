@@ -17,7 +17,10 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, UserDto?>
 
     public async Task<UserDto?> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetByMobileOrEmailAsync(request.MobileOrEmail, cancellationToken);
+        var user = await _userRepository.GetByMobileOrEmailAsync(
+            request.MobileOrEmail,
+            cancellationToken
+        );
 
         if (user == null)
             return null;
@@ -28,12 +31,6 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, UserDto?>
         if (!user.VerifyPassword(request.Password))
             return null;
 
-        return new UserDto(
-            user.Id,
-            user.MobileNumber,
-            user.Email,
-            user.IsActive,
-            user.GetRoles());
+        return new UserDto(user.Id, user.MobileNumber, user.Email, user.IsActive, user.GetRoles());
     }
 }
-

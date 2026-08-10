@@ -5,21 +5,34 @@ using Refahi.Modules.References.Domain.Repositories;
 
 namespace Refahi.Modules.References.Application.Features.Provinces.UpdateProvince;
 
-public class UpdateProvinceCommandHandler : IRequestHandler<UpdateProvinceCommand, UpdateProvinceResponse>
+public class UpdateProvinceCommandHandler
+    : IRequestHandler<UpdateProvinceCommand, UpdateProvinceResponse>
 {
     private readonly IProvinceRepository _provinceRepository;
 
-    public UpdateProvinceCommandHandler(IProvinceRepository provinceRepository)
-        => _provinceRepository = provinceRepository;
+    public UpdateProvinceCommandHandler(IProvinceRepository provinceRepository) =>
+        _provinceRepository = provinceRepository;
 
     public async Task<UpdateProvinceResponse> Handle(
-        UpdateProvinceCommand request, CancellationToken cancellationToken)
+        UpdateProvinceCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var province = await _provinceRepository.GetByIdAsync(request.Id, cancellationToken)
+        var province =
+            await _provinceRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new ReferencesDomainException("استان یافت نشد", "PROVINCE_NOT_FOUND");
 
-        if (await _provinceRepository.SlugExistsAsync(request.Slug.Trim().ToLowerInvariant(), request.Id, cancellationToken))
-            throw new ReferencesDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
+        if (
+            await _provinceRepository.SlugExistsAsync(
+                request.Slug.Trim().ToLowerInvariant(),
+                request.Id,
+                cancellationToken
+            )
+        )
+            throw new ReferencesDomainException(
+                "این اسلاگ قبلاً ثبت شده است",
+                "SLUG_ALREADY_EXISTS"
+            );
 
         province.UpdateInfo(request.Name, request.Slug, request.SortOrder);
 

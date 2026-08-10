@@ -1,8 +1,8 @@
-using MediatR;
-using Refahi.Shared.Services.Notification;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Refahi.Modules.Identity.Domain.Repositories;
+using Refahi.Shared.Services.Notification;
 
 namespace Refahi.Modules.Identity.Application.Features.Auth.SignUp;
 
@@ -13,16 +13,20 @@ public class SendOtpCommandHandler : IRequestHandler<SendOtpCommand, SendOtpResu
 
     public SendOtpCommandHandler(
         INotificationService notificationService,
-        IUserRepository userRepository)
+        IUserRepository userRepository
+    )
     {
         _notificationService = notificationService;
         _userRepository = userRepository;
     }
 
-    public async Task<SendOtpResult> Handle(SendOtpCommand request, CancellationToken cancellationToken)
+    public async Task<SendOtpResult> Handle(
+        SendOtpCommand request,
+        CancellationToken cancellationToken
+    )
     {
         // Note: Basic validation (mobile/email format, null checks) is handled by FluentValidation pipeline
-        
+
         // Determine receipt and type
         string receipt;
         OtpReceiptType receiptType;
@@ -55,7 +59,12 @@ public class SendOtpCommandHandler : IRequestHandler<SendOtpCommand, SendOtpResu
         }
 
         // Send OTP via notification service (it handles generation, storage, and sending)
-        var otpResult = await _notificationService.SendOtp(receipt, receiptType, OtpType.SignUp, cancellationToken);
+        var otpResult = await _notificationService.SendOtp(
+            receipt,
+            receiptType,
+            OtpType.SignUp,
+            cancellationToken
+        );
 
         return new SendOtpResult(true, null, otpResult.ReferenceCode, otpResult.ExpiresAt);
     }

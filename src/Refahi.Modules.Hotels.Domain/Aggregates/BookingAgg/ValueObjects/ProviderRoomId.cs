@@ -1,4 +1,5 @@
 ﻿using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
+
 namespace Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.ValueObjects;
 
 public readonly struct ProviderRoomId
@@ -15,4 +16,3 @@ public readonly struct ProviderRoomId
 
     public override string ToString() => Value.ToString();
 }
-

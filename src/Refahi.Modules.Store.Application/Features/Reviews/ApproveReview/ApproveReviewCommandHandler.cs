@@ -5,7 +5,8 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Reviews.ApproveReview;
 
-public class ApproveReviewCommandHandler : IRequestHandler<ApproveReviewCommand, ApproveReviewResponse>
+public class ApproveReviewCommandHandler
+    : IRequestHandler<ApproveReviewCommand, ApproveReviewResponse>
 {
     private readonly IReviewRepository _reviewRepo;
 
@@ -14,9 +15,13 @@ public class ApproveReviewCommandHandler : IRequestHandler<ApproveReviewCommand,
         _reviewRepo = reviewRepo;
     }
 
-    public async Task<ApproveReviewResponse> Handle(ApproveReviewCommand request, CancellationToken cancellationToken)
+    public async Task<ApproveReviewResponse> Handle(
+        ApproveReviewCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var review = await _reviewRepo.GetByIdAsync(request.ReviewId, cancellationToken)
+        var review =
+            await _reviewRepo.GetByIdAsync(request.ReviewId, cancellationToken)
             ?? throw new StoreDomainException("نظر یافت نشد", "REVIEW_NOT_FOUND");
 
         review.Approve();

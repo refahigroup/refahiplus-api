@@ -8,25 +8,26 @@ public class AddProductVariantCommandValidator : AbstractValidator<AddProductVar
 {
     public AddProductVariantCommandValidator()
     {
-        RuleFor(x => x.ProductId)
-            .NotEmpty().WithMessage("شناسه محصول الزامی است");
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("شناسه محصول الزامی است");
 
-        RuleFor(x => x.Combinations)
-            .NotNull().WithMessage("ترکیب‌های تنوع الزامی است");
+        RuleFor(x => x.Combinations).NotNull().WithMessage("ترکیب‌های تنوع الزامی است");
 
         RuleFor(x => x.StockCount)
-            .GreaterThanOrEqualTo(0).WithMessage("تعداد موجودی نمی‌تواند منفی باشد");
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("تعداد موجودی نمی‌تواند منفی باشد");
 
-        RuleFor(x => x.PriceMinor)
-            .GreaterThan(0).WithMessage("قیمت باید بیشتر از صفر باشد");
+        RuleFor(x => x.PriceMinor).GreaterThan(0).WithMessage("قیمت باید بیشتر از صفر باشد");
 
         RuleFor(x => x.DiscountedPriceMinor)
-            .NotNull().WithMessage("قیمت تخفیف‌خورده الزامی است")
+            .NotNull()
+            .WithMessage("قیمت تخفیف‌خورده الزامی است")
             .GreaterThan(0)
             .WithMessage("قیمت تخفیف‌خورده باید بیشتر از صفر باشد");
 
         RuleFor(x => x)
-            .Must(x => !x.DiscountedPriceMinor.HasValue || x.DiscountedPriceMinor.Value <= x.PriceMinor)
+            .Must(x =>
+                !x.DiscountedPriceMinor.HasValue || x.DiscountedPriceMinor.Value <= x.PriceMinor
+            )
             .WithMessage("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد");
 
         RuleFor(x => x)
@@ -34,15 +35,20 @@ public class AddProductVariantCommandValidator : AbstractValidator<AddProductVar
             .WithMessage("تاریخ شروع و پایان اعتبار باید همزمان ثبت شوند");
 
         RuleFor(x => x)
-            .Must(x => !x.FromDate.HasValue || !x.ToDate.HasValue || x.FromDate.Value <= x.ToDate.Value)
+            .Must(x =>
+                !x.FromDate.HasValue || !x.ToDate.HasValue || x.FromDate.Value <= x.ToDate.Value
+            )
             .WithMessage("تاریخ شروع اعتبار باید قبل از تاریخ پایان باشد");
 
-        RuleFor(x => x.CapacityType)
-            .IsInEnum().WithMessage("نوع ظرفیت تنوع معتبر نیست");
+        RuleFor(x => x.CapacityType).IsInEnum().WithMessage("نوع ظرفیت تنوع معتبر نیست");
 
         RuleFor(x => x.Capacity)
             .GreaterThan(0)
-            .When(x => x.CapacityType is VariantCapacityType.TotalPeriod or VariantCapacityType.PerEligibleDay)
+            .When(x =>
+                x.CapacityType
+                    is VariantCapacityType.TotalPeriod
+                        or VariantCapacityType.PerEligibleDay
+            )
             .WithMessage("ظرفیت تنوع باید بیشتر از صفر باشد");
     }
 }

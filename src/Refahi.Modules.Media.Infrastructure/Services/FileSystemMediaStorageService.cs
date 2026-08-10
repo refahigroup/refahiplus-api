@@ -20,8 +20,11 @@ public class FileSystemMediaStorageService : IMediaStorageService
     }
 
     public async Task<MediaStorageResult> SaveAsync(
-        Stream fileStream, string fileExtension,
-        MediaType mediaType, CancellationToken ct = default)
+        Stream fileStream,
+        string fileExtension,
+        MediaType mediaType,
+        CancellationToken ct = default
+    )
     {
         var folder = mediaType == MediaType.Video ? "videos" : "images";
         var now = DateTimeOffset.UtcNow;
@@ -40,9 +43,16 @@ public class FileSystemMediaStorageService : IMediaStorageService
 
         var physicalPath = Path.Combine(physicalDir, storedFileName);
 
-        await using (var fs = new FileStream(
-            physicalPath, FileMode.CreateNew, FileAccess.Write,
-            FileShare.None, bufferSize: 81920, useAsync: true))
+        await using (
+            var fs = new FileStream(
+                physicalPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                useAsync: true
+            )
+        )
         {
             await fileStream.CopyToAsync(fs, ct);
         }
@@ -72,6 +82,6 @@ public class FileSystemMediaStorageService : IMediaStorageService
         return Task.CompletedTask;
     }
 
-    public string GetPublicUrl(string storagePath)
-        => $"{_options.CreateBaseUrl.TrimEnd('/')}/{storagePath.TrimStart('/')}";
+    public string GetPublicUrl(string storagePath) =>
+        $"{_options.CreateBaseUrl.TrimEnd('/')}/{storagePath.TrimStart('/')}";
 }

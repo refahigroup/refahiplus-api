@@ -10,4 +10,3 @@ public sealed record ApiErrorResponse(
     int StatusCode = 400,
     string? TraceId = null
 );
-

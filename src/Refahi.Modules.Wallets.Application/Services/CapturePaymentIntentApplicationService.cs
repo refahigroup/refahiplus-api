@@ -1,16 +1,16 @@
-using Refahi.Modules.Wallets.Application.Contracts;
-using Refahi.Modules.Wallets.Application.Contracts.Features.CapturePaymentIntent;
-using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Refahi.Modules.Wallets.Application.Contracts;
+using Refahi.Modules.Wallets.Application.Contracts.Features.CapturePaymentIntent;
+using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
 
 namespace Refahi.Modules.Wallets.Application.Services;
 
 /// <summary>
 /// Application Service: Capture Payment Intent (Finalize Payment) use case.
-/// 
+///
 /// Responsibilities:
 /// - Orchestrate call to Infrastructure
 /// - Interpret outcome and build response
@@ -27,28 +27,36 @@ public sealed class CapturePaymentIntentApplicationService
 
     public async Task<CommandResponse<CapturePaymentIntentResponse>> CaptureIntentAsync(
         CapturePaymentIntentCommand command,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         // Delegate atomic execution to Infrastructure
         var atomicResult = await _atomicWriter.ExecuteCaptureIntentAsync(
             intentId: command.IntentId,
             idempotencyKey: command.IdempotencyKey,
-            ct: ct);
+            ct: ct
+        );
 
         // Interpret outcome and build response
         return atomicResult.Outcome switch
         {
-            CaptureIntentOutcome.Captured or CaptureIntentOutcome.CapturedCached => BuildCompletedResponse(atomicResult),
+            CaptureIntentOutcome.Captured or CaptureIntentOutcome.CapturedCached =>
+                BuildCompletedResponse(atomicResult),
             CaptureIntentOutcome.InProgress => BuildInProgressResponse(),
-            _ => throw new InvalidOperationException($"Unknown outcome: {atomicResult.Outcome}")
+            _ => throw new InvalidOperationException($"Unknown outcome: {atomicResult.Outcome}"),
         };
     }
 
     private static CommandResponse<CapturePaymentIntentResponse> BuildCompletedResponse(
-        CaptureIntentAtomicResult atomicResult)
+        CaptureIntentAtomicResult atomicResult
+    )
     {
-        var allocations = atomicResult.Allocations
-            .Select(a => new PaymentAllocationResponse(a.WalletId, a.AmountMinor, a.LedgerEntryId))
+        var allocations = atomicResult
+            .Allocations.Select(a => new PaymentAllocationResponse(
+                a.WalletId,
+                a.AmountMinor,
+                a.LedgerEntryId
+            ))
             .ToList();
 
         var response = new CapturePaymentIntentResponse(
@@ -59,7 +67,8 @@ public sealed class CapturePaymentIntentApplicationService
             Currency: atomicResult.Currency,
             Status: "Completed",
             Allocations: allocations,
-            CompletedAt: atomicResult.CompletedAt);
+            CompletedAt: atomicResult.CompletedAt
+        );
 
         return new CommandResponse<CapturePaymentIntentResponse>(CommandStatus.Completed, response);
     }

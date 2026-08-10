@@ -2,10 +2,8 @@
 
 namespace Refahi.Modules.Wallets.Domain.Exceptions;
 
-public class SuspendedWalletDomainException: WalletDomainException
+public class SuspendedWalletDomainException : WalletDomainException
 {
-    public SuspendedWalletDomainException(string message): base("WALLET_SUSPENDED", message)
-    {
-        
-    }
+    public SuspendedWalletDomainException(string message)
+        : base("WALLET_SUSPENDED", message) { }
 }

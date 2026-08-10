@@ -5,16 +5,21 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Products.DeleteProduct;
 
-public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand, DeleteProductResponse>
+public class DeleteProductCommandHandler
+    : IRequestHandler<DeleteProductCommand, DeleteProductResponse>
 {
     private readonly IProductRepository _productRepo;
 
-    public DeleteProductCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public DeleteProductCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
-    public async Task<DeleteProductResponse> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
+    public async Task<DeleteProductResponse> Handle(
+        DeleteProductCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.Id, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         product.SoftDelete();

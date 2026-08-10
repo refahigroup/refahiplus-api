@@ -22,7 +22,8 @@ public sealed class SearchFlightsQueryHandler
     public SearchFlightsQueryHandler(
         IFlightProviderFactory providerFactory,
         IFlightOfferSnapshotRepository offerSnapshotRepository,
-        IFlightAirportRepository airportRepository)
+        IFlightAirportRepository airportRepository
+    )
     {
         _providerFactory = providerFactory;
         _offerSnapshotRepository = offerSnapshotRepository;
@@ -31,13 +32,15 @@ public sealed class SearchFlightsQueryHandler
 
     public async Task<SearchFlightsResponse> Handle(
         SearchFlightsQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var routeAirports = await _airportRepository.GetByIataCodesAsync(
             [request.Origin!, request.Destination!],
-            cancellationToken);
-        var isDomestic = routeAirports.Count == 2
-            && routeAirports.All(airport => airport.CountryCode == "IR");
+            cancellationToken
+        );
+        var isDomestic =
+            routeAirports.Count == 2 && routeAirports.All(airport => airport.CountryCode == "IR");
         var providerRequest = BuildProviderRequest(request, isDomestic);
         var provider = _providerFactory.GetDefaultProvider();
         var providerResponse = await provider.SearchAsync(providerRequest, cancellationToken);
@@ -68,7 +71,8 @@ public sealed class SearchFlightsQueryHandler
                 publicSnapshotJson,
                 providerOffer.RawPayloadSnapshot ?? providerResponse.RawPayloadSnapshot,
                 nowUtc,
-                expiresAtUtc);
+                expiresAtUtc
+            );
 
             await _offerSnapshotRepository.AddAsync(snapshot, cancellationToken);
             publicOffers.Add(publicOffer);
@@ -79,32 +83,35 @@ public sealed class SearchFlightsQueryHandler
         return new SearchFlightsResponse(expiresAtUtc, publicOffers);
     }
 
-    private static FlightSearchRequest BuildProviderRequest(SearchFlightsQuery request, bool isDomestic)
+    private static FlightSearchRequest BuildProviderRequest(
+        SearchFlightsQuery request,
+        bool isDomestic
+    )
     {
         var origin = request.Origin!.Trim().ToUpperInvariant();
         var destination = request.Destination!.Trim().ToUpperInvariant();
         var airTripType = string.IsNullOrWhiteSpace(request.AirTripType)
-            ? request.ReturnDate.HasValue ? "RoundTrip" : "OneWay"
+            ? request.ReturnDate.HasValue
+                ? "RoundTrip"
+                : "OneWay"
             : request.AirTripType.Trim();
 
         var legs = new List<FlightSearchLeg>
         {
-            new(
-                request.DepartureDate!.Value,
-                origin,
-                destination,
-                "Airport",
-                "Airport")
+            new(request.DepartureDate!.Value, origin, destination, "Airport", "Airport"),
         };
 
         if (request.ReturnDate.HasValue)
         {
-            legs.Add(new FlightSearchLeg(
-                request.ReturnDate.Value,
-                destination,
-                origin,
-                "Airport",
-                "Airport"));
+            legs.Add(
+                new FlightSearchLeg(
+                    request.ReturnDate.Value,
+                    destination,
+                    origin,
+                    "Airport",
+                    "Airport"
+                )
+            );
         }
 
         return new FlightSearchRequest(
@@ -118,13 +125,15 @@ public sealed class SearchFlightsQueryHandler
                 airTripType,
                 request.MaxStopsQuantity,
                 NormalizeCodes(request.VendorExcludeCodes),
-                NormalizeCodes(request.VendorPreferenceCodes)));
+                NormalizeCodes(request.VendorPreferenceCodes)
+            )
+        );
     }
 
     private static IReadOnlyCollection<string>? NormalizeCodes(IReadOnlyCollection<string>? codes)
     {
-        var normalized = codes?
-            .Where(code => !string.IsNullOrWhiteSpace(code))
+        var normalized = codes
+            ?.Where(code => !string.IsNullOrWhiteSpace(code))
             .Select(code => code.Trim().ToUpperInvariant())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -134,9 +143,11 @@ public sealed class SearchFlightsQueryHandler
 
     private static void ValidateProviderOffer(FlightFareOffer offer)
     {
-        if (string.IsNullOrWhiteSpace(offer.ProviderFareSourceCode)
+        if (
+            string.IsNullOrWhiteSpace(offer.ProviderFareSourceCode)
             || offer.TotalFare.TotalFare <= 0
-            || !string.Equals(offer.TotalFare.Currency, "IRR", StringComparison.OrdinalIgnoreCase))
+            || !string.Equals(offer.TotalFare.Currency, "IRR", StringComparison.OrdinalIgnoreCase)
+        )
         {
             throw new InvalidOperationException("اطلاعات قیمت پرواز از تامین‌کننده معتبر نیست.");
         }
@@ -145,20 +156,21 @@ public sealed class SearchFlightsQueryHandler
     private static FlightOfferDto MapToPublicOffer(
         FlightFareOffer offer,
         string offerToken,
-        DateTime expiresAtUtc)
+        DateTime expiresAtUtc
+    )
     {
-        var segments = offer.OriginDestinationOptions
-            .SelectMany(option => option.FlightSegments)
+        var segments = offer
+            .OriginDestinationOptions.SelectMany(option => option.FlightSegments)
             .Select(MapSegment)
             .ToList();
 
         var firstSegment = segments.FirstOrDefault();
         var lastSegment = segments.LastOrDefault();
-        var firstProviderSegment = offer.OriginDestinationOptions
-            .SelectMany(option => option.FlightSegments)
+        var firstProviderSegment = offer
+            .OriginDestinationOptions.SelectMany(option => option.FlightSegments)
             .FirstOrDefault();
-        var totalDuration = offer.OriginDestinationOptions
-            .Where(option => option.JourneyDurationPerMinute.HasValue)
+        var totalDuration = offer
+            .OriginDestinationOptions.Where(option => option.JourneyDurationPerMinute.HasValue)
             .Sum(option => option.JourneyDurationPerMinute!.Value);
 
         return new FlightOfferDto(
@@ -183,7 +195,8 @@ public sealed class SearchFlightsQueryHandler
             firstProviderSegment?.Baggage,
             MapMoney(offer.TotalFare),
             segments,
-            offer.PassengerFareBreakdowns.Select(MapPassengerFare).ToList());
+            offer.PassengerFareBreakdowns.Select(MapPassengerFare).ToList()
+        );
     }
 
     private static FlightSegmentDto MapSegment(FlightSegmentOffer segment)
@@ -208,15 +221,13 @@ public sealed class SearchFlightsQueryHandler
             segment.StopQuantity,
             segment.Baggage,
             segment.IsCharter,
-            segment.IsReturn);
+            segment.IsReturn
+        );
     }
 
     private static FlightPassengerFareDto MapPassengerFare(FlightPassengerFareBreakdown fare)
     {
-        return new FlightPassengerFareDto(
-            fare.PassengerType,
-            fare.Quantity,
-            MapMoney(fare.Fare));
+        return new FlightPassengerFareDto(fare.PassengerType, fare.Quantity, MapMoney(fare.Fare));
     }
 
     private static FlightMoneyDto MapMoney(FlightMoney money)
@@ -227,7 +238,8 @@ public sealed class SearchFlightsQueryHandler
             money.TotalTax,
             money.TotalCommission,
             money.ServiceTax,
-            money.Currency);
+            money.Currency
+        );
     }
 
     private static string CreateOfferToken()
@@ -235,15 +247,15 @@ public sealed class SearchFlightsQueryHandler
         Span<byte> bytes = stackalloc byte[32];
         RandomNumberGenerator.Fill(bytes);
 
-        return Convert.ToBase64String(bytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
     private static string BuildSafeProviderError(FlightProviderError? error)
     {
-        if (error?.Code is not null && error.Code.Contains("PASSENGER", StringComparison.OrdinalIgnoreCase))
+        if (
+            error?.Code is not null
+            && error.Code.Contains("PASSENGER", StringComparison.OrdinalIgnoreCase)
+        )
             return "ترکیب یا تعداد مسافران توسط تأمین‌کننده پذیرفته نشد.";
 
         return "جست‌وجوی پرواز در تأمین‌کننده انجام نشد. لطفاً اطلاعات جست‌وجو را بررسی و دوباره تلاش کنید.";

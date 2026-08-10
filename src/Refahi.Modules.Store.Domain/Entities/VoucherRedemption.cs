@@ -15,18 +15,38 @@ public sealed class VoucherRedemption
     public string RequestFingerprint { get; private set; } = string.Empty;
     public DateTimeOffset RedeemedAtUtc { get; private set; }
 
-    public static VoucherRedemption Create(Guid voucherId, Guid vendorUserId, Guid supplierId,
-        Guid shopId, string idempotencyKey, string requestFingerprint, DateTimeOffset redeemedAtUtc)
+    public static VoucherRedemption Create(
+        Guid voucherId,
+        Guid vendorUserId,
+        Guid supplierId,
+        Guid shopId,
+        string idempotencyKey,
+        string requestFingerprint,
+        DateTimeOffset redeemedAtUtc
+    )
     {
-        if (voucherId == Guid.Empty || vendorUserId == Guid.Empty || supplierId == Guid.Empty ||
-            shopId == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey) ||
-            string.IsNullOrWhiteSpace(requestFingerprint))
-            throw new StoreDomainException("اطلاعات ثبت استفاده ووچر معتبر نیست", "INVALID_VOUCHER_REDEMPTION");
+        if (
+            voucherId == Guid.Empty
+            || vendorUserId == Guid.Empty
+            || supplierId == Guid.Empty
+            || shopId == Guid.Empty
+            || string.IsNullOrWhiteSpace(idempotencyKey)
+            || string.IsNullOrWhiteSpace(requestFingerprint)
+        )
+            throw new StoreDomainException(
+                "اطلاعات ثبت استفاده ووچر معتبر نیست",
+                "INVALID_VOUCHER_REDEMPTION"
+            );
         return new VoucherRedemption
         {
-            Id = Guid.NewGuid(), VoucherId = voucherId, VendorUserId = vendorUserId,
-            SupplierId = supplierId, ShopId = shopId, IdempotencyKey = idempotencyKey.Trim(),
-            RequestFingerprint = requestFingerprint, RedeemedAtUtc = redeemedAtUtc
+            Id = Guid.NewGuid(),
+            VoucherId = voucherId,
+            VendorUserId = vendorUserId,
+            SupplierId = supplierId,
+            ShopId = shopId,
+            IdempotencyKey = idempotencyKey.Trim(),
+            RequestFingerprint = requestFingerprint,
+            RedeemedAtUtc = redeemedAtUtc,
         };
     }
 }

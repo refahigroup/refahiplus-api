@@ -29,10 +29,16 @@ public sealed class Banner
         ?? throw new StoreDomainException("بنر فاقد مالک معتبر است", "BANNER_OWNER_MISSING");
 
     public static Banner CreateForModule(
-        int moduleId, string title, string imageUrl, BannerType type,
-        string? linkUrl = null, int sortOrder = 0,
-        DateTimeOffset? startDate = null, DateTimeOffset? endDate = null)
-        => new()
+        int moduleId,
+        string title,
+        string imageUrl,
+        BannerType type,
+        string? linkUrl = null,
+        int sortOrder = 0,
+        DateTimeOffset? startDate = null,
+        DateTimeOffset? endDate = null
+    ) =>
+        new()
         {
             ModuleId = moduleId,
             ShopId = null,
@@ -43,14 +49,20 @@ public sealed class Banner
             SortOrder = sortOrder,
             IsActive = true,
             StartDate = startDate,
-            EndDate = endDate
+            EndDate = endDate,
         };
 
     public static Banner CreateForShop(
-        Guid shopId, string title, string imageUrl, BannerType type,
-        string? linkUrl = null, int sortOrder = 0,
-        DateTimeOffset? startDate = null, DateTimeOffset? endDate = null)
-        => new()
+        Guid shopId,
+        string title,
+        string imageUrl,
+        BannerType type,
+        string? linkUrl = null,
+        int sortOrder = 0,
+        DateTimeOffset? startDate = null,
+        DateTimeOffset? endDate = null
+    ) =>
+        new()
         {
             ModuleId = null,
             ShopId = shopId,
@@ -61,12 +73,18 @@ public sealed class Banner
             SortOrder = sortOrder,
             IsActive = true,
             StartDate = startDate,
-            EndDate = endDate
+            EndDate = endDate,
         };
 
-    public void Update(string title, string imageUrl, string? linkUrl,
-        int sortOrder, bool isActive,
-        DateTimeOffset? startDate, DateTimeOffset? endDate)
+    public void Update(
+        string title,
+        string imageUrl,
+        string? linkUrl,
+        int sortOrder,
+        bool isActive,
+        DateTimeOffset? startDate,
+        DateTimeOffset? endDate
+    )
     {
         Title = title;
         ImageUrl = imageUrl;
@@ -78,6 +96,8 @@ public sealed class Banner
     }
 
     public void Activate() => IsActive = true;
+
     public void Deactivate() => IsActive = false;
+
     public void Delete() => IsDeleted = true;
 }

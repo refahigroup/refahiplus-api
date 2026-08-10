@@ -9,12 +9,16 @@ public class DeleteProductVariantCommandHandler : IRequestHandler<DeleteProductV
 {
     private readonly IProductRepository _productRepo;
 
-    public DeleteProductVariantCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public DeleteProductVariantCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
-    public async Task<Unit> Handle(DeleteProductVariantCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DeleteProductVariantCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         product.RemoveVariant(request.VariantId);

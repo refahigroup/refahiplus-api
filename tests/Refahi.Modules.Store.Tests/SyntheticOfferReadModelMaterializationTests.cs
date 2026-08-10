@@ -43,11 +43,36 @@ public sealed class SyntheticOfferReadModelMaterializationTests
         AddColumn<bool>(table, "HasSessions");
 
         table.Rows.Add(
-            $"sp:{Guid.NewGuid():N}", "StockProduct", productId, Guid.NewGuid(),
-            "محصول تست", "test-product", DateTime.UtcNow, Guid.NewGuid(), "فروشگاه تست", "test-shop",
-            DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value,
-            200_000L, DBNull.Value, 200_000L, 5, DBNull.Value, false,
-            DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, false, false);
+            $"sp:{Guid.NewGuid():N}",
+            "StockProduct",
+            productId,
+            Guid.NewGuid(),
+            "محصول تست",
+            "test-product",
+            DateTime.UtcNow,
+            Guid.NewGuid(),
+            "فروشگاه تست",
+            "test-shop",
+            DBNull.Value,
+            DBNull.Value,
+            DBNull.Value,
+            DBNull.Value,
+            DBNull.Value,
+            DBNull.Value,
+            DBNull.Value,
+            200_000L,
+            DBNull.Value,
+            200_000L,
+            5,
+            DBNull.Value,
+            false,
+            DBNull.Value,
+            DBNull.Value,
+            DBNull.Value,
+            DBNull.Value,
+            false,
+            false
+        );
 
         using var reader = table.CreateDataReader();
         var parser = reader.GetRowParser<SyntheticOfferReadModel>();
@@ -63,6 +88,6 @@ public sealed class SyntheticOfferReadModelMaterializationTests
         Assert.Equal(200_000L, row.EffectivePriceMinor);
     }
 
-    private static void AddColumn<T>(DataTable table, string name)
-        => table.Columns.Add(name, typeof(T));
+    private static void AddColumn<T>(DataTable table, string name) =>
+        table.Columns.Add(name, typeof(T));
 }

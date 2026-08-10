@@ -6,12 +6,12 @@ namespace Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
 
 /// <summary>
 /// Infrastructure contract for atomic wallet write operations.
-/// 
+///
 /// Responsibilities:
 /// - Execute SQL operations within a transaction
 /// - Manage advisory locks and idempotency
 /// - Return structured outcome (NO business decision about WHAT to return to user)
-/// 
+///
 /// NOT responsible for:
 /// - Business logic interpretation
 /// - Response building
@@ -21,7 +21,7 @@ public interface IWalletAtomicWriter
 {
     /// <summary>
     /// Atomically execute a TopUp operation.
-    /// 
+    ///
     /// This method:
     /// - Opens DB connection and transaction
     /// - Acquires advisory lock
@@ -30,7 +30,7 @@ public interface IWalletAtomicWriter
     /// - Inserts ledger entry
     /// - Updates balance projection
     /// - Commits transaction
-    /// 
+    ///
     /// Returns structured outcome for Application layer to interpret.
     /// Throws domain exceptions for business rule violations.
     /// </summary>
@@ -41,7 +41,8 @@ public interface IWalletAtomicWriter
         string currency,
         string? externalReference,
         string? metadataJson,
-        CancellationToken ct);
+        CancellationToken ct
+    );
 }
 
 /// <summary>
@@ -53,7 +54,8 @@ public sealed record WalletTopUpAtomicResult(
     Guid OperationId,
     Guid? LedgerEntryId,
     long AvailableBalanceMinor,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt
+);
 
 /// <summary>
 /// Outcome of TopUp execution.
@@ -74,5 +76,5 @@ public enum TopUpOutcome
     /// <summary>
     /// Concurrent request detected - operation is pending in another transaction.
     /// </summary>
-    InProgress = 3
+    InProgress = 3,
 }

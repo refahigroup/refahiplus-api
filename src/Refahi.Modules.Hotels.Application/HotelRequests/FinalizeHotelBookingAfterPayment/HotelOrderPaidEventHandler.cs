@@ -13,18 +13,30 @@ public sealed class HotelOrderPaidEventHandler : INotificationHandler<OrderPaidI
         _mediator = mediator;
     }
 
-    public async Task Handle(OrderPaidIntegrationEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(
+        OrderPaidIntegrationEvent notification,
+        CancellationToken cancellationToken
+    )
     {
-        if (!notification.SourceModule.Equals("Hotel", StringComparison.OrdinalIgnoreCase) ||
-            !notification.ReferenceType.Equals("HotelRequest", StringComparison.OrdinalIgnoreCase))
+        if (
+            !notification.SourceModule.Equals("Hotel", StringComparison.OrdinalIgnoreCase)
+            || !notification.ReferenceType.Equals(
+                "HotelRequest",
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
         {
             return;
         }
 
-        await _mediator.Send(new FinalizeHotelBookingAfterPaymentCommand(
-            notification.OrderId,
-            notification.UserId,
-            notification.PaymentId,
-            notification.SagaId), cancellationToken);
+        await _mediator.Send(
+            new FinalizeHotelBookingAfterPaymentCommand(
+                notification.OrderId,
+                notification.UserId,
+                notification.PaymentId,
+                notification.SagaId
+            ),
+            cancellationToken
+        );
     }
 }

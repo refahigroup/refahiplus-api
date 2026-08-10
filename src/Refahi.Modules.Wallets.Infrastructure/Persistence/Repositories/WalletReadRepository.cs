@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Dapper;
 using Npgsql;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetBalance;
@@ -7,11 +12,6 @@ using Refahi.Modules.Wallets.Application.Contracts.Features.GetTransactions;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetWalletInfo;
 using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using Refahi.Modules.Wallets.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Refahi.Modules.Wallets.Infrastructure.Persistence.Repositories;
 
@@ -36,7 +36,8 @@ public sealed class WalletReadRepository : IWalletReadRepository
             @"select wallet_id as WalletId, currency as Currency
               from wallets.wallets
               where wallet_id = @WalletId",
-            new { WalletId = walletId });
+            new { WalletId = walletId }
+        );
 
         if (wallet == default)
             return null;
@@ -51,7 +52,8 @@ public sealed class WalletReadRepository : IWalletReadRepository
                 updated_at as UpdatedAt
               from wallets.wallet_balances
               where wallet_id = @WalletId",
-            new { WalletId = walletId });
+            new { WalletId = walletId }
+        );
 
         if (balance is not null)
             return balance;
@@ -62,17 +64,22 @@ public sealed class WalletReadRepository : IWalletReadRepository
             AvailableMinor: 0,
             PendingMinor: 0,
             Version: 0,
-            UpdatedAt: DateTimeOffset.UtcNow);
+            UpdatedAt: DateTimeOffset.UtcNow
+        );
     }
 
-    public async Task<IReadOnlyList<GetTransactionsResponse>?> GetWalletTransactionsAsync(Guid walletId, int take)
+    public async Task<IReadOnlyList<GetTransactionsResponse>?> GetWalletTransactionsAsync(
+        Guid walletId,
+        int take
+    )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
         var walletExists = await conn.ExecuteScalarAsync<bool>(
             @"select exists(select 1 from wallets.wallets where wallet_id = @WalletId)",
-            new { WalletId = walletId });
+            new { WalletId = walletId }
+        );
 
         if (!walletExists)
             return null;
@@ -94,7 +101,8 @@ public sealed class WalletReadRepository : IWalletReadRepository
               where wallet_id = @WalletId
               order by created_at desc
               limit @Take",
-            new { WalletId = walletId, Take = take });
+            new { WalletId = walletId, Take = take }
+        );
 
         return rows.ToList().AsReadOnly();
     }
@@ -105,7 +113,8 @@ public sealed class WalletReadRepository : IWalletReadRepository
         string? walletType = null,
         short? operationType = null,
         short? entryType = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
@@ -116,7 +125,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
             "REFAHI" or "Refahi" or "User" => (short)WalletType.User,
             "OrgCredit" or "ORG_CREDIT" or "Organizational" => (short)WalletType.OrgCredit,
             _ when short.TryParse(walletType, out var parsed) => parsed,
-            _ => null
+            _ => null,
         };
 
         var rows = await conn.QueryAsync<OwnerWalletTransactionRow>(
@@ -194,12 +203,13 @@ public sealed class WalletReadRepository : IWalletReadRepository
                     SystemWalletType = (short)WalletType.System,
                     ProviderWalletType = (short)WalletType.Provider,
                     OperationType = operationType,
-                    EntryType = entryType
+                    EntryType = entryType,
                 },
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
-        return rows
-            .Select(row => new MyWalletTransactionDto(
+        return rows.Select(row => new MyWalletTransactionDto(
                 row.LedgerEntryId,
                 row.WalletId,
                 row.WalletType,
@@ -217,17 +227,29 @@ public sealed class WalletReadRepository : IWalletReadRepository
                 row.OrderId,
                 row.PaymentId,
                 row.BalanceAfterMinor,
-                row.PostingSequence))
+                row.PostingSequence
+            ))
             .ToList()
             .AsReadOnly();
     }
 
-    public async Task<List<WalletSummaryDto>> GetByOwnerIdAsync(Guid ownerId, CancellationToken ct = default)
+    public async Task<List<WalletSummaryDto>> GetByOwnerIdAsync(
+        Guid ownerId,
+        CancellationToken ct = default
+    )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
 
-        var rows = await conn.QueryAsync<(Guid WalletId, short WalletType, string Currency, long AvailableMinor, long PendingMinor, string? AllowedCategoryCode, DateTimeOffset? ContractExpiresAt)>(
+        var rows = await conn.QueryAsync<(
+            Guid WalletId,
+            short WalletType,
+            string Currency,
+            long AvailableMinor,
+            long PendingMinor,
+            string? AllowedCategoryCode,
+            DateTimeOffset? ContractExpiresAt
+        )>(
             """
             SELECT w.wallet_id, w.wallet_type, w.currency,
                    COALESCE(wb.available_minor, 0) AS available_minor,
@@ -239,28 +261,37 @@ public sealed class WalletReadRepository : IWalletReadRepository
             WHERE w."OwnerId" = @OwnerId
             ORDER BY w.created_at
             """,
-            new { OwnerId = ownerId });
+            new { OwnerId = ownerId }
+        );
 
         return rows.Select(r => new WalletSummaryDto(
-            WalletId: r.WalletId,
-            WalletType: r.WalletType == (short)WalletType.User ? "REFAHI" : ((WalletType)r.WalletType).ToString(),
-            Currency: r.Currency,
-            AvailableBalanceMinor: r.AvailableMinor,
-            TotalBalanceMinor: r.AvailableMinor + r.PendingMinor,
-            HeldAmountMinor: r.PendingMinor,
-            AllowedCategoryCode: r.AllowedCategoryCode,
-            ContractExpiresAt: r.ContractExpiresAt
-        )).ToList();
+                WalletId: r.WalletId,
+                WalletType: r.WalletType == (short)WalletType.User
+                    ? "REFAHI"
+                    : ((WalletType)r.WalletType).ToString(),
+                Currency: r.Currency,
+                AvailableBalanceMinor: r.AvailableMinor,
+                TotalBalanceMinor: r.AvailableMinor + r.PendingMinor,
+                HeldAmountMinor: r.PendingMinor,
+                AllowedCategoryCode: r.AllowedCategoryCode,
+                ContractExpiresAt: r.ContractExpiresAt
+            ))
+            .ToList();
     }
 
-    public async Task<bool> ExistsByOwnerAndTypeAsync(Guid ownerId, short walletType, CancellationToken ct = default)
+    public async Task<bool> ExistsByOwnerAndTypeAsync(
+        Guid ownerId,
+        short walletType,
+        CancellationToken ct = default
+    )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
 
         return await conn.ExecuteScalarAsync<bool>(
             "SELECT EXISTS(SELECT 1 FROM wallets.wallets WHERE \"OwnerId\" = @OwnerId AND wallet_type = @WalletType)",
-            new { OwnerId = ownerId, WalletType = walletType });
+            new { OwnerId = ownerId, WalletType = walletType }
+        );
     }
 
     public async Task<WalletInfoDto?> GetByIdAsync(Guid walletId, CancellationToken ct = default)
@@ -268,13 +299,21 @@ public sealed class WalletReadRepository : IWalletReadRepository
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
 
-        var row = await conn.QuerySingleOrDefaultAsync<(Guid WalletId, short WalletType, short Status, string Currency, string? AllowedCategoryCode, DateTimeOffset? ContractExpiresAt)>(
+        var row = await conn.QuerySingleOrDefaultAsync<(
+            Guid WalletId,
+            short WalletType,
+            short Status,
+            string Currency,
+            string? AllowedCategoryCode,
+            DateTimeOffset? ContractExpiresAt
+        )>(
             """
             SELECT wallet_id, wallet_type, status, currency, allowed_category_code, contract_expires_at
             FROM wallets.wallets
             WHERE wallet_id = @WalletId
             """,
-            new { WalletId = walletId });
+            new { WalletId = walletId }
+        );
 
         if (row == default)
             return null;
@@ -285,13 +324,16 @@ public sealed class WalletReadRepository : IWalletReadRepository
             Status: row.Status,
             Currency: row.Currency,
             AllowedCategoryCode: row.AllowedCategoryCode,
-            ContractExpiresAt: row.ContractExpiresAt);
+            ContractExpiresAt: row.ContractExpiresAt
+        );
     }
 
-    private static DateTimeOffset ToDateTimeOffset(DateTime value)
-        => new(value.Kind == DateTimeKind.Unspecified
-            ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
-            : value);
+    private static DateTimeOffset ToDateTimeOffset(DateTime value) =>
+        new(
+            value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+                : value
+        );
 
     private sealed class OwnerWalletTransactionRow
     {

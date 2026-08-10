@@ -22,7 +22,8 @@ public sealed class AgreementCategoryTerm
         Guid agreementId,
         int categoryId,
         SalesChannel allowedSalesChannels,
-        decimal commissionPercent)
+        decimal commissionPercent
+    )
     {
         Validate(categoryId, allowedSalesChannels, commissionPercent);
         var now = DateTimeOffset.UtcNow;
@@ -36,14 +37,15 @@ public sealed class AgreementCategoryTerm
             CommissionPercent = commissionPercent,
             IsDeleted = false,
             CreatedAt = now,
-            UpdatedAt = now
+            UpdatedAt = now,
         };
     }
 
     internal void Update(
         int categoryId,
         SalesChannel allowedSalesChannels,
-        decimal commissionPercent)
+        decimal commissionPercent
+    )
     {
         Validate(categoryId, allowedSalesChannels, commissionPercent);
         CategoryId = categoryId;
@@ -55,7 +57,10 @@ public sealed class AgreementCategoryTerm
     internal void MarkDeleted()
     {
         if (IsDeleted)
-            throw new SupplyChainDomainException("شرط دسته‌بندی قرارداد قبلاً حذف شده است", "AGREEMENT_CATEGORY_TERM_ALREADY_DELETED");
+            throw new SupplyChainDomainException(
+                "شرط دسته‌بندی قرارداد قبلاً حذف شده است",
+                "AGREEMENT_CATEGORY_TERM_ALREADY_DELETED"
+            );
 
         IsDeleted = true;
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -64,18 +69,28 @@ public sealed class AgreementCategoryTerm
     private static void Validate(
         int categoryId,
         SalesChannel allowedSalesChannels,
-        decimal commissionPercent)
+        decimal commissionPercent
+    )
     {
         if (categoryId <= 0)
-            throw new SupplyChainDomainException("شناسه دسته‌بندی الزامی است", "CATEGORY_ID_REQUIRED");
+            throw new SupplyChainDomainException(
+                "شناسه دسته‌بندی الزامی است",
+                "CATEGORY_ID_REQUIRED"
+            );
 
         if (allowedSalesChannels == SalesChannel.None || (allowedSalesChannels & ~AllChannels) != 0)
             throw new SupplyChainDomainException("کانال فروش نامعتبر است", "SALES_CHANNEL_INVALID");
 
         if (commissionPercent is < 0 or > 100)
-            throw new SupplyChainDomainException("درصد کمیسیون باید بین ۰ تا ۱۰۰ باشد", "COMMISSION_PERCENT_INVALID");
+            throw new SupplyChainDomainException(
+                "درصد کمیسیون باید بین ۰ تا ۱۰۰ باشد",
+                "COMMISSION_PERCENT_INVALID"
+            );
 
         if (decimal.Round(commissionPercent, 2) != commissionPercent)
-            throw new SupplyChainDomainException("درصد کمیسیون حداکثر دو رقم اعشار دارد", "COMMISSION_PERCENT_SCALE_INVALID");
+            throw new SupplyChainDomainException(
+                "درصد کمیسیون حداکثر دو رقم اعشار دارد",
+                "COMMISSION_PERCENT_SCALE_INVALID"
+            );
     }
 }

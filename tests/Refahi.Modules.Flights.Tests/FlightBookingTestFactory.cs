@@ -23,7 +23,8 @@ internal static class FlightBookingTestFactory
                     new DateOnly(1990, 1, 1),
                     "0012345678",
                     passportNumber: null,
-                    "IR")
+                    "IR"
+                ),
             ],
             [
                 new FlightSegment(
@@ -37,16 +38,19 @@ internal static class FlightBookingTestFactory
                     destinationAirportCode: "MHD",
                     destinationCaption: "مشهد",
                     departureAtUtc: nowUtc.AddHours(2),
-                    arrivalAtUtc: nowUtc.AddHours(3))
+                    arrivalAtUtc: nowUtc.AddHours(3)
+                ),
             ],
             new FareBreakdown(
                 new Money(1_000_000),
                 new Money(200_000),
                 Money.Zero(),
                 Money.Zero(),
-                new Money(1_200_000)),
+                new Money(1_200_000)
+            ),
             "booking-idempotency-key",
             nowUtc,
-            nowUtc.AddMinutes(30));
+            nowUtc.AddMinutes(30)
+        );
     }
 }

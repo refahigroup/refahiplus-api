@@ -13,14 +13,19 @@ public sealed class SupplierLink
     public string? Label { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
-    internal static SupplierLink Create(Guid supplierId, SupplierLinkType type, string url, string? label)
-        => new()
+    internal static SupplierLink Create(
+        Guid supplierId,
+        SupplierLinkType type,
+        string url,
+        string? label
+    ) =>
+        new()
         {
             Id = Guid.NewGuid(),
             SupplierId = supplierId,
             Type = type,
             Url = url,
             Label = label,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
         };
 }

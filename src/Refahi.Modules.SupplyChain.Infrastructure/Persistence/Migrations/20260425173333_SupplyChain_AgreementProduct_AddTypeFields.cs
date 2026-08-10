@@ -16,7 +16,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "smallint",
                 nullable: false,
-                defaultValue: (short)0);
+                defaultValue: (short)0
+            );
 
             migrationBuilder.AddColumn<short>(
                 name: "ProductType",
@@ -24,7 +25,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "smallint",
                 nullable: false,
-                defaultValue: (short)0);
+                defaultValue: (short)0
+            );
 
             migrationBuilder.AddColumn<short>(
                 name: "SalesModel",
@@ -32,7 +34,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "smallint",
                 nullable: false,
-                defaultValue: (short)0);
+                defaultValue: (short)0
+            );
         }
 
         /// <inheritdoc />
@@ -41,17 +44,20 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "DeliveryType",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "ProductType",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "SalesModel",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
         }
     }
 }

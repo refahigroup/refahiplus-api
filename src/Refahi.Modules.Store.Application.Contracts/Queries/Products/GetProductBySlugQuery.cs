@@ -7,4 +7,5 @@ public sealed record GetProductBySlugQuery(
     int ModuleId,
     string Slug,
     string? ShopSlug = null,
-    Guid? ShopId = null) : IRequest<ProductDetailDto?>;
+    Guid? ShopId = null
+) : IRequest<ProductDetailDto?>;

@@ -33,7 +33,8 @@ public sealed record OrderDto(
     long? RecipientNetAmountMinor = null,
     bool CanPay = false,
     string? PaymentUnavailableReason = null,
-    DateTimeOffset? PayableUntil = null);
+    DateTimeOffset? PayableUntil = null
+);
 
 public sealed record OrderSummaryDto(
     Guid Id,
@@ -46,4 +47,5 @@ public sealed record OrderSummaryDto(
     string? FirstName,
     string? LastName,
     string? MobileNumber,
-    string Currency = "IRR");
+    string Currency = "IRR"
+);

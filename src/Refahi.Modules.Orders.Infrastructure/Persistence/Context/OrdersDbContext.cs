@@ -11,7 +11,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Persistence.Context;
 
 public class OrdersDbContext : DbContext
 {
-    public OrdersDbContext(DbContextOptions<OrdersDbContext> options) : base(options) { }
+    public OrdersDbContext(DbContextOptions<OrdersDbContext> options)
+        : base(options) { }
 
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
@@ -61,12 +62,12 @@ public class OrdersDbContext : DbContext
                 EventData = JsonSerializer.Serialize(integrationEvent, integrationEvent.GetType()),
                 OccurredAt = evt.OccurredAt,
                 RetryCount = 0,
-                Status = OutboxMessageStatus.Pending
+                Status = OutboxMessageStatus.Pending,
             };
         }
 
-        static object? MapToIntegrationEvent(Refahi.Shared.Domain.IDomainEvent evt)
-            => evt switch
+        static object? MapToIntegrationEvent(Refahi.Shared.Domain.IDomainEvent evt) =>
+            evt switch
             {
                 OrderPaidEvent paid => new OrderPaidIntegrationEvent(
                     paid.OrderId,
@@ -78,8 +79,9 @@ public class OrdersDbContext : DbContext
                     paid.SagaId,
                     paid.PaymentId,
                     paid.AmountMinor,
-                    paid.OccurredAt),
-                _ => evt
+                    paid.OccurredAt
+                ),
+                _ => evt,
             };
 
         if (outboxMessages.Count > 0)
@@ -95,6 +97,6 @@ public class OrdersDbContext : DbContext
     /// برای ProcessOutboxMessagesJob: SaveChanges بدون interceptor domain events
     /// جلوگیری از loop بی‌نهایت در background job
     /// </summary>
-    internal Task<int> SaveOutboxChangesAsync(CancellationToken cancellationToken = default)
-        => base.SaveChangesAsync(cancellationToken);
+    internal Task<int> SaveOutboxChangesAsync(CancellationToken cancellationToken = default) =>
+        base.SaveChangesAsync(cancellationToken);
 }

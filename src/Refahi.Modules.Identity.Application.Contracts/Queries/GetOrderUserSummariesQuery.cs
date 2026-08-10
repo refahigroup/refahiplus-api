@@ -8,13 +8,15 @@ namespace Refahi.Modules.Identity.Application.Contracts.Queries;
 
 public sealed record GetOrderUserSummariesQuery(
     IReadOnlyCollection<Guid>? UserIds = null,
-    string? MobileNumber = null) : IRequest<IReadOnlyList<OrderUserSummaryDto>>;
+    string? MobileNumber = null
+) : IRequest<IReadOnlyList<OrderUserSummaryDto>>;
 
 public sealed record OrderUserSummaryDto(
     Guid UserId,
     string? FirstName,
     string? LastName,
-    string? MobileNumber);
+    string? MobileNumber
+);
 
 public static class MobileNumberSearchNormalizer
 {

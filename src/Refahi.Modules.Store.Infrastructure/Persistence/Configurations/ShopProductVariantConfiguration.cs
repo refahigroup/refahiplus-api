@@ -24,11 +24,13 @@ public class ShopProductVariantConfiguration : IEntityTypeConfiguration<ShopProd
         builder.HasIndex(v => v.ShopProductId);
         builder.HasIndex(v => v.ProductVariantId);
         builder.HasIndex(v => v.IsDeleted);
-        builder.HasIndex(v => new { v.ShopProductId, v.ProductVariantId })
+        builder
+            .HasIndex(v => new { v.ShopProductId, v.ProductVariantId })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");
 
-        builder.HasOne<ProductVariant>()
+        builder
+            .HasOne<ProductVariant>()
             .WithMany()
             .HasForeignKey(v => v.ProductVariantId)
             .OnDelete(DeleteBehavior.Restrict);

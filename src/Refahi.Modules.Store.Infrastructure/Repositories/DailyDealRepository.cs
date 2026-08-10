@@ -11,44 +11,60 @@ public class DailyDealRepository : IDailyDealRepository
 
     public DailyDealRepository(StoreDbContext db) => _db = db;
 
-    public Task<DailyDeal?> GetByIdAsync(int id, CancellationToken ct = default)
-        => _db.DailyDeals.FirstOrDefaultAsync(d => d.Id == id, ct);
+    public Task<DailyDeal?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        _db.DailyDeals.FirstOrDefaultAsync(d => d.Id == id, ct);
 
-    public Task<DailyDeal?> GetActiveByProductIdAsync(Guid productId, CancellationToken ct = default)
+    public Task<DailyDeal?> GetActiveByProductIdAsync(
+        Guid productId,
+        CancellationToken ct = default
+    )
     {
         var now = DateTimeOffset.UtcNow;
         return _db.DailyDeals.FirstOrDefaultAsync(
-            d => d.ProductId == productId && d.IsActive
-              && d.StartTime <= now && d.EndTime >= now, ct);
+            d => d.ProductId == productId && d.IsActive && d.StartTime <= now && d.EndTime >= now,
+            ct
+        );
     }
 
     public Task<List<DailyDeal>> GetCurrentlyActiveAsync(CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
-        return _db.DailyDeals
-            .Where(d => d.IsActive && d.StartTime <= now && d.EndTime >= now)
+        return _db
+            .DailyDeals.Where(d => d.IsActive && d.StartTime <= now && d.EndTime >= now)
             .ToListAsync(ct);
     }
 
-    public Task<List<DailyDeal>> GetCurrentlyActiveByModuleAsync(int moduleId, CancellationToken ct = default)
+    public Task<List<DailyDeal>> GetCurrentlyActiveByModuleAsync(
+        int moduleId,
+        CancellationToken ct = default
+    )
     {
         var now = DateTimeOffset.UtcNow;
-        return _db.DailyDeals
-            .Where(d => d.IsActive && d.ModuleId == moduleId
-                && d.StartTime <= now && d.EndTime >= now)
+        return _db
+            .DailyDeals.Where(d =>
+                d.IsActive && d.ModuleId == moduleId && d.StartTime <= now && d.EndTime >= now
+            )
             .ToListAsync(ct);
     }
 
-    public Task<List<DailyDeal>> GetCurrentlyActiveByShopAsync(Guid shopId, CancellationToken ct = default)
+    public Task<List<DailyDeal>> GetCurrentlyActiveByShopAsync(
+        Guid shopId,
+        CancellationToken ct = default
+    )
     {
         var now = DateTimeOffset.UtcNow;
-        return _db.DailyDeals
-            .Where(d => d.IsActive && d.ShopId == shopId
-                && d.StartTime <= now && d.EndTime >= now)
+        return _db
+            .DailyDeals.Where(d =>
+                d.IsActive && d.ShopId == shopId && d.StartTime <= now && d.EndTime >= now
+            )
             .ToListAsync(ct);
     }
 
-    public Task<List<DailyDeal>> GetAllAsync(int? moduleId = null, Guid? shopId = null, CancellationToken ct = default)
+    public Task<List<DailyDeal>> GetAllAsync(
+        int? moduleId = null,
+        Guid? shopId = null,
+        CancellationToken ct = default
+    )
     {
         var query = _db.DailyDeals.AsQueryable();
         if (moduleId.HasValue)

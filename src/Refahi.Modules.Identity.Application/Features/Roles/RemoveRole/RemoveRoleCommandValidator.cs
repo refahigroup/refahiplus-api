@@ -8,9 +8,7 @@ public class RemoveRoleCommandValidator : AbstractValidator<RemoveRoleCommand>
     public RemoveRoleCommandValidator()
     {
         // UserId validation
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("User ID is required");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("User ID is required");
 
         // Role validation
         RuleFor(x => x.Role)
@@ -19,7 +17,9 @@ public class RemoveRoleCommandValidator : AbstractValidator<RemoveRoleCommand>
             .MaximumLength(50)
             .WithMessage("Role name must not exceed 50 characters")
             .Must(BeValidRole)
-            .WithMessage(x => $"Invalid role '{x.Role}'. Valid roles are: {string.Join(", ", DomainRoles.All)}");
+            .WithMessage(x =>
+                $"Invalid role '{x.Role}'. Valid roles are: {string.Join(", ", DomainRoles.All)}"
+            );
     }
 
     private bool BeValidRole(string role)

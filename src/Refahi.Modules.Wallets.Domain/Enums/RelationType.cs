@@ -8,5 +8,5 @@ public enum RelationType : short
     None = 0,
     Reversal = 1,
     Refund = 2,
-    Adjustment = 3
+    Adjustment = 3,
 }

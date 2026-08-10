@@ -14,11 +14,15 @@ public sealed class GetStoreVariantSoldQuantityQueryHandler
         _orderQueryService = orderQueryService;
     }
 
-    public Task<int> Handle(GetStoreVariantSoldQuantityQuery request, CancellationToken cancellationToken)
-        => _orderQueryService.GetStoreVariantSoldQuantityAsync(
+    public Task<int> Handle(
+        GetStoreVariantSoldQuantityQuery request,
+        CancellationToken cancellationToken
+    ) =>
+        _orderQueryService.GetStoreVariantSoldQuantityAsync(
             request.VariantId,
             request.UsageDate,
             request.CapacityScope,
             request.ExcludeOrderId,
-            cancellationToken);
+            cancellationToken
+        );
 }

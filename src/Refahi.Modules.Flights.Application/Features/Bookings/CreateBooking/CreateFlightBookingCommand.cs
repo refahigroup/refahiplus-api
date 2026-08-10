@@ -8,11 +8,10 @@ public sealed record CreateFlightBookingCommand(
     string OfferToken,
     FlightBookingContactInput Contact,
     IReadOnlyCollection<FlightBookingPassengerInput> Passengers,
-    string IdempotencyKey) : IRequest<FlightBookingDetailDto>;
+    string IdempotencyKey
+) : IRequest<FlightBookingDetailDto>;
 
-public sealed record FlightBookingContactInput(
-    string MobileNumber,
-    string Email);
+public sealed record FlightBookingContactInput(string MobileNumber, string Email);
 
 public sealed record FlightBookingPassengerInput(
     string FirstName,
@@ -22,10 +21,12 @@ public sealed record FlightBookingPassengerInput(
     DateOnly BirthDate,
     string NationalityCode,
     string? NationalCode,
-    FlightBookingPassportInput? Passport);
+    FlightBookingPassportInput? Passport
+);
 
 public sealed record FlightBookingPassportInput(
     string? CountryCode,
     DateOnly? IssueDate,
     DateOnly? ExpireDate,
-    string? Number);
+    string? Number
+);

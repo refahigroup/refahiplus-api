@@ -12,41 +12,37 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
 
         builder.HasKey(o => o.Id);
 
-        builder.Property(o => o.EventType)
+        builder
+            .Property(o => o.EventType)
             .IsRequired()
             .HasMaxLength(500)
             .HasColumnName("event_type");
 
-        builder.Property(o => o.EventData)
-            .IsRequired()
-            .HasColumnName("event_data");
+        builder.Property(o => o.EventData).IsRequired().HasColumnName("event_data");
 
-        builder.Property(o => o.OccurredAt)
-            .IsRequired()
-            .HasColumnName("occurred_at");
+        builder.Property(o => o.OccurredAt).IsRequired().HasColumnName("occurred_at");
 
-        builder.Property(o => o.RetryCount)
+        builder
+            .Property(o => o.RetryCount)
             .IsRequired()
             .HasDefaultValue(0)
             .HasColumnName("retry_count");
 
-        builder.Property(o => o.Status)
+        builder
+            .Property(o => o.Status)
             .IsRequired()
             .HasMaxLength(30)
             .HasDefaultValue(OutboxMessageStatus.Pending)
             .HasColumnName("status");
 
-        builder.Property(o => o.ProcessedAt)
-            .HasColumnName("processed_at");
+        builder.Property(o => o.ProcessedAt).HasColumnName("processed_at");
 
-        builder.Property(o => o.Error)
-            .HasMaxLength(2000)
-            .HasColumnName("error");
+        builder.Property(o => o.Error).HasMaxLength(2000).HasColumnName("error");
 
-        builder.HasIndex(o => o.ProcessedAt)
-            .HasDatabaseName("ix_outbox_messages_processed_at");
+        builder.HasIndex(o => o.ProcessedAt).HasDatabaseName("ix_outbox_messages_processed_at");
 
-        builder.HasIndex(o => new { o.Status, o.OccurredAt })
+        builder
+            .HasIndex(o => new { o.Status, o.OccurredAt })
             .HasDatabaseName("ix_outbox_messages_status_occurred_at");
     }
 }

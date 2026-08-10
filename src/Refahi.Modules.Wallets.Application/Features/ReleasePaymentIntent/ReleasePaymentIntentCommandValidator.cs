@@ -3,7 +3,8 @@ using Refahi.Modules.Wallets.Application.Contracts.Features.ReleasePaymentIntent
 
 namespace Refahi.Modules.Wallets.Application.Features.ReleasePaymentIntent;
 
-public sealed class ReleasePaymentIntentCommandValidator : AbstractValidator<ReleasePaymentIntentCommand>
+public sealed class ReleasePaymentIntentCommandValidator
+    : AbstractValidator<ReleasePaymentIntentCommand>
 {
     public ReleasePaymentIntentCommandValidator()
     {

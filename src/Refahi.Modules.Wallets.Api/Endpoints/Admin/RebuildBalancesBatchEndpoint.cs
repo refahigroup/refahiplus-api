@@ -23,43 +23,55 @@ public class RebuildBalancesBatchEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/admin/rebuild-balances", async (
-            [FromBody] RebuildBalancesBatchRequest request,
-            [FromServices] ISender mediator,
-            CancellationToken ct) =>
-        {
-            var command = new RebuildBalancesBatchCommand(
-                Currency: request.Currency,
-                OnlyActive: request.OnlyActive);
+        routes
+            .MapPost(
+                "/admin/rebuild-balances",
+                async (
+                    [FromBody] RebuildBalancesBatchRequest request,
+                    [FromServices] ISender mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var command = new RebuildBalancesBatchCommand(
+                        Currency: request.Currency,
+                        OnlyActive: request.OnlyActive
+                    );
 
-            try
-            {
-                var result = await mediator.Send(command, ct);
+                    try
+                    {
+                        var result = await mediator.Send(command, ct);
 
-                return result.Status == CommandStatus.Completed
-                    ? Results.Ok(result.Data)
-                    : Results.BadRequest(new ErrorResponse("REBUILD_ERROR", "Batch rebuild operation did not complete"));
-            }
-            catch (ValidationException ex)
-            {
-                return Results.BadRequest(new ErrorResponse("VALIDATION_ERROR", ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    title: "Internal server error",
-                    detail: ex.Message,
-                    statusCode: StatusCodes.Status500InternalServerError);
-            }
-        })
-        .WithName("RebuildBalancesBatch")
-        .WithTags("Admin", "Wallets")
-        .Produces<BatchRebuildResponse>(StatusCodes.Status200OK)
-        .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status500InternalServerError);
+                        return result.Status == CommandStatus.Completed
+                            ? Results.Ok(result.Data)
+                            : Results.BadRequest(
+                                new ErrorResponse(
+                                    "REBUILD_ERROR",
+                                    "Batch rebuild operation did not complete"
+                                )
+                            );
+                    }
+                    catch (ValidationException ex)
+                    {
+                        return Results.BadRequest(
+                            new ErrorResponse("VALIDATION_ERROR", ex.Message)
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Problem(
+                            title: "Internal server error",
+                            detail: ex.Message,
+                            statusCode: StatusCodes.Status500InternalServerError
+                        );
+                    }
+                }
+            )
+            .WithName("RebuildBalancesBatch")
+            .WithTags("Admin", "Wallets")
+            .Produces<BatchRebuildResponse>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status500InternalServerError);
     }
 
-    public record RebuildBalancesBatchRequest(
-        string? Currency = null,
-        bool OnlyActive = true);
+    public record RebuildBalancesBatchRequest(string? Currency = null, bool OnlyActive = true);
 }

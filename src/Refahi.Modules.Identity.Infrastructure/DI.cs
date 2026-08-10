@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
@@ -7,14 +9,15 @@ using Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 using Refahi.Modules.Identity.Infrastructure.Repositories;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
-using System;
-using System.Linq;
 
 namespace Refahi.Modules.Identity.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         // DbContext
         services.AddDbContext<IdentityDbContext>(options =>
@@ -43,6 +46,5 @@ public static class DI
         var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
 
         tools.ApplyMigrations<IdentityDbContext>();
-
     }
 }

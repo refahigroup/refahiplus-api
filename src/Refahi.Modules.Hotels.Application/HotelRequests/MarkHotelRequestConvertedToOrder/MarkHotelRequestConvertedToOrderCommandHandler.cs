@@ -13,7 +13,8 @@ public sealed class MarkHotelRequestConvertedToOrderCommandHandler
 
     public MarkHotelRequestConvertedToOrderCommandHandler(
         IHotelRequestRepository repository,
-        IHotelBookingSagaRepository sagaRepository)
+        IHotelBookingSagaRepository sagaRepository
+    )
     {
         _repository = repository;
         _sagaRepository = sagaRepository;
@@ -21,16 +22,21 @@ public sealed class MarkHotelRequestConvertedToOrderCommandHandler
 
     public async Task<Unit> Handle(
         MarkHotelRequestConvertedToOrderCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var hotelRequest = await _repository.GetAsync(request.RequestId, cancellationToken)
+        var hotelRequest =
+            await _repository.GetAsync(request.RequestId, cancellationToken)
             ?? throw new InvalidOperationException("درخواست هتل یافت نشد");
 
         if (hotelRequest.UserId != request.UserId)
             throw new UnauthorizedAccessException("دسترسی به این درخواست هتل مجاز نیست");
 
         var now = DateTime.UtcNow;
-        var saga = await _sagaRepository.GetByHotelRequestIdAsync(hotelRequest.Id, cancellationToken);
+        var saga = await _sagaRepository.GetByHotelRequestIdAsync(
+            hotelRequest.Id,
+            cancellationToken
+        );
         if (saga is null)
         {
             saga = HotelBookingSagaState.Start(hotelRequest.UserId, hotelRequest.Id, now);

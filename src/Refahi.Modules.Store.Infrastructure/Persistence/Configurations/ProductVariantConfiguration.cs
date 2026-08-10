@@ -21,7 +21,8 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.Property(v => v.DiscountedPriceMinor);
         builder.Property(v => v.FromDate).HasColumnType("date");
         builder.Property(v => v.ToDate).HasColumnType("date");
-        builder.Property(v => v.CapacityType)
+        builder
+            .Property(v => v.CapacityType)
             .HasColumnType("smallint")
             .HasDefaultValue(VariantCapacityType.Unlimited)
             .IsRequired();
@@ -30,9 +31,15 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
 
         builder.HasIndex(v => v.ProductId);
         builder.HasIndex(v => new { v.ProductId, v.CapacityType });
-        builder.HasIndex(v => new { v.ProductId, v.FromDate, v.ToDate });
+        builder.HasIndex(v => new
+        {
+            v.ProductId,
+            v.FromDate,
+            v.ToDate,
+        });
 
-        builder.HasMany(v => v.Combinations)
+        builder
+            .HasMany(v => v.Combinations)
             .WithOne()
             .HasForeignKey("ProductVariantId")
             .OnDelete(DeleteBehavior.Cascade);

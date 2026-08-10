@@ -18,14 +18,16 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 type: "uuid",
                 nullable: true,
                 oldClrType: typeof(Guid),
-                oldType: "uuid");
+                oldType: "uuid"
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "created_by_user_id",
                 schema: "orders",
                 table: "orders",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "source_item_id",
@@ -34,13 +36,15 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 type: "uuid",
                 nullable: true,
                 oldClrType: typeof(Guid),
-                oldType: "uuid");
+                oldType: "uuid"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_orders_created_by_created_at",
                 schema: "orders",
                 table: "orders",
-                columns: new[] { "created_by_user_id", "created_at" });
+                columns: new[] { "created_by_user_id", "created_at" }
+            );
         }
 
         /// <inheritdoc />
@@ -49,12 +53,14 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "ix_orders_created_by_created_at",
                 schema: "orders",
-                table: "orders");
+                table: "orders"
+            );
 
             migrationBuilder.DropColumn(
                 name: "created_by_user_id",
                 schema: "orders",
-                table: "orders");
+                table: "orders"
+            );
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "source_reference_id",
@@ -65,7 +71,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 defaultValue: new Guid("00000000-0000-0000-0000-000000000000"),
                 oldClrType: typeof(Guid),
                 oldType: "uuid",
-                oldNullable: true);
+                oldNullable: true
+            );
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "source_item_id",
@@ -76,7 +83,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 defaultValue: new Guid("00000000-0000-0000-0000-000000000000"),
                 oldClrType: typeof(Guid),
                 oldType: "uuid",
-                oldNullable: true);
+                oldNullable: true
+            );
         }
     }
 }

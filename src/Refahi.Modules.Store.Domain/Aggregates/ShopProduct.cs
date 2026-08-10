@@ -21,14 +21,24 @@ public sealed class ShopProduct
     public DateTimeOffset UpdatedAt { get; private set; }
     public IReadOnlyList<ShopProductVariant> VariantOfferings => _variantOfferings.AsReadOnly();
 
-    public static ShopProduct Create(Guid shopId, Guid productId, long price, long discountedPrice, string? description = null)
+    public static ShopProduct Create(
+        Guid shopId,
+        Guid productId,
+        long price,
+        long discountedPrice,
+        string? description = null
+    )
     {
         ValidatePrice(price, discountedPrice);
 
         return CreateCore(shopId, productId, price, discountedPrice, description);
     }
 
-    public static ShopProduct CreateWithManualPricing(Guid shopId, Guid productId, string? description = null)
+    public static ShopProduct CreateWithManualPricing(
+        Guid shopId,
+        Guid productId,
+        string? description = null
+    )
     {
         return CreateCore(shopId, productId, 0, 0, description);
     }
@@ -38,7 +48,8 @@ public sealed class ShopProduct
         Guid productId,
         long price,
         long discountedPrice,
-        string? description)
+        string? description
+    )
     {
         return new()
         {
@@ -51,7 +62,7 @@ public sealed class ShopProduct
             IsActive = true,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
     }
 
@@ -78,10 +89,16 @@ public sealed class ShopProduct
             throw new StoreDomainException("قیمت باید بیشتر از صفر باشد", "INVALID_PRICE");
 
         if (discountedPrice <= 0)
-            throw new StoreDomainException("قیمت تخفیف‌خورده باید بیشتر از صفر باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده باید بیشتر از صفر باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
 
         if (discountedPrice > price)
-            throw new StoreDomainException("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
     }
 
     public void Enable()
@@ -107,14 +124,24 @@ public sealed class ShopProduct
         Guid productVariantId,
         long priceMinor,
         long? discountedPriceMinor,
-        bool isActive)
+        bool isActive
+    )
     {
         EnsureNotDeleted();
 
         if (_variantOfferings.Any(v => v.ProductVariantId == productVariantId && !v.IsDeleted))
-            throw new StoreDomainException("این تنوع محصول قبلاً برای این محصول فروشگاه ثبت شده است", "SHOP_PRODUCT_VARIANT_EXISTS");
+            throw new StoreDomainException(
+                "این تنوع محصول قبلاً برای این محصول فروشگاه ثبت شده است",
+                "SHOP_PRODUCT_VARIANT_EXISTS"
+            );
 
-        var variantOffering = ShopProductVariant.Create(Id, productVariantId, priceMinor, discountedPriceMinor, isActive);
+        var variantOffering = ShopProductVariant.Create(
+            Id,
+            productVariantId,
+            priceMinor,
+            discountedPriceMinor,
+            isActive
+        );
         _variantOfferings.Add(variantOffering);
         UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -125,7 +152,8 @@ public sealed class ShopProduct
         Guid productVariantId,
         long priceMinor,
         long? discountedPriceMinor,
-        bool isActive)
+        bool isActive
+    )
     {
         EnsureNotDeleted();
 
@@ -163,9 +191,14 @@ public sealed class ShopProduct
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    private ShopProductVariant GetActiveVariantOffering(Guid productVariantId)
-        => _variantOfferings.FirstOrDefault(v => v.ProductVariantId == productVariantId && !v.IsDeleted)
-           ?? throw new StoreDomainException("تنوع محصول فروشگاه یافت نشد", "SHOP_PRODUCT_VARIANT_NOT_FOUND");
+    private ShopProductVariant GetActiveVariantOffering(Guid productVariantId) =>
+        _variantOfferings.FirstOrDefault(v =>
+            v.ProductVariantId == productVariantId && !v.IsDeleted
+        )
+        ?? throw new StoreDomainException(
+            "تنوع محصول فروشگاه یافت نشد",
+            "SHOP_PRODUCT_VARIANT_NOT_FOUND"
+        );
 
     private void EnsureNotDeleted()
     {

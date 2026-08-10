@@ -16,16 +16,14 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "suppliers",
                 type: "character varying(500)",
                 maxLength: 500,
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "LogoUrl",
-                schema: "supplychain",
-                table: "suppliers");
+            migrationBuilder.DropColumn(name: "LogoUrl", schema: "supplychain", table: "suppliers");
         }
     }
 }

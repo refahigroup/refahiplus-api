@@ -21,4 +21,5 @@ public sealed record PlaceStoreOrderResponse(
     Guid OrderId,
     string OrderNumber,
     long FinalAmountMinor,
-    string Status);
+    string Status
+);

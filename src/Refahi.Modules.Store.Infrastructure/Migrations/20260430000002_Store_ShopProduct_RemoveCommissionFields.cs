@@ -13,12 +13,14 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "CommissionPercent",
                 schema: "store",
-                table: "shop_products");
+                table: "shop_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "CommissionPrice",
                 schema: "store",
-                table: "shop_products");
+                table: "shop_products"
+            );
         }
 
         /// <inheritdoc />
@@ -30,7 +32,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_products",
                 type: "numeric(5,2)",
                 nullable: false,
-                defaultValue: 0m);
+                defaultValue: 0m
+            );
 
             migrationBuilder.AddColumn<long>(
                 name: "CommissionPrice",
@@ -38,7 +41,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_products",
                 type: "bigint",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0L
+            );
         }
     }
 }

@@ -3,5 +3,5 @@
 public enum OtpReceiptType
 {
     Sms,
-    Email
+    Email,
 }

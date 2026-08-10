@@ -23,7 +23,8 @@ public class ShopProductConfiguration : IEntityTypeConfiguration<ShopProduct>
         builder.Property(sp => sp.UpdatedAt).IsRequired();
 
         // Unique constraint: one product can only be linked to a shop once (ignoring soft-deleted)
-        builder.HasIndex(sp => new { sp.ShopId, sp.ProductId })
+        builder
+            .HasIndex(sp => new { sp.ShopId, sp.ProductId })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");
 
@@ -31,10 +32,13 @@ public class ShopProductConfiguration : IEntityTypeConfiguration<ShopProduct>
         builder.HasIndex(sp => sp.ShopId);
         builder.HasIndex(sp => sp.IsDeleted);
 
-        builder.HasMany(sp => sp.VariantOfferings)
+        builder
+            .HasMany(sp => sp.VariantOfferings)
             .WithOne()
             .HasForeignKey(v => v.ShopProductId)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.Navigation(sp => sp.VariantOfferings).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder
+            .Navigation(sp => sp.VariantOfferings)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

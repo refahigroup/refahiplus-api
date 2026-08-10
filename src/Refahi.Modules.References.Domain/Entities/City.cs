@@ -40,7 +40,7 @@ public sealed class City
             Slug = slug.Trim().ToLowerInvariant(),
             ProvinceId = provinceId,
             SortOrder = sortOrder,
-            IsActive = true
+            IsActive = true,
         };
     }
 

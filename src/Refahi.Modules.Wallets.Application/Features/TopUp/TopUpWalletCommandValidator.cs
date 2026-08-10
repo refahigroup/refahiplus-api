@@ -15,12 +15,9 @@ public sealed class TopUpWalletCommandValidator : AbstractValidator<TopUpWalletC
             .Must(SupportedCurrencies.IsSupported)
             .WithMessage("تنها ارز پشتیبانی‌شده IRR است");
 
-        RuleFor(x => x.IdempotencyKey)
-            .NotEmpty()
-            .MaximumLength(200);
+        RuleFor(x => x.IdempotencyKey).NotEmpty().MaximumLength(200);
 
         RuleFor(x => x.MetadataJson).MaximumLength(4000);
         RuleFor(x => x.ExternalReference).MaximumLength(200);
     }
-
 }

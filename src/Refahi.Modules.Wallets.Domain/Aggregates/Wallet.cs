@@ -1,10 +1,10 @@
+using System;
+using System.Linq;
 using Refahi.Modules.Wallets.Domain.Common;
 using Refahi.Modules.Wallets.Domain.Enums;
 using Refahi.Modules.Wallets.Domain.Events;
 using Refahi.Modules.Wallets.Domain.Exceptions;
 using Refahi.Modules.Wallets.Domain.ValueObjects;
-using System;
-using System.Linq;
 
 namespace Refahi.Modules.Wallets.Domain.Aggregates;
 
@@ -24,6 +24,7 @@ public sealed class Wallet : EntityBase
     private Wallet() { }
 
     public Guid Id { get; private set; }
+
     //public WalletOwnerType OwnerType { get; }
     public Guid OwnerId { get; private set; }
     public WalletType WalletType { get; private set; }
@@ -35,9 +36,15 @@ public sealed class Wallet : EntityBase
     public string? AllowedCategoryCode { get; private set; }
     public DateTimeOffset? ContractExpiresAt { get; private set; }
 
-
-    public Wallet(Guid walletId, Guid ownerId, WalletType walletType, WalletStatus status, string currency,
-        string? allowedCategoryCode = null, DateTimeOffset? contractExpiresAt = null)
+    public Wallet(
+        Guid walletId,
+        Guid ownerId,
+        WalletType walletType,
+        WalletStatus status,
+        string currency,
+        string? allowedCategoryCode = null,
+        DateTimeOffset? contractExpiresAt = null
+    )
     {
         Id = walletId;
         OwnerId = ownerId;
@@ -54,8 +61,10 @@ public sealed class Wallet : EntityBase
     /// </summary>
     public bool IsAllowedForCategory(string categoryCode)
     {
-        if (WalletType != WalletType.OrgCredit) return true;
-        if (AllowedCategoryCode is null) return true;
+        if (WalletType != WalletType.OrgCredit)
+            return true;
+        if (AllowedCategoryCode is null)
+            return true;
 
         // Prefix match: AllowedCategoryCode="store" allows "store.clothing"
         // Exact or sub-prefix: AllowedCategoryCode="store.clothing" only allows "store.clothing"
@@ -67,7 +76,6 @@ public sealed class Wallet : EntityBase
     public bool IsContractValid() =>
         ContractExpiresAt is null || ContractExpiresAt > DateTimeOffset.UtcNow;
 
-
     /// <summary>
     /// Domain method: Create a TopUp ledger entry.
     /// Validates invariants and constructs immutable LedgerEntry.
@@ -77,7 +85,8 @@ public sealed class Wallet : EntityBase
         Guid operationId,
         long amountMinor,
         string? externalReference = null,
-        string? metadataJson = null)
+        string? metadataJson = null
+    )
     {
         EnsureCanAcceptCredit();
 
@@ -90,17 +99,21 @@ public sealed class Wallet : EntityBase
             entryType: EntryType.Credit,
             money: money,
             externalReference: externalReference,
-            metadataJson: metadataJson);
+            metadataJson: metadataJson
+        );
 
         // Publish domain event
-        AddDomainEvent(new WalletToppedUpDomainEvent(
-            WalletId: Id,
-            OperationId: operationId,
-            LedgerEntryId: entry.Id,
-            Amount: money,
-            OccurredAt: DateTimeOffset.UtcNow,
-            ExternalReference: externalReference,
-            MetadataJson: metadataJson));
+        AddDomainEvent(
+            new WalletToppedUpDomainEvent(
+                WalletId: Id,
+                OperationId: operationId,
+                LedgerEntryId: entry.Id,
+                Amount: money,
+                OccurredAt: DateTimeOffset.UtcNow,
+                ExternalReference: externalReference,
+                MetadataJson: metadataJson
+            )
+        );
 
         return entry;
     }

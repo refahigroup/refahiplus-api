@@ -6,4 +6,5 @@ public sealed record ShopFeaturedProductDto(
     string Slug,
     string? ImageUrl,
     long PriceMinor,
-    long? DiscountedPriceMinor);
+    long? DiscountedPriceMinor
+);

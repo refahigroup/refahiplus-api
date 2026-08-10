@@ -9,13 +9,14 @@ namespace Refahi.Modules.Wallets.Application;
 
 public static class DI
 {
-    public static IServiceCollection RegisterApplication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterApplication(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var assembly = typeof(DI).Assembly;
 
-        services
-            .AddMediatR(assembly)
-            .AddValidatorsFromAssembly(assembly);
+        services.AddMediatR(assembly).AddValidatorsFromAssembly(assembly);
 
         // Application Services (use case orchestration)
         services.AddScoped<IWalletTopUpUsecase, WalletTopUpApplicationService>();
@@ -26,7 +27,6 @@ public static class DI
         services.AddScoped<BalanceRebuildApplicationService>();
 
         //services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BuildingBlocks.ValidationBehavior<,>));
-
 
         return services;
     }

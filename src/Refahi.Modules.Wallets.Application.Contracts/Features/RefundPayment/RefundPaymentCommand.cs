@@ -11,5 +11,5 @@ public sealed record RefundPaymentCommand(
     Guid PaymentId,
     string IdempotencyKey,
     string? Reason,
-    string? MetadataJson)
-    : IRequest<CommandResponse<RefundPaymentResponse>>;
+    string? MetadataJson
+) : IRequest<CommandResponse<RefundPaymentResponse>>;

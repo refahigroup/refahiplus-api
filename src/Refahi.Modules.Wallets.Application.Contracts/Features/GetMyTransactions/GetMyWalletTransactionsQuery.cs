@@ -1,6 +1,6 @@
-using MediatR;
 using System;
 using System.Collections.Generic;
+using MediatR;
 
 namespace Refahi.Modules.Wallets.Application.Contracts.Features.GetMyTransactions;
 
@@ -9,7 +9,8 @@ public sealed record GetMyWalletTransactionsQuery(
     int Take = 20,
     string? WalletType = null,
     short? OperationType = null,
-    short? EntryType = null) : IRequest<IReadOnlyList<MyWalletTransactionDto>>;
+    short? EntryType = null
+) : IRequest<IReadOnlyList<MyWalletTransactionDto>>;
 
 public sealed record MyWalletTransactionDto(
     Guid LedgerEntryId,
@@ -29,4 +30,5 @@ public sealed record MyWalletTransactionDto(
     Guid? OrderId = null,
     Guid? PaymentId = null,
     long? BalanceAfterMinor = null,
-    int? PostingSequence = null);
+    int? PostingSequence = null
+);

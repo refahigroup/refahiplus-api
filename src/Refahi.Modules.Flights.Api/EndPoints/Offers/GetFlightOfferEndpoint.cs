@@ -15,20 +15,31 @@ public sealed class GetFlightOfferEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("/offers/{offerToken}", async (
-            string offerToken,
-            ISender sender,
-            CancellationToken cancellationToken) =>
-        {
-            var result = await sender.Send(new GetFlightOfferQuery(offerToken), cancellationToken);
+        routes
+            .MapGet(
+                "/offers/{offerToken}",
+                async (string offerToken, ISender sender, CancellationToken cancellationToken) =>
+                {
+                    var result = await sender.Send(
+                        new GetFlightOfferQuery(offerToken),
+                        cancellationToken
+                    );
 
-            return result is null
-                ? Results.NotFound(ApiResponseHelper.Error("پیشنهاد پرواز یافت نشد یا منقضی شده است.", statusCode: StatusCodes.Status404NotFound))
-                : Results.Ok(ApiResponseHelper.Success(result, "پیشنهاد پرواز با موفقیت دریافت شد."));
-        })
-        .WithName("Flights.Offers.Get")
-        .WithTags("Flights")
-        .Produces<ApiResponse<FlightOfferDto>>(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound);
+                    return result is null
+                        ? Results.NotFound(
+                            ApiResponseHelper.Error(
+                                "پیشنهاد پرواز یافت نشد یا منقضی شده است.",
+                                statusCode: StatusCodes.Status404NotFound
+                            )
+                        )
+                        : Results.Ok(
+                            ApiResponseHelper.Success(result, "پیشنهاد پرواز با موفقیت دریافت شد.")
+                        );
+                }
+            )
+            .WithName("Flights.Offers.Get")
+            .WithTags("Flights")
+            .Produces<ApiResponse<FlightOfferDto>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound);
     }
 }

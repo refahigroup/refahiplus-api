@@ -5,9 +5,7 @@ namespace Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
 
 public sealed class HotelRequest
 {
-    private HotelRequest()
-    {
-    }
+    private HotelRequest() { }
 
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
@@ -52,7 +50,8 @@ public sealed class HotelRequest
         string guestInfoSnapshot,
         DateTime nowUtc,
         DateTime expireAtUtc,
-        string idempotencyKey)
+        string idempotencyKey
+    )
     {
         if (userId == Guid.Empty)
             throw new DomainException("UserId is required.");
@@ -71,14 +70,18 @@ public sealed class HotelRequest
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            ProviderName = string.IsNullOrWhiteSpace(providerName) ? "SnappTrip" : providerName.Trim(),
+            ProviderName = string.IsNullOrWhiteSpace(providerName)
+                ? "SnappTrip"
+                : providerName.Trim(),
             ProviderHotelId = providerHotelId,
             ProviderRoomId = providerRoomId,
             SearchCriteriaSnapshot = NormalizeJson(searchCriteriaSnapshot),
             SelectedHotelSnapshot = NormalizeJson(selectedHotelSnapshot),
             SelectedRoomSnapshot = NormalizeJson(selectedRoomSnapshot),
             TotalPrice = totalPrice,
-            Currency = string.IsNullOrWhiteSpace(currency) ? "IRR" : currency.Trim().ToUpperInvariant(),
+            Currency = string.IsNullOrWhiteSpace(currency)
+                ? "IRR"
+                : currency.Trim().ToUpperInvariant(),
             Breakdown = NormalizeJson(breakdown),
             Fees = string.IsNullOrWhiteSpace(fees) ? null : NormalizeJson(fees),
             GuestInfoSnapshot = NormalizeJson(guestInfoSnapshot),
@@ -86,7 +89,7 @@ public sealed class HotelRequest
             CreatedAt = nowUtc,
             UpdatedAt = nowUtc,
             ExpireAt = expireAtUtc,
-            IdempotencyKey = idempotencyKey.Trim()
+            IdempotencyKey = idempotencyKey.Trim(),
         };
     }
 
@@ -137,11 +140,16 @@ public sealed class HotelRequest
 
     public void MarkProviderConfirmed(string providerBookingCode, DateTime nowUtc)
     {
-        if (Status == HotelRequestStatus.ProviderConfirmed || Status == HotelRequestStatus.Completed)
+        if (
+            Status == HotelRequestStatus.ProviderConfirmed
+            || Status == HotelRequestStatus.Completed
+        )
             return;
 
         if (Status != HotelRequestStatus.ConvertedToOrder || OrderId is null)
-            throw new DomainException("Hotel request must be converted to order before provider confirmation.");
+            throw new DomainException(
+                "Hotel request must be converted to order before provider confirmation."
+            );
 
         ProviderBookingCode = string.IsNullOrWhiteSpace(providerBookingCode)
             ? null
@@ -157,7 +165,9 @@ public sealed class HotelRequest
             return;
 
         if (Status != HotelRequestStatus.ProviderConfirmed)
-            throw new DomainException("Hotel request must be provider-confirmed before completion.");
+            throw new DomainException(
+                "Hotel request must be provider-confirmed before completion."
+            );
 
         Status = HotelRequestStatus.Completed;
         UpdatedAt = nowUtc;
@@ -175,6 +185,6 @@ public sealed class HotelRequest
         UpdatedAt = nowUtc;
     }
 
-    private static string NormalizeJson(string? value)
-        => string.IsNullOrWhiteSpace(value) ? "{}" : value.Trim();
+    private static string NormalizeJson(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "{}" : value.Trim();
 }

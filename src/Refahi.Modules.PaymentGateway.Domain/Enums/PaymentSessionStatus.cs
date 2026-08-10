@@ -8,5 +8,5 @@ public enum PaymentSessionStatus
     CallbackReceived = 4,
     Succeeded = 5,
     Failed = 6,
-    Expired = 7
+    Expired = 7,
 }

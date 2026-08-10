@@ -56,20 +56,38 @@ public sealed class Supplier
     // --- Factory ---
     public static Supplier Create(
         SupplierType type,
-        string? firstName, string? lastName,
-        string? companyName, string? brandName,
+        string? firstName,
+        string? lastName,
+        string? companyName,
+        string? brandName,
         string? logoUrl,
-        string? nationalId, string? economicCode,
-        int? provinceId, int? cityId,
-        string? address, double? latitude, double? longitude,
-        string? mobileNumber, string? phoneNumber,
-        string? representativeName, string? representativePhone)
+        string? nationalId,
+        string? economicCode,
+        int? provinceId,
+        int? cityId,
+        string? address,
+        double? latitude,
+        double? longitude,
+        string? mobileNumber,
+        string? phoneNumber,
+        string? representativeName,
+        string? representativePhone
+    )
     {
-        if (type == SupplierType.Individual && (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName)))
-            throw new SupplyChainDomainException("نام و نام خانوادگی الزامی است", "SUPPLIER_INDIVIDUAL_NAME_REQUIRED");
+        if (
+            type == SupplierType.Individual
+            && (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        )
+            throw new SupplyChainDomainException(
+                "نام و نام خانوادگی الزامی است",
+                "SUPPLIER_INDIVIDUAL_NAME_REQUIRED"
+            );
 
         if (type == SupplierType.Legal && string.IsNullOrWhiteSpace(companyName))
-            throw new SupplyChainDomainException("نام شرکت الزامی است", "SUPPLIER_COMPANY_NAME_REQUIRED");
+            throw new SupplyChainDomainException(
+                "نام شرکت الزامی است",
+                "SUPPLIER_COMPANY_NAME_REQUIRED"
+            );
 
         return new Supplier
         {
@@ -95,30 +113,51 @@ public sealed class Supplier
             StatusNote = null,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
     }
 
     // --- Behaviors ---
 
     public void UpdateProfile(
-        string? firstName, string? lastName,
-        string? companyName, string? brandName,
+        string? firstName,
+        string? lastName,
+        string? companyName,
+        string? brandName,
         string? logoUrl,
-        string? nationalId, string? economicCode,
-        int? provinceId, int? cityId,
-        string? address, double? latitude, double? longitude,
-        string? mobileNumber, string? phoneNumber,
-        string? representativeName, string? representativePhone)
+        string? nationalId,
+        string? economicCode,
+        int? provinceId,
+        int? cityId,
+        string? address,
+        double? latitude,
+        double? longitude,
+        string? mobileNumber,
+        string? phoneNumber,
+        string? representativeName,
+        string? representativePhone
+    )
     {
         if (Status != SupplierStatus.Registered && Status != SupplierStatus.Rejected)
-            throw new SupplyChainDomainException("ویرایش پروفایل تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است", "STATUS_IMMUTABLE");
+            throw new SupplyChainDomainException(
+                "ویرایش پروفایل تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است",
+                "STATUS_IMMUTABLE"
+            );
 
-        if (Type == SupplierType.Individual && (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName)))
-            throw new SupplyChainDomainException("نام و نام خانوادگی الزامی است", "SUPPLIER_INDIVIDUAL_NAME_REQUIRED");
+        if (
+            Type == SupplierType.Individual
+            && (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        )
+            throw new SupplyChainDomainException(
+                "نام و نام خانوادگی الزامی است",
+                "SUPPLIER_INDIVIDUAL_NAME_REQUIRED"
+            );
 
         if (Type == SupplierType.Legal && string.IsNullOrWhiteSpace(companyName))
-            throw new SupplyChainDomainException("نام شرکت الزامی است", "SUPPLIER_COMPANY_NAME_REQUIRED");
+            throw new SupplyChainDomainException(
+                "نام شرکت الزامی است",
+                "SUPPLIER_COMPANY_NAME_REQUIRED"
+            );
 
         FirstName = firstName?.Trim();
         LastName = lastName?.Trim();
@@ -142,7 +181,10 @@ public sealed class Supplier
     public void SubmitForReview()
     {
         if (Status != SupplierStatus.Registered)
-            throw new SupplyChainDomainException("ارسال برای بررسی تنها از وضعیت ثبت‌شده مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "ارسال برای بررسی تنها از وضعیت ثبت‌شده مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = SupplierStatus.UnderReview;
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -151,7 +193,10 @@ public sealed class Supplier
     public void Approve()
     {
         if (Status != SupplierStatus.UnderReview)
-            throw new SupplyChainDomainException("تایید تنها از وضعیت در حال بررسی مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "تایید تنها از وضعیت در حال بررسی مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = SupplierStatus.Approved;
         StatusNote = null;
@@ -161,7 +206,10 @@ public sealed class Supplier
     public void Reject(string note)
     {
         if (Status != SupplierStatus.UnderReview)
-            throw new SupplyChainDomainException("رد کردن تنها از وضعیت در حال بررسی مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "رد کردن تنها از وضعیت در حال بررسی مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = SupplierStatus.Rejected;
         StatusNote = note;
@@ -171,7 +219,10 @@ public sealed class Supplier
     public void ResetToRegistered()
     {
         if (Status != SupplierStatus.UnderReview && Status != SupplierStatus.Rejected)
-            throw new SupplyChainDomainException("بازگشت به وضعیت ثبت‌شده تنها از وضعیت در حال بررسی یا رد‌شده مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "بازگشت به وضعیت ثبت‌شده تنها از وضعیت در حال بررسی یا رد‌شده مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = SupplierStatus.Registered;
         StatusNote = null;
@@ -188,16 +239,30 @@ public sealed class Supplier
 
     public void RemoveLink(Guid linkId)
     {
-        var link = _links.FirstOrDefault(l => l.Id == linkId)
+        var link =
+            _links.FirstOrDefault(l => l.Id == linkId)
             ?? throw new SupplyChainDomainException("لینک یافت نشد", "SUPPLIER_LINK_NOT_FOUND");
 
         _links.Remove(link);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public SupplierAttachment AddAttachment(string title, string fileUrl, string? fileName, string? contentType, long? sizeBytes)
+    public SupplierAttachment AddAttachment(
+        string title,
+        string fileUrl,
+        string? fileName,
+        string? contentType,
+        long? sizeBytes
+    )
     {
-        var attachment = SupplierAttachment.Create(Id, title, fileUrl, fileName, contentType, sizeBytes);
+        var attachment = SupplierAttachment.Create(
+            Id,
+            title,
+            fileUrl,
+            fileName,
+            contentType,
+            sizeBytes
+        );
         _attachments.Add(attachment);
         UpdatedAt = DateTimeOffset.UtcNow;
         return attachment;
@@ -205,8 +270,12 @@ public sealed class Supplier
 
     public void RemoveAttachment(Guid attachmentId)
     {
-        var attachment = _attachments.FirstOrDefault(a => a.Id == attachmentId)
-            ?? throw new SupplyChainDomainException("پیوست یافت نشد", "SUPPLIER_ATTACHMENT_NOT_FOUND");
+        var attachment =
+            _attachments.FirstOrDefault(a => a.Id == attachmentId)
+            ?? throw new SupplyChainDomainException(
+                "پیوست یافت نشد",
+                "SUPPLIER_ATTACHMENT_NOT_FOUND"
+            );
 
         _attachments.Remove(attachment);
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -215,7 +284,10 @@ public sealed class Supplier
     public void MarkDeleted()
     {
         if (IsDeleted)
-            throw new SupplyChainDomainException("تامین‌کننده قبلاً حذف شده است", "SUPPLIER_ALREADY_DELETED");
+            throw new SupplyChainDomainException(
+                "تامین‌کننده قبلاً حذف شده است",
+                "SUPPLIER_ALREADY_DELETED"
+            );
 
         IsDeleted = true;
         UpdatedAt = DateTimeOffset.UtcNow;

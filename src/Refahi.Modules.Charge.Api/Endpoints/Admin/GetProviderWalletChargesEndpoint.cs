@@ -16,11 +16,23 @@ public sealed class GetProviderWalletChargesEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("admin/provider/wallet-charges", async ([FromBody] ProviderReportBody body, ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetProviderWalletChargeReportQuery(
-                body.PageNumber,
-                body.FromDate,
-                body.ToDate), ct))))
+        routes
+            .MapPost(
+                "admin/provider/wallet-charges",
+                async ([FromBody] ProviderReportBody body, ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(
+                                new GetProviderWalletChargeReportQuery(
+                                    body.PageNumber,
+                                    body.FromDate,
+                                    body.ToDate
+                                ),
+                                ct
+                            )
+                        )
+                    )
+            )
             .RequireAuthorization("AdminOnly")
             .WithName("Charge.Admin.ProviderWalletCharges")
             .WithTags("Charge.Admin")

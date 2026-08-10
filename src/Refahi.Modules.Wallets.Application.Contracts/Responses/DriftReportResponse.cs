@@ -10,4 +10,5 @@ public record DriftReportResponse(
     string Currency,
     BalanceSnapshotResponse CurrentProjection,
     BalanceSnapshotResponse ComputedFromLedger,
-    DriftInfoResponse Drift);
+    DriftInfoResponse Drift
+);

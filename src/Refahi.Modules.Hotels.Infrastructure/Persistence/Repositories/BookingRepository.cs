@@ -14,10 +14,13 @@ namespace Refahi.Modules.Hotels.Infrastructure.Persistence.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<Booking?> GetAsync(BookingId id, CancellationToken cancellationToken = default)
+        public async Task<Booking?> GetAsync(
+            BookingId id,
+            CancellationToken cancellationToken = default
+        )
         {
-            return await _dbContext.Bookings
-                .Include(b => b.Guests) // چون Guests owned collection است، Include لازم است
+            return await _dbContext
+                .Bookings.Include(b => b.Guests) // چون Guests owned collection است، Include لازم است
                 .FirstOrDefaultAsync(b => b.Id.Equals(id), cancellationToken);
         }
 

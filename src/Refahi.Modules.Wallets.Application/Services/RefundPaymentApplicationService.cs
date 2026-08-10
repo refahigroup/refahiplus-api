@@ -1,16 +1,16 @@
-using Refahi.Modules.Wallets.Application.Contracts;
-using Refahi.Modules.Wallets.Application.Contracts.Features.RefundPayment;
-using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Refahi.Modules.Wallets.Application.Contracts;
+using Refahi.Modules.Wallets.Application.Contracts.Features.RefundPayment;
+using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
 
 namespace Refahi.Modules.Wallets.Application.Services;
 
 /// <summary>
 /// Application Service: Refund Payment (Full Refund) use case.
-/// 
+///
 /// Responsibilities:
 /// - Orchestrate call to Infrastructure
 /// - Interpret outcome and build response
@@ -27,7 +27,8 @@ public sealed class RefundPaymentApplicationService
 
     public async Task<CommandResponse<RefundPaymentResponse>> RefundPaymentAsync(
         RefundPaymentCommand command,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         // Delegate atomic execution to Infrastructure
         var atomicResult = await _atomicWriter.ExecuteRefundPaymentAsync(
@@ -35,22 +36,29 @@ public sealed class RefundPaymentApplicationService
             idempotencyKey: command.IdempotencyKey,
             reason: command.Reason,
             metadataJson: command.MetadataJson,
-            ct: ct);
+            ct: ct
+        );
 
         // Interpret outcome and build response
         return atomicResult.Outcome switch
         {
-            RefundPaymentOutcome.Refunded or RefundPaymentOutcome.RefundedCached => BuildCompletedResponse(atomicResult),
+            RefundPaymentOutcome.Refunded or RefundPaymentOutcome.RefundedCached =>
+                BuildCompletedResponse(atomicResult),
             RefundPaymentOutcome.InProgress => BuildInProgressResponse(),
-            _ => throw new InvalidOperationException($"Unknown outcome: {atomicResult.Outcome}")
+            _ => throw new InvalidOperationException($"Unknown outcome: {atomicResult.Outcome}"),
         };
     }
 
     private static CommandResponse<RefundPaymentResponse> BuildCompletedResponse(
-        RefundPaymentAtomicResult atomicResult)
+        RefundPaymentAtomicResult atomicResult
+    )
     {
-        var allocations = atomicResult.Allocations
-            .Select(a => new RefundAllocationResponse(a.WalletId, a.AmountMinor, a.LedgerEntryId))
+        var allocations = atomicResult
+            .Allocations.Select(a => new RefundAllocationResponse(
+                a.WalletId,
+                a.AmountMinor,
+                a.LedgerEntryId
+            ))
             .ToList();
 
         var response = new RefundPaymentResponse(
@@ -61,7 +69,8 @@ public sealed class RefundPaymentApplicationService
             AmountMinor: atomicResult.AmountMinor,
             Currency: atomicResult.Currency,
             Allocations: allocations,
-            CompletedAt: atomicResult.CompletedAt);
+            CompletedAt: atomicResult.CompletedAt
+        );
 
         return new CommandResponse<RefundPaymentResponse>(CommandStatus.Completed, response);
     }

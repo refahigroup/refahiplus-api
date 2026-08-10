@@ -13,37 +13,49 @@ public sealed class UpdateProductVariantEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPut("/provider/products/{id:guid}/variants/{variantId:guid}", async (
-            Guid id,
-            Guid variantId,
-            [FromBody] UpdateProductVariantRequest body,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            await mediator.Send(new UpdateProductVariantCommand(
-                id,
-                variantId,
-                body.Combinations,
-                body.ImageUrl,
-                body.StockCount,
-                body.PriceMinor,
-                body.DiscountedPriceMinor,
-                body.Sku,
-                body.FromDate,
-                body.ToDate,
-                body.CapacityType,
-                body.Capacity), ct);
-            return Results.Ok(ApiResponseHelper.Success<object?>(null, "تنوع با موفقیت ویرایش شد"));
-        })
-        .WithName("Store.UpdateProductVariant")
-        .WithTags("Store.Products")
-        .RequireAuthorization("VendorOrAdmin")
-        .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapPut(
+                "/provider/products/{id:guid}/variants/{variantId:guid}",
+                async (
+                    Guid id,
+                    Guid variantId,
+                    [FromBody] UpdateProductVariantRequest body,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    await mediator.Send(
+                        new UpdateProductVariantCommand(
+                            id,
+                            variantId,
+                            body.Combinations,
+                            body.ImageUrl,
+                            body.StockCount,
+                            body.PriceMinor,
+                            body.DiscountedPriceMinor,
+                            body.Sku,
+                            body.FromDate,
+                            body.ToDate,
+                            body.CapacityType,
+                            body.Capacity
+                        ),
+                        ct
+                    );
+                    return Results.Ok(
+                        ApiResponseHelper.Success<object?>(null, "تنوع با موفقیت ویرایش شد")
+                    );
+                }
+            )
+            .WithName("Store.UpdateProductVariant")
+            .WithTags("Store.Products")
+            .RequireAuthorization("VendorOrAdmin")
+            .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
 
@@ -57,4 +69,5 @@ public sealed record UpdateProductVariantRequest(
     DateOnly? FromDate = null,
     DateOnly? ToDate = null,
     VariantCapacityType CapacityType = VariantCapacityType.Unlimited,
-    int? Capacity = null);
+    int? Capacity = null
+);

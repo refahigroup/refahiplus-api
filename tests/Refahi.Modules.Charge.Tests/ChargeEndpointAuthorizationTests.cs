@@ -1,8 +1,8 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using MediatR;
 using Refahi.Modules.Charge.Api.Endpoints;
 using Refahi.Shared.Presentation;
 
@@ -20,7 +20,8 @@ public sealed class ChargeEndpointAuthorizationTests
 
         var app = builder.Build();
         var group = app.MapGroup("/api/charge");
-        var endpointTypes = typeof(GetCatalogOperatorsEndpoint).Assembly.GetTypes()
+        var endpointTypes = typeof(GetCatalogOperatorsEndpoint)
+            .Assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         foreach (var type in endpointTypes)
@@ -29,7 +30,10 @@ public sealed class ChargeEndpointAuthorizationTests
                 endpoint.Map(group);
         }
 
-        var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(x => x.Endpoints).OfType<RouteEndpoint>().ToList();
+        var endpoints = ((IEndpointRouteBuilder)app)
+            .DataSources.SelectMany(x => x.Endpoints)
+            .OfType<RouteEndpoint>()
+            .ToList();
         Assert.NotEmpty(endpoints);
 
         var publicNames = new HashSet<string>(StringComparer.Ordinal)
@@ -39,7 +43,7 @@ public sealed class ChargeEndpointAuthorizationTests
             "Charge.Catalog.Offers",
             "Charge.Catalog.PostpaidBalance",
             "Charge.Catalog.PinCategories",
-            "Charge.Catalog.Quote"
+            "Charge.Catalog.Quote",
         };
 
         foreach (var endpoint in endpoints)
@@ -55,12 +59,29 @@ public sealed class ChargeEndpointAuthorizationTests
                 Assert.NotEmpty(authorization);
         }
 
-        Assert.Equal(27, endpoints.Count(endpoint =>
-            endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName?.StartsWith("Charge.", StringComparison.Ordinal) is true));
+        Assert.Equal(
+            27,
+            endpoints.Count(endpoint =>
+                endpoint
+                    .Metadata.GetMetadata<IEndpointNameMetadata>()
+                    ?.EndpointName?.StartsWith("Charge.", StringComparison.Ordinal)
+                    is true
+            )
+        );
 
         var adminEndpoints = endpoints.Where(endpoint =>
-            endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName?.StartsWith("Charge.Admin.", StringComparison.Ordinal) is true);
-        Assert.All(adminEndpoints, endpoint => Assert.Contains(
-            endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>(), data => data.Policy == "AdminOnly"));
+            endpoint
+                .Metadata.GetMetadata<IEndpointNameMetadata>()
+                ?.EndpointName?.StartsWith("Charge.Admin.", StringComparison.Ordinal)
+                is true
+        );
+        Assert.All(
+            adminEndpoints,
+            endpoint =>
+                Assert.Contains(
+                    endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>(),
+                    data => data.Policy == "AdminOnly"
+                )
+        );
     }
 }

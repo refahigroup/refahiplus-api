@@ -12,14 +12,11 @@ public class AgreementRepository : IAgreementRepository
 {
     private readonly SupplyChainDbContext _context;
 
-    public AgreementRepository(SupplyChainDbContext context)
-        => _context = context;
+    public AgreementRepository(SupplyChainDbContext context) => _context = context;
 
     public async Task<Agreement?> GetByIdAsync(Guid id, bool includeProducts, CancellationToken ct)
     {
-        var query = _context.Agreements
-            .Include(a => a.Supplier)
-            .AsQueryable();
+        var query = _context.Agreements.Include(a => a.Supplier).AsQueryable();
 
         if (includeProducts)
             query = query.Include(a => a.Products).Include(a => a.CategoryTerms);
@@ -28,11 +25,17 @@ public class AgreementRepository : IAgreementRepository
     }
 
     public async Task<(IReadOnlyList<Agreement> Items, int Total)> GetPagedAsync(
-        Guid? supplierId, AgreementStatus? status, AgreementType? type, string? search,
-        int page, int size, CancellationToken ct)
+        Guid? supplierId,
+        AgreementStatus? status,
+        AgreementType? type,
+        string? search,
+        int page,
+        int size,
+        CancellationToken ct
+    )
     {
-        var query = _context.Agreements
-            .Include(a => a.Supplier)
+        var query = _context
+            .Agreements.Include(a => a.Supplier)
             .Where(a => !a.IsDeleted)
             .AsQueryable();
 
@@ -49,12 +52,29 @@ public class AgreementRepository : IAgreementRepository
         {
             var lower = search.ToLower();
             query = query.Where(a =>
-                a.AgreementNo.ToLower().Contains(lower) ||
-                (a.Supplier != null && (
-                    (a.Supplier.CompanyName != null && a.Supplier.CompanyName.ToLower().Contains(lower)) ||
-                    (a.Supplier.BrandName != null && a.Supplier.BrandName.ToLower().Contains(lower)) ||
-                    (a.Supplier.FirstName != null && a.Supplier.FirstName.ToLower().Contains(lower)) ||
-                    (a.Supplier.LastName != null && a.Supplier.LastName.ToLower().Contains(lower)))));
+                a.AgreementNo.ToLower().Contains(lower)
+                || (
+                    a.Supplier != null
+                    && (
+                        (
+                            a.Supplier.CompanyName != null
+                            && a.Supplier.CompanyName.ToLower().Contains(lower)
+                        )
+                        || (
+                            a.Supplier.BrandName != null
+                            && a.Supplier.BrandName.ToLower().Contains(lower)
+                        )
+                        || (
+                            a.Supplier.FirstName != null
+                            && a.Supplier.FirstName.ToLower().Contains(lower)
+                        )
+                        || (
+                            a.Supplier.LastName != null
+                            && a.Supplier.LastName.ToLower().Contains(lower)
+                        )
+                    )
+                )
+            );
         }
 
         var total = await query.CountAsync(ct);
@@ -68,10 +88,13 @@ public class AgreementRepository : IAgreementRepository
         return (items, total);
     }
 
-    public async Task<bool> ExistsByAgreementNoAsync(string agreementNo, Guid? excludeId, CancellationToken ct)
+    public async Task<bool> ExistsByAgreementNoAsync(
+        string agreementNo,
+        Guid? excludeId,
+        CancellationToken ct
+    )
     {
-        var query = _context.Agreements
-            .Where(a => a.AgreementNo == agreementNo && !a.IsDeleted);
+        var query = _context.Agreements.Where(a => a.AgreementNo == agreementNo && !a.IsDeleted);
 
         if (excludeId.HasValue)
             query = query.Where(a => a.Id != excludeId.Value);
@@ -79,14 +102,14 @@ public class AgreementRepository : IAgreementRepository
         return await query.AnyAsync(ct);
     }
 
-    public Task<AgreementProduct?> GetProductByIdAsync(Guid productId, CancellationToken ct)
-        => _context.AgreementProducts
-            .FirstOrDefaultAsync(p => p.Id == productId, ct);
+    public Task<AgreementProduct?> GetProductByIdAsync(Guid productId, CancellationToken ct) =>
+        _context.AgreementProducts.FirstOrDefaultAsync(p => p.Id == productId, ct);
 
     public async Task<IReadOnlyList<AgreementCategoryTermCandidate>> GetCategoryTermCandidatesAsync(
         IReadOnlyCollection<Guid> supplierIds,
         IReadOnlyCollection<int> categoryIds,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         if (supplierIds.Count == 0 || categoryIds.Count == 0)
             return [];
@@ -95,8 +118,8 @@ public class AgreementRepository : IAgreementRepository
             from term in _context.AgreementCategoryTerms.AsNoTracking()
             join agreement in _context.Agreements.AsNoTracking()
                 on term.AgreementId equals agreement.Id
-            where supplierIds.Contains(agreement.SupplierId)
-                  && categoryIds.Contains(term.CategoryId)
+            where
+                supplierIds.Contains(agreement.SupplierId) && categoryIds.Contains(term.CategoryId)
             select new AgreementCategoryTermCandidate(
                 term.Id,
                 agreement.Id,
@@ -109,30 +132,38 @@ public class AgreementRepository : IAgreementRepository
                 agreement.Status,
                 agreement.IsDeleted,
                 agreement.FromDate,
-                agreement.ToDate))
-            .ToListAsync(ct);
+                agreement.ToDate
+            )
+        ).ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<Guid>> GetApprovedProductIdsByCategoryAsync(
-        int categoryId, CancellationToken ct)
+        int categoryId,
+        CancellationToken ct
+    )
     {
         var now = DateTimeOffset.UtcNow;
-        return await _context.AgreementProducts
-            .Where(ap => ap.CategoryId == categoryId && !ap.IsDeleted)
+        return await _context
+            .AgreementProducts.Where(ap => ap.CategoryId == categoryId && !ap.IsDeleted)
             .Join(
                 _context.Agreements.Where(a =>
-                    a.Status == AgreementStatus.Approved &&
+                    a.Status == AgreementStatus.Approved
+                    &&
                     //a.ToDate >= now &&
-                    !a.IsDeleted),
+                    !a.IsDeleted
+                ),
                 ap => ap.AgreementId,
                 a => a.Id,
-                (ap, _) => ap.Id)
+                (ap, _) => ap.Id
+            )
             .Distinct()
             .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<Guid>> GetDisplayableProductIdsByCategoriesAsync(
-        IReadOnlyList<int> categoryIds, CancellationToken ct)
+        IReadOnlyList<int> categoryIds,
+        CancellationToken ct
+    )
     {
         if (categoryIds.Count == 0)
             return [];
@@ -140,24 +171,26 @@ public class AgreementRepository : IAgreementRepository
         var now = DateTimeOffset.UtcNow;
         return await (
             from ap in _context.AgreementProducts
-            where !ap.IsDeleted
-                  && ap.CategoryId != null
-                  && categoryIds.Contains(ap.CategoryId.Value)
-            join a in _context.Agreements
-                          .Where(a => !a.IsDeleted
-                                      && a.Status == AgreementStatus.Approved
-                                      && a.ToDate >= now)
+            where
+                !ap.IsDeleted && ap.CategoryId != null && categoryIds.Contains(ap.CategoryId.Value)
+            join a in _context.Agreements.Where(a =>
+                !a.IsDeleted && a.Status == AgreementStatus.Approved && a.ToDate >= now
+            )
                 on ap.AgreementId equals a.Id
-            join s in _context.Suppliers
-                          .Where(s => !s.IsDeleted && s.Status == SupplierStatus.Approved)
+            join s in _context.Suppliers.Where(s =>
+                !s.IsDeleted && s.Status == SupplierStatus.Approved
+            )
                 on a.SupplierId equals s.Id
-            select ap.Id)
+            select ap.Id
+        )
             .Distinct()
             .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyDictionary<Guid, AgreementProductDto>> GetProductsByIdsAsync(
-        IReadOnlyList<Guid> ids, CancellationToken ct)
+        IReadOnlyList<Guid> ids,
+        CancellationToken ct
+    )
     {
         if (ids.Count == 0)
             return new Dictionary<Guid, AgreementProductDto>();
@@ -167,39 +200,50 @@ public class AgreementRepository : IAgreementRepository
             join agreement in _context.Agreements on ap.AgreementId equals agreement.Id
             where ids.Contains(ap.Id) && !ap.IsDeleted
             select new AgreementProductDto(
-                    ap.Id, ap.AgreementId, ap.Name, ap.Description, ap.CategoryId,
-                    null,
-                    (short)ap.ProductType, (short)ap.DeliveryType, (short)ap.SalesModel,
-                    ap.CommissionPercent, ap.IsDeleted, ap.CreatedAt,
-                    (short)ap.PricingMode, ap.VatApplicable, agreement.SupplierId))
+                ap.Id,
+                ap.AgreementId,
+                ap.Name,
+                ap.Description,
+                ap.CategoryId,
+                null,
+                (short)ap.ProductType,
+                (short)ap.DeliveryType,
+                (short)ap.SalesModel,
+                ap.CommissionPercent,
+                ap.IsDeleted,
+                ap.CreatedAt,
+                (short)ap.PricingMode,
+                ap.VatApplicable,
+                agreement.SupplierId
+            )
+        )
             .AsNoTracking()
             .ToListAsync(ct);
         return products.ToDictionary(x => x.Id);
     }
 
     public async Task<IReadOnlyDictionary<Guid, decimal>> GetCommissionPercentsByIdsAsync(
-        IReadOnlyList<Guid> ids, CancellationToken ct)
+        IReadOnlyList<Guid> ids,
+        CancellationToken ct
+    )
     {
         if (ids.Count == 0)
             return new Dictionary<Guid, decimal>();
 
-        return await _context.AgreementProducts
-            .Where(ap => ids.Contains(ap.Id) && !ap.IsDeleted)
+        return await _context
+            .AgreementProducts.Where(ap => ids.Contains(ap.Id) && !ap.IsDeleted)
             .ToDictionaryAsync(ap => ap.Id, ap => ap.CommissionPercent, ct);
     }
 
-    public async Task AddAsync(Agreement agreement, CancellationToken ct)
-        => await _context.Agreements.AddAsync(agreement, ct);
+    public async Task AddAsync(Agreement agreement, CancellationToken ct) =>
+        await _context.Agreements.AddAsync(agreement, ct);
 
-    public void Update(Agreement agreement)
-        => _context.Agreements.Update(agreement);
+    public void Update(Agreement agreement) => _context.Agreements.Update(agreement);
 
-    public void AddProduct(AgreementProduct product)
-        => _context.AgreementProducts.Add(product);
+    public void AddProduct(AgreementProduct product) => _context.AgreementProducts.Add(product);
 
-    public void AddCategoryTerm(AgreementCategoryTerm term)
-        => _context.AgreementCategoryTerms.Add(term);
+    public void AddCategoryTerm(AgreementCategoryTerm term) =>
+        _context.AgreementCategoryTerms.Add(term);
 
-    public async Task SaveChangesAsync(CancellationToken ct)
-        => await _context.SaveChangesAsync(ct);
+    public async Task SaveChangesAsync(CancellationToken ct) => await _context.SaveChangesAsync(ct);
 }

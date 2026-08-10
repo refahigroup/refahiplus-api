@@ -8,17 +8,18 @@ public class ChangeSupplierStatusCommandValidator : AbstractValidator<ChangeSupp
 {
     public ChangeSupplierStatusCommandValidator()
     {
-        RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("شناسه تامین‌کننده الزامی است");
+        RuleFor(x => x.Id).NotEmpty().WithMessage("شناسه تامین‌کننده الزامی است");
 
         RuleFor(x => x.NewStatus)
             .Must(s => Enum.IsDefined(typeof(SupplierStatus), s))
             .WithMessage("وضعیت درخواستی معتبر نیست");
 
-        When(x => (SupplierStatus)x.NewStatus == SupplierStatus.Rejected, () =>
-        {
-            RuleFor(x => x.Note)
-                .NotEmpty().WithMessage("دلیل رد در هنگام رد کردن الزامی است");
-        });
+        When(
+            x => (SupplierStatus)x.NewStatus == SupplierStatus.Rejected,
+            () =>
+            {
+                RuleFor(x => x.Note).NotEmpty().WithMessage("دلیل رد در هنگام رد کردن الزامی است");
+            }
+        );
     }
 }

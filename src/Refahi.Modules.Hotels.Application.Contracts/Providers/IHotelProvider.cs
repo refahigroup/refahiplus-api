@@ -43,7 +43,11 @@ public interface IHotelProvider
     /// <summary>
     /// دریافت تقویم دسترسی یک هتل برای بازه زمانی معین
     /// </summary>
-    Task<AvailabilityCalendarDto> GetHotelAvailabilityCalendarAsync(long hotelId, DateOnly from, DateOnly to);
+    Task<AvailabilityCalendarDto> GetHotelAvailabilityCalendarAsync(
+        long hotelId,
+        DateOnly from,
+        DateOnly to
+    );
 
     /// <summary>
     /// دریافت نقدهای هتل
@@ -95,5 +99,6 @@ public interface IHotelProvider
     Task<CancelProviderBookingResultDto> CancelBookingAsync(
         string bookingCode,
         string idempotencyKey,
-        string reason);
+        string reason
+    );
 }

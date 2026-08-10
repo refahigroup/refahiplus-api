@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -10,13 +11,15 @@ using Refahi.Modules.Identity.Application;
 using Refahi.Modules.Identity.Infrastructure;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Presentation;
-using System.Text;
 
 namespace Refahi.Modules.Identity.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterIdentityModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterIdentityModule(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services
             .AddOptions<JwtOptions>()
@@ -27,57 +30,56 @@ public static class DI
 
         services.AddScoped<ITokenService, JwtTokenService>();
 
-   
-        services
-            .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration);
+        services.RegisterApplication(configuration).RegisterInfrastructure(configuration);
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
-        services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-        {
-            var jwt = configuration.GetSection("Jwt");
-
-            var jwtOptions = new JwtOptions
+        services.PostConfigure<JwtBearerOptions>(
+            JwtBearerDefaults.AuthenticationScheme,
+            options =>
             {
-                Key = jwt["Key"]!.ReplaceWithEnvironmentVariables(),
-                Issuer = jwt["Issuer"]!,
-                Audience = jwt["Audience"]!
-            };
+                var jwt = configuration.GetSection("Jwt");
 
-            // TODO: if jwtOptions is not Valid ...
+                var jwtOptions = new JwtOptions
+                {
+                    Key = jwt["Key"]!.ReplaceWithEnvironmentVariables(),
+                    Issuer = jwt["Issuer"]!,
+                    Audience = jwt["Audience"]!,
+                };
 
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = jwtOptions.Issuer,
-                ValidateAudience = true,
-                ValidAudience = jwtOptions.Audience,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromSeconds(int.TryParse(jwt["ClockSkewSeconds"], out var s) ? s : 30)
-            };
-        });
+                // TODO: if jwtOptions is not Valid ...
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwtOptions.Audience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtOptions.Key)
+                    ),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(
+                        int.TryParse(jwt["ClockSkewSeconds"], out var s) ? s : 30
+                    ),
+                };
+            }
+        );
 
         services.AddAuthorization(options =>
         {
             // Admin-only policy
-            options.AddPolicy("AdminOnly", policy =>
-                policy.RequireRole("Admin"));
+            options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 
             // User or Admin policy
-            options.AddPolicy("UserOrAdmin", policy =>
-                policy.RequireRole("User", "Admin"));
+            options.AddPolicy("UserOrAdmin", policy => policy.RequireRole("User", "Admin"));
 
             // Vendor or Admin policy
-            options.AddPolicy("VendorOrAdmin", policy =>
-                policy.RequireRole("Vendor", "Admin"));
+            options.AddPolicy("VendorOrAdmin", policy => policy.RequireRole("Vendor", "Admin"));
 
             // Vendor-only policy used by the vendor panel APIs
-            options.AddPolicy("VendorOnly", policy =>
-                policy.RequireRole("Vendor"));
+            options.AddPolicy("VendorOnly", policy => policy.RequireRole("Vendor"));
         });
 
         return services;
@@ -99,7 +101,8 @@ public static class DI
     {
         var assembly = typeof(DI).Assembly;
 
-        var endpointTypes = assembly.GetTypes()
+        var endpointTypes = assembly
+            .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);

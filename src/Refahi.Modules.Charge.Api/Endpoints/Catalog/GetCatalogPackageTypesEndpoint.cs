@@ -15,8 +15,14 @@ public sealed class GetCatalogPackageTypesEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("catalog/package-types", async (ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetPackageTypesQuery(), ct))))
+        routes
+            .MapGet(
+                "catalog/package-types",
+                async (ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(await sender.Send(new GetPackageTypesQuery(), ct))
+                    )
+            )
             .RequireAuthorization("UserOrAdmin")
             .WithName("Charge.Catalog.PackageTypes")
             .WithTags("Charge.Catalog")

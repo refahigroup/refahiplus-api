@@ -42,7 +42,8 @@ public sealed class FlightBooking
     public IReadOnlyCollection<Passenger> Passengers => _passengers.AsReadOnly();
     public IReadOnlyCollection<FlightSegment> Segments => _segments.AsReadOnly();
     public IReadOnlyCollection<IssuedTicket> IssuedTickets => _issuedTickets.AsReadOnly();
-    public IReadOnlyCollection<CancellationRequest> CancellationRequests => _cancellationRequests.AsReadOnly();
+    public IReadOnlyCollection<CancellationRequest> CancellationRequests =>
+        _cancellationRequests.AsReadOnly();
 
     public static FlightBooking CreateDraft(
         FlightBookingId id,
@@ -55,7 +56,8 @@ public sealed class FlightBooking
         FareBreakdown fareBreakdown,
         string idempotencyKey,
         DateTime nowUtc,
-        DateTime? expiresAtUtc = null)
+        DateTime? expiresAtUtc = null
+    )
     {
         if (userId == Guid.Empty)
         {
@@ -109,7 +111,7 @@ public sealed class FlightBooking
             Status = FlightBookingStatus.Draft,
             CreatedAtUtc = nowUtc,
             UpdatedAtUtc = nowUtc,
-            ExpiresAtUtc = expiresAtUtc
+            ExpiresAtUtc = expiresAtUtc,
         };
 
         booking._passengers.AddRange(passengerList);
@@ -120,7 +122,10 @@ public sealed class FlightBooking
 
     public void MarkProviderBooked(ProviderBookingSnapshot providerBooking, DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.Draft, "Only draft flight booking can be marked provider booked.");
+        EnsureStatus(
+            FlightBookingStatus.Draft,
+            "Only draft flight booking can be marked provider booked."
+        );
 
         ProviderBooking = providerBooking;
         Status = FlightBookingStatus.ProviderBooked;
@@ -129,7 +134,10 @@ public sealed class FlightBooking
 
     public void AttachOrder(Guid orderId, string orderNumber, DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.ProviderBooked, "Order can only be attached after provider booking.");
+        EnsureStatus(
+            FlightBookingStatus.ProviderBooked,
+            "Order can only be attached after provider booking."
+        );
 
         if (orderId == Guid.Empty)
         {
@@ -149,7 +157,10 @@ public sealed class FlightBooking
 
     public void MarkPaymentPending(DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.OrderCreated, "Payment can only become pending after order creation.");
+        EnsureStatus(
+            FlightBookingStatus.OrderCreated,
+            "Payment can only become pending after order creation."
+        );
 
         Status = FlightBookingStatus.PaymentPending;
         UpdatedAtUtc = nowUtc;
@@ -157,7 +168,10 @@ public sealed class FlightBooking
 
     public void MarkPaid(DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.PaymentPending, "Flight booking can only be paid from payment pending state.");
+        EnsureStatus(
+            FlightBookingStatus.PaymentPending,
+            "Flight booking can only be paid from payment pending state."
+        );
 
         Status = FlightBookingStatus.Paid;
         UpdatedAtUtc = nowUtc;
@@ -201,7 +215,10 @@ public sealed class FlightBooking
 
     public void MarkIssueFailed(string reason, DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.Issuing, "Issue failure can only be recorded from issuing state.");
+        EnsureStatus(
+            FlightBookingStatus.Issuing,
+            "Issue failure can only be recorded from issuing state."
+        );
 
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -215,10 +232,13 @@ public sealed class FlightBooking
 
     public void MarkExpired(DateTime nowUtc)
     {
-        if (Status is not FlightBookingStatus.Draft
-            and not FlightBookingStatus.ProviderBooked
-            and not FlightBookingStatus.OrderCreated
-            and not FlightBookingStatus.PaymentPending)
+        if (
+            Status
+            is not FlightBookingStatus.Draft
+                and not FlightBookingStatus.ProviderBooked
+                and not FlightBookingStatus.OrderCreated
+                and not FlightBookingStatus.PaymentPending
+        )
         {
             throw new DomainException("Only unpaid flight booking can expire.");
         }
@@ -241,19 +261,30 @@ public sealed class FlightBooking
 
     public void RequestCancellation(Guid cancellationRequestId, string reason, DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.CancellationQuoted, "Cancellation can only be requested after quote.");
+        EnsureStatus(
+            FlightBookingStatus.CancellationQuoted,
+            "Cancellation can only be requested after quote."
+        );
 
         if (LatestCancellationQuote is null)
         {
             throw new DomainException("Cancellation quote is required before request.");
         }
 
-        if (LatestCancellationQuote.ExpiresAtUtc.HasValue && LatestCancellationQuote.ExpiresAtUtc.Value <= nowUtc)
+        if (
+            LatestCancellationQuote.ExpiresAtUtc.HasValue
+            && LatestCancellationQuote.ExpiresAtUtc.Value <= nowUtc
+        )
         {
             throw new DomainException("Cancellation quote is expired.");
         }
 
-        var request = new CancellationRequest(cancellationRequestId, LatestCancellationQuote, reason, nowUtc);
+        var request = new CancellationRequest(
+            cancellationRequestId,
+            LatestCancellationQuote,
+            reason,
+            nowUtc
+        );
         _cancellationRequests.Add(request);
 
         Status = FlightBookingStatus.CancellationRequested;
@@ -262,7 +293,10 @@ public sealed class FlightBooking
 
     public void MarkCancellationFailed(Guid cancellationRequestId, string reason, DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.CancellationRequested, "Cancellation can only fail from requested state.");
+        EnsureStatus(
+            FlightBookingStatus.CancellationRequested,
+            "Cancellation can only fail from requested state."
+        );
 
         var request = GetCancellationRequest(cancellationRequestId);
         request.MarkFailed(reason, nowUtc);
@@ -271,9 +305,16 @@ public sealed class FlightBooking
         UpdatedAtUtc = nowUtc;
     }
 
-    public void MarkCancelled(Guid cancellationRequestId, string? providerCancellationId, DateTime nowUtc)
+    public void MarkCancelled(
+        Guid cancellationRequestId,
+        string? providerCancellationId,
+        DateTime nowUtc
+    )
     {
-        EnsureStatus(FlightBookingStatus.CancellationRequested, "Flight booking can only be cancelled from requested state.");
+        EnsureStatus(
+            FlightBookingStatus.CancellationRequested,
+            "Flight booking can only be cancelled from requested state."
+        );
 
         var request = GetCancellationRequest(cancellationRequestId);
         request.MarkCancelled(providerCancellationId, nowUtc);
@@ -284,7 +325,10 @@ public sealed class FlightBooking
 
     public void MarkRefundPending(DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.Cancelled, "Refund can only become pending after cancellation.");
+        EnsureStatus(
+            FlightBookingStatus.Cancelled,
+            "Refund can only become pending after cancellation."
+        );
 
         Status = FlightBookingStatus.RefundPending;
         UpdatedAtUtc = nowUtc;
@@ -292,7 +336,10 @@ public sealed class FlightBooking
 
     public void MarkRefunded(DateTime nowUtc)
     {
-        EnsureStatus(FlightBookingStatus.RefundPending, "Flight booking can only be refunded from refund pending state.");
+        EnsureStatus(
+            FlightBookingStatus.RefundPending,
+            "Flight booking can only be refunded from refund pending state."
+        );
 
         Status = FlightBookingStatus.Refunded;
         UpdatedAtUtc = nowUtc;
@@ -308,7 +355,9 @@ public sealed class FlightBooking
 
     private CancellationRequest GetCancellationRequest(Guid cancellationRequestId)
     {
-        var request = _cancellationRequests.SingleOrDefault(item => item.Id == cancellationRequestId);
+        var request = _cancellationRequests.SingleOrDefault(item =>
+            item.Id == cancellationRequestId
+        );
         if (request is null)
         {
             throw new DomainException("Cancellation request was not found.");

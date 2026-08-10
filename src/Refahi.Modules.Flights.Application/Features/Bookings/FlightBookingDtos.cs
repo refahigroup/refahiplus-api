@@ -8,7 +8,8 @@ public sealed record FlightBookingPassengerDto(
     DateOnly BirthDate,
     string? NationalCode,
     string? PassportNumber,
-    string NationalityCode);
+    string NationalityCode
+);
 
 public sealed record FlightBookingSegmentDto(
     int Sequence,
@@ -20,7 +21,8 @@ public sealed record FlightBookingSegmentDto(
     string DestinationAirportCode,
     string DestinationCaption,
     DateTime DepartureAtUtc,
-    DateTime ArrivalAtUtc);
+    DateTime ArrivalAtUtc
+);
 
 public sealed record FlightIssuedTicketDto(
     Guid TicketId,
@@ -28,7 +30,8 @@ public sealed record FlightIssuedTicketDto(
     string TicketNumber,
     string PassengerNameSnapshot,
     string? ProviderTicketId,
-    DateTime IssuedAtUtc);
+    DateTime IssuedAtUtc
+);
 
 public sealed record FlightBookingDetailDto(
     Guid BookingId,
@@ -48,17 +51,20 @@ public sealed record FlightBookingDetailDto(
     string? IssueFailureReason,
     IReadOnlyCollection<FlightBookingPassengerDto> Passengers,
     IReadOnlyCollection<FlightBookingSegmentDto> Segments,
-    IReadOnlyCollection<FlightIssuedTicketDto> IssuedTickets);
+    IReadOnlyCollection<FlightIssuedTicketDto> IssuedTickets
+);
 
 public sealed record PrepareFlightOrderResponse(
     Guid BookingId,
     Guid OrderId,
     string OrderNumber,
     long FinalAmountMinor,
-    string PaymentState);
+    string PaymentState
+);
 
 public sealed record IssueFlightTicketResponse(
     Guid BookingId,
     Guid OrderId,
     string Status,
-    IReadOnlyCollection<FlightIssuedTicketDto> IssuedTickets);
+    IReadOnlyCollection<FlightIssuedTicketDto> IssuedTickets
+);

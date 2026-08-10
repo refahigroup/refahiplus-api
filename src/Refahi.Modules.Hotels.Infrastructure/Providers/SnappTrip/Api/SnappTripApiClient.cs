@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
-using System.Net.Http.Json;
 
 namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Api;
 
@@ -48,7 +48,6 @@ public class SnappTripApiClient
         _logger = logger;
     }
 
-
     #region INTERNAL HELPERS
 
     private async Task<T> GetAsync<T>(string url)
@@ -91,11 +90,15 @@ public class SnappTripApiClient
 
     private async Task<T> PostAsync<T>(string url, object payload, string idempotencyKey)
     {
-        _logger.LogInformation("SnappTrip POST {Url} IdempotencyKey={IdempotencyKey}", url, idempotencyKey);
+        _logger.LogInformation(
+            "SnappTrip POST {Url} IdempotencyKey={IdempotencyKey}",
+            url,
+            idempotencyKey
+        );
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            Content = JsonContent.Create(payload)
+            Content = JsonContent.Create(payload),
         };
         request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         request.Headers.TryAddWithoutValidation("X-Idempotency-Key", idempotencyKey);
@@ -115,10 +118,11 @@ public class SnappTripApiClient
     private async Task ThrowApiError(HttpResponseMessage response, string url)
     {
         var err = await response.Content.ReadFromJsonAsync<SnappTripApiError>();
-        var message = $"SnappTrip Error calling {url}. " +
-                      $"Status={(int)response.StatusCode}, " +
-                      $"Code={err?.code}, " +
-                      $"Message={err?.message}, Trace={err?.trace_id}";
+        var message =
+            $"SnappTrip Error calling {url}. "
+            + $"Status={(int)response.StatusCode}, "
+            + $"Code={err?.code}, "
+            + $"Message={err?.message}, Trace={err?.trace_id}";
 
         _logger.LogError(message);
         throw new Exception(message);
@@ -131,7 +135,9 @@ public class SnappTripApiClient
     // 1) CITY AVAILABILITY
     // ============================================================
 
-    public Task<SnappTripCityAvailabilityResponse> SearchCityAvailabilityAsync(SnappTripCityAvailabilityRequest request)
+    public Task<SnappTripCityAvailabilityResponse> SearchCityAvailabilityAsync(
+        SnappTripCityAvailabilityRequest request
+    )
     {
         return PostAsync<SnappTripCityAvailabilityResponse>("/availability/cities", request);
     }
@@ -140,7 +146,11 @@ public class SnappTripApiClient
     // 2) HOTEL AVAILABILITY (REAL-TIME)
     // ============================================================
 
-    public Task<IEnumerable<SnappTripRoomAvailability>> GetHotelAvailabilityAsync(long[] hotelIds, string checkIn, string checkOut)
+    public Task<IEnumerable<SnappTripRoomAvailability>> GetHotelAvailabilityAsync(
+        long[] hotelIds,
+        string checkIn,
+        string checkOut
+    )
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()));
         var url = $"/availability/hotels?id={ids}&checkin={checkIn}&checkout={checkOut}";
@@ -148,12 +158,15 @@ public class SnappTripApiClient
         return GetAsync<IEnumerable<SnappTripRoomAvailability>>(url);
     }
 
-
     // ============================================================
     // 3) HOTEL AVAILABILITY (REAL-TIME) - Single Hotel
     // ============================================================
 
-    public Task<SnappTripAvailabilityResponse> GetHotelAvailabilityByIdAsync(long hotelId, string checkIn, string checkOut)
+    public Task<SnappTripAvailabilityResponse> GetHotelAvailabilityByIdAsync(
+        long hotelId,
+        string checkIn,
+        string checkOut
+    )
     {
         var url = $"/availability/hotels/{hotelId}?checkin={checkIn}&checkout={checkOut}";
         return GetAsync<SnappTripAvailabilityResponse>(url);
@@ -163,7 +176,11 @@ public class SnappTripApiClient
     // 4) HOTEL CALENDAR
     // ============================================================
 
-    public Task<SnappTripHotelCalendarResponse> GetHotelCalendarAsync(long hotelId, string from, string to)
+    public Task<SnappTripHotelCalendarResponse> GetHotelCalendarAsync(
+        long hotelId,
+        string from,
+        string to
+    )
     {
         var url = $"/availability/hotels/{hotelId}/calendar?from={from}&to={to}";
         return GetAsync<SnappTripHotelCalendarResponse>(url);
@@ -173,7 +190,12 @@ public class SnappTripApiClient
     // 5) ROOM CALENDAR
     // ============================================================
 
-    public Task<IEnumerable<SnappTripRoomCalendarDay>> GetRoomCalendarAsync(long hotelId, long roomId, string from, string to)
+    public Task<IEnumerable<SnappTripRoomCalendarDay>> GetRoomCalendarAsync(
+        long hotelId,
+        long roomId,
+        string from,
+        string to
+    )
     {
         var url = $"/availability/hotels/{hotelId}/room/{roomId}/calendar?from={from}&to={to}";
         return GetAsync<IEnumerable<SnappTripRoomCalendarDay>>(url);
@@ -183,7 +205,11 @@ public class SnappTripApiClient
     // 2) HOTEL AVAILABILITY (REAL-TIME)
     // ============================================================
 
-    public Task<IEnumerable<SnappTripAvailabilityResponse>> GetHotelsAvailabilityAsync(long[] hotelIds, string checkIn, string checkOut)
+    public Task<IEnumerable<SnappTripAvailabilityResponse>> GetHotelsAvailabilityAsync(
+        long[] hotelIds,
+        string checkIn,
+        string checkOut
+    )
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()));
         var url = $"/availability/hotels?id={ids}&checkin={checkIn}&checkout={checkOut}";
@@ -204,7 +230,10 @@ public class SnappTripApiClient
     // 7) CREATE BOOKING
     // ============================================================
 
-    public Task<SnappTripBookingCreateResponse> CreateBookingAsync(SnappTripCreateBookingRequest req, string idempotencyKey)
+    public Task<SnappTripBookingCreateResponse> CreateBookingAsync(
+        SnappTripCreateBookingRequest req,
+        string idempotencyKey
+    )
     {
         return PostAsync<SnappTripBookingCreateResponse>("/booking/create", req, idempotencyKey);
     }
@@ -240,12 +269,9 @@ public class SnappTripApiClient
     {
         return PostAsync<SnappTripBookingStatusResponse>(
             $"/booking/{reservationCode}/confirm",
-            new { }  // body خالی
+            new { } // body خالی
         );
     }
-
-
-
 
     // ============================================================
     // 11) CITIES LIST
@@ -260,7 +286,11 @@ public class SnappTripApiClient
     // 12) CITY HOTELS
     // ============================================================
 
-    public Task<IEnumerable<SnappTripHotelBrief>> GetCityHotelsAsync(long cityId, int? limit = null, int? offset = null)
+    public Task<IEnumerable<SnappTripHotelBrief>> GetCityHotelsAsync(
+        long cityId,
+        int? limit = null,
+        int? offset = null
+    )
     {
         var url = $"/cities/{cityId}/hotels";
         var queryParams = new List<string>();
@@ -311,7 +341,9 @@ public class SnappTripApiClient
     // 15) HOTEL FACILITIES (STATIC)
     // ============================================================
 
-    public Task<IEnumerable<SnappTripHotelFacilitiesResponse>> GetHotelsFacilitiesAsync(long[] hotelIds)
+    public Task<IEnumerable<SnappTripHotelFacilitiesResponse>> GetHotelsFacilitiesAsync(
+        long[] hotelIds
+    )
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()).Take(10)); // Max 10 per API docs
         var url = $"/hotels/facilities?id={ids}";
@@ -322,7 +354,9 @@ public class SnappTripApiClient
     // 16) HOTEL GALLERIES (STATIC)
     // ============================================================
 
-    public Task<IEnumerable<SnappTripHotelGalleriesResponse>> GetHotelsGalleriesAsync(long[] hotelIds)
+    public Task<IEnumerable<SnappTripHotelGalleriesResponse>> GetHotelsGalleriesAsync(
+        long[] hotelIds
+    )
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()).Take(10)); // Max 10 per API docs
         var url = $"/hotels/galleries?id={ids}";
@@ -350,7 +384,4 @@ public class SnappTripApiClient
         var url = $"/hotels/reviews?id={ids}";
         return GetAsync<IEnumerable<SnappTripHotelReviewsResponse>>(url);
     }
-
-
-
 }

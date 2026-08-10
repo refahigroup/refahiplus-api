@@ -26,7 +26,8 @@ public sealed class VariantAttributeUpdateTests
         var attribute = product.AddVariantAttribute("Size", 2);
 
         var exception = Assert.Throws<StoreDomainException>(() =>
-            product.UpdateVariantAttribute(attribute.Id, " color ", 3));
+            product.UpdateVariantAttribute(attribute.Id, " color ", 3)
+        );
 
         Assert.Equal("VARIANT_ATTRIBUTE_ALREADY_EXISTS", exception.ErrorCode);
     }
@@ -37,7 +38,8 @@ public sealed class VariantAttributeUpdateTests
         var product = CreateProduct();
 
         var exception = Assert.Throws<StoreDomainException>(() =>
-            product.UpdateVariantAttribute(Guid.NewGuid(), "رنگ", 0));
+            product.UpdateVariantAttribute(Guid.NewGuid(), "رنگ", 0)
+        );
 
         Assert.Equal("VARIANT_ATTRIBUTE_NOT_FOUND", exception.ErrorCode);
     }
@@ -61,7 +63,8 @@ public sealed class VariantAttributeUpdateTests
         var product = CreateProduct();
 
         var exception = Assert.Throws<StoreDomainException>(() =>
-            product.UpdateVariantAttributeValue(Guid.NewGuid(), Guid.NewGuid(), "آبی", 0));
+            product.UpdateVariantAttributeValue(Guid.NewGuid(), Guid.NewGuid(), "آبی", 0)
+        );
 
         Assert.Equal("VARIANT_ATTRIBUTE_NOT_FOUND", exception.ErrorCode);
     }
@@ -73,11 +76,12 @@ public sealed class VariantAttributeUpdateTests
         var attribute = product.AddVariantAttribute("رنگ", 1);
 
         var exception = Assert.Throws<StoreDomainException>(() =>
-            product.UpdateVariantAttributeValue(attribute.Id, Guid.NewGuid(), "آبی", 0));
+            product.UpdateVariantAttributeValue(attribute.Id, Guid.NewGuid(), "آبی", 0)
+        );
 
         Assert.Equal("VARIANT_ATTRIBUTE_VALUE_NOT_FOUND", exception.ErrorCode);
     }
 
-    private static Product CreateProduct()
-        => Product.Create(Guid.NewGuid(), "محصول", $"product-{Guid.NewGuid():N}");
+    private static Product CreateProduct() =>
+        Product.Create(Guid.NewGuid(), "محصول", $"product-{Guid.NewGuid():N}");
 }

@@ -7,17 +7,18 @@ public class UpdateBannerCommandValidator : AbstractValidator<UpdateBannerComman
 {
     public UpdateBannerCommandValidator()
     {
-        RuleFor(x => x.Id)
-            .GreaterThan(0).WithMessage("شناسه بنر الزامی است");
+        RuleFor(x => x.Id).GreaterThan(0).WithMessage("شناسه بنر الزامی است");
 
         RuleFor(x => x.Title)
-            .NotEmpty().WithMessage("عنوان بنر الزامی است")
-            .MaximumLength(200).WithMessage("عنوان بنر نمی‌تواند بیشتر از ۲۰۰ کاراکتر باشد");
+            .NotEmpty()
+            .WithMessage("عنوان بنر الزامی است")
+            .MaximumLength(200)
+            .WithMessage("عنوان بنر نمی‌تواند بیشتر از ۲۰۰ کاراکتر باشد");
 
-        RuleFor(x => x.ImageUrl)
-            .NotEmpty().WithMessage("آدرس تصویر الزامی است");
+        RuleFor(x => x.ImageUrl).NotEmpty().WithMessage("آدرس تصویر الزامی است");
 
         RuleFor(x => x.SortOrder)
-            .GreaterThanOrEqualTo(0).WithMessage("ترتیب نمایش نمی‌تواند منفی باشد");
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("ترتیب نمایش نمی‌تواند منفی باشد");
     }
 }

@@ -8,23 +8,36 @@ namespace Refahi.Modules.Store.Application.Services;
 
 internal static class StoreVariantCapacityService
 {
-    public static DateOnly? NormalizeAndValidateUsageDate(ProductVariant variant, DateOnly? usageDate)
+    public static DateOnly? NormalizeAndValidateUsageDate(
+        ProductVariant variant,
+        DateOnly? usageDate
+    )
     {
         var normalizedUsageDate = usageDate;
 
-        if (variant.FromDate.HasValue &&
-            variant.ToDate.HasValue &&
-            variant.FromDate.Value == variant.ToDate.Value &&
-            normalizedUsageDate is null)
+        if (
+            variant.FromDate.HasValue
+            && variant.ToDate.HasValue
+            && variant.FromDate.Value == variant.ToDate.Value
+            && normalizedUsageDate is null
+        )
         {
             normalizedUsageDate = variant.FromDate.Value;
         }
 
         if (variant.RequiresUsageDate && normalizedUsageDate is null)
-            throw new StoreDomainException("تاریخ استفاده برای این خدمت الزامی است.", "USAGE_DATE_REQUIRED");
+            throw new StoreDomainException(
+                "تاریخ استفاده برای این خدمت الزامی است.",
+                "USAGE_DATE_REQUIRED"
+            );
 
-        if (normalizedUsageDate.HasValue && (!variant.FromDate.HasValue || !variant.ToDate.HasValue))
-            throw new StoreDomainException("خرید این خدمت با تنظیمات فعلی امکان‌پذیر نیست.", "INVALID_VARIANT_USAGE_DATE");
+        if (
+            normalizedUsageDate.HasValue && (!variant.FromDate.HasValue || !variant.ToDate.HasValue)
+        )
+            throw new StoreDomainException(
+                "خرید این خدمت با تنظیمات فعلی امکان‌پذیر نیست.",
+                "INVALID_VARIANT_USAGE_DATE"
+            );
 
         variant.ValidateOrderEligibility(normalizedUsageDate);
         return normalizedUsageDate;
@@ -36,7 +49,8 @@ internal static class StoreVariantCapacityService
         int quantity,
         IMediator mediator,
         Guid? excludeOrderId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (variant.CapacityType == VariantCapacityType.Unlimited)
         {
@@ -49,8 +63,10 @@ internal static class StoreVariantCapacityService
                 variant.Id,
                 variant.CapacityType == VariantCapacityType.PerEligibleDay ? usageDate : null,
                 ToOrdersCapacityScope(variant.CapacityType),
-                excludeOrderId),
-            cancellationToken);
+                excludeOrderId
+            ),
+            cancellationToken
+        );
 
         try
         {
@@ -58,19 +74,22 @@ internal static class StoreVariantCapacityService
         }
         catch (StoreDomainException ex) when (ex.ErrorCode == "INSUFFICIENT_VARIANT_CAPACITY")
         {
-            var message = variant.CapacityType == VariantCapacityType.PerEligibleDay
-                ? "ظرفیت این خدمت برای تاریخ انتخاب‌شده تکمیل شده است."
-                : "ظرفیت این خدمت تکمیل شده است.";
+            var message =
+                variant.CapacityType == VariantCapacityType.PerEligibleDay
+                    ? "ظرفیت این خدمت برای تاریخ انتخاب‌شده تکمیل شده است."
+                    : "ظرفیت این خدمت تکمیل شده است.";
 
             throw new StoreDomainException(message, ex.ErrorCode);
         }
     }
 
-    private static StoreVariantCapacityScope ToOrdersCapacityScope(VariantCapacityType capacityType)
-        => capacityType switch
+    private static StoreVariantCapacityScope ToOrdersCapacityScope(
+        VariantCapacityType capacityType
+    ) =>
+        capacityType switch
         {
             VariantCapacityType.TotalPeriod => StoreVariantCapacityScope.TotalPeriod,
             VariantCapacityType.PerEligibleDay => StoreVariantCapacityScope.PerEligibleDay,
-            _ => StoreVariantCapacityScope.TotalPeriod
+            _ => StoreVariantCapacityScope.TotalPeriod,
         };
 }

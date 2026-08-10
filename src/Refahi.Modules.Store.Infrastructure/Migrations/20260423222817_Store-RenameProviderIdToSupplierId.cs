@@ -14,13 +14,15 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 name: "ProviderId",
                 schema: "store",
                 table: "shops",
-                newName: "SupplierId");
+                newName: "SupplierId"
+            );
 
             migrationBuilder.RenameIndex(
                 name: "IX_shops_ProviderId",
                 schema: "store",
                 table: "shops",
-                newName: "IX_shops_SupplierId");
+                newName: "IX_shops_SupplierId"
+            );
         }
 
         /// <inheritdoc />
@@ -30,13 +32,15 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 name: "IX_shops_SupplierId",
                 schema: "store",
                 table: "shops",
-                newName: "IX_shops_ProviderId");
+                newName: "IX_shops_ProviderId"
+            );
 
             migrationBuilder.RenameColumn(
                 name: "SupplierId",
                 schema: "store",
                 table: "shops",
-                newName: "ProviderId");
+                newName: "ProviderId"
+            );
         }
     }
 }

@@ -9,19 +9,29 @@ public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierComman
 {
     private readonly ISupplierRepository _repository;
 
-    public UpdateSupplierCommandHandler(ISupplierRepository repository)
-        => _repository = repository;
+    public UpdateSupplierCommandHandler(ISupplierRepository repository) => _repository = repository;
 
-    public async Task<Unit> Handle(UpdateSupplierCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        UpdateSupplierCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var supplier = await _repository.GetByIdAsync(request.Id, false, cancellationToken)
+        var supplier =
+            await _repository.GetByIdAsync(request.Id, false, cancellationToken)
             ?? throw new SupplyChainDomainException("تامین‌کننده یافت نشد", "SUPPLIER_NOT_FOUND");
 
         if (!string.IsNullOrWhiteSpace(request.NationalId))
         {
-            var exists = await _repository.ExistsByNationalIdAsync(request.NationalId, request.Id, cancellationToken);
+            var exists = await _repository.ExistsByNationalIdAsync(
+                request.NationalId,
+                request.Id,
+                cancellationToken
+            );
             if (exists)
-                throw new SupplyChainDomainException("کد ملی/شناسه ملی تکراری است", "SUPPLIER_NATIONAL_ID_DUPLICATED");
+                throw new SupplyChainDomainException(
+                    "کد ملی/شناسه ملی تکراری است",
+                    "SUPPLIER_NATIONAL_ID_DUPLICATED"
+                );
         }
 
         supplier.UpdateProfile(
@@ -40,7 +50,8 @@ public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierComman
             request.MobileNumber,
             request.PhoneNumber,
             request.RepresentativeName,
-            request.RepresentativePhone);
+            request.RepresentativePhone
+        );
 
         _repository.Update(supplier);
         await _repository.SaveChangesAsync(cancellationToken);

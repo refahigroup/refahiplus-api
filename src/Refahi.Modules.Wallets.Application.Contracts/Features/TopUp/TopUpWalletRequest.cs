@@ -8,4 +8,5 @@ public sealed record TopUpWalletRequest(
     long AmountMinor,
     string Currency,
     string? MetadataJson = null,
-    string? ExternalReference = null);
+    string? ExternalReference = null
+);

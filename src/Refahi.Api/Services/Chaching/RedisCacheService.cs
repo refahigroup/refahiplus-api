@@ -1,7 +1,6 @@
-﻿using Refahi.Shared.Services.Cache;
+﻿using System.Text.Json;
+using Refahi.Shared.Services.Cache;
 using StackExchange.Redis;
-using System.Text.Json;
-
 
 namespace Refahi.Api.Services.Chaching;
 
@@ -29,9 +28,7 @@ public class RedisCacheService : ICacheService
         return JsonSerializer.Deserialize<T>(json.ToString());
     }
 
-    public Task RemoveAsync(string key)
-        => _db.KeyDeleteAsync(key);
+    public Task RemoveAsync(string key) => _db.KeyDeleteAsync(key);
 
-    public Task<bool> ExistsAsync(string key)
-        => _db.KeyExistsAsync(key);
+    public Task<bool> ExistsAsync(string key) => _db.KeyExistsAsync(key);
 }

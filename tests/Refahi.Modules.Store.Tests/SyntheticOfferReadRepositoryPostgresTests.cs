@@ -24,62 +24,124 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
         Assert.Contains("test", connectionBuilder.Database, StringComparison.OrdinalIgnoreCase);
         await ResetAndMigrateAsync(connectionString);
 
-        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connectionString).Options;
+        var options = new DbContextOptionsBuilder<StoreDbContext>()
+            .UseNpgsql(connectionString)
+            .Options;
         await using var context = new StoreDbContext(options);
         var today = new DateOnly(2026, 7, 15);
         var shop = CreateActiveShop();
 
-        var simpleProduct = Product.Create(Guid.NewGuid(), "محصول ساده", "simple-stock", stockCount: 5);
-        var fullPriceProduct = Product.Create(Guid.NewGuid(), "محصول بدون تخفیف", "full-price-stock", stockCount: 5);
+        var simpleProduct = Product.Create(
+            Guid.NewGuid(),
+            "محصول ساده",
+            "simple-stock",
+            stockCount: 5
+        );
+        var fullPriceProduct = Product.Create(
+            Guid.NewGuid(),
+            "محصول بدون تخفیف",
+            "full-price-stock",
+            stockCount: 5
+        );
 
         var variantProduct = Product.Create(Guid.NewGuid(), "لباس", "clothing", stockCount: 1);
         var red = variantProduct.AddVariant([], 3, 1_000, 1_000, sku: "red");
         var blue = variantProduct.AddVariant([], 2, 2_000, 2_000, sku: "blue");
 
         var sessionProduct = Product.Create(Guid.NewGuid(), "استخر", "pool", stockCount: 1);
-        sessionProduct.AddSession(today, new TimeOnly(13, 0), new TimeOnly(15, 0), 20, "ظرفیت تکمیل", 100_000);
+        sessionProduct.AddSession(
+            today,
+            new TimeOnly(13, 0),
+            new TimeOnly(15, 0),
+            20,
+            "ظرفیت تکمیل",
+            100_000
+        );
         sessionProduct.Sessions.Single().Sell(20);
         sessionProduct.AddSession(today, new TimeOnly(9, 0), new TimeOnly(11, 0), 20, "گذشته", 0);
-        sessionProduct.AddSession(today.AddDays(1), new TimeOnly(9, 0), new TimeOnly(11, 0), 20, "تعطیل", 0);
+        sessionProduct.AddSession(
+            today.AddDays(1),
+            new TimeOnly(9, 0),
+            new TimeOnly(11, 0),
+            20,
+            "تعطیل",
+            0
+        );
         sessionProduct.Sessions.Last().Cancel();
 
         var datedProduct = Product.Create(Guid.NewGuid(), "بلیط سینما", "cinema", stockCount: 1);
         var datedVariant = datedProduct.AddVariant(
-            [], 0, 300_000, 300_000, sku: "evening",
-            fromDate: today, toDate: today.AddDays(3),
-            capacityType: VariantCapacityType.PerEligibleDay, capacity: 50,
-            salesModel: SalesModel.SessionBased);
+            [],
+            0,
+            300_000,
+            300_000,
+            sku: "evening",
+            fromDate: today,
+            toDate: today.AddDays(3),
+            capacityType: VariantCapacityType.PerEligibleDay,
+            capacity: 50,
+            salesModel: SalesModel.SessionBased
+        );
 
-        context.AddRange(shop, simpleProduct, fullPriceProduct, variantProduct, sessionProduct, datedProduct);
+        context.AddRange(
+            shop,
+            simpleProduct,
+            fullPriceProduct,
+            variantProduct,
+            sessionProduct,
+            datedProduct
+        );
         await context.SaveChangesAsync();
 
         var simpleShopProduct = ShopProduct.Create(shop.Id, simpleProduct.Id, 500_000, 450_000);
-        var fullPriceShopProduct = ShopProduct.Create(shop.Id, fullPriceProduct.Id, 500_000, 500_000);
+        var fullPriceShopProduct = ShopProduct.Create(
+            shop.Id,
+            fullPriceProduct.Id,
+            500_000,
+            500_000
+        );
         var variantShopProduct = ShopProduct.Create(shop.Id, variantProduct.Id, 999_999, 999_999);
         variantShopProduct.AddVariantOffering(red.Id, 1_000, 1_000, isActive: true);
         variantShopProduct.AddVariantOffering(blue.Id, 2_000, 1_800, isActive: true);
         var sessionShopProduct = ShopProduct.Create(shop.Id, sessionProduct.Id, 200_000, 200_000);
         var datedShopProduct = ShopProduct.Create(shop.Id, datedProduct.Id, 300_000, 300_000);
         datedShopProduct.AddVariantOffering(datedVariant.Id, 300_000, 300_000, isActive: true);
-        context.AddRange(simpleShopProduct, fullPriceShopProduct, variantShopProduct, sessionShopProduct, datedShopProduct);
+        context.AddRange(
+            simpleShopProduct,
+            fullPriceShopProduct,
+            variantShopProduct,
+            sessionShopProduct,
+            datedShopProduct
+        );
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
         var repository = new SyntheticOfferReadRepository(connectionString);
         var spec = new SyntheticOfferQuerySpec(
-            [simpleProduct.AgreementProductId, fullPriceProduct.AgreementProductId, variantProduct.AgreementProductId],
+            [
+                simpleProduct.AgreementProductId,
+                fullPriceProduct.AgreementProductId,
+                variantProduct.AgreementProductId,
+            ],
             [sessionProduct.AgreementProductId, datedProduct.AgreementProductId],
             today,
             PageSize: 30,
-            CurrentTime: new TimeOnly(12, 0));
+            CurrentTime: new TimeOnly(12, 0)
+        );
 
         var (offers, offerTotal) = await repository.GetOffersAsync(spec);
         Assert.Equal(6, offerTotal);
-        Assert.Contains(offers, x => x.OfferKind == "StockProduct" && x.ProductId == simpleProduct.Id);
+        Assert.Contains(
+            offers,
+            x => x.OfferKind == "StockProduct" && x.ProductId == simpleProduct.Id
+        );
         var fullPrice = Assert.Single(offers, x => x.ProductId == fullPriceProduct.Id);
         Assert.Equal(500_000, fullPrice.DiscountedPriceMinor);
         Assert.Equal(500_000, fullPrice.EffectivePriceMinor);
-        Assert.Equal(2, offers.Count(x => x.OfferKind == "StockVariant" && x.ProductId == variantProduct.Id));
+        Assert.Equal(
+            2,
+            offers.Count(x => x.OfferKind == "StockVariant" && x.ProductId == variantProduct.Id)
+        );
         var fullSession = Assert.Single(offers, x => x.OfferKind == "ProductSession");
         Assert.Equal(300_000, fullSession.EffectivePriceMinor);
         Assert.Equal(20, fullSession.ConfiguredCapacity);
@@ -88,7 +150,10 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
         var dated = Assert.Single(offers, x => x.OfferKind == "SessionVariant");
         Assert.True(dated.RequiresUsageDate);
         Assert.Null(dated.FixedUsageDate);
-        Assert.DoesNotContain(offers, x => x.ProductId == variantProduct.Id && x.OfferKind == "StockProduct");
+        Assert.DoesNotContain(
+            offers,
+            x => x.ProductId == variantProduct.Id && x.OfferKind == "StockProduct"
+        );
 
         var (catalog, catalogTotal) = await repository.GetProductCatalogAsync(spec);
         Assert.Equal(5, catalogTotal);
@@ -100,7 +165,12 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
 
     private static Shop CreateActiveShop()
     {
-        var shop = Shop.Create("فروشگاه تست", "synthetic-offer-shop", ShopType.Online, Guid.NewGuid());
+        var shop = Shop.Create(
+            "فروشگاه تست",
+            "synthetic-offer-shop",
+            ShopType.Online,
+            Guid.NewGuid()
+        );
         shop.Approve();
         return shop;
     }
@@ -111,11 +181,14 @@ public sealed class SyntheticOfferReadRepositoryPostgresTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "drop schema if exists store cascade; drop table if exists public.\"__EFMigrationsHistory\";";
+            command.CommandText =
+                "drop schema if exists store cascade; drop table if exists public.\"__EFMigrationsHistory\";";
             await command.ExecuteNonQueryAsync();
         }
 
-        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connectionString).Options;
+        var options = new DbContextOptionsBuilder<StoreDbContext>()
+            .UseNpgsql(connectionString)
+            .Options;
         await using var context = new StoreDbContext(options);
         await context.Database.MigrateAsync();
     }

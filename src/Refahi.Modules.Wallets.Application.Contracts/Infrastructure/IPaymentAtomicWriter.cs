@@ -7,13 +7,13 @@ namespace Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
 
 /// <summary>
 /// Infrastructure contract for atomic payment intent operations.
-/// 
+///
 /// Responsibilities:
 /// - Execute SQL operations within transactions
 /// - Manage multi-wallet advisory locks (deadlock avoidance)
 /// - Handle idempotency
 /// - Return structured outcomes
-/// 
+///
 /// NOT responsible for:
 /// - Business logic interpretation
 /// - Response building
@@ -23,7 +23,7 @@ public interface IPaymentAtomicWriter
 {
     /// <summary>
     /// Atomically create a payment intent (reserve).
-    /// 
+    ///
     /// Multi-wallet operation:
     /// - Locks wallets in stable order (sorted by wallet_id) to prevent deadlocks
     /// - Validates wallet existence/currency/status for each allocation
@@ -40,16 +40,17 @@ public interface IPaymentAtomicWriter
         string? metadataJson,
         Guid? destinationWalletId,
         CancellationToken ct,
-        IReadOnlyList<PaymentPostingInput>? postings = null);
+        IReadOnlyList<PaymentPostingInput>? postings = null
+    );
 
     /// <summary>
     /// Atomically capture a payment intent (finalize payment).
-    /// 
+    ///
     /// State machine:
     /// - Reserved → Captured (success)
     /// - Captured → Captured (idempotent)
     /// - Released → InvalidTransition exception
-    /// 
+    ///
     /// Multi-wallet operation:
     /// - Creates DEBIT ledger entries (Payment)
     /// - Creates RELEASE ledger entries (to release the HOLD)
@@ -60,16 +61,17 @@ public interface IPaymentAtomicWriter
     Task<CaptureIntentAtomicResult> ExecuteCaptureIntentAsync(
         Guid intentId,
         string idempotencyKey,
-        CancellationToken ct);
+        CancellationToken ct
+    );
 
     /// <summary>
     /// Atomically release a payment intent (cancel reservation).
-    /// 
+    ///
     /// State machine:
     /// - Reserved → Released (success)
     /// - Released → Released (idempotent)
     /// - Captured → InvalidTransition exception
-    /// 
+    ///
     /// Multi-wallet operation:
     /// - Creates RELEASE ledger entries (to undo HOLD)
     /// - Updates intent status to Released
@@ -78,16 +80,17 @@ public interface IPaymentAtomicWriter
     Task<ReleaseIntentAtomicResult> ExecuteReleaseIntentAsync(
         Guid intentId,
         string idempotencyKey,
-        CancellationToken ct);
+        CancellationToken ct
+    );
 
     /// <summary>
     /// Atomically refund a payment (full refund only).
-    /// 
+    ///
     /// Validates:
     /// - Payment exists and is Completed
     /// - Payment not already refunded
     /// - Currency matches allocations
-    /// 
+    ///
     /// Multi-wallet operation:
     /// - Locks wallets in sorted order (from payment_allocations)
     /// - Creates CREDIT ledger entries (Refund operation type)
@@ -100,21 +103,21 @@ public interface IPaymentAtomicWriter
         string idempotencyKey,
         string? reason,
         string? metadataJson,
-        CancellationToken ct);
+        CancellationToken ct
+    );
 }
 
 /// <summary>
 /// Input for allocation (wallet + amount).
 /// </summary>
-public sealed record AllocationInput(
-    Guid WalletId,
-    long AmountMinor);
+public sealed record AllocationInput(Guid WalletId, long AmountMinor);
 
 public sealed record PaymentPostingInput(
     Guid WalletId,
     short Direction,
     long AmountMinor,
-    string Purpose);
+    string Purpose
+);
 
 /// <summary>
 /// Result of create intent execution.
@@ -126,7 +129,8 @@ public sealed record CreateIntentAtomicResult(
     long AmountMinor,
     string Currency,
     List<AllocationOutput> Allocations,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);
 
 /// <summary>
 /// Result of capture intent execution.
@@ -139,7 +143,8 @@ public sealed record CaptureIntentAtomicResult(
     long AmountMinor,
     string Currency,
     List<PaymentAllocationOutput> Allocations,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt
+);
 
 /// <summary>
 /// Result of release intent execution.
@@ -148,22 +153,18 @@ public sealed record ReleaseIntentAtomicResult(
     ReleaseIntentOutcome Outcome,
     Guid IntentId,
     Guid OrderId,
-    DateTimeOffset ReleasedAt);
+    DateTimeOffset ReleasedAt
+);
 
 /// <summary>
 /// Output for allocation info.
 /// </summary>
-public sealed record AllocationOutput(
-    Guid WalletId,
-    long AmountMinor);
+public sealed record AllocationOutput(Guid WalletId, long AmountMinor);
 
 /// <summary>
 /// Output for payment allocation (includes ledger entry).
 /// </summary>
-public sealed record PaymentAllocationOutput(
-    Guid WalletId,
-    long AmountMinor,
-    Guid LedgerEntryId);
+public sealed record PaymentAllocationOutput(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
 
 /// <summary>
 /// Outcome of create intent execution.
@@ -183,7 +184,7 @@ public enum CreateIntentOutcome
     /// <summary>
     /// Concurrent request detected.
     /// </summary>
-    InProgress = 3
+    InProgress = 3,
 }
 
 /// <summary>
@@ -204,7 +205,7 @@ public enum CaptureIntentOutcome
     /// <summary>
     /// Concurrent request detected.
     /// </summary>
-    InProgress = 3
+    InProgress = 3,
 }
 
 /// <summary>
@@ -225,7 +226,7 @@ public enum ReleaseIntentOutcome
     /// <summary>
     /// Concurrent request detected.
     /// </summary>
-    InProgress = 3
+    InProgress = 3,
 }
 
 /// <summary>
@@ -239,15 +240,13 @@ public sealed record RefundPaymentAtomicResult(
     long AmountMinor,
     string Currency,
     List<RefundAllocationOutput> Allocations,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt
+);
 
 /// <summary>
 /// Output for refund allocation (includes ledger entry).
 /// </summary>
-public sealed record RefundAllocationOutput(
-    Guid WalletId,
-    long AmountMinor,
-    Guid LedgerEntryId);
+public sealed record RefundAllocationOutput(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
 
 /// <summary>
 /// Outcome of refund payment execution.
@@ -267,5 +266,5 @@ public enum RefundPaymentOutcome
     /// <summary>
     /// Concurrent request detected.
     /// </summary>
-    InProgress = 3
+    InProgress = 3,
 }

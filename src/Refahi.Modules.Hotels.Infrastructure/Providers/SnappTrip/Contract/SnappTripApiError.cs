@@ -11,4 +11,3 @@ public sealed class SnappTripApiError
     public string? code { get; set; }
     public string? trace_id { get; set; }
 }
-

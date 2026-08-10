@@ -12,8 +12,7 @@ public sealed record CreatePaymentIntentRequest(
     long AmountMinor,
     string Currency,
     List<AllocationRequest> Allocations,
-    string? MetadataJson = null);
+    string? MetadataJson = null
+);
 
-public sealed record AllocationRequest(
-    Guid WalletId,
-    long AmountMinor);
+public sealed record AllocationRequest(Guid WalletId, long AmountMinor);

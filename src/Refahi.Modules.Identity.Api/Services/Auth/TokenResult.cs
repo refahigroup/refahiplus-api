@@ -7,4 +7,3 @@ public sealed record TokenResult(
     string? RefreshToken = null,
     DateTimeOffset? RefreshTokenExpiresAtUtc = null
 );
-

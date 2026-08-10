@@ -9,10 +9,13 @@ public class DisableUserCommandHandler : IRequestHandler<DisableUserCommand, Dis
 {
     private readonly IUserRepository _userRepository;
 
-    public DisableUserCommandHandler(IUserRepository userRepository)
-        => _userRepository = userRepository;
+    public DisableUserCommandHandler(IUserRepository userRepository) =>
+        _userRepository = userRepository;
 
-    public async Task<DisableUserResult> Handle(DisableUserCommand request, CancellationToken cancellationToken)
+    public async Task<DisableUserResult> Handle(
+        DisableUserCommand request,
+        CancellationToken cancellationToken
+    )
     {
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)

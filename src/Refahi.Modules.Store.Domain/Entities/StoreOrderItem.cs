@@ -40,50 +40,104 @@ public sealed class StoreOrderItem
 
     internal static StoreOrderItem Create(Guid storeOrderId, StoreOrderItemSnapshot snapshot)
     {
-        if (snapshot.Quantity <= 0 || snapshot.FinalUnitPriceMinor < 0 || snapshot.OriginalUnitPriceMinor <= 0)
-            throw new Exceptions.StoreDomainException("اطلاعات مالی آیتم سفارش معتبر نیست", "INVALID_STORE_ORDER_ITEM");
-
-        if (snapshot.SalesChannel == SalesChannel.InPerson &&
-            (snapshot.Quantity != 1 || !snapshot.DeclaredGrossAmountMinor.HasValue ||
-             snapshot.DeclaredGrossAmountMinor <= 0 || snapshot.OfferId.HasValue ||
-             snapshot.OriginalUnitPriceMinor != snapshot.DeclaredGrossAmountMinor ||
-             snapshot.FinalUnitPriceMinor != snapshot.DeclaredGrossAmountMinor))
+        if (
+            snapshot.Quantity <= 0
+            || snapshot.FinalUnitPriceMinor < 0
+            || snapshot.OriginalUnitPriceMinor <= 0
+        )
             throw new Exceptions.StoreDomainException(
-                "فروش حضوری باید یک آیتم با تعداد یک و مبلغ کل معتبر داشته باشد", "INVALID_IN_PERSON_ITEM");
+                "اطلاعات مالی آیتم سفارش معتبر نیست",
+                "INVALID_STORE_ORDER_ITEM"
+            );
+
+        if (
+            snapshot.SalesChannel == SalesChannel.InPerson
+            && (
+                snapshot.Quantity != 1
+                || !snapshot.DeclaredGrossAmountMinor.HasValue
+                || snapshot.DeclaredGrossAmountMinor <= 0
+                || snapshot.OfferId.HasValue
+                || snapshot.OriginalUnitPriceMinor != snapshot.DeclaredGrossAmountMinor
+                || snapshot.FinalUnitPriceMinor != snapshot.DeclaredGrossAmountMinor
+            )
+        )
+            throw new Exceptions.StoreDomainException(
+                "فروش حضوری باید یک آیتم با تعداد یک و مبلغ کل معتبر داشته باشد",
+                "INVALID_IN_PERSON_ITEM"
+            );
 
         var gross = checked(snapshot.FinalUnitPriceMinor * snapshot.Quantity);
-        var commission = checked((long)Math.Round(gross * snapshot.CommissionPercent / 100m,
-            0, MidpointRounding.AwayFromZero));
+        var commission = checked(
+            (long)
+                Math.Round(
+                    gross * snapshot.CommissionPercent / 100m,
+                    0,
+                    MidpointRounding.AwayFromZero
+                )
+        );
 
         return new StoreOrderItem
         {
-            Id = Guid.NewGuid(), StoreOrderId = storeOrderId,
-            ProductId = snapshot.ProductId, ProductVariantId = snapshot.ProductVariantId,
+            Id = Guid.NewGuid(),
+            StoreOrderId = storeOrderId,
+            ProductId = snapshot.ProductId,
+            ProductVariantId = snapshot.ProductVariantId,
             SourceCartItemId = snapshot.SourceCartItemId,
-            ProductSessionId = snapshot.ProductSessionId, OfferId = snapshot.OfferId,
-            ProductTitle = snapshot.ProductTitle, VariantTitle = snapshot.VariantTitle,
-            SessionTitle = snapshot.SessionTitle, CategoryId = snapshot.CategoryId,
-            CategoryCode = snapshot.CategoryCode, SupplierId = snapshot.SupplierId,
-            ShopId = snapshot.ShopId, SalesChannel = snapshot.SalesChannel,
-            ProductType = snapshot.ProductType, SalesModel = snapshot.SalesModel,
-            FulfillmentMethod = snapshot.FulfillmentMethod, Quantity = snapshot.Quantity,
+            ProductSessionId = snapshot.ProductSessionId,
+            OfferId = snapshot.OfferId,
+            ProductTitle = snapshot.ProductTitle,
+            VariantTitle = snapshot.VariantTitle,
+            SessionTitle = snapshot.SessionTitle,
+            CategoryId = snapshot.CategoryId,
+            CategoryCode = snapshot.CategoryCode,
+            SupplierId = snapshot.SupplierId,
+            ShopId = snapshot.ShopId,
+            SalesChannel = snapshot.SalesChannel,
+            ProductType = snapshot.ProductType,
+            SalesModel = snapshot.SalesModel,
+            FulfillmentMethod = snapshot.FulfillmentMethod,
+            Quantity = snapshot.Quantity,
             OriginalUnitPriceMinor = snapshot.OriginalUnitPriceMinor,
-            DiscountPercent = snapshot.DiscountPercent, FinalUnitPriceMinor = snapshot.FinalUnitPriceMinor,
-            UnitPriceMinor = snapshot.FinalUnitPriceMinor, GrossAmountMinor = gross,
+            DiscountPercent = snapshot.DiscountPercent,
+            FinalUnitPriceMinor = snapshot.FinalUnitPriceMinor,
+            UnitPriceMinor = snapshot.FinalUnitPriceMinor,
+            GrossAmountMinor = gross,
             DeclaredGrossAmountMinor = snapshot.DeclaredGrossAmountMinor,
-            AgreementId = snapshot.AgreementId, AgreementCategoryTermId = snapshot.AgreementCategoryTermId,
-            CommissionPercent = snapshot.CommissionPercent, CommissionAmountMinor = commission,
-            UsageDate = snapshot.UsageDate, DeliveryMethod = snapshot.DeliveryMethod
+            AgreementId = snapshot.AgreementId,
+            AgreementCategoryTermId = snapshot.AgreementCategoryTermId,
+            CommissionPercent = snapshot.CommissionPercent,
+            CommissionAmountMinor = commission,
+            UsageDate = snapshot.UsageDate,
+            DeliveryMethod = snapshot.DeliveryMethod,
         };
     }
 }
 
 public sealed record StoreOrderItemSnapshot(
-    Guid SourceCartItemId, Guid ProductId, Guid? ProductVariantId, Guid? ProductSessionId, Guid? OfferId,
-    string ProductTitle, string? VariantTitle, string? SessionTitle,
-    int CategoryId, string CategoryCode, Guid SupplierId, Guid ShopId,
-    SalesChannel SalesChannel, ProductType ProductType, SalesModel SalesModel,
-    FulfillmentMethod FulfillmentMethod, int Quantity, long OriginalUnitPriceMinor,
-    decimal DiscountPercent, long FinalUnitPriceMinor, Guid AgreementId,
-    Guid AgreementCategoryTermId, decimal CommissionPercent, DateOnly? UsageDate,
-    short DeliveryMethod = 0, long? DeclaredGrossAmountMinor = null);
+    Guid SourceCartItemId,
+    Guid ProductId,
+    Guid? ProductVariantId,
+    Guid? ProductSessionId,
+    Guid? OfferId,
+    string ProductTitle,
+    string? VariantTitle,
+    string? SessionTitle,
+    int CategoryId,
+    string CategoryCode,
+    Guid SupplierId,
+    Guid ShopId,
+    SalesChannel SalesChannel,
+    ProductType ProductType,
+    SalesModel SalesModel,
+    FulfillmentMethod FulfillmentMethod,
+    int Quantity,
+    long OriginalUnitPriceMinor,
+    decimal DiscountPercent,
+    long FinalUnitPriceMinor,
+    Guid AgreementId,
+    Guid AgreementCategoryTermId,
+    decimal CommissionPercent,
+    DateOnly? UsageDate,
+    short DeliveryMethod = 0,
+    long? DeclaredGrossAmountMinor = null
+);

@@ -27,7 +27,8 @@ public sealed class UserRepositoryTests
         Assert.Equal(EntityState.Modified, db.Entry(user).State);
         Assert.All(
             db.ChangeTracker.Entries<UserRole>(),
-            entry => Assert.Equal(EntityState.Unchanged, entry.State));
+            entry => Assert.Equal(EntityState.Unchanged, entry.State)
+        );
     }
 
     [Fact]
@@ -73,7 +74,8 @@ public sealed class UserRepositoryTests
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
             DbContextEventData eventData,
             InterceptionResult<int> result,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default
+        )
         {
             if (eventData.Context is not null)
                 _onSaving?.Invoke(eventData.Context);

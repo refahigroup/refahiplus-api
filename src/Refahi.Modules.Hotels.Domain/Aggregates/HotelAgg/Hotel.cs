@@ -19,7 +19,6 @@ public sealed class Hotel
     public bool IsMarketplace { get; set; } = false;
     public bool Enable { get; set; } = true;
 
-
     public HotelCover Cover { get; set; }
     public HotelReview Reviews { get; set; }
     public City City { get; set; }

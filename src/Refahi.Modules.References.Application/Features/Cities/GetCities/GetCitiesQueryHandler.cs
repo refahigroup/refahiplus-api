@@ -9,24 +9,32 @@ public class GetCitiesQueryHandler : IRequestHandler<GetCitiesQuery, GetCitiesRe
 {
     private readonly ICityRepository _cityRepository;
 
-    public GetCitiesQueryHandler(ICityRepository cityRepository)
-        => _cityRepository = cityRepository;
+    public GetCitiesQueryHandler(ICityRepository cityRepository) =>
+        _cityRepository = cityRepository;
 
     public async Task<GetCitiesResponse> Handle(
-        GetCitiesQuery request, CancellationToken cancellationToken)
+        GetCitiesQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var cities = await _cityRepository.GetAllAsync(request.ProvinceId, request.ActiveOnly, cancellationToken);
+        var cities = await _cityRepository.GetAllAsync(
+            request.ProvinceId,
+            request.ActiveOnly,
+            cancellationToken
+        );
 
-        var dtos = cities.Select(c => new CityDto(
-            c.Id,
-            c.Name,
-            c.NameEn,
-            c.Slug,
-            c.ProvinceId,
-            c.Province.Name,
-            c.SortOrder,
-            c.IsActive
-        )).ToList();
+        var dtos = cities
+            .Select(c => new CityDto(
+                c.Id,
+                c.Name,
+                c.NameEn,
+                c.Slug,
+                c.ProvinceId,
+                c.Province.Name,
+                c.SortOrder,
+                c.IsActive
+            ))
+            .ToList();
 
         return new GetCitiesResponse(dtos);
     }

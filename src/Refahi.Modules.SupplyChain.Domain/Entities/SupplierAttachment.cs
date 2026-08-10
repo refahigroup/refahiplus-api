@@ -14,9 +14,14 @@ public sealed class SupplierAttachment
     public DateTimeOffset CreatedAt { get; private set; }
 
     internal static SupplierAttachment Create(
-        Guid supplierId, string title, string fileUrl,
-        string? fileName, string? contentType, long? sizeBytes)
-        => new()
+        Guid supplierId,
+        string title,
+        string fileUrl,
+        string? fileName,
+        string? contentType,
+        long? sizeBytes
+    ) =>
+        new()
         {
             Id = Guid.NewGuid(),
             SupplierId = supplierId,
@@ -25,6 +30,6 @@ public sealed class SupplierAttachment
             FileName = fileName,
             ContentType = contentType,
             SizeBytes = sizeBytes,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
         };
 }

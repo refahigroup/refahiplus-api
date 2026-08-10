@@ -5,17 +5,21 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Products.AddVariantAttribute;
 
-public class AddVariantAttributeCommandHandler : IRequestHandler<AddVariantAttributeCommand, AddVariantAttributeResponse>
+public class AddVariantAttributeCommandHandler
+    : IRequestHandler<AddVariantAttributeCommand, AddVariantAttributeResponse>
 {
     private readonly IProductRepository _productRepo;
 
-    public AddVariantAttributeCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public AddVariantAttributeCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
     public async Task<AddVariantAttributeResponse> Handle(
-        AddVariantAttributeCommand request, CancellationToken cancellationToken)
+        AddVariantAttributeCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         var added = product.AddVariantAttribute(request.Name, request.SortOrder);

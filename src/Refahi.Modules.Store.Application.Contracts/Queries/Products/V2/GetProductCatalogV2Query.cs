@@ -14,13 +14,13 @@ public sealed record GetProductCatalogV2Query(
     long? MaxPriceMinor = null,
     string Sort = "newest",
     int PageNumber = 1,
-    int PageSize = 30)
-    : IRequest<ProductCatalogV2PagedResponse?>;
+    int PageSize = 30
+) : IRequest<ProductCatalogV2PagedResponse?>;
 
 public sealed record ProductCatalogV2PagedResponse(
     IReadOnlyList<ProductCatalogItemV2Dto> Data,
     int PageNumber,
     int PageSize,
     int TotalCount,
-    int TotalPages);
-
+    int TotalPages
+);

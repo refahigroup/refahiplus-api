@@ -17,16 +17,20 @@ internal static partial class FlightAirportSearchNormalizer
             if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
                 continue;
 
-            builder.Append(character switch
-            {
-                '\u064A' or '\u0649' => '\u06CC',
-                '\u0643' => '\u06A9',
-                '\u200C' or '\u200D' => ' ',
-                _ => char.ToLowerInvariant(character)
-            });
+            builder.Append(
+                character switch
+                {
+                    '\u064A' or '\u0649' => '\u06CC',
+                    '\u0643' => '\u06A9',
+                    '\u200C' or '\u200D' => ' ',
+                    _ => char.ToLowerInvariant(character),
+                }
+            );
         }
 
-        return WhitespaceRegex().Replace(builder.ToString().Normalize(NormalizationForm.FormC), " ").Trim();
+        return WhitespaceRegex()
+            .Replace(builder.ToString().Normalize(NormalizationForm.FormC), " ")
+            .Trim();
     }
 
     [GeneratedRegex(@"\s+")]

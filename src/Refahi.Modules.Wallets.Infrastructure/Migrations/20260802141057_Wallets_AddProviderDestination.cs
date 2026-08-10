@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
-
-using System;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -17,33 +16,38 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
                 schema: "wallets",
                 table: "payment_intents",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "destination_wallet_id",
                 schema: "wallets",
                 table: "payments",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "destination_ledger_entry_id",
                 schema: "wallets",
                 table: "payments",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "idx_payment_intents_destination_wallet",
                 schema: "wallets",
                 table: "payment_intents",
-                column: "destination_wallet_id");
+                column: "destination_wallet_id"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "idx_payments_destination_wallet",
                 schema: "wallets",
                 table: "payments",
-                column: "destination_wallet_id");
+                column: "destination_wallet_id"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ux_wallets_provider_owner_currency",
@@ -51,7 +55,8 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
                 table: "wallets",
                 columns: new[] { "OwnerId", "currency" },
                 unique: true,
-                filter: "wallet_type = 3");
+                filter: "wallet_type = 3"
+            );
         }
 
         /// <inheritdoc />
@@ -60,32 +65,38 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "idx_payment_intents_destination_wallet",
                 schema: "wallets",
-                table: "payment_intents");
+                table: "payment_intents"
+            );
 
             migrationBuilder.DropIndex(
                 name: "idx_payments_destination_wallet",
                 schema: "wallets",
-                table: "payments");
+                table: "payments"
+            );
 
             migrationBuilder.DropIndex(
                 name: "ux_wallets_provider_owner_currency",
                 schema: "wallets",
-                table: "wallets");
+                table: "wallets"
+            );
 
             migrationBuilder.DropColumn(
                 name: "destination_wallet_id",
                 schema: "wallets",
-                table: "payment_intents");
+                table: "payment_intents"
+            );
 
             migrationBuilder.DropColumn(
                 name: "destination_ledger_entry_id",
                 schema: "wallets",
-                table: "payments");
+                table: "payments"
+            );
 
             migrationBuilder.DropColumn(
                 name: "destination_wallet_id",
                 schema: "wallets",
-                table: "payments");
+                table: "payments"
+            );
         }
     }
 }

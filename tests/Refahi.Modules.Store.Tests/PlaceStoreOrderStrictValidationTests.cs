@@ -24,6 +24,7 @@ public sealed class PlaceStoreOrderStrictValidationTests
 {
     private static readonly Guid UserId = Guid.Parse("10000000-0000-0000-0000-000000000001");
     private static readonly Guid ShopId = Guid.Parse("20000000-0000-0000-0000-000000000001");
+
     [Fact]
     public async Task Handle_CreatesUnpaidOrderWithoutWalletAllocations_WhenVariantIsStrictlyResolved()
     {
@@ -31,7 +32,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
 
         var result = await fixture.Handler.Handle(
             Command(fixture.Cart.ModuleId),
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         var orderCommand = fixture.Mediator.CreateOrderCommand!;
         var item = Assert.Single(orderCommand.Items);
@@ -73,11 +75,16 @@ public sealed class PlaceStoreOrderStrictValidationTests
 
         var firstResult = await fixture.Handler.Handle(
             Command(fixture.Cart.ModuleId, idempotencyKey),
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         var retryResult = await fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, idempotencyKey) with { DeliveryTimeSlot = 2 },
-            CancellationToken.None);
+            Command(fixture.Cart.ModuleId, idempotencyKey) with
+            {
+                DeliveryTimeSlot = 2,
+            },
+            CancellationToken.None
+        );
 
         Assert.Equal(firstResult.OrderId, retryResult.OrderId);
         Assert.Equal(firstResult.OrderNumber, retryResult.OrderNumber);
@@ -93,11 +100,15 @@ public sealed class PlaceStoreOrderStrictValidationTests
 
         fixture.PriceResolver.ExceptionToThrow = new StoreDomainException(
             "این تنوع در فروشگاه انتخاب‌شده فعال نیست.",
-            "SHOP_PRODUCT_VARIANT_INACTIVE");
+            "SHOP_PRODUCT_VARIANT_INACTIVE"
+        );
 
-        var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId, idempotencyKey),
-            CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<StoreDomainException>(() =>
+            fixture.Handler.Handle(
+                Command(fixture.Cart.ModuleId, idempotencyKey),
+                CancellationToken.None
+            )
+        );
 
         Assert.Equal("SHOP_PRODUCT_VARIANT_INACTIVE", ex.ErrorCode);
         Assert.Equal(0, fixture.Mediator.CreateOrderCallCount);
@@ -106,7 +117,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
 
         var result = await fixture.Handler.Handle(
             Command(fixture.Cart.ModuleId, idempotencyKey),
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         Assert.Equal(CapturingMediator.CreatedOrderId, result.OrderId);
         Assert.Equal(1, fixture.Mediator.CreateOrderCallCount);
@@ -117,9 +129,9 @@ public sealed class PlaceStoreOrderStrictValidationTests
     {
         var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1900);
 
-        var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId),
-            CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<StoreDomainException>(() =>
+            fixture.Handler.Handle(Command(fixture.Cart.ModuleId), CancellationToken.None)
+        );
 
         Assert.Equal("CART_PRICE_CHANGED", ex.ErrorCode);
         Assert.Null(fixture.Mediator.CreateOrderCommand);
@@ -131,11 +143,12 @@ public sealed class PlaceStoreOrderStrictValidationTests
         var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1700);
         fixture.PriceResolver.ExceptionToThrow = new StoreDomainException(
             "این تنوع در فروشگاه انتخاب‌شده فعال نیست.",
-            "SHOP_PRODUCT_VARIANT_INACTIVE");
+            "SHOP_PRODUCT_VARIANT_INACTIVE"
+        );
 
-        var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId),
-            CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<StoreDomainException>(() =>
+            fixture.Handler.Handle(Command(fixture.Cart.ModuleId), CancellationToken.None)
+        );
 
         Assert.Equal("SHOP_PRODUCT_VARIANT_INACTIVE", ex.ErrorCode);
         Assert.Null(fixture.Mediator.CreateOrderCommand);
@@ -146,9 +159,9 @@ public sealed class PlaceStoreOrderStrictValidationTests
     {
         var fixture = TestFixture.SessionVariantWithoutUsageDate();
 
-        var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId),
-            CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<StoreDomainException>(() =>
+            fixture.Handler.Handle(Command(fixture.Cart.ModuleId), CancellationToken.None)
+        );
 
         Assert.Equal("USAGE_DATE_REQUIRED", ex.ErrorCode);
         Assert.Null(fixture.Mediator.CreateOrderCommand);
@@ -157,11 +170,15 @@ public sealed class PlaceStoreOrderStrictValidationTests
     [Fact]
     public async Task Handle_FailsBeforeOrderCreation_WhenShopIsNotActive()
     {
-        var fixture = TestFixture.StockVariant(cartUnitPrice: 1700, currentUnitPrice: 1700, activeShop: false);
+        var fixture = TestFixture.StockVariant(
+            cartUnitPrice: 1700,
+            currentUnitPrice: 1700,
+            activeShop: false
+        );
 
-        var ex = await Assert.ThrowsAsync<StoreDomainException>(() => fixture.Handler.Handle(
-            Command(fixture.Cart.ModuleId),
-            CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<StoreDomainException>(() =>
+            fixture.Handler.Handle(Command(fixture.Cart.ModuleId), CancellationToken.None)
+        );
 
         Assert.Equal("SHOP_NOT_ACTIVE", ex.ErrorCode);
         Assert.Null(fixture.Mediator.CreateOrderCommand);
@@ -179,9 +196,10 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 ShippingAddressId = Guid.NewGuid(),
                 DeliveryDate = new DateOnly(2026, 8, 1),
                 DeliveryTimeSlot = 2,
-                CartItemDeliveryMethods = new Dictionary<Guid, short> { [itemId] = 2 }
+                CartItemDeliveryMethods = new Dictionary<Guid, short> { [itemId] = 2 },
             },
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         var order = fixture.Mediator.CreateOrderCommand!;
         Assert.Null(order.ShippingAddressId);
@@ -198,7 +216,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
         var fixture = TestFixture.StockVariant(1700, 1700, deliveryType: DeliveryType.Shipping);
 
         var exception = await Assert.ThrowsAsync<StoreDomainException>(() =>
-            fixture.Handler.Handle(Command(fixture.Cart.ModuleId), CancellationToken.None));
+            fixture.Handler.Handle(Command(fixture.Cart.ModuleId), CancellationToken.None)
+        );
 
         Assert.Equal("DELIVERY_METHOD_REQUIRED", exception.ErrorCode);
         Assert.Null(fixture.Mediator.CreateOrderCommand);
@@ -217,9 +236,10 @@ public sealed class PlaceStoreOrderStrictValidationTests
             {
                 ShippingAddressId = addressId,
                 DeliveryDate = deliveryDate,
-                CartItemDeliveryMethods = new Dictionary<Guid, short> { [itemId] = 1 }
+                CartItemDeliveryMethods = new Dictionary<Guid, short> { [itemId] = 1 },
             },
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         var order = fixture.Mediator.CreateOrderCommand!;
         Assert.Equal(addressId, order.ShippingAddressId);
@@ -227,11 +247,12 @@ public sealed class PlaceStoreOrderStrictValidationTests
         Assert.Equal(1, Assert.Single(order.Items).DeliveryMethod);
     }
 
-    private static PlaceStoreOrderCommand Command(int moduleId, string? idempotencyKey = null)
-        => new(
+    private static PlaceStoreOrderCommand Command(int moduleId, string? idempotencyKey = null) =>
+        new(
             UserId: UserId,
             ModuleId: moduleId,
-            IdempotencyKey: idempotencyKey ?? Guid.NewGuid().ToString("N"));
+            IdempotencyKey: idempotencyKey ?? Guid.NewGuid().ToString("N")
+        );
 
     private sealed class TestFixture
     {
@@ -241,7 +262,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
             FakePriceResolver priceResolver,
             CapturingMediator mediator,
             FakeCartRepository cartRepository,
-            PlaceStoreOrderCommandHandler handler)
+            PlaceStoreOrderCommandHandler handler
+        )
         {
             Cart = cart;
             ShopProductVariantId = shopProductVariantId;
@@ -262,13 +284,33 @@ public sealed class PlaceStoreOrderStrictValidationTests
             long cartUnitPrice,
             long currentUnitPrice,
             bool activeShop = true,
-            DeliveryType deliveryType = DeliveryType.Download)
+            DeliveryType deliveryType = DeliveryType.Download
+        )
         {
             var agreementProductId = Guid.NewGuid();
-            var product = Product.Create(agreementProductId, "محصول تست", "test-product", stockCount: 10);
-            var variant = product.AddVariant([], stockCount: 10, priceMinor: 2200, discountedPriceMinor: 1700, sku: "1cc");
+            var product = Product.Create(
+                agreementProductId,
+                "محصول تست",
+                "test-product",
+                stockCount: 10
+            );
+            var variant = product.AddVariant(
+                [],
+                stockCount: 10,
+                priceMinor: 2200,
+                discountedPriceMinor: 1700,
+                sku: "1cc"
+            );
             var cart = Cart.Create(UserId, moduleId: 1);
-            cart.AddItem(ShopId, product.Id, variant.Id, sessionId: null, usageDate: null, quantity: 1, cartUnitPrice);
+            cart.AddItem(
+                ShopId,
+                product.Id,
+                variant.Id,
+                sessionId: null,
+                usageDate: null,
+                quantity: 1,
+                cartUnitPrice
+            );
 
             return Create(
                 cart,
@@ -278,13 +320,19 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 originalPrice: 2200,
                 salesModel: SalesModel.StockBased,
                 activeShop,
-                deliveryType);
+                deliveryType
+            );
         }
 
         public static TestFixture SessionVariantWithoutUsageDate()
         {
             var agreementProductId = Guid.NewGuid();
-            var product = Product.Create(agreementProductId, "خدمت تست", "test-service", stockCount: 1);
+            var product = Product.Create(
+                agreementProductId,
+                "خدمت تست",
+                "test-service",
+                stockCount: 1
+            );
             var variant = product.AddVariant(
                 [],
                 stockCount: 0,
@@ -295,10 +343,19 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 toDate: new DateOnly(2026, 7, 21),
                 capacityType: VariantCapacityType.PerEligibleDay,
                 capacity: 10,
-                salesModel: SalesModel.SessionBased);
+                salesModel: SalesModel.SessionBased
+            );
 
             var cart = Cart.Create(UserId, moduleId: 1);
-            cart.AddItem(ShopId, product.Id, variant.Id, sessionId: null, usageDate: null, quantity: 1, 15000);
+            cart.AddItem(
+                ShopId,
+                product.Id,
+                variant.Id,
+                sessionId: null,
+                usageDate: null,
+                quantity: 1,
+                15000
+            );
 
             return Create(
                 cart,
@@ -308,7 +365,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 originalPrice: 18000,
                 salesModel: SalesModel.SessionBased,
                 activeShop: true,
-                deliveryType: DeliveryType.Download);
+                deliveryType: DeliveryType.Download
+            );
         }
 
         private static TestFixture Create(
@@ -319,7 +377,8 @@ public sealed class PlaceStoreOrderStrictValidationTests
             long originalPrice,
             SalesModel salesModel,
             bool activeShop,
-            DeliveryType deliveryType)
+            DeliveryType deliveryType
+        )
         {
             var shop = Shop.Create("فروشگاه تست", "test-shop", ShopType.Online, Guid.NewGuid());
             if (activeShop)
@@ -327,16 +386,25 @@ public sealed class PlaceStoreOrderStrictValidationTests
 
             var shopProductId = Guid.NewGuid();
             var shopProductVariantId = Guid.NewGuid();
-            var priceResolver = new FakePriceResolver(new StoreResolvedPrice(
-                UnitPriceMinor: currentUnitPrice,
-                OriginalPriceMinor: originalPrice,
-                DiscountedPriceMinor: currentUnitPrice == originalPrice ? null : currentUnitPrice,
-                ShopProductId: shopProductId,
-                ShopProductVariantId: shopProductVariantId,
-                VariantId: variantId,
-                Source: StorePriceSource.ShopProductVariant));
+            var priceResolver = new FakePriceResolver(
+                new StoreResolvedPrice(
+                    UnitPriceMinor: currentUnitPrice,
+                    OriginalPriceMinor: originalPrice,
+                    DiscountedPriceMinor: currentUnitPrice == originalPrice
+                        ? null
+                        : currentUnitPrice,
+                    ShopProductId: shopProductId,
+                    ShopProductVariantId: shopProductVariantId,
+                    VariantId: variantId,
+                    Source: StorePriceSource.ShopProductVariant
+                )
+            );
 
-            var mediator = new CapturingMediator(product.AgreementProductId, salesModel, deliveryType);
+            var mediator = new CapturingMediator(
+                product.AgreementProductId,
+                salesModel,
+                deliveryType
+            );
             var cartRepository = new FakeCartRepository(cart);
             var handler = new PlaceStoreOrderCommandHandler(
                 cartRepository,
@@ -346,18 +414,29 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 priceResolver,
                 new ThrowingFinancialPlanner(),
                 new FreeDeliveryService(),
-                mediator);
+                mediator
+            );
 
-            return new TestFixture(cart, shopProductVariantId, priceResolver, mediator, cartRepository, handler);
+            return new TestFixture(
+                cart,
+                shopProductVariantId,
+                priceResolver,
+                mediator,
+                cartRepository,
+                handler
+            );
         }
     }
 
     private sealed class ThrowingFinancialPlanner : IStoreInPersonFinancialPlanner
     {
         public Task<StoreInPersonFinancialPlan> BuildAsync(
-            Guid supplierId, long grossAmountMinor, decimal commissionPercent,
-            bool vatApplicable, CancellationToken ct)
-            => throw new NotSupportedException("این تست فقط مسیر قیمت ثابت را پوشش می‌دهد.");
+            Guid supplierId,
+            long grossAmountMinor,
+            decimal commissionPercent,
+            bool vatApplicable,
+            CancellationToken ct
+        ) => throw new NotSupportedException("این تست فقط مسیر قیمت ثابت را پوشش می‌دهد.");
     }
 
     private sealed class FakeCartRepository : ICartRepository
@@ -368,10 +447,16 @@ public sealed class PlaceStoreOrderStrictValidationTests
 
         public int GetByUserAndModuleIdCallCount { get; private set; }
 
-        public Task<Cart?> GetByUserAndModuleIdAsync(Guid userId, int moduleId, CancellationToken ct = default)
+        public Task<Cart?> GetByUserAndModuleIdAsync(
+            Guid userId,
+            int moduleId,
+            CancellationToken ct = default
+        )
         {
             GetByUserAndModuleIdCallCount++;
-            return Task.FromResult(_cart.UserId == userId && _cart.ModuleId == moduleId ? _cart : null);
+            return Task.FromResult(
+                _cart.UserId == userId && _cart.ModuleId == moduleId ? _cart : null
+            );
         }
 
         public Task<Cart?> GetByUserIdAsync(Guid userId, CancellationToken ct = default) =>
@@ -380,11 +465,24 @@ public sealed class PlaceStoreOrderStrictValidationTests
         public Task<Cart?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(_cart.Id == id ? _cart : null);
 
-        public Task<Cart> AddItemAsync(Guid userId, int moduleId, Guid shopId, Guid productId, Guid? variantId, Guid? sessionId, DateOnly? usageDate, int quantity, long unitPriceMinor, CancellationToken ct = default) =>
+        public Task<Cart> AddItemAsync(
+            Guid userId,
+            int moduleId,
+            Guid shopId,
+            Guid productId,
+            Guid? variantId,
+            Guid? sessionId,
+            DateOnly? usageDate,
+            int quantity,
+            long unitPriceMinor,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task AddAsync(Cart cart, CancellationToken ct = default) =>
             throw new NotSupportedException();
 
-        public Task AddAsync(Cart cart, CancellationToken ct = default) => throw new NotSupportedException();
         public Task UpdateAsync(Cart cart, CancellationToken ct = default) => Task.CompletedTask;
+
         public Task DeleteAsync(Cart cart, CancellationToken ct = default) => Task.CompletedTask;
     }
 
@@ -397,24 +495,106 @@ public sealed class PlaceStoreOrderStrictValidationTests
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(_product.Id == id ? _product : null);
 
-        public Task<Product?> GetByIdForAdminAsync(Guid id, CancellationToken ct = default) => GetByIdAsync(id, ct);
-        public Task<Product?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult<Product?>(null);
-        public Task<Product?> GetDisplayableBySlugAsync(string slug, IReadOnlyList<Guid> allowedAgreementProductIds, CancellationToken ct = default) => Task.FromResult<Product?>(null);
-        public Task<(List<Product> Items, int Total)> GetPagedAsync(Guid? shopId, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<(List<Product> Items, int Total)> GetPagedAdminAsync(Guid? shopId, bool? isDeleted, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<(List<Product> Items, int Total)> GetCatalogPagedAsync(Guid? supplierId, int? categoryId, bool includeInactive, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<List<Product>> GetCatalogEligibilityCandidatesAsync(Guid? supplierId, int? categoryId, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<(List<Product> Items, int Total)> GetCatalogPageByIdsAsync(IReadOnlyCollection<Guid> eligibleIds, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<(List<Product> Items, int Total)> SearchAsync(string query, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<(List<Product> Items, int Total)> SearchAsync(string query, IReadOnlyList<Guid> allowedAgreementProductIds, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<List<Product>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<List<Product>> GetByIdsForAdminWithDetailsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task AddAsync(Product product, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task AddVariantAttributeAsync(Product product, VariantAttribute attribute, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task AddVariantAttributeValueAsync(Product product, VariantAttributeValue value, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task AddProductVariantAsync(Product product, ProductVariant variant, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task UpdateAsync(Product product, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<Product?> GetByIdForAdminAsync(Guid id, CancellationToken ct = default) =>
+            GetByIdAsync(id, ct);
+
+        public Task<Product?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+            Task.FromResult<Product?>(null);
+
+        public Task<Product?> GetDisplayableBySlugAsync(
+            string slug,
+            IReadOnlyList<Guid> allowedAgreementProductIds,
+            CancellationToken ct = default
+        ) => Task.FromResult<Product?>(null);
+
+        public Task<(List<Product> Items, int Total)> GetPagedAsync(
+            Guid? shopId,
+            int page,
+            int pageSize,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<(List<Product> Items, int Total)> GetPagedAdminAsync(
+            Guid? shopId,
+            bool? isDeleted,
+            int page,
+            int pageSize,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<(List<Product> Items, int Total)> GetCatalogPagedAsync(
+            Guid? supplierId,
+            int? categoryId,
+            bool includeInactive,
+            int page,
+            int pageSize,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<List<Product>> GetCatalogEligibilityCandidatesAsync(
+            Guid? supplierId,
+            int? categoryId,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<(List<Product> Items, int Total)> GetCatalogPageByIdsAsync(
+            IReadOnlyCollection<Guid> eligibleIds,
+            int page,
+            int pageSize,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<(List<Product> Items, int Total)> SearchAsync(
+            string query,
+            int page,
+            int pageSize,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<(List<Product> Items, int Total)> SearchAsync(
+            string query,
+            IReadOnlyList<Guid> allowedAgreementProductIds,
+            int page,
+            int pageSize,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<List<Product>> GetByIdsAsync(
+            IReadOnlyList<Guid> ids,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<List<Product>> GetByIdsForAdminWithDetailsAsync(
+            IReadOnlyList<Guid> ids,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task AddAsync(Product product, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task AddVariantAttributeAsync(
+            Product product,
+            VariantAttribute attribute,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task AddVariantAttributeValueAsync(
+            Product product,
+            VariantAttributeValue value,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task AddProductVariantAsync(
+            Product product,
+            ProductVariant variant,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task UpdateAsync(Product product, CancellationToken ct = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class FakeShopRepository : IShopRepository
@@ -426,56 +606,131 @@ public sealed class PlaceStoreOrderStrictValidationTests
         public Task<Shop?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(id == ShopId ? _shop : null);
 
-        public Task<Shop?> GetBySlugAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<List<Shop>> GetBySupplierIdAsync(Guid supplierId, CancellationToken ct = default) => Task.FromResult(new List<Shop>());
-        public Task<(List<Shop> Items, int Total)> GetPagedAsync(ShopType? shopType, ShopStatus? status, int page, int size, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<(List<Shop> Items, int Total)> GetPagedByIdsAsync(IEnumerable<Guid> ids, int page, int size, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<List<Shop>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task AddAsync(Shop shop, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task UpdateAsync(Shop shop, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Shop?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<List<Shop>> GetBySupplierIdAsync(
+            Guid supplierId,
+            CancellationToken ct = default
+        ) => Task.FromResult(new List<Shop>());
+
+        public Task<(List<Shop> Items, int Total)> GetPagedAsync(
+            ShopType? shopType,
+            ShopStatus? status,
+            int page,
+            int size,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<(List<Shop> Items, int Total)> GetPagedByIdsAsync(
+            IEnumerable<Guid> ids,
+            int page,
+            int size,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task<List<Shop>> GetByIdsAsync(
+            IReadOnlyList<Guid> ids,
+            CancellationToken ct = default
+        ) => throw new NotSupportedException();
+
+        public Task AddAsync(Shop shop, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task UpdateAsync(Shop shop, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeProductSessionRepository : IProductSessionRepository
     {
-        public Task<ProductSession?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult<ProductSession?>(null);
-        public Task<List<ProductSession>> GetByProductIdAsync(Guid productId, CancellationToken ct = default) => Task.FromResult(new List<ProductSession>());
-        public Task<List<ProductSession>> GetByProductIdAndDateAsync(Guid productId, DateOnly date, CancellationToken ct = default) => Task.FromResult(new List<ProductSession>());
-        public Task<List<ProductSession>> GetAvailableByProductIdAsync(Guid productId, CancellationToken ct = default) => Task.FromResult(new List<ProductSession>());
-        public Task UpdateAsync(ProductSession session, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<ProductSession?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult<ProductSession?>(null);
+
+        public Task<List<ProductSession>> GetByProductIdAsync(
+            Guid productId,
+            CancellationToken ct = default
+        ) => Task.FromResult(new List<ProductSession>());
+
+        public Task<List<ProductSession>> GetByProductIdAndDateAsync(
+            Guid productId,
+            DateOnly date,
+            CancellationToken ct = default
+        ) => Task.FromResult(new List<ProductSession>());
+
+        public Task<List<ProductSession>> GetAvailableByProductIdAsync(
+            Guid productId,
+            CancellationToken ct = default
+        ) => Task.FromResult(new List<ProductSession>());
+
+        public Task UpdateAsync(ProductSession session, CancellationToken ct = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class FakePriceResolver : IStoreProductPriceResolver
     {
         private readonly StoreResolvedPrice _resolvedPrice;
 
-        public FakePriceResolver(StoreResolvedPrice resolvedPrice) => _resolvedPrice = resolvedPrice;
+        public FakePriceResolver(StoreResolvedPrice resolvedPrice) =>
+            _resolvedPrice = resolvedPrice;
 
         public StoreDomainException? ExceptionToThrow { get; set; }
 
-        public Task<StoreResolvedPrice> ResolveAsync(Guid shopId, Guid productId, Guid? variantId, CancellationToken cancellationToken = default) =>
-            ExceptionToThrow is null ? Task.FromResult(_resolvedPrice) : Task.FromException<StoreResolvedPrice>(ExceptionToThrow);
+        public Task<StoreResolvedPrice> ResolveAsync(
+            Guid shopId,
+            Guid productId,
+            Guid? variantId,
+            CancellationToken cancellationToken = default
+        ) =>
+            ExceptionToThrow is null
+                ? Task.FromResult(_resolvedPrice)
+                : Task.FromException<StoreResolvedPrice>(ExceptionToThrow);
 
-        public Task<StoreResolvedPrice> ResolveAsync(Guid shopId, Product product, Guid? variantId, CancellationToken cancellationToken = default) =>
-            ExceptionToThrow is null ? Task.FromResult(_resolvedPrice) : Task.FromException<StoreResolvedPrice>(ExceptionToThrow);
+        public Task<StoreResolvedPrice> ResolveAsync(
+            Guid shopId,
+            Product product,
+            Guid? variantId,
+            CancellationToken cancellationToken = default
+        ) =>
+            ExceptionToThrow is null
+                ? Task.FromResult(_resolvedPrice)
+                : Task.FromException<StoreResolvedPrice>(ExceptionToThrow);
     }
 
     private sealed class FreeDeliveryService : IDeliveryService
     {
-        public long CalcPrice(IReadOnlyList<DeliveryItemInput> items, Guid? shippingAddressId = null, Guid? shopId = null) => 0;
+        public long CalcPrice(
+            IReadOnlyList<DeliveryItemInput> items,
+            Guid? shippingAddressId = null,
+            Guid? shopId = null
+        ) => 0;
     }
 
     private sealed class CapturingMediator : IMediator
     {
-        public static readonly Guid CreatedOrderId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        public static readonly Guid CreatedOrderId = Guid.Parse(
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        );
         private readonly Guid _agreementProductId;
         private readonly SalesModel _salesModel;
         private readonly DeliveryType _deliveryType;
-        private readonly Dictionary<string, OrderDto> _ordersByIdempotencyKey = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, OrderDto> _ordersByIdempotencyKey = new(
+            StringComparer.Ordinal
+        );
 
-        public CapturingMediator(Guid agreementProductId, SalesModel salesModel, DeliveryType deliveryType)
+        public CapturingMediator(
+            Guid agreementProductId,
+            SalesModel salesModel,
+            DeliveryType deliveryType
+        )
         {
             _agreementProductId = agreementProductId;
             _salesModel = salesModel;
@@ -485,45 +740,95 @@ public sealed class PlaceStoreOrderStrictValidationTests
         public CreateOrderCommand? CreateOrderCommand { get; private set; }
         public int CreateOrderCallCount { get; private set; }
 
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        public Task<TResponse> Send<TResponse>(
+            IRequest<TResponse> request,
+            CancellationToken cancellationToken = default
+        )
         {
             object? response = request switch
             {
-                GetAgreementProductByIdQuery query when query.ProductId == _agreementProductId => new AgreementProductDto(
-                    _agreementProductId,
-                    AgreementId: Guid.NewGuid(),
-                    Name: "agreement product",
-                    Description: null,
-                    CategoryId: 1,
-                    CategoryName: "store",
-                    ProductType: 1,
-                    DeliveryType: (short)_deliveryType,
-                    SalesModel: (short)_salesModel,
-                    CommissionPercent: 0,
-                    IsDeleted: false,
-                    CreatedAt: DateTimeOffset.UtcNow),
-                GetCategoryByIdQuery => new CategoryDto(1, "store", "store", "store", null, null, 0, true),
+                GetAgreementProductByIdQuery query when query.ProductId == _agreementProductId =>
+                    new AgreementProductDto(
+                        _agreementProductId,
+                        AgreementId: Guid.NewGuid(),
+                        Name: "agreement product",
+                        Description: null,
+                        CategoryId: 1,
+                        CategoryName: "store",
+                        ProductType: 1,
+                        DeliveryType: (short)_deliveryType,
+                        SalesModel: (short)_salesModel,
+                        CommissionPercent: 0,
+                        IsDeleted: false,
+                        CreatedAt: DateTimeOffset.UtcNow
+                    ),
+                GetCategoryByIdQuery => new CategoryDto(
+                    1,
+                    "store",
+                    "store",
+                    "store",
+                    null,
+                    null,
+                    0,
+                    true
+                ),
                 GetStoreVariantSoldQuantityQuery => 0,
-                GetUserAddressByIdQuery => new UserAddressDto(Guid.NewGuid(), UserId, "خانه", 1, 1, "نشانی", "1234567890", "کاربر", "09120000000", null, null, null, null, false, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
-                GetOrderByIdempotencyKeyQuery query => _ordersByIdempotencyKey.GetValueOrDefault(query.IdempotencyKey),
+                GetUserAddressByIdQuery => new UserAddressDto(
+                    Guid.NewGuid(),
+                    UserId,
+                    "خانه",
+                    1,
+                    1,
+                    "نشانی",
+                    "1234567890",
+                    "کاربر",
+                    "09120000000",
+                    null,
+                    null,
+                    null,
+                    null,
+                    false,
+                    DateTimeOffset.UtcNow,
+                    DateTimeOffset.UtcNow
+                ),
+                GetOrderByIdempotencyKeyQuery query => _ordersByIdempotencyKey.GetValueOrDefault(
+                    query.IdempotencyKey
+                ),
                 CreateOrderCommand command => Capture(command),
-                _ => throw new NotSupportedException(request.GetType().FullName)
+                _ => throw new NotSupportedException(request.GetType().FullName),
             };
 
             return Task.FromResult((TResponse)response!);
         }
 
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task Publish(object notification, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification => Task.CompletedTask;
+        public Task<object?> Send(object request, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
+            IStreamRequest<TResponse> request,
+            CancellationToken cancellationToken = default
+        ) => throw new NotSupportedException();
+
+        public IAsyncEnumerable<object?> CreateStream(
+            object request,
+            CancellationToken cancellationToken = default
+        ) => throw new NotSupportedException();
+
+        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task Publish<TNotification>(
+            TNotification notification,
+            CancellationToken cancellationToken = default
+        )
+            where TNotification : INotification => Task.CompletedTask;
 
         private CreateOrderResponse Capture(CreateOrderCommand command)
         {
             CreateOrderCallCount++;
             CreateOrderCommand = command;
-            var finalAmountMinor = command.Items.Sum(i => (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor)
+            var finalAmountMinor =
+                command.Items.Sum(i => (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor)
                 - command.DiscountCodeAmountMinor
                 + command.ShippingFeeMinor;
 
@@ -546,18 +851,22 @@ public sealed class PlaceStoreOrderStrictValidationTests
                 ShippingAddressSnapshotJson: command.ShippingAddressSnapshotJson,
                 DeliveryDate: command.DeliveryDate,
                 DeliveryTimeSlot: command.DeliveryTimeSlot,
-                Items: command.Items.Select(i => new OrderItemDto(
-                    Id: Guid.NewGuid(),
-                    Title: i.Title,
-                    UnitPriceMinor: i.UnitPriceMinor,
-                    Quantity: i.Quantity,
-                    FinalPriceMinor: (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor,
-                    SourceItemId: i.SourceItemId,
-                    CategoryCode: i.CategoryCode,
-                    Tags: i.Tags,
-                    MetadataJson: i.MetadataJson,
-                    DeliveryMethod: i.DeliveryMethod)).ToList(),
-                CreatedAt: DateTimeOffset.UtcNow);
+                Items: command
+                    .Items.Select(i => new OrderItemDto(
+                        Id: Guid.NewGuid(),
+                        Title: i.Title,
+                        UnitPriceMinor: i.UnitPriceMinor,
+                        Quantity: i.Quantity,
+                        FinalPriceMinor: (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor,
+                        SourceItemId: i.SourceItemId,
+                        CategoryCode: i.CategoryCode,
+                        Tags: i.Tags,
+                        MetadataJson: i.MetadataJson,
+                        DeliveryMethod: i.DeliveryMethod
+                    ))
+                    .ToList(),
+                CreatedAt: DateTimeOffset.UtcNow
+            );
 
             return new CreateOrderResponse(CreatedOrderId, "ORD-STORE-1", finalAmountMinor);
         }

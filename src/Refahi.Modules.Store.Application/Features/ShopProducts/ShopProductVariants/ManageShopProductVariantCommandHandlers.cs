@@ -11,12 +11,19 @@ public class EnableShopProductVariantCommandHandler
 {
     private readonly IShopProductRepository _shopProductRepo;
 
-    public EnableShopProductVariantCommandHandler(IShopProductRepository shopProductRepo)
-        => _shopProductRepo = shopProductRepo;
+    public EnableShopProductVariantCommandHandler(IShopProductRepository shopProductRepo) =>
+        _shopProductRepo = shopProductRepo;
 
-    public async Task<Unit> Handle(EnableShopProductVariantCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        EnableShopProductVariantCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var shopProduct = await GetShopProductAsync(request.ShopId, request.ProductId, cancellationToken);
+        var shopProduct = await GetShopProductAsync(
+            request.ShopId,
+            request.ProductId,
+            cancellationToken
+        );
         shopProduct.EnableVariantOffering(request.ProductVariantId);
         await _shopProductRepo.UpdateAsync(shopProduct, cancellationToken);
         return Unit.Value;
@@ -25,9 +32,13 @@ public class EnableShopProductVariantCommandHandler
     private async Task<ShopProduct> GetShopProductAsync(
         Guid shopId,
         Guid productId,
-        CancellationToken cancellationToken)
-        => await _shopProductRepo.GetWithVariantOfferingsAsync(shopId, productId, cancellationToken)
-           ?? throw new StoreDomainException("محصول در این فروشگاه یافت نشد", "SHOP_PRODUCT_NOT_FOUND");
+        CancellationToken cancellationToken
+    ) =>
+        await _shopProductRepo.GetWithVariantOfferingsAsync(shopId, productId, cancellationToken)
+        ?? throw new StoreDomainException(
+            "محصول در این فروشگاه یافت نشد",
+            "SHOP_PRODUCT_NOT_FOUND"
+        );
 }
 
 public class DisableShopProductVariantCommandHandler
@@ -35,12 +46,19 @@ public class DisableShopProductVariantCommandHandler
 {
     private readonly IShopProductRepository _shopProductRepo;
 
-    public DisableShopProductVariantCommandHandler(IShopProductRepository shopProductRepo)
-        => _shopProductRepo = shopProductRepo;
+    public DisableShopProductVariantCommandHandler(IShopProductRepository shopProductRepo) =>
+        _shopProductRepo = shopProductRepo;
 
-    public async Task<Unit> Handle(DisableShopProductVariantCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DisableShopProductVariantCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var shopProduct = await GetShopProductAsync(request.ShopId, request.ProductId, cancellationToken);
+        var shopProduct = await GetShopProductAsync(
+            request.ShopId,
+            request.ProductId,
+            cancellationToken
+        );
         shopProduct.DisableVariantOffering(request.ProductVariantId);
         await _shopProductRepo.UpdateAsync(shopProduct, cancellationToken);
         return Unit.Value;
@@ -49,9 +67,13 @@ public class DisableShopProductVariantCommandHandler
     private async Task<ShopProduct> GetShopProductAsync(
         Guid shopId,
         Guid productId,
-        CancellationToken cancellationToken)
-        => await _shopProductRepo.GetWithVariantOfferingsAsync(shopId, productId, cancellationToken)
-           ?? throw new StoreDomainException("محصول در این فروشگاه یافت نشد", "SHOP_PRODUCT_NOT_FOUND");
+        CancellationToken cancellationToken
+    ) =>
+        await _shopProductRepo.GetWithVariantOfferingsAsync(shopId, productId, cancellationToken)
+        ?? throw new StoreDomainException(
+            "محصول در این فروشگاه یافت نشد",
+            "SHOP_PRODUCT_NOT_FOUND"
+        );
 }
 
 public class RemoveShopProductVariantCommandHandler
@@ -59,12 +81,19 @@ public class RemoveShopProductVariantCommandHandler
 {
     private readonly IShopProductRepository _shopProductRepo;
 
-    public RemoveShopProductVariantCommandHandler(IShopProductRepository shopProductRepo)
-        => _shopProductRepo = shopProductRepo;
+    public RemoveShopProductVariantCommandHandler(IShopProductRepository shopProductRepo) =>
+        _shopProductRepo = shopProductRepo;
 
-    public async Task<Unit> Handle(RemoveShopProductVariantCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        RemoveShopProductVariantCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var shopProduct = await GetShopProductAsync(request.ShopId, request.ProductId, cancellationToken);
+        var shopProduct = await GetShopProductAsync(
+            request.ShopId,
+            request.ProductId,
+            cancellationToken
+        );
         shopProduct.RemoveVariantOffering(request.ProductVariantId);
         await _shopProductRepo.UpdateAsync(shopProduct, cancellationToken);
         return Unit.Value;
@@ -73,7 +102,11 @@ public class RemoveShopProductVariantCommandHandler
     private async Task<ShopProduct> GetShopProductAsync(
         Guid shopId,
         Guid productId,
-        CancellationToken cancellationToken)
-        => await _shopProductRepo.GetWithVariantOfferingsAsync(shopId, productId, cancellationToken)
-           ?? throw new StoreDomainException("محصول در این فروشگاه یافت نشد", "SHOP_PRODUCT_NOT_FOUND");
+        CancellationToken cancellationToken
+    ) =>
+        await _shopProductRepo.GetWithVariantOfferingsAsync(shopId, productId, cancellationToken)
+        ?? throw new StoreDomainException(
+            "محصول در این فروشگاه یافت نشد",
+            "SHOP_PRODUCT_NOT_FOUND"
+        );
 }

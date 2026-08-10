@@ -56,7 +56,8 @@ public static class ReferencesDataSeeder
                     ELSE "NameEn"
                 END
                 WHERE "NameEn" = '' OR "NameEn" IS NULL;
-                """);
+                """
+            );
             return;
         }
 
@@ -95,9 +96,12 @@ public static class ReferencesDataSeeder
             (30, 'همدان', 'Hamadan', 'hmdan', 30, true),
             (31, 'یزد', 'Yazd', 'yzd', 31, true)
             ON CONFLICT DO NOTHING;
-            """);
+            """
+        );
 
-        context.Database.ExecuteSqlRaw("SELECT setval(pg_get_serial_sequence('\"references\".provinces', 'Id'), (SELECT MAX(\"Id\") FROM \"references\".provinces))");
+        context.Database.ExecuteSqlRaw(
+            "SELECT setval(pg_get_serial_sequence('\"references\".provinces', 'Id'), (SELECT MAX(\"Id\") FROM \"references\".provinces))"
+        );
     }
 
     private static void SeedCities(ReferencesDbContext context)
@@ -109,7 +113,8 @@ public static class ReferencesDataSeeder
                 UPDATE "references".cities
                 SET "NameEn" = INITCAP(REPLACE("Slug", '-', ' '))
                 WHERE "NameEn" = '' OR "NameEn" IS NULL;
-                """);
+                """
+            );
             return;
         }
 
@@ -1362,8 +1367,11 @@ public static class ReferencesDataSeeder
             (1242, 'احمدآباد', 'ahmdabad', 31, 21, true)
             ) AS v("Id", "Name", "Slug", "ProvinceId", "SortOrder", "IsActive")
             ON CONFLICT DO NOTHING;
-            """);
+            """
+        );
 
-        context.Database.ExecuteSqlRaw("SELECT setval(pg_get_serial_sequence('\"references\".cities', 'Id'), (SELECT MAX(\"Id\") FROM \"references\".cities))");
+        context.Database.ExecuteSqlRaw(
+            "SELECT setval(pg_get_serial_sequence('\"references\".cities', 'Id'), (SELECT MAX(\"Id\") FROM \"references\".cities))"
+        );
     }
 }

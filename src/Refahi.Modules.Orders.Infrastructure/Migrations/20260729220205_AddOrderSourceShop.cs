@@ -16,7 +16,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 schema: "orders",
                 table: "orders",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.Sql(
                 """
@@ -25,13 +26,15 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 WHERE lower(source_module) = 'store'
                   AND reference_type <> 'StoreInPerson'
                   AND source_shop_id IS NULL;
-                """);
+                """
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_orders_source_shop_created_at",
                 schema: "orders",
                 table: "orders",
-                columns: new[] { "source_module", "source_shop_id", "created_at" });
+                columns: new[] { "source_module", "source_shop_id", "created_at" }
+            );
         }
 
         /// <inheritdoc />
@@ -40,12 +43,10 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "ix_orders_source_shop_created_at",
                 schema: "orders",
-                table: "orders");
+                table: "orders"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "source_shop_id",
-                schema: "orders",
-                table: "orders");
+            migrationBuilder.DropColumn(name: "source_shop_id", schema: "orders", table: "orders");
         }
     }
 }

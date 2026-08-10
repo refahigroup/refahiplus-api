@@ -8,5 +8,5 @@ public enum HotelProviderBookingStatus
     Failed = 3,
     CancellationPending = 4,
     Cancelled = 5,
-    ExternallyUnresolved = 6
+    ExternallyUnresolved = 6,
 }

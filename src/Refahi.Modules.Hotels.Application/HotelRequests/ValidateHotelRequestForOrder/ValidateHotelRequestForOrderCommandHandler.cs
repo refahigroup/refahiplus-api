@@ -17,9 +17,11 @@ public sealed class ValidateHotelRequestForOrderCommandHandler
 
     public async Task<ValidateHotelRequestForOrderResponse> Handle(
         ValidateHotelRequestForOrderCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var hotelRequest = await _repository.GetAsync(request.RequestId, cancellationToken)
+        var hotelRequest =
+            await _repository.GetAsync(request.RequestId, cancellationToken)
             ?? throw new InvalidOperationException("درخواست هتل یافت نشد");
 
         if (hotelRequest.UserId != request.UserId)
@@ -48,6 +50,7 @@ public sealed class ValidateHotelRequestForOrderCommandHandler
             hotelRequest.TotalPrice,
             hotelRequest.Currency,
             hotelRequest.Status.ToString(),
-            hotelRequest.ExpireAt);
+            hotelRequest.ExpireAt
+        );
     }
 }

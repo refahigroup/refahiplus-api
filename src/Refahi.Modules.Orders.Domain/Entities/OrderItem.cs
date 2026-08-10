@@ -14,22 +14,22 @@ public sealed class OrderItem
     public Guid OrderId { get; private set; }
 
     // --- Snapshot (تغییرناپذیر بعد از ثبت) ---
-    public string Title { get; private set; } = string.Empty;          // "پیراهن مردانه مشکی سایز مدیوم"
-    public long UnitPriceMinor { get; private set; }                   // قیمت واحد در زمان خرید
+    public string Title { get; private set; } = string.Empty; // "پیراهن مردانه مشکی سایز مدیوم"
+    public long UnitPriceMinor { get; private set; } // قیمت واحد در زمان خرید
     public int Quantity { get; private set; }
-    public long DiscountAmountMinor { get; private set; }              // تخفیف این آیتم
-    public long FinalPriceMinor { get; private set; }                  // (UnitPrice * Quantity) - Discount
+    public long DiscountAmountMinor { get; private set; } // تخفیف این آیتم
+    public long FinalPriceMinor { get; private set; } // (UnitPrice * Quantity) - Discount
 
     // --- ماژول مبدا ---
-    public string SourceModule { get; private set; } = string.Empty;   // "Store"
-    public Guid? SourceItemId { get; private set; }                    // رفرنس اختیاری به Product/Room/...
+    public string SourceModule { get; private set; } = string.Empty; // "Store"
+    public Guid? SourceItemId { get; private set; } // رفرنس اختیاری به Product/Room/...
 
     // --- دسته‌بندی و برچسب (برای گزارشات و Wallet restriction) ---
-    public string CategoryCode { get; private set; } = string.Empty;  // "store.clothing"
-    public string[]? Tags { get; private set; }                        // ["پوشاک", "مردانه", "هودی"]
+    public string CategoryCode { get; private set; } = string.Empty; // "store.clothing"
+    public string[]? Tags { get; private set; } // ["پوشاک", "مردانه", "هودی"]
 
     // --- متادیتا (جزئیات خاص هر ماژول) ---
-    public string? MetadataJson { get; private set; }                  // {"size":"XL","color":"ملانژ","variant_id":"..."}
+    public string? MetadataJson { get; private set; } // {"size":"XL","color":"ملانژ","variant_id":"..."}
 
     // --- روش ارسال این آیتم ---
     public DeliveryMethod DeliveryMethod { get; private set; }
@@ -48,7 +48,8 @@ public sealed class OrderItem
         string[]? tags,
         string? metadataJson,
         int sortOrder,
-        DeliveryMethod deliveryMethod = DeliveryMethod.None)
+        DeliveryMethod deliveryMethod = DeliveryMethod.None
+    )
     {
         return new OrderItem
         {
@@ -65,7 +66,7 @@ public sealed class OrderItem
             Tags = tags,
             MetadataJson = metadataJson,
             DeliveryMethod = deliveryMethod,
-            SortOrder = sortOrder
+            SortOrder = sortOrder,
         };
     }
 }

@@ -10,9 +10,7 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, Uni
     private readonly IMediaAssetRepository _repository;
     private readonly IMediaStorageService _storage;
 
-    public DeleteMediaCommandHandler(
-        IMediaAssetRepository repository,
-        IMediaStorageService storage)
+    public DeleteMediaCommandHandler(IMediaAssetRepository repository, IMediaStorageService storage)
     {
         _repository = repository;
         _storage = storage;
@@ -20,10 +18,12 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, Uni
 
     public async Task<Unit> Handle(DeleteMediaCommand request, CancellationToken ct)
     {
-        var asset = await _repository.GetByIdAsync(request.MediaId, ct)
+        var asset =
+            await _repository.GetByIdAsync(request.MediaId, ct)
             ?? throw new KeyNotFoundException("فایل مدیا یافت نشد");
 
-        if (asset.IsDeleted) return Unit.Value;
+        if (asset.IsDeleted)
+            return Unit.Value;
 
         if (!request.IsAdmin && asset.UploadedByUserId != request.RequestedByUserId)
             throw new UnauthorizedAccessException("اجازه حذف این فایل را ندارید");

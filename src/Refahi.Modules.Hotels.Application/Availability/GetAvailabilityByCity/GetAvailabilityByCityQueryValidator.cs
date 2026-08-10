@@ -7,16 +7,15 @@ namespace Refahi.Modules.Hotels.Application.Availability.GetAvailabilityByCity;
 /// Validator برای GetAvailabilityByCityQuery
 /// تمام قوانین تجاری مربوط به جستجو هتل‌های یک شهر را بررسی می‌کند
 /// </summary>
-public sealed class GetAvailabilityByCityQueryValidator : AbstractValidator<GetAvailabilityByCityQuery>
+public sealed class GetAvailabilityByCityQueryValidator
+    : AbstractValidator<GetAvailabilityByCityQuery>
 {
     public GetAvailabilityByCityQueryValidator()
     {
         // ---------------------------------------------------------
         // 1. CityId: باید معتبر و بزرگتر از صفر باشد
         // ---------------------------------------------------------
-        RuleFor(x => x.CityId)
-            .GreaterThan(0)
-            .WithMessage("شناسه شهر نباید خالی باشد.");
+        RuleFor(x => x.CityId).GreaterThan(0).WithMessage("شناسه شهر نباید خالی باشد.");
 
         // ---------------------------------------------------------
         // 2. CheckIn: نباید در گذشته باشد
@@ -44,16 +43,21 @@ public sealed class GetAvailabilityByCityQueryValidator : AbstractValidator<GetA
         // 5. MinPrice و MaxPrice: اگر هر دو تعریف شدند، MinPrice <= MaxPrice
         // ---------------------------------------------------------
         RuleFor(x => x)
-            .Custom((query, context) =>
-            {
-                if (query.MinPrice.HasValue && query.MaxPrice.HasValue)
+            .Custom(
+                (query, context) =>
                 {
-                    if (query.MinPrice > query.MaxPrice)
+                    if (query.MinPrice.HasValue && query.MaxPrice.HasValue)
                     {
-                        context.AddFailure(nameof(query.MinPrice), "حداقل قیمت نباید بیش از حداکثر قیمت باشد.");
+                        if (query.MinPrice > query.MaxPrice)
+                        {
+                            context.AddFailure(
+                                nameof(query.MinPrice),
+                                "حداقل قیمت نباید بیش از حداکثر قیمت باشد."
+                            );
+                        }
                     }
                 }
-            });
+            );
 
         // ---------------------------------------------------------
         // 6. Adults و Children: اگر تعریف شدند، باید مثبت باشند
@@ -80,15 +84,20 @@ public sealed class GetAvailabilityByCityQueryValidator : AbstractValidator<GetA
         // 8. Stars: تعداد ستاره‌ها باید بین 1 تا 5 باشد
         // ---------------------------------------------------------
         RuleFor(x => x.Stars)
-            .Custom((stars, context) =>
-            {
-                if (stars != null && stars.Length > 0)
+            .Custom(
+                (stars, context) =>
                 {
-                    if (stars.Any(s => s < 1 || s > 5))
+                    if (stars != null && stars.Length > 0)
                     {
-                        context.AddFailure(nameof(stars), "رتبه‌های ستاره‌ای باید بین 1 تا 5 باشند.");
+                        if (stars.Any(s => s < 1 || s > 5))
+                        {
+                            context.AddFailure(
+                                nameof(stars),
+                                "رتبه‌های ستاره‌ای باید بین 1 تا 5 باشند."
+                            );
+                        }
                     }
                 }
-            });
+            );
     }
 }

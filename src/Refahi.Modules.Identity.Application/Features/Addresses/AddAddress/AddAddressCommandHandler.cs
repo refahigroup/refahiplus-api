@@ -2,10 +2,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Refahi.Modules.Identity.Application.Contracts.Models;
+using Refahi.Modules.Identity.Application.Features.Addresses;
 using Refahi.Modules.Identity.Application.Features.Addresses.Mapping;
 using Refahi.Modules.Identity.Domain.Entities;
 using Refahi.Modules.Identity.Domain.Repositories;
-using Refahi.Modules.Identity.Application.Features.Addresses;
 
 namespace Refahi.Modules.Identity.Application.Features.Addresses.AddAddress;
 
@@ -20,10 +20,17 @@ public class AddAddressCommandHandler : IRequestHandler<AddAddressCommand, UserA
         _mediator = mediator;
     }
 
-    public async Task<UserAddressDto> Handle(AddAddressCommand request, CancellationToken cancellationToken)
+    public async Task<UserAddressDto> Handle(
+        AddAddressCommand request,
+        CancellationToken cancellationToken
+    )
     {
         await AddressLocationValidation.EnsureValidAsync(
-            _mediator, request.ProvinceId, request.CityId, cancellationToken);
+            _mediator,
+            request.ProvinceId,
+            request.CityId,
+            cancellationToken
+        );
 
         // تعیین خودکار IsDefault: اگر کاربر هیچ آدرسی ندارد، اولین آدرس را پیش‌فرض می‌کنیم
         var existing = await _repo.GetByUserIdAsync(request.UserId, cancellationToken);
@@ -42,12 +49,17 @@ public class AddAddressCommandHandler : IRequestHandler<AddAddressCommand, UserA
             unit: request.Unit,
             latitude: request.Latitude,
             longitude: request.Longitude,
-            isDefault: makeDefault);
+            isDefault: makeDefault
+        );
 
         if (makeDefault)
         {
             // برداشتن علامت پیش‌فرض از سایر آدرس‌ها
-            await _repo.UnsetDefaultForUserAsync(request.UserId, exceptAddressId: address.Id, cancellationToken);
+            await _repo.UnsetDefaultForUserAsync(
+                request.UserId,
+                exceptAddressId: address.Id,
+                cancellationToken
+            );
         }
 
         await _repo.AddAsync(address, cancellationToken);

@@ -5,7 +5,8 @@ namespace Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.Can
 public sealed record CancelProviderBookingCommand(
     Guid SagaId,
     string Reason,
-    string? IdempotencyKey = null) : IRequest<CancelProviderBookingResponse>;
+    string? IdempotencyKey = null
+) : IRequest<CancelProviderBookingResponse>;
 
 public sealed record CancelProviderBookingResponse(
     Guid SagaId,
@@ -13,4 +14,5 @@ public sealed record CancelProviderBookingResponse(
     string? ProviderBookingCode,
     string Outcome,
     bool CancellationAttempted,
-    bool ExternalUnresolved);
+    bool ExternalUnresolved
+);

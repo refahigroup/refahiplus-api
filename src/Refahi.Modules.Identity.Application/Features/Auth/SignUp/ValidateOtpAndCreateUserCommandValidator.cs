@@ -2,14 +2,13 @@ using FluentValidation;
 
 namespace Refahi.Modules.Identity.Application.Features.Auth.SignUp;
 
-public class ValidateOtpAndCreateUserCommandValidator : AbstractValidator<ValidateOtpAndCreateUserCommand>
+public class ValidateOtpAndCreateUserCommandValidator
+    : AbstractValidator<ValidateOtpAndCreateUserCommand>
 {
     public ValidateOtpAndCreateUserCommandValidator()
     {
         // Token validation
-        RuleFor(x => x.Token)
-            .NotEmpty()
-            .WithMessage("OTP token is required");
+        RuleFor(x => x.Token).NotEmpty().WithMessage("OTP token is required");
 
         // OTP code validation (6 digits)
         RuleFor(x => x.OtpCode)

@@ -1,6 +1,5 @@
 ﻿namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
-
 public sealed class SnappTripAvailabilityResponse
 {
     public int hotel_id { get; set; }

@@ -46,19 +46,17 @@ public record RebuildBalanceResult(
     BalanceSnapshot Before,
     BalanceSnapshot After,
     DriftInfo Drift,
-    DateTimeOffset RebuiltAt);
+    DateTimeOffset RebuiltAt
+);
 
 public record BalanceSnapshot(
     long AvailableMinor,
     long PendingMinor,
     long Version,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt
+);
 
-public record DriftInfo(
-    bool HasDrift,
-    long AvailableDelta,
-    long PendingDelta,
-    long VersionDelta);
+public record DriftInfo(bool HasDrift, long AvailableDelta, long PendingDelta, long VersionDelta);
 
 public record BatchRebuildResult(
     int TotalWallets,
@@ -67,23 +65,27 @@ public record BatchRebuildResult(
     int FailureCount,
     List<WalletRebuildSummary> Details,
     DateTimeOffset StartedAt,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt
+);
 
 public record WalletRebuildSummary(
     Guid WalletId,
     bool Success,
     bool HadDrift,
-    string? ErrorMessage);
+    string? ErrorMessage
+);
 
 public record DriftReport(
     Guid WalletId,
     string Currency,
     BalanceSnapshot CurrentProjection,
     BalanceSnapshot ComputedFromLedger,
-    DriftInfo Drift);
+    DriftInfo Drift
+);
 
 public record BatchRebuildFilters(
     string? Currency = null,
     DateTimeOffset? UpdatedAfter = null,
     DateTimeOffset? UpdatedBefore = null,
-    bool OnlyActive = true);
+    bool OnlyActive = true
+);

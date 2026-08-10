@@ -1,6 +1,6 @@
+using System;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
 using Refahi.Shared.Domain;
-using System;
 
 namespace Refahi.Modules.PaymentGateway.Domain.Events;
 

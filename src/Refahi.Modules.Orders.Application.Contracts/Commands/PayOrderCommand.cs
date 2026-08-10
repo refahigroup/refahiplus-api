@@ -16,7 +16,4 @@ public sealed record PayOrderCommand(
 
 public sealed record WalletAllocationInput(Guid WalletId, long AmountMinor);
 
-public sealed record PayOrderResponse(
-    Guid OrderId,
-    Guid PaymentId,
-    string Status);
+public sealed record PayOrderResponse(Guid OrderId, Guid PaymentId, string Status);

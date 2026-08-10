@@ -13,20 +13,20 @@ public class CartRepository : ICartRepository
 
     public CartRepository(StoreDbContext db) => _db = db;
 
-    public Task<Cart?> GetByUserAndModuleIdAsync(Guid userId, int moduleId, CancellationToken ct = default)
-        => _db.Carts
-            .Include(c => c.Items)
+    public Task<Cart?> GetByUserAndModuleIdAsync(
+        Guid userId,
+        int moduleId,
+        CancellationToken ct = default
+    ) =>
+        _db
+            .Carts.Include(c => c.Items)
             .FirstOrDefaultAsync(c => c.UserId == userId && c.ModuleId == moduleId, ct);
 
-    public Task<Cart?> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
-        => _db.Carts
-            .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.UserId == userId, ct);
+    public Task<Cart?> GetByUserIdAsync(Guid userId, CancellationToken ct = default) =>
+        _db.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId, ct);
 
-    public Task<Cart?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _db.Carts
-            .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.Id == id, ct);
+    public Task<Cart?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public Task<Cart> AddItemAsync(
         Guid userId,
@@ -38,43 +38,107 @@ public class CartRepository : ICartRepository
         DateOnly? usageDate,
         int quantity,
         long unitPriceMinor,
-        CancellationToken ct = default)
-        => AddOrReplaceItemAsync(userId, moduleId, shopId, productId, variantId,
-            sessionId, usageDate, quantity, unitPriceMinor, false, ct);
+        CancellationToken ct = default
+    ) =>
+        AddOrReplaceItemAsync(
+            userId,
+            moduleId,
+            shopId,
+            productId,
+            variantId,
+            sessionId,
+            usageDate,
+            quantity,
+            unitPriceMinor,
+            false,
+            ct
+        );
 
-    public async Task<Cart> AddOfferItemAsync(Guid userId, int moduleId, Guid shopId, Guid productId,
-        Guid offerId, Guid? variantId, Guid? sessionId, DateOnly? usageDate, int quantity,
-        long originalUnitPriceMinor, long finalUnitPriceMinor, CancellationToken ct = default)
+    public async Task<Cart> AddOfferItemAsync(
+        Guid userId,
+        int moduleId,
+        Guid shopId,
+        Guid productId,
+        Guid offerId,
+        Guid? variantId,
+        Guid? sessionId,
+        DateOnly? usageDate,
+        int quantity,
+        long originalUnitPriceMinor,
+        long finalUnitPriceMinor,
+        CancellationToken ct = default
+    )
     {
         _db.ChangeTracker.Clear();
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         var lockKey = CreateCartLockKey(userId, moduleId);
-        await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({lockKey})", ct);
-        var cart = await _db.Carts.Include(x => x.Items)
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock({lockKey})",
+            ct
+        );
+        var cart = await _db
+            .Carts.Include(x => x.Items)
             .SingleOrDefaultAsync(x => x.UserId == userId && x.ModuleId == moduleId, ct);
         if (cart is null)
         {
             cart = Cart.Create(userId, moduleId);
             await _db.Carts.AddAsync(cart, ct);
         }
-        cart.AddOfferItem(shopId, productId, offerId, variantId, sessionId, usageDate,
-            quantity, originalUnitPriceMinor, finalUnitPriceMinor);
+        cart.AddOfferItem(
+            shopId,
+            productId,
+            offerId,
+            variantId,
+            sessionId,
+            usageDate,
+            quantity,
+            originalUnitPriceMinor,
+            finalUnitPriceMinor
+        );
         await _db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return cart;
     }
 
     public Task<Cart> ReplaceItemAsync(
-        Guid userId, int moduleId, Guid shopId, Guid productId,
-        Guid? variantId, Guid? sessionId, DateOnly? usageDate,
-        int quantity, long unitPriceMinor, CancellationToken ct = default)
-        => AddOrReplaceItemAsync(userId, moduleId, shopId, productId, variantId,
-            sessionId, usageDate, quantity, unitPriceMinor, true, ct);
+        Guid userId,
+        int moduleId,
+        Guid shopId,
+        Guid productId,
+        Guid? variantId,
+        Guid? sessionId,
+        DateOnly? usageDate,
+        int quantity,
+        long unitPriceMinor,
+        CancellationToken ct = default
+    ) =>
+        AddOrReplaceItemAsync(
+            userId,
+            moduleId,
+            shopId,
+            productId,
+            variantId,
+            sessionId,
+            usageDate,
+            quantity,
+            unitPriceMinor,
+            true,
+            ct
+        );
 
     private async Task<Cart> AddOrReplaceItemAsync(
-        Guid userId, int moduleId, Guid shopId, Guid productId,
-        Guid? variantId, Guid? sessionId, DateOnly? usageDate,
-        int quantity, long unitPriceMinor, bool replaceExisting, CancellationToken ct)
+        Guid userId,
+        int moduleId,
+        Guid shopId,
+        Guid productId,
+        Guid? variantId,
+        Guid? sessionId,
+        DateOnly? usageDate,
+        int quantity,
+        long unitPriceMinor,
+        bool replaceExisting,
+        CancellationToken ct
+    )
     {
         if (quantity <= 0)
             throw new StoreDomainException("تعداد باید بیشتر از صفر باشد", "INVALID_QUANTITY");
@@ -87,26 +151,32 @@ public class CartRepository : ICartRepository
 
         var lockKey = CreateCartLockKey(userId, moduleId);
         await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock({lockKey})", ct);
+            $"SELECT pg_advisory_xact_lock({lockKey})",
+            ct
+        );
 
         var cartId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
 
-        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $@"
             INSERT INTO store.carts
                 (""Id"", ""UserId"", ""ModuleId"", ""CreatedAt"", ""UpdatedAt"")
             VALUES
                 ({cartId}, {userId}, {moduleId}, {now}, {now})
             ON CONFLICT (""UserId"", ""ModuleId"")
-            DO UPDATE SET ""UpdatedAt"" = EXCLUDED.""UpdatedAt""", ct);
+            DO UPDATE SET ""UpdatedAt"" = EXCLUDED.""UpdatedAt""",
+            ct
+        );
 
-        cartId = await _db.Carts
-            .AsNoTracking()
+        cartId = await _db
+            .Carts.AsNoTracking()
             .Where(c => c.UserId == userId && c.ModuleId == moduleId)
             .Select(c => c.Id)
             .SingleAsync(ct);
 
-        var affectedRows = await _db.Database.ExecuteSqlInterpolatedAsync($@"
+        var affectedRows = await _db.Database.ExecuteSqlInterpolatedAsync(
+            $@"
             UPDATE store.cart_items
             SET
                 ""Quantity"" = CASE WHEN {replaceExisting} THEN {quantity} ELSE ""Quantity"" + {quantity} END,
@@ -116,26 +186,32 @@ public class CartRepository : ICartRepository
               AND ""ProductId"" = {productId}
               AND ""VariantId"" IS NOT DISTINCT FROM {variantId}
               AND ""SessionId"" IS NOT DISTINCT FROM {sessionId}
-              AND ""UsageDate"" IS NOT DISTINCT FROM {usageDate}", ct);
+              AND ""UsageDate"" IS NOT DISTINCT FROM {usageDate}",
+            ct
+        );
 
         if (affectedRows == 0)
         {
             var itemId = Guid.NewGuid();
-            await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $@"
                 INSERT INTO store.cart_items
                     (""Id"", ""CartId"", ""ShopId"", ""ProductId"", ""VariantId"", ""SessionId"", ""UsageDate"", ""Quantity"", ""UnitPriceMinor"")
                 VALUES
-                    ({itemId}, {cartId}, {shopId}, {productId}, {variantId}, {sessionId}, {usageDate}, {quantity}, {unitPriceMinor})", ct);
+                    ({itemId}, {cartId}, {shopId}, {productId}, {variantId}, {sessionId}, {usageDate}, {quantity}, {unitPriceMinor})",
+                ct
+            );
         }
 
-        var cart = await _db.Carts
-            .AsNoTracking()
+        var cart = await _db
+            .Carts.AsNoTracking()
             .Include(c => c.Items)
             .SingleAsync(c => c.Id == cartId, ct);
 
         await transaction.CommitAsync(ct);
         return cart;
     }
+
     public async Task AddAsync(Cart cart, CancellationToken ct = default)
     {
         await _db.Carts.AddAsync(cart, ct);

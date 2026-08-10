@@ -19,7 +19,8 @@ public sealed class Passenger
         DateOnly birthDate,
         string? nationalCode,
         string? passportNumber,
-        string nationalityCode)
+        string nationalityCode
+    )
     {
         if (string.IsNullOrWhiteSpace(firstName))
         {

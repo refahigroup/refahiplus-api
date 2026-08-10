@@ -13,6 +13,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Cre
         _gateway = gateway;
     }
 
-    public async Task<CreateOrderResponse> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
-        => await _gateway.CreateAsync(request, cancellationToken);
+    public async Task<CreateOrderResponse> Handle(
+        CreateOrderCommand request,
+        CancellationToken cancellationToken
+    ) => await _gateway.CreateAsync(request, cancellationToken);
 }

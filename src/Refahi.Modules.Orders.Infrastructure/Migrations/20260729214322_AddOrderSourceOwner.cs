@@ -16,7 +16,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 schema: "orders",
                 table: "orders",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.Sql(
                 """
@@ -26,13 +27,15 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 WHERE lower(o.source_module) = 'store'
                   AND o.source_reference_id = s."Id"
                   AND o.source_owner_id IS NULL;
-                """);
+                """
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_orders_source_owner_created_at",
                 schema: "orders",
                 table: "orders",
-                columns: new[] { "source_module", "source_owner_id", "created_at" });
+                columns: new[] { "source_module", "source_owner_id", "created_at" }
+            );
         }
 
         /// <inheritdoc />
@@ -41,12 +44,10 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "ix_orders_source_owner_created_at",
                 schema: "orders",
-                table: "orders");
+                table: "orders"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "source_owner_id",
-                schema: "orders",
-                table: "orders");
+            migrationBuilder.DropColumn(name: "source_owner_id", schema: "orders", table: "orders");
         }
     }
 }

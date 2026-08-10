@@ -54,12 +54,14 @@ public sealed class OrderPaymentEligibilityTests
         Assert.Equal("مهلت پرداخت سفارش به پایان رسیده است", result.UnavailableReason);
     }
 
-    private static Order CreateOrder(DateTimeOffset? payableUntil = null) => Order.Create(
-        Guid.NewGuid(),
-        "Store",
-        Guid.NewGuid(),
-        Guid.NewGuid().ToString("N"),
-        "Cart",
-        [new OrderItemData("کالا", 100_000, 1, 0, Guid.NewGuid(), "store", null, null)],
-        payableUntil: payableUntil);
+    private static Order CreateOrder(DateTimeOffset? payableUntil = null) =>
+        Order.Create(
+            Guid.NewGuid(),
+            "Store",
+            Guid.NewGuid(),
+            Guid.NewGuid().ToString("N"),
+            "Cart",
+            [new OrderItemData("کالا", 100_000, 1, 0, Guid.NewGuid(), "store", null, null)],
+            payableUntil: payableUntil
+        );
 }

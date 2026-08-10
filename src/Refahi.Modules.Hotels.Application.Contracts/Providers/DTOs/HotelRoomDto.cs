@@ -13,7 +13,4 @@ public sealed class HotelRoomDto
     public int Adults { get; set; }
     public int Children { get; set; }
     public List<string> Facilities { get; set; }
-
-
 }
-

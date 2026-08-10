@@ -13,7 +13,8 @@ public interface IMediaAssetRepository
         int size,
         string? entityType,
         Guid? uploadedBy,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }

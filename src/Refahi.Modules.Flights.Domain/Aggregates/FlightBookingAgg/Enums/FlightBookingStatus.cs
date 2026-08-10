@@ -16,5 +16,5 @@ public enum FlightBookingStatus
     Cancelled = 11,
     CancellationFailed = 12,
     RefundPending = 13,
-    Refunded = 14
+    Refunded = 14,
 }

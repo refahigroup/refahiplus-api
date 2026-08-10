@@ -24,7 +24,8 @@ public sealed class GetProductCatalogV2QueryHandler
         ISyntheticOfferReadRepository repository,
         IStoreBusinessClock clock,
         IPathService pathService,
-        ILogger<GetProductCatalogV2QueryHandler> logger)
+        ILogger<GetProductCatalogV2QueryHandler> logger
+    )
     {
         _contextService = contextService;
         _repository = repository;
@@ -33,11 +34,20 @@ public sealed class GetProductCatalogV2QueryHandler
         _logger = logger;
     }
 
-    public async Task<ProductCatalogV2PagedResponse?> Handle(GetProductCatalogV2Query request, CancellationToken ct)
+    public async Task<ProductCatalogV2PagedResponse?> Handle(
+        GetProductCatalogV2Query request,
+        CancellationToken ct
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         var context = await _contextService.ResolveAsync(
-            request.ModuleId, request.CategoryId, request.ShopId, request.ShopSlug, request.SalesModel, ct);
+            request.ModuleId,
+            request.CategoryId,
+            request.ShopId,
+            request.ShopSlug,
+            request.SalesModel,
+            ct
+        );
         if (!context.IsShopValid)
             return null;
 
@@ -54,11 +64,11 @@ public sealed class GetProductCatalogV2QueryHandler
             PageNumber: request.PageNumber,
             PageSize: request.PageSize,
             CurrentTime: now.Time,
-            ManualAgreementProductIds: context.ManualAgreementProductIds);
+            ManualAgreementProductIds: context.ManualAgreementProductIds
+        );
 
         var (rows, total) = await _repository.GetProductCatalogAsync(spec, ct);
-        var items = rows
-            .Where(x => context.AgreementProducts.ContainsKey(x.AgreementProductId))
+        var items = rows.Where(x => context.AgreementProducts.ContainsKey(x.AgreementProductId))
             .Select(x =>
             {
                 var ap = context.AgreementProducts[x.AgreementProductId];
@@ -72,7 +82,9 @@ public sealed class GetProductCatalogV2QueryHandler
                     ((SalesModel)ap.SalesModel).ToString(),
                     ap.CategoryId,
                     ap.CategoryName,
-                    ap.PricingMode == 2 ? "InPerson" : x.MinEffectivePriceMinor == x.MaxEffectivePriceMinor ? "Exact" : "Range",
+                    ap.PricingMode == 2 ? "InPerson"
+                        : x.MinEffectivePriceMinor == x.MaxEffectivePriceMinor ? "Exact"
+                        : "Range",
                     x.MinEffectivePriceMinor,
                     x.MaxEffectivePriceMinor,
                     x.DefaultOriginalPriceMinor,
@@ -83,21 +95,29 @@ public sealed class GetProductCatalogV2QueryHandler
                     x.DefaultOfferKey,
                     x.DefaultShopId,
                     x.DefaultShopSlug,
-                    x.ProductCreatedAt);
+                    x.ProductCreatedAt
+                );
             })
             .ToList();
 
         stopwatch.Stop();
         _logger.LogInformation(
             "Store synthetic product catalog query completed. ModuleId={ModuleId} Page={Page} PageSize={PageSize} Total={Total} Returned={Returned} HasSearch={HasSearch} DurationMs={DurationMs}",
-            request.ModuleId, request.PageNumber, request.PageSize, total, items.Count,
-            !string.IsNullOrWhiteSpace(request.SearchQuery), stopwatch.ElapsedMilliseconds);
+            request.ModuleId,
+            request.PageNumber,
+            request.PageSize,
+            total,
+            items.Count,
+            !string.IsNullOrWhiteSpace(request.SearchQuery),
+            stopwatch.ElapsedMilliseconds
+        );
 
         return new ProductCatalogV2PagedResponse(
             items,
             request.PageNumber,
             request.PageSize,
             total,
-            (int)Math.Ceiling(total / (double)request.PageSize));
+            (int)Math.Ceiling(total / (double)request.PageSize)
+        );
     }
 }

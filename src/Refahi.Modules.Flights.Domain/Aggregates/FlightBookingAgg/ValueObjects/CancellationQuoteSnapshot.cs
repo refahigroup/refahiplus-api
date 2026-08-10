@@ -18,7 +18,8 @@ public sealed class CancellationQuoteSnapshot : ValueObject
         DateTime? expiresAtUtc = null,
         string? providerCancellationQuoteId = null,
         string? providerTraceId = null,
-        string? snapshotJson = null)
+        string? snapshotJson = null
+    )
     {
         penaltyAmount.EnsureSameCurrency(refundAmount);
 
@@ -31,8 +32,12 @@ public sealed class CancellationQuoteSnapshot : ValueObject
         RefundAmount = refundAmount;
         QuotedAtUtc = quotedAtUtc;
         ExpiresAtUtc = expiresAtUtc;
-        ProviderCancellationQuoteId = string.IsNullOrWhiteSpace(providerCancellationQuoteId) ? null : providerCancellationQuoteId.Trim();
-        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId) ? null : providerTraceId.Trim();
+        ProviderCancellationQuoteId = string.IsNullOrWhiteSpace(providerCancellationQuoteId)
+            ? null
+            : providerCancellationQuoteId.Trim();
+        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId)
+            ? null
+            : providerTraceId.Trim();
         SnapshotJson = string.IsNullOrWhiteSpace(snapshotJson) ? null : snapshotJson.Trim();
     }
 

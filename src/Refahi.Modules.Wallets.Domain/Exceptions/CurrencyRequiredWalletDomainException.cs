@@ -2,10 +2,8 @@
 
 namespace Refahi.Modules.Wallets.Domain.Exceptions;
 
-public class CurrencyRequiredWalletDomainException: WalletDomainException
+public class CurrencyRequiredWalletDomainException : WalletDomainException
 {
-    public CurrencyRequiredWalletDomainException(string message): base("CURRENCY_REQUIRED", message)
-    {
-        
-    }
+    public CurrencyRequiredWalletDomainException(string message)
+        : base("CURRENCY_REQUIRED", message) { }
 }

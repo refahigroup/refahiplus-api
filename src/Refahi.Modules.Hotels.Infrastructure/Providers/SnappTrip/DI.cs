@@ -11,7 +11,10 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip;
 
 internal static class DI
 {
-    public static IServiceCollection UseSnappTripProvider(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection UseSnappTripProvider(
+        this IServiceCollection services,
+        IConfiguration config
+    )
     {
         services.Configure<SnappTripOptions>(config.GetSection("Hotels:Providers:SnappTrip"));
 
@@ -21,15 +24,18 @@ internal static class DI
             options.ApiKey = options.ApiKey.ReplaceWithEnvironmentVariables();
         });
 
-        services.AddHttpClient<SnappTripApiClient>((sp, client) =>
-        {
-            var opts = sp.GetRequiredService<IOptions<SnappTripOptions>>();
+        services
+            .AddHttpClient<SnappTripApiClient>(
+                (sp, client) =>
+                {
+                    var opts = sp.GetRequiredService<IOptions<SnappTripOptions>>();
 
-            client.BaseAddress = new Uri(opts.Value.BaseUrl);
-            client.DefaultRequestHeaders.Add("api-key", opts.Value.ApiKey);
-            client.Timeout = TimeSpan.FromSeconds(opts.Value.TimeoutSeconds);
-        })
-        .AddPolicyHandler((sp, _) => CreateResiliencePolicy(sp));
+                    client.BaseAddress = new Uri(opts.Value.BaseUrl);
+                    client.DefaultRequestHeaders.Add("api-key", opts.Value.ApiKey);
+                    client.Timeout = TimeSpan.FromSeconds(opts.Value.TimeoutSeconds);
+                }
+            )
+            .AddPolicyHandler((sp, _) => CreateResiliencePolicy(sp));
 
         services.AddScoped<SnappTripHotelProvider>();
 
@@ -43,7 +49,8 @@ internal static class DI
         // Bulkhead: محدود کردن تعداد درخواست‌های همزمان
         var bulkhead = Policy.BulkheadAsync<HttpResponseMessage>(
             maxParallelization: opts.BulkheadMaxParallelization,
-            maxQueuingActions: opts.BulkheadMaxQueuedActions);
+            maxQueuingActions: opts.BulkheadMaxQueuedActions
+        );
 
         // Retry برای خطاهای موقت HTTP
         var retry = HttpPolicyExtensions
@@ -51,18 +58,21 @@ internal static class DI
             .WaitAndRetryAsync(
                 retryCount: opts.RetryCount,
                 sleepDurationProvider: attempt =>
-                    TimeSpan.FromMilliseconds(opts.RetryDelayMilliseconds));
+                    TimeSpan.FromMilliseconds(opts.RetryDelayMilliseconds)
+            );
 
         // CircuitBreaker: اگر پشت سر هم چند خطای موقت رخ داد، قطع موقت
         var circuitBreaker = HttpPolicyExtensions
             .HandleTransientHttpError()
             .CircuitBreakerAsync(
                 handledEventsAllowedBeforeBreaking: opts.CircuitBreakerFailuresBeforeTrip,
-                durationOfBreak: TimeSpan.FromSeconds(opts.CircuitBreakerDurationSeconds));
+                durationOfBreak: TimeSpan.FromSeconds(opts.CircuitBreakerDurationSeconds)
+            );
 
         // Timeout سطح Polly (اضافه بر HttpClient.Timeout)
         var timeout = Policy.TimeoutAsync<HttpResponseMessage>(
-            TimeSpan.FromSeconds(opts.TimeoutSeconds));
+            TimeSpan.FromSeconds(opts.TimeoutSeconds)
+        );
 
         // ترتیب مهم است: اول Bulkhead، بعد Retry، بعد CircuitBreaker، بعد Timeout
         return Policy.WrapAsync(bulkhead, retry, circuitBreaker, timeout);

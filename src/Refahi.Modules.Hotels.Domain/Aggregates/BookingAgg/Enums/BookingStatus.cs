@@ -10,5 +10,5 @@ public enum BookingStatus
     Confirmed = 5,
     ConfirmFailed = 6,
     ProviderFailed = 7,
-    Expired = 8
+    Expired = 8,
 }

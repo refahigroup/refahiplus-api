@@ -12,4 +12,8 @@ public sealed record AdminGetProductsQuery(
 
 public sealed record AdminProductsPagedResponse(
     IEnumerable<ProductSummaryDto> Data,
-    int PageNumber, int PageSize, int TotalCount, int TotalPages);
+    int PageNumber,
+    int PageSize,
+    int TotalCount,
+    int TotalPages
+);

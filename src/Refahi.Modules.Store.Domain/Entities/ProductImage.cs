@@ -10,8 +10,19 @@ public sealed class ProductImage
     public bool IsMain { get; private set; }
     public int SortOrder { get; private set; }
 
-    internal static ProductImage Create(Guid productId, string imageUrl, bool isMain, int sortOrder)
-        => new() { ProductId = productId, ImageUrl = imageUrl, IsMain = isMain, SortOrder = sortOrder };
+    internal static ProductImage Create(
+        Guid productId,
+        string imageUrl,
+        bool isMain,
+        int sortOrder
+    ) =>
+        new()
+        {
+            ProductId = productId,
+            ImageUrl = imageUrl,
+            IsMain = isMain,
+            SortOrder = sortOrder,
+        };
 
     internal void SetMain(bool isMain) => IsMain = isMain;
 

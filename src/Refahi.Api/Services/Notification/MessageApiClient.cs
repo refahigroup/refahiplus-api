@@ -23,10 +23,7 @@ public class MessageApiClient
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters =
-        {
-            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-        }
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     public MessageApiClient(HttpClient httpClient, ILogger<MessageApiClient> logger)
@@ -42,30 +39,34 @@ public class MessageApiClient
     /// <param name="cancellationToken">Cancellation token</param>
     /// <exception cref="MessageApiException">Thrown when API call fails</exception>
     public async Task SendMessageAsync(
-        SendMessageRequest request, 
-        CancellationToken cancellationToken = default)
+        SendMessageRequest request,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {
             var channels = GetConfiguredChannels(request);
             _logger.LogDebug(
                 "Sending message via {Channels}. MessageId={MessageId}, DueTime={DueTime}",
-                string.Join(", ", channels), 
-                request.Id, 
-                request.DueTime);
+                string.Join(", ", channels),
+                request.Id,
+                request.DueTime
+            );
 
             var response = await _httpClient.PostAsJsonAsync(
-                "/V1/Message", 
-                request, 
+                "/V1/Message",
+                request,
                 JsonOptions,
-                cancellationToken);
+                cancellationToken
+            );
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
                     "Message sent successfully via {Channels}. MessageId={MessageId}",
-                    string.Join(", ", channels), 
-                    request.Id ?? Guid.NewGuid());
+                    string.Join(", ", channels),
+                    request.Id ?? Guid.NewGuid()
+                );
 
                 return;
             }
@@ -88,22 +89,30 @@ public class MessageApiClient
     private static string[] GetConfiguredChannels(SendMessageRequest request)
     {
         var channels = new System.Collections.Generic.List<string>();
-        
-        if (request.Sms is not null) channels.Add("SMS");
-        if (request.Email is not null) channels.Add("Email");
-        if (request.Telegram is not null) channels.Add("Telegram");
-        if (request.PushNotification is not null) channels.Add("Push");
-        
+
+        if (request.Sms is not null)
+            channels.Add("SMS");
+        if (request.Email is not null)
+            channels.Add("Email");
+        if (request.Telegram is not null)
+            channels.Add("Telegram");
+        if (request.PushNotification is not null)
+            channels.Add("Push");
+
         return channels.ToArray();
     }
 
-    private async Task HandleErrorResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private async Task HandleErrorResponseAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
             var errorResponse = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(
-                JsonOptions, 
-                cancellationToken);
+                JsonOptions,
+                cancellationToken
+            );
 
             if (errorResponse is not null)
             {
@@ -116,7 +125,8 @@ public class MessageApiClient
                 _logger.LogError(
                     "Message API error. StatusCode={StatusCode}, Message={Message}",
                     response.StatusCode,
-                    errorMessage);
+                    errorMessage
+                );
 
                 throw new MessageApiException(errorMessage, response.StatusCode);
             }
@@ -128,7 +138,8 @@ public class MessageApiClient
             _logger.LogError(
                 "Message API returned error. StatusCode={StatusCode}, Content={Content}",
                 response.StatusCode,
-                content);
+                content
+            );
         }
     }
 }
@@ -140,16 +151,15 @@ public class MessageApiException : Exception
 {
     public HttpStatusCode? StatusCode { get; }
 
-    public MessageApiException(string message) : base(message)
-    {
-    }
+    public MessageApiException(string message)
+        : base(message) { }
 
-    public MessageApiException(string message, HttpStatusCode statusCode) : base(message)
+    public MessageApiException(string message, HttpStatusCode statusCode)
+        : base(message)
     {
         StatusCode = statusCode;
     }
 
-    public MessageApiException(string message, Exception innerException) : base(message, innerException)
-    {
-    }
+    public MessageApiException(string message, Exception innerException)
+        : base(message, innerException) { }
 }

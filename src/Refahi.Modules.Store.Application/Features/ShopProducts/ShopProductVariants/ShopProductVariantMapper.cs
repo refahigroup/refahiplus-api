@@ -8,7 +8,9 @@ internal static class ShopProductVariantMapper
 {
     public static ShopProductVariantDto ToDto(ShopProductVariant offering, Product? product)
     {
-        var productVariant = product?.Variants.FirstOrDefault(v => v.Id == offering.ProductVariantId);
+        var productVariant = product?.Variants.FirstOrDefault(v =>
+            v.Id == offering.ProductVariantId
+        );
 
         return new ShopProductVariantDto(
             offering.Id,
@@ -22,7 +24,8 @@ internal static class ShopProductVariantMapper
             offering.PriceMinor,
             offering.DiscountedPriceMinor,
             offering.IsActive,
-            offering.IsDeleted);
+            offering.IsDeleted
+        );
     }
 
     private static string BuildVariantName(ProductVariant? variant, Product? product)
@@ -30,11 +33,15 @@ internal static class ShopProductVariantMapper
         if (variant is null || product is null)
             return string.Empty;
 
-        var parts = variant.Combinations
-            .Select(c =>
+        var parts = variant
+            .Combinations.Select(c =>
             {
-                var attribute = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
-                var value = attribute?.Values.FirstOrDefault(v => v.Id == c.VariantAttributeValueId);
+                var attribute = product.VariantAttributes.FirstOrDefault(a =>
+                    a.Id == c.VariantAttributeId
+                );
+                var value = attribute?.Values.FirstOrDefault(v =>
+                    v.Id == c.VariantAttributeValueId
+                );
 
                 return attribute is null || value is null
                     ? null

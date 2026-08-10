@@ -1,5 +1,5 @@
-using MediatR;
 using System;
+using MediatR;
 
 namespace Refahi.Modules.PaymentGateway.Application.Contracts.Features.GetPaymentSession;
 

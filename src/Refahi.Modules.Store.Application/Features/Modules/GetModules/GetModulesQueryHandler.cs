@@ -19,14 +19,23 @@ public class GetModulesQueryHandler : IRequestHandler<GetModulesQuery, List<Modu
     }
 
     public async Task<List<ModuleDto>> Handle(
-        GetModulesQuery request, CancellationToken cancellationToken)
+        GetModulesQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var modules = await _moduleRepo.GetAllAsync(request.IncludeInactive, cancellationToken);
         return modules.Select(m => MapToDto(m, _pathService)).ToList();
     }
 
-    internal static ModuleDto MapToDto(StoreModule m, IPathService pathService) => new(
-        m.Id, m.Name, m.Slug, m.Description,
-        m.IconUrl is null ? null : pathService.MakeAbsoluteMediaUrl(m.IconUrl),
-        m.IsActive, m.SortOrder, m.CategoryId);
+    internal static ModuleDto MapToDto(StoreModule m, IPathService pathService) =>
+        new(
+            m.Id,
+            m.Name,
+            m.Slug,
+            m.Description,
+            m.IconUrl is null ? null : pathService.MakeAbsoluteMediaUrl(m.IconUrl),
+            m.IsActive,
+            m.SortOrder,
+            m.CategoryId
+        );
 }

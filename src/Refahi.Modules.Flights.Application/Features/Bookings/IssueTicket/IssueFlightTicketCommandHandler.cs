@@ -25,7 +25,8 @@ public sealed class IssueFlightTicketCommandHandler
     public IssueFlightTicketCommandHandler(
         IFlightBookingRepository bookingRepository,
         IFlightProviderFactory providerFactory,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _bookingRepository = bookingRepository;
         _providerFactory = providerFactory;
@@ -34,10 +35,14 @@ public sealed class IssueFlightTicketCommandHandler
 
     public async Task<IssueFlightTicketResponse> Handle(
         IssueFlightTicketCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var booking = await _bookingRepository.GetAsync(new FlightBookingId(request.BookingId), cancellationToken)
-            ?? throw new InvalidOperationException("رزرو پرواز یافت نشد.");
+        var booking =
+            await _bookingRepository.GetAsync(
+                new FlightBookingId(request.BookingId),
+                cancellationToken
+            ) ?? throw new InvalidOperationException("رزرو پرواز یافت نشد.");
 
         EnsureOwner(booking, request.UserId, request.CallerRole);
 
@@ -46,17 +51,22 @@ public sealed class IssueFlightTicketCommandHandler
             return ToResponse(booking);
         }
 
-        if (booking.ProviderBooking is null || string.IsNullOrWhiteSpace(booking.ProviderBooking.ProviderBookingId))
-            throw new InvalidOperationException("شناسه رزرو تامین‌کننده برای صدور بلیط موجود نیست.");
+        if (
+            booking.ProviderBooking is null
+            || string.IsNullOrWhiteSpace(booking.ProviderBooking.ProviderBookingId)
+        )
+            throw new InvalidOperationException(
+                "شناسه رزرو تامین‌کننده برای صدور بلیط موجود نیست."
+            );
 
         if (!booking.OrderId.HasValue)
             throw new InvalidOperationException("برای این رزرو سفارش ثبت نشده است.");
 
-        var order = await _mediator.Send(new GetOrderByIdQuery(
-            booking.OrderId.Value,
-            request.UserId,
-            request.CallerRole), cancellationToken)
-            ?? throw new InvalidOperationException("سفارش رزرو پرواز یافت نشد.");
+        var order =
+            await _mediator.Send(
+                new GetOrderByIdQuery(booking.OrderId.Value, request.UserId, request.CallerRole),
+                cancellationToken
+            ) ?? throw new InvalidOperationException("سفارش رزرو پرواز یافت نشد.");
 
         ValidatePaidOrder(booking, order);
 
@@ -65,7 +75,10 @@ public sealed class IssueFlightTicketCommandHandler
         var provider = ResolveProvider(booking.Provider.ProviderName);
         var bookId = booking.ProviderBooking.ProviderBookingId;
 
-        var preIssueInquiry = await provider.InquiryAsync(new FlightInquiryRequest(bookId), cancellationToken);
+        var preIssueInquiry = await provider.InquiryAsync(
+            new FlightInquiryRequest(bookId),
+            cancellationToken
+        );
         if (TryMarkIssuedFromInquiry(booking, preIssueInquiry, DateTime.UtcNow))
         {
             await _bookingRepository.SaveChangesAsync(cancellationToken);
@@ -77,8 +90,14 @@ public sealed class IssueFlightTicketCommandHandler
 
         await _bookingRepository.SaveChangesAsync(cancellationToken);
 
-        var issueResponse = await provider.IssueAsync(new FlightIssueRequest(bookId), cancellationToken);
-        var postIssueInquiry = await provider.InquiryAsync(new FlightInquiryRequest(bookId), cancellationToken);
+        var issueResponse = await provider.IssueAsync(
+            new FlightIssueRequest(bookId),
+            cancellationToken
+        );
+        var postIssueInquiry = await provider.InquiryAsync(
+            new FlightInquiryRequest(bookId),
+            cancellationToken
+        );
 
         if (TryMarkIssuedFromInquiry(booking, postIssueInquiry, DateTime.UtcNow))
         {
@@ -88,7 +107,8 @@ public sealed class IssueFlightTicketCommandHandler
 
         booking.MarkIssueFailed(
             $"صدور بلیط توسط تامین‌کننده تایید نشد. وضعیت: {issueResponse.Status ?? postIssueInquiry.Status ?? "نامشخص"}",
-            DateTime.UtcNow);
+            DateTime.UtcNow
+        );
 
         await _bookingRepository.SaveChangesAsync(cancellationToken);
 
@@ -97,7 +117,11 @@ public sealed class IssueFlightTicketCommandHandler
 
     private IFlightProvider ResolveProvider(string providerName)
     {
-        return Enum.TryParse<FlightProviderType>(providerName, ignoreCase: true, out var providerType)
+        return Enum.TryParse<FlightProviderType>(
+            providerName,
+            ignoreCase: true,
+            out var providerType
+        )
             ? _providerFactory.GetProvider(providerType)
             : _providerFactory.GetDefaultProvider();
     }
@@ -105,7 +129,8 @@ public sealed class IssueFlightTicketCommandHandler
     private static bool TryMarkIssuedFromInquiry(
         FlightBooking booking,
         FlightInquiryResponse inquiry,
-        DateTime nowUtc)
+        DateTime nowUtc
+    )
     {
         if (inquiry.Tickets.Count == 0)
             return false;
@@ -114,40 +139,48 @@ public sealed class IssueFlightTicketCommandHandler
         if (inquiry.Tickets.Count != passengers.Count)
             return false;
 
-        if (booking.Status is FlightBookingStatus.PaymentPending or FlightBookingStatus.OrderCreated)
+        if (
+            booking.Status is FlightBookingStatus.PaymentPending or FlightBookingStatus.OrderCreated
+        )
             MarkBookingPaidIfNeeded(booking);
 
         if (booking.Status != FlightBookingStatus.Issuing)
             booking.StartIssuing(nowUtc);
 
-        var tickets = inquiry.Tickets
-            .Select((ticket, index) =>
-            {
-                var passenger = passengers[index];
-                var ticketNumber = ticket.Serial ?? ticket.DocumentId ?? ticket.Pnr;
-                if (string.IsNullOrWhiteSpace(ticketNumber))
-                    throw new InvalidOperationException("شماره بلیط تامین‌کننده معتبر نیست.");
+        var tickets = inquiry
+            .Tickets.Select(
+                (ticket, index) =>
+                {
+                    var passenger = passengers[index];
+                    var ticketNumber = ticket.Serial ?? ticket.DocumentId ?? ticket.Pnr;
+                    if (string.IsNullOrWhiteSpace(ticketNumber))
+                        throw new InvalidOperationException("شماره بلیط تامین‌کننده معتبر نیست.");
 
-                return new IssuedTicket(
-                    passenger.Id,
-                    ticketNumber,
-                    ticket.PassengerName ?? passenger.DisplayName,
-                    nowUtc,
-                    ticket.Serial,
-                    inquiry.ProviderTraceId,
-                    JsonSerializer.Serialize(new
-                    {
+                    return new IssuedTicket(
+                        passenger.Id,
+                        ticketNumber,
+                        ticket.PassengerName ?? passenger.DisplayName,
+                        nowUtc,
                         ticket.Serial,
-                        ticket.Pnr,
-                        ticket.PassengerName,
-                        ticket.PassengerType,
-                        ticket.Direction,
-                        ticket.DocumentType,
-                        ticket.DocumentId,
                         inquiry.ProviderTraceId,
-                        inquiry.RawPayloadSnapshot
-                    }, JsonOptions));
-            })
+                        JsonSerializer.Serialize(
+                            new
+                            {
+                                ticket.Serial,
+                                ticket.Pnr,
+                                ticket.PassengerName,
+                                ticket.PassengerType,
+                                ticket.Direction,
+                                ticket.DocumentType,
+                                ticket.DocumentId,
+                                inquiry.ProviderTraceId,
+                                inquiry.RawPayloadSnapshot,
+                            },
+                            JsonOptions
+                        )
+                    );
+                }
+            )
             .ToList();
 
         booking.MarkIssued(tickets, nowUtc);
@@ -165,8 +198,10 @@ public sealed class IssueFlightTicketCommandHandler
 
     private static void ValidatePaidOrder(FlightBooking booking, OrderDto order)
     {
-        if (!string.Equals(order.SourceModule, "Flight", StringComparison.OrdinalIgnoreCase)
-            || order.SourceReferenceId != booking.Id.Value)
+        if (
+            !string.Equals(order.SourceModule, "Flight", StringComparison.OrdinalIgnoreCase)
+            || order.SourceReferenceId != booking.Id.Value
+        )
         {
             throw new InvalidOperationException("سفارش با رزرو پرواز همخوانی ندارد.");
         }
@@ -187,12 +222,16 @@ public sealed class IssueFlightTicketCommandHandler
             booking.Id.Value,
             booking.OrderId!.Value,
             booking.Status.ToString(),
-            FlightBookingDtoMapper.ToTicketDtos(booking));
+            FlightBookingDtoMapper.ToTicketDtos(booking)
+        );
     }
 
     private static void EnsureOwner(FlightBooking booking, Guid userId, string callerRole)
     {
-        if (!string.Equals(callerRole, "Admin", StringComparison.OrdinalIgnoreCase) && booking.UserId != userId)
+        if (
+            !string.Equals(callerRole, "Admin", StringComparison.OrdinalIgnoreCase)
+            && booking.UserId != userId
+        )
             throw new UnauthorizedAccessException("دسترسی به این رزرو مجاز نیست.");
     }
 }

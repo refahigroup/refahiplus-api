@@ -9,7 +9,8 @@ public sealed record AgreementCategoryTermDto(
     decimal CommissionPercent,
     bool IsDeleted,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt
+);
 
 public sealed record ResolvedAgreementCategoryTermDto(
     Guid TermId,
@@ -20,4 +21,5 @@ public sealed record ResolvedAgreementCategoryTermDto(
     short AllowedSalesChannels,
     decimal CommissionPercent,
     DateTimeOffset ValidFromUtc,
-    DateTimeOffset ValidToUtc);
+    DateTimeOffset ValidToUtc
+);

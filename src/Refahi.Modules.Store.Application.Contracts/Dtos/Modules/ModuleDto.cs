@@ -8,4 +8,5 @@ public sealed record ModuleDto(
     string? IconUrl,
     bool IsActive,
     int SortOrder,
-    int? CategoryId);
+    int? CategoryId
+);

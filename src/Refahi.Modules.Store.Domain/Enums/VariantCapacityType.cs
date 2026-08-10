@@ -18,5 +18,5 @@ public enum VariantCapacityType : short
     /// <summary>
     /// ظرفیت جداگانه برای هر روز مجاز
     /// </summary>
-    PerEligibleDay = 2
+    PerEligibleDay = 2,
 }

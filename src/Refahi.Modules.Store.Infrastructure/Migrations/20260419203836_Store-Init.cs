@@ -12,30 +12,52 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "store");
+            migrationBuilder.EnsureSchema(name: "store");
 
             migrationBuilder.CreateTable(
                 name: "banners",
                 schema: "store",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
                     ModuleId = table.Column<int>(type: "integer", nullable: false),
-                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    ImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    LinkUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Title = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    ImageUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: false
+                    ),
+                    LinkUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     BannerType = table.Column<short>(type: "smallint", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    StartDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    EndDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    StartDate = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
+                    EndDate = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_banners", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "carts",
@@ -45,29 +67,56 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     ModuleId = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_carts", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "categories",
                 schema: "store",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
                     ModuleId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    CategoryCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    ImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Name = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    Slug = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    CategoryCode = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
+                    ImageUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     ParentId = table.Column<int>(type: "integer", nullable: true),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -78,46 +127,80 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "categories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+                        onDelete: ReferentialAction.Restrict
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "daily_deals",
                 schema: "store",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
                     ModuleId = table.Column<int>(type: "integer", nullable: false),
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
                     DiscountPercent = table.Column<int>(type: "integer", nullable: false),
-                    StartTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    EndTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    StartTime = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    EndTime = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_daily_deals", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "modules",
                 schema: "store",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    IconUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
+                    Name = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    Slug = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
+                    Description = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
+                    IconUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_modules", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "products",
@@ -126,32 +209,69 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ShopId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
-                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
-                    Description = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
+                    Title = table.Column<string>(
+                        type: "character varying(300)",
+                        maxLength: 300,
+                        nullable: false
+                    ),
+                    Slug = table.Column<string>(
+                        type: "character varying(300)",
+                        maxLength: 300,
+                        nullable: false
+                    ),
+                    Description = table.Column<string>(
+                        type: "character varying(5000)",
+                        maxLength: 5000,
+                        nullable: true
+                    ),
                     PriceMinor = table.Column<long>(type: "bigint", nullable: false),
                     DiscountedPriceMinor = table.Column<long>(type: "bigint", nullable: true),
                     DiscountPercent = table.Column<int>(type: "integer", nullable: true),
-                    CommissionPercent = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false, defaultValue: 0m),
+                    CommissionPercent = table.Column<decimal>(
+                        type: "numeric(5,2)",
+                        precision: 5,
+                        scale: 2,
+                        nullable: false,
+                        defaultValue: 0m
+                    ),
                     ProductType = table.Column<short>(type: "smallint", nullable: false),
                     DeliveryType = table.Column<short>(type: "smallint", nullable: false),
                     SalesModel = table.Column<short>(type: "smallint", nullable: false),
                     StockCount = table.Column<int>(type: "integer", nullable: false),
                     IsAvailable = table.Column<bool>(type: "boolean", nullable: false),
                     CityId = table.Column<int>(type: "integer", nullable: true),
-                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Area = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    City = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: true
+                    ),
+                    Area = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: true
+                    ),
                     CategoryId = table.Column<int>(type: "integer", nullable: false),
-                    CategoryCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CategoryCode = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_products", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "reviews",
@@ -162,14 +282,22 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Rating = table.Column<int>(type: "integer", nullable: false),
-                    Comment = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Comment = table.Column<string>(
+                        type: "character varying(1000)",
+                        maxLength: 1000,
+                        nullable: true
+                    ),
                     IsApproved = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_reviews", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "shops",
@@ -177,33 +305,88 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    LogoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    CoverImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Name = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    Slug = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    LogoUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
+                    CoverImageUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     ShopType = table.Column<short>(type: "smallint", nullable: false),
                     Status = table.Column<short>(type: "smallint", nullable: false),
                     ProviderId = table.Column<Guid>(type: "uuid", nullable: false),
                     ProvinceId = table.Column<int>(type: "integer", nullable: true),
                     CityId = table.Column<int>(type: "integer", nullable: true),
-                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Address = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     Latitude = table.Column<double>(type: "double precision", nullable: true),
                     Longitude = table.Column<double>(type: "double precision", nullable: true),
-                    ManagerName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    ManagerPhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    RepresentativeName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    RepresentativePhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    ContactPhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ManagerName = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: true
+                    ),
+                    ManagerPhone = table.Column<string>(
+                        type: "character varying(20)",
+                        maxLength: 20,
+                        nullable: true
+                    ),
+                    RepresentativeName = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: true
+                    ),
+                    RepresentativePhone = table.Column<string>(
+                        type: "character varying(20)",
+                        maxLength: 20,
+                        nullable: true
+                    ),
+                    ContactPhone = table.Column<string>(
+                        type: "character varying(20)",
+                        maxLength: 20,
+                        nullable: true
+                    ),
+                    Description = table.Column<string>(
+                        type: "character varying(2000)",
+                        maxLength: 2000,
+                        nullable: true
+                    ),
                     IsPopular = table.Column<bool>(type: "boolean", nullable: false),
-                    DeliveredOrdersCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    DeliveredOrdersCount = table.Column<int>(
+                        type: "integer",
+                        nullable: false,
+                        defaultValue: 0
+                    ),
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_shops", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "cart_items",
@@ -216,7 +399,7 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     VariantId = table.Column<Guid>(type: "uuid", nullable: true),
                     SessionId = table.Column<Guid>(type: "uuid", nullable: true),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
-                    UnitPriceMinor = table.Column<long>(type: "bigint", nullable: false)
+                    UnitPriceMinor = table.Column<long>(type: "bigint", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -227,20 +410,30 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "carts",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "product_images",
                 schema: "store",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ImageUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: false
+                    ),
                     IsMain = table.Column<bool>(type: "boolean", nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -251,8 +444,10 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "product_sessions",
@@ -264,12 +459,16 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     Date = table.Column<DateOnly>(type: "date", nullable: false),
                     StartTime = table.Column<TimeOnly>(type: "time", nullable: false),
                     EndTime = table.Column<TimeOnly>(type: "time", nullable: false),
-                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Title = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: true
+                    ),
                     Capacity = table.Column<int>(type: "integer", nullable: false),
                     SoldCount = table.Column<int>(type: "integer", nullable: false),
                     PriceAdjustment = table.Column<long>(type: "bigint", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    IsCancelled = table.Column<bool>(type: "boolean", nullable: false)
+                    IsCancelled = table.Column<bool>(type: "boolean", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -280,20 +479,34 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "product_specifications",
                 schema: "store",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Key = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Value = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                    Key = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    Value = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: false
+                    ),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -304,8 +517,10 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "product_variants",
@@ -314,12 +529,20 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
-                    SKU = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    ImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SKU = table.Column<string>(
+                        type: "character varying(50)",
+                        maxLength: 50,
+                        nullable: true
+                    ),
+                    ImageUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     StockCount = table.Column<int>(type: "integer", nullable: false),
                     PriceMinor = table.Column<long>(type: "bigint", nullable: false),
                     DiscountedPriceMinor = table.Column<long>(type: "bigint", nullable: true),
-                    IsAvailable = table.Column<bool>(type: "boolean", nullable: false)
+                    IsAvailable = table.Column<bool>(type: "boolean", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -330,8 +553,10 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "variant_attributes",
@@ -340,8 +565,12 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                    Name = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -352,8 +581,10 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "product_variant_combinations",
@@ -363,7 +594,7 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ProductVariantId = table.Column<Guid>(type: "uuid", nullable: false),
                     VariantAttributeId = table.Column<Guid>(type: "uuid", nullable: false),
-                    VariantAttributeValueId = table.Column<Guid>(type: "uuid", nullable: false)
+                    VariantAttributeValueId = table.Column<Guid>(type: "uuid", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -374,8 +605,10 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "product_variants",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "variant_attribute_values",
@@ -384,8 +617,12 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     VariantAttributeId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Value = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                    Value = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -396,287 +633,291 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "variant_attributes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_banners_IsActive",
                 schema: "store",
                 table: "banners",
-                column: "IsActive");
+                column: "IsActive"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_banners_ModuleId",
                 schema: "store",
                 table: "banners",
-                column: "ModuleId");
+                column: "ModuleId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_cart_items_CartId",
                 schema: "store",
                 table: "cart_items",
-                column: "CartId");
+                column: "CartId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_cart_items_ProductId",
                 schema: "store",
                 table: "cart_items",
-                column: "ProductId");
+                column: "ProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_carts_UserId_ModuleId",
                 schema: "store",
                 table: "carts",
                 columns: new[] { "UserId", "ModuleId" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_CategoryCode",
                 schema: "store",
                 table: "categories",
                 column: "CategoryCode",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_ModuleId",
                 schema: "store",
                 table: "categories",
-                column: "ModuleId");
+                column: "ModuleId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_ParentId",
                 schema: "store",
                 table: "categories",
-                column: "ParentId");
+                column: "ParentId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_Slug",
                 schema: "store",
                 table: "categories",
                 column: "Slug",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_daily_deals_IsActive",
                 schema: "store",
                 table: "daily_deals",
-                column: "IsActive");
+                column: "IsActive"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_daily_deals_ModuleId",
                 schema: "store",
                 table: "daily_deals",
-                column: "ModuleId");
+                column: "ModuleId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_daily_deals_ProductId",
                 schema: "store",
                 table: "daily_deals",
-                column: "ProductId");
+                column: "ProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_modules_IsActive",
                 schema: "store",
                 table: "modules",
-                column: "IsActive");
+                column: "IsActive"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_modules_Slug",
                 schema: "store",
                 table: "modules",
                 column: "Slug",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_images_ProductId",
                 schema: "store",
                 table: "product_images",
-                column: "ProductId");
+                column: "ProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_sessions_ProductId",
                 schema: "store",
                 table: "product_sessions",
-                column: "ProductId");
+                column: "ProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_sessions_ProductId_Date",
                 schema: "store",
                 table: "product_sessions",
-                columns: new[] { "ProductId", "Date" });
+                columns: new[] { "ProductId", "Date" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_specifications_ProductId",
                 schema: "store",
                 table: "product_specifications",
-                column: "ProductId");
+                column: "ProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_combinations_ProductVariantId",
                 schema: "store",
                 table: "product_variant_combinations",
-                column: "ProductVariantId");
+                column: "ProductVariantId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_combinations_VariantAttributeValueId",
                 schema: "store",
                 table: "product_variant_combinations",
-                column: "VariantAttributeValueId");
+                column: "VariantAttributeValueId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variants_ProductId",
                 schema: "store",
                 table: "product_variants",
-                column: "ProductId");
+                column: "ProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_CategoryId",
                 schema: "store",
                 table: "products",
-                column: "CategoryId");
+                column: "CategoryId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_CityId",
                 schema: "store",
                 table: "products",
-                column: "CityId");
+                column: "CityId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_IsDeleted",
                 schema: "store",
                 table: "products",
-                column: "IsDeleted");
+                column: "IsDeleted"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_ShopId",
                 schema: "store",
                 table: "products",
-                column: "ShopId");
+                column: "ShopId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_Slug",
                 schema: "store",
                 table: "products",
                 column: "Slug",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_reviews_ProductId",
                 schema: "store",
                 table: "reviews",
-                column: "ProductId");
+                column: "ProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_reviews_ProductId_UserId",
                 schema: "store",
                 table: "reviews",
                 columns: new[] { "ProductId", "UserId" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shops_CityId",
                 schema: "store",
                 table: "shops",
-                column: "CityId");
+                column: "CityId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shops_ProviderId",
                 schema: "store",
                 table: "shops",
-                column: "ProviderId");
+                column: "ProviderId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shops_ProvinceId",
                 schema: "store",
                 table: "shops",
-                column: "ProvinceId");
+                column: "ProvinceId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shops_Slug",
                 schema: "store",
                 table: "shops",
                 column: "Slug",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_variant_attribute_values_VariantAttributeId",
                 schema: "store",
                 table: "variant_attribute_values",
-                column: "VariantAttributeId");
+                column: "VariantAttributeId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_variant_attributes_ProductId",
                 schema: "store",
                 table: "variant_attributes",
-                column: "ProductId");
+                column: "ProductId"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "banners",
-                schema: "store");
+            migrationBuilder.DropTable(name: "banners", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "cart_items",
-                schema: "store");
+            migrationBuilder.DropTable(name: "cart_items", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "categories",
-                schema: "store");
+            migrationBuilder.DropTable(name: "categories", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "daily_deals",
-                schema: "store");
+            migrationBuilder.DropTable(name: "daily_deals", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "modules",
-                schema: "store");
+            migrationBuilder.DropTable(name: "modules", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "product_images",
-                schema: "store");
+            migrationBuilder.DropTable(name: "product_images", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "product_sessions",
-                schema: "store");
+            migrationBuilder.DropTable(name: "product_sessions", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "product_specifications",
-                schema: "store");
+            migrationBuilder.DropTable(name: "product_specifications", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "product_variant_combinations",
-                schema: "store");
+            migrationBuilder.DropTable(name: "product_variant_combinations", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "reviews",
-                schema: "store");
+            migrationBuilder.DropTable(name: "reviews", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "shops",
-                schema: "store");
+            migrationBuilder.DropTable(name: "shops", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "variant_attribute_values",
-                schema: "store");
+            migrationBuilder.DropTable(name: "variant_attribute_values", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "carts",
-                schema: "store");
+            migrationBuilder.DropTable(name: "carts", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "product_variants",
-                schema: "store");
+            migrationBuilder.DropTable(name: "product_variants", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "variant_attributes",
-                schema: "store");
+            migrationBuilder.DropTable(name: "variant_attributes", schema: "store");
 
-            migrationBuilder.DropTable(
-                name: "products",
-                schema: "store");
+            migrationBuilder.DropTable(name: "products", schema: "store");
         }
     }
 }

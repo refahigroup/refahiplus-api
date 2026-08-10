@@ -17,35 +17,53 @@ public class GetAllOrdersQueryHandler : IRequestHandler<GetAllOrdersQuery, Pagin
         _sender = sender;
     }
 
-    public async Task<PaginatedOrdersResponse> Handle(GetAllOrdersQuery request, CancellationToken cancellationToken)
+    public async Task<PaginatedOrdersResponse> Handle(
+        GetAllOrdersQuery request,
+        CancellationToken cancellationToken
+    )
     {
         IReadOnlyList<OrderUserSummaryDto> matchedUsers = [];
         IReadOnlyCollection<Guid>? allowedUserIds = null;
 
         if (!string.IsNullOrWhiteSpace(request.MobileNumber))
         {
-            if (!MobileNumberSearchNormalizer.TryNormalize(request.MobileNumber, out var normalizedMobileNumber))
-                throw new ArgumentException("شماره موبایل فقط می‌تواند شامل رقم، فاصله یا خط تیره باشد");
+            if (
+                !MobileNumberSearchNormalizer.TryNormalize(
+                    request.MobileNumber,
+                    out var normalizedMobileNumber
+                )
+            )
+                throw new ArgumentException(
+                    "شماره موبایل فقط می‌تواند شامل رقم، فاصله یا خط تیره باشد"
+                );
 
             if (normalizedMobileNumber is null || normalizedMobileNumber.Length < 4)
                 throw new ArgumentException("برای جستجوی شماره موبایل حداقل ۴ رقم وارد کنید");
 
             matchedUsers = await _sender.Send(
                 new GetOrderUserSummariesQuery(MobileNumber: normalizedMobileNumber),
-                cancellationToken);
+                cancellationToken
+            );
             allowedUserIds = matchedUsers.Select(user => user.UserId).ToArray();
         }
 
         var orders = await _orderRepository.GetAllAsync(
-            request.PageNumber, request.PageSize,
-            request.Status, request.UserId, request.SourceModule,
+            request.PageNumber,
+            request.PageSize,
+            request.Status,
+            request.UserId,
+            request.SourceModule,
             allowedUserIds,
-            cancellationToken);
+            cancellationToken
+        );
 
         var total = await _orderRepository.CountAllAsync(
-            request.Status, request.UserId, request.SourceModule,
+            request.Status,
+            request.UserId,
+            request.SourceModule,
             allowedUserIds,
-            cancellationToken);
+            cancellationToken
+        );
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
 
@@ -54,27 +72,38 @@ public class GetAllOrdersQueryHandler : IRequestHandler<GetAllOrdersQuery, Pagin
         {
             pageUsers = await _sender.Send(
                 new GetOrderUserSummariesQuery(
-                    UserIds: orders.Select(order => order.UserId).Distinct().ToArray()),
-                cancellationToken);
+                    UserIds: orders.Select(order => order.UserId).Distinct().ToArray()
+                ),
+                cancellationToken
+            );
         }
 
         var usersById = pageUsers.ToDictionary(user => user.UserId);
-        var summaries = orders.Select(o =>
-        {
-            usersById.TryGetValue(o.UserId, out var user);
-            return new OrderSummaryDto(
-            Id: o.Id,
-            OrderNumber: o.OrderNumber,
-            FinalAmountMinor: o.FinalAmountMinor,
-            Status: o.Status.ToString(),
-            SourceModule: o.SourceModule,
-            ItemCount: o.Items.Count,
-            CreatedAt: o.CreatedAt,
-            FirstName: user?.FirstName,
-            LastName: user?.LastName,
-            MobileNumber: user?.MobileNumber);
-        }).ToList();
+        var summaries = orders
+            .Select(o =>
+            {
+                usersById.TryGetValue(o.UserId, out var user);
+                return new OrderSummaryDto(
+                    Id: o.Id,
+                    OrderNumber: o.OrderNumber,
+                    FinalAmountMinor: o.FinalAmountMinor,
+                    Status: o.Status.ToString(),
+                    SourceModule: o.SourceModule,
+                    ItemCount: o.Items.Count,
+                    CreatedAt: o.CreatedAt,
+                    FirstName: user?.FirstName,
+                    LastName: user?.LastName,
+                    MobileNumber: user?.MobileNumber
+                );
+            })
+            .ToList();
 
-        return new PaginatedOrdersResponse(summaries, request.PageNumber, request.PageSize, total, totalPages);
+        return new PaginatedOrdersResponse(
+            summaries,
+            request.PageNumber,
+            request.PageSize,
+            total,
+            totalPages
+        );
     }
 }

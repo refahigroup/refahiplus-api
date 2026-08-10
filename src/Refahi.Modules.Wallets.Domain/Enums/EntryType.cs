@@ -8,5 +8,5 @@ public enum EntryType : short
     Credit = 1,
     Debit = 2,
     Hold = 3,
-    ReleaseHold = 4
+    ReleaseHold = 4,
 }

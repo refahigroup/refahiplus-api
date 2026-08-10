@@ -12,19 +12,21 @@ public class GetShopCategoriesEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/shops/{slug}/categories", async (
-            string slug,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new GetShopCategoriesQuery(slug), ct);
-            return Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Store.GetShopCategories")
-        .WithTags("Store.Shops")
-        .Produces<ApiResponse<List<ShopCategoryDto>>>(StatusCodes.Status200OK);
+        routes
+            .MapGet(
+                "/shops/{slug}/categories",
+                async (string slug, IMediator mediator, CancellationToken ct) =>
+                {
+                    var result = await mediator.Send(new GetShopCategoriesQuery(slug), ct);
+                    return Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Store.GetShopCategories")
+            .WithTags("Store.Shops")
+            .Produces<ApiResponse<List<ShopCategoryDto>>>(StatusCodes.Status200OK);
         // Public endpoint
     }
 }

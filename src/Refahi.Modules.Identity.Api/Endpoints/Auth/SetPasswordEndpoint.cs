@@ -15,35 +15,31 @@ public class SetPasswordEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/setpassword", async (
-                [FromBody] SetPasswordRequest request,
-                IMediator mediator) =>
-        {
-            if (request == null)
-                return Results.BadRequest("Request body is required");
+        routes
+            .MapPost(
+                "/setpassword",
+                async ([FromBody] SetPasswordRequest request, IMediator mediator) =>
+                {
+                    if (request == null)
+                        return Results.BadRequest("Request body is required");
 
-            var command = new SetPasswordCommand(
-                request.MobileOrEmail,
-                request.Password);
+                    var command = new SetPasswordCommand(request.MobileOrEmail, request.Password);
 
-            var result = await mediator.Send(command);
+                    var result = await mediator.Send(command);
 
-            if (!result.Success)
-                return Results.BadRequest(new { error = result.ErrorMessage });
+                    if (!result.Success)
+                        return Results.BadRequest(new { error = result.ErrorMessage });
 
-            return Results.Ok(new
-            {
-                success = true,
-                message = "Password set successfully"
-            });
-        })
-        .WithName("Identity.SetPassword")
-        .WithTags("Identity")
-        .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest);
+                    return Results.Ok(
+                        new { success = true, message = "Password set successfully" }
+                    );
+                }
+            )
+            .WithName("Identity.SetPassword")
+            .WithTags("Identity")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest);
     }
 }
 
-public record SetPasswordRequest(
-    string MobileOrEmail,
-    string Password);
+public record SetPasswordRequest(string MobileOrEmail, string Password);

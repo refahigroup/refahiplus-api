@@ -13,14 +13,16 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_cities_Slug",
                 schema: "references",
-                table: "cities");
+                table: "cities"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_cities_ProvinceId_Slug",
                 schema: "references",
                 table: "cities",
                 columns: new[] { "ProvinceId", "Slug" },
-                unique: true);
+                unique: true
+            );
         }
 
         /// <inheritdoc />
@@ -29,14 +31,16 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_cities_ProvinceId_Slug",
                 schema: "references",
-                table: "cities");
+                table: "cities"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_cities_Slug",
                 schema: "references",
                 table: "cities",
                 column: "Slug",
-                unique: true);
+                unique: true
+            );
         }
     }
 }

@@ -30,8 +30,9 @@ public sealed class StorePricingRuleTests
     {
         var product = Product.Create(Guid.NewGuid(), "محصول", $"product-{Guid.NewGuid():N}");
 
-        var exception = Assert.Throws<StoreDomainException>(
-            () => product.AddVariant([], 1, 10_000, discountedPriceMinor));
+        var exception = Assert.Throws<StoreDomainException>(() =>
+            product.AddVariant([], 1, 10_000, discountedPriceMinor)
+        );
 
         Assert.Equal("INVALID_DISCOUNTED_PRICE", exception.ErrorCode);
     }
@@ -39,17 +40,14 @@ public sealed class StorePricingRuleTests
     [Fact]
     public void Shop_product_and_variant_offering_accept_equal_discounted_price()
     {
-        var shopProduct = ShopProduct.Create(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            10_000,
-            10_000);
+        var shopProduct = ShopProduct.Create(Guid.NewGuid(), Guid.NewGuid(), 10_000, 10_000);
 
         var offering = shopProduct.AddVariantOffering(
             Guid.NewGuid(),
             10_000,
             10_000,
-            isActive: true);
+            isActive: true
+        );
 
         Assert.Equal(10_000, shopProduct.DiscountedPrice);
         Assert.Equal(10_000, offering.DiscountedPriceMinor);
@@ -61,7 +59,8 @@ public sealed class StorePricingRuleTests
         var shopProduct = ShopProduct.CreateWithManualPricing(
             Guid.NewGuid(),
             Guid.NewGuid(),
-            "فروش حضوری");
+            "فروش حضوری"
+        );
 
         Assert.Equal(0, shopProduct.Price);
         Assert.Equal(0, shopProduct.DiscountedPrice);
@@ -71,8 +70,9 @@ public sealed class StorePricingRuleTests
     [Fact]
     public void Fixed_price_shop_product_still_rejects_zero_price()
     {
-        var exception = Assert.Throws<StoreDomainException>(
-            () => ShopProduct.Create(Guid.NewGuid(), Guid.NewGuid(), 0, 0));
+        var exception = Assert.Throws<StoreDomainException>(() =>
+            ShopProduct.Create(Guid.NewGuid(), Guid.NewGuid(), 0, 0)
+        );
 
         Assert.Equal("INVALID_PRICE", exception.ErrorCode);
     }
@@ -80,11 +80,7 @@ public sealed class StorePricingRuleTests
     [Fact]
     public void Shop_product_can_switch_to_manual_pricing_without_price()
     {
-        var shopProduct = ShopProduct.Create(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            10_000,
-            9_000);
+        var shopProduct = ShopProduct.Create(Guid.NewGuid(), Guid.NewGuid(), 10_000, 9_000);
 
         shopProduct.UpdateDetailsWithManualPricing("قیمت هنگام فروش تعیین می‌شود");
 
@@ -99,8 +95,9 @@ public sealed class StorePricingRuleTests
     [InlineData(10_001L)]
     public void Shop_product_rejects_invalid_discounted_price(long discountedPrice)
     {
-        var exception = Assert.Throws<StoreDomainException>(
-            () => ShopProduct.Create(Guid.NewGuid(), Guid.NewGuid(), 10_000, discountedPrice));
+        var exception = Assert.Throws<StoreDomainException>(() =>
+            ShopProduct.Create(Guid.NewGuid(), Guid.NewGuid(), 10_000, discountedPrice)
+        );
 
         Assert.Equal("INVALID_DISCOUNTED_PRICE", exception.ErrorCode);
     }
@@ -109,19 +106,21 @@ public sealed class StorePricingRuleTests
     public void Add_variant_validator_requires_discounted_price_and_accepts_equality()
     {
         var validator = new AddProductVariantCommandValidator();
-        var valid = new AddProductVariantCommand(
-            Guid.NewGuid(), [], null, 1, 10_000, 10_000, null);
+        var valid = new AddProductVariantCommand(Guid.NewGuid(), [], null, 1, 10_000, 10_000, null);
         var missing = valid with { DiscountedPriceMinor = null };
         var greater = valid with { DiscountedPriceMinor = 10_001 };
 
         Assert.True(validator.Validate(valid).IsValid);
         Assert.Contains(
             validator.Validate(missing).Errors,
-            error => error.PropertyName == nameof(valid.DiscountedPriceMinor)
-                     && error.ErrorMessage.Contains("الزامی"));
+            error =>
+                error.PropertyName == nameof(valid.DiscountedPriceMinor)
+                && error.ErrorMessage.Contains("الزامی")
+        );
         Assert.Contains(
             validator.Validate(greater).Errors,
-            error => error.ErrorMessage.Contains("نباید بیشتر"));
+            error => error.ErrorMessage.Contains("نباید بیشتر")
+        );
     }
 
     [Fact]
@@ -129,14 +128,21 @@ public sealed class StorePricingRuleTests
     {
         var validator = new UpsertShopProductVariantCommandValidator();
         var valid = new UpsertShopProductVariantCommand(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 10_000, 10_000, true);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            10_000,
+            10_000,
+            true
+        );
         var missing = valid with { DiscountedPriceMinor = null };
 
         Assert.True(validator.Validate(valid).IsValid);
         Assert.Contains(
             validator.Validate(missing).Errors,
-            error => error.PropertyName == nameof(valid.DiscountedPriceMinor)
-                     && error.ErrorMessage.Contains("الزامی"));
+            error =>
+                error.PropertyName == nameof(valid.DiscountedPriceMinor)
+                && error.ErrorMessage.Contains("الزامی")
+        );
     }
-
 }

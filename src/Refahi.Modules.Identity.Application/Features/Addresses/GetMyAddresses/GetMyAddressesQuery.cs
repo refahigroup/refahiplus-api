@@ -8,5 +8,4 @@ namespace Refahi.Modules.Identity.Application.Features.Addresses.GetMyAddresses;
 /// <summary>
 /// لیست آدرس‌های کاربر جاری.
 /// </summary>
-public sealed record GetMyAddressesQuery(Guid UserId)
-    : IRequest<IReadOnlyList<UserAddressDto>>;
+public sealed record GetMyAddressesQuery(Guid UserId) : IRequest<IReadOnlyList<UserAddressDto>>;

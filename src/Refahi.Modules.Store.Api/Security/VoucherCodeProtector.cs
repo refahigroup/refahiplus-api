@@ -15,7 +15,8 @@ internal sealed class VoucherCodeProtector : IVoucherCodeProtector
     public bool TryUnprotect(string ciphertext, out string plaintextCode)
     {
         plaintextCode = string.Empty;
-        if (string.IsNullOrWhiteSpace(ciphertext)) return false;
+        if (string.IsNullOrWhiteSpace(ciphertext))
+            return false;
         try
         {
             plaintextCode = _protector.Unprotect(ciphertext);

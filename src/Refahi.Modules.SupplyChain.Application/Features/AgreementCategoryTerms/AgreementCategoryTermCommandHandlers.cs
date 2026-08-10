@@ -13,19 +13,23 @@ public sealed class AddAgreementCategoryTermCommandHandler
     private readonly IAgreementRepository _repository;
     private readonly IMediator _mediator;
 
-    public AddAgreementCategoryTermCommandHandler(IAgreementRepository repository, IMediator mediator)
-        => (_repository, _mediator) = (repository, mediator);
+    public AddAgreementCategoryTermCommandHandler(
+        IAgreementRepository repository,
+        IMediator mediator
+    ) => (_repository, _mediator) = (repository, mediator);
 
     public async Task<AddAgreementCategoryTermResponse> Handle(
         AddAgreementCategoryTermCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         await EnsureActiveCategoryAsync(request.CategoryId, cancellationToken);
         var agreement = await GetAgreementAsync(request.AgreementId, cancellationToken);
         var term = agreement.AddCategoryTerm(
             request.CategoryId,
             (SalesChannel)request.AllowedSalesChannels,
-            request.CommissionPercent);
+            request.CommissionPercent
+        );
 
         _repository.AddCategoryTerm(term);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -54,16 +58,28 @@ public sealed class UpdateAgreementCategoryTermCommandHandler
     private readonly IAgreementRepository _repository;
     private readonly IMediator _mediator;
 
-    public UpdateAgreementCategoryTermCommandHandler(IAgreementRepository repository, IMediator mediator)
-        => (_repository, _mediator) = (repository, mediator);
+    public UpdateAgreementCategoryTermCommandHandler(
+        IAgreementRepository repository,
+        IMediator mediator
+    ) => (_repository, _mediator) = (repository, mediator);
 
-    public async Task<Unit> Handle(UpdateAgreementCategoryTermCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        UpdateAgreementCategoryTermCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var category = await _mediator.Send(new GetCategoryByIdQuery(request.CategoryId), cancellationToken);
+        var category = await _mediator.Send(
+            new GetCategoryByIdQuery(request.CategoryId),
+            cancellationToken
+        );
         if (category is null || !category.IsActive)
             throw new SupplyChainDomainException("دسته‌بندی فعال یافت نشد", "CATEGORY_NOT_FOUND");
 
-        var agreement = await _repository.GetByIdAsync(request.AgreementId, true, cancellationToken);
+        var agreement = await _repository.GetByIdAsync(
+            request.AgreementId,
+            true,
+            cancellationToken
+        );
         if (agreement is null || agreement.IsDeleted)
             throw new SupplyChainDomainException("قرارداد یافت نشد", "AGREEMENT_NOT_FOUND");
 
@@ -71,7 +87,8 @@ public sealed class UpdateAgreementCategoryTermCommandHandler
             request.TermId,
             request.CategoryId,
             (SalesChannel)request.AllowedSalesChannels,
-            request.CommissionPercent);
+            request.CommissionPercent
+        );
         await _repository.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
@@ -82,11 +99,19 @@ public sealed class RemoveAgreementCategoryTermCommandHandler
 {
     private readonly IAgreementRepository _repository;
 
-    public RemoveAgreementCategoryTermCommandHandler(IAgreementRepository repository) => _repository = repository;
+    public RemoveAgreementCategoryTermCommandHandler(IAgreementRepository repository) =>
+        _repository = repository;
 
-    public async Task<Unit> Handle(RemoveAgreementCategoryTermCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        RemoveAgreementCategoryTermCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var agreement = await _repository.GetByIdAsync(request.AgreementId, true, cancellationToken);
+        var agreement = await _repository.GetByIdAsync(
+            request.AgreementId,
+            true,
+            cancellationToken
+        );
         if (agreement is null || agreement.IsDeleted)
             throw new SupplyChainDomainException("قرارداد یافت نشد", "AGREEMENT_NOT_FOUND");
 

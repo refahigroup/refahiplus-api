@@ -10,28 +10,28 @@ public sealed class Shop
 
     public Guid Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
-    public string Slug { get; private set; } = string.Empty;           // URL-friendly unique
+    public string Slug { get; private set; } = string.Empty; // URL-friendly unique
     public string? LogoUrl { get; private set; }
     public string? CoverImageUrl { get; private set; }
     public ShopType ShopType { get; private set; }
     public SalesChannel Channel => (SalesChannel)ShopType;
     public ShopStatus Status { get; private set; }
     public Guid SupplierId { get; private set; }
-    
+
     // Location (replaced string City with CityId + ProvinceId FKs)
-    public int? ProvinceId { get; private set; }                       // FK → References.Province
-    public int? CityId { get; private set; }                           // FK → References.City
+    public int? ProvinceId { get; private set; } // FK → References.Province
+    public int? CityId { get; private set; } // FK → References.City
     public string? Address { get; private set; }
-    public double? Latitude { get; private set; }                      // GPS latitude
-    public double? Longitude { get; private set; }                     // GPS longitude
-    
+    public double? Latitude { get; private set; } // GPS latitude
+    public double? Longitude { get; private set; } // GPS longitude
+
     // Contact info
     public string? ManagerName { get; private set; }
     public string? ManagerPhone { get; private set; }
     public string? RepresentativeName { get; private set; }
     public string? RepresentativePhone { get; private set; }
     public string? ContactPhone { get; private set; }
-    
+
     public string? Description { get; private set; }
     public bool IsPopular { get; private set; }
     public int DeliveredOrdersCount { get; private set; }
@@ -40,12 +40,22 @@ public sealed class Shop
 
     // --- Factory ---
     public static Shop Create(
-        string name, string slug, ShopType shopType, Guid supplierId,
-        int? provinceId = null, int? cityId = null,
-        string? address = null, double? latitude = null, double? longitude = null,
-        string? managerName = null, string? managerPhone = null,
-        string? representativeName = null, string? representativePhone = null,
-        string? contactPhone = null, string? description = null)
+        string name,
+        string slug,
+        ShopType shopType,
+        Guid supplierId,
+        int? provinceId = null,
+        int? cityId = null,
+        string? address = null,
+        double? latitude = null,
+        double? longitude = null,
+        string? managerName = null,
+        string? managerPhone = null,
+        string? representativeName = null,
+        string? representativePhone = null,
+        string? contactPhone = null,
+        string? description = null
+    )
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new StoreDomainException("نام فروشگاه الزامی است", "SHOP_NAME_REQUIRED");
@@ -71,24 +81,58 @@ public sealed class Shop
             Description = description,
             IsPopular = false,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
     }
 
     // --- Behaviors ---
-    public void Approve() { Status = ShopStatus.Active; UpdatedAt = DateTimeOffset.UtcNow; }
-    public void Suspend() { Status = ShopStatus.Suspended; UpdatedAt = DateTimeOffset.UtcNow; }
-    public void Close() { Status = ShopStatus.Closed; UpdatedAt = DateTimeOffset.UtcNow; }
-    public void SetPopular(bool isPopular) { IsPopular = isPopular; UpdatedAt = DateTimeOffset.UtcNow; }
-    public void RecordDelivery() { DeliveredOrdersCount++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Approve()
+    {
+        Status = ShopStatus.Active;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 
-    public void UpdateInfo(string name, string? description,
-        int? provinceId, int? cityId, string? address,
-        double? latitude, double? longitude,
-        string? managerName, string? managerPhone,
-        string? representativeName, string? representativePhone,
-        string? contactPhone, string? logoUrl, string? coverImageUrl,
-        ShopType? shopType = null)
+    public void Suspend()
+    {
+        Status = ShopStatus.Suspended;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Close()
+    {
+        Status = ShopStatus.Closed;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetPopular(bool isPopular)
+    {
+        IsPopular = isPopular;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void RecordDelivery()
+    {
+        DeliveredOrdersCount++;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UpdateInfo(
+        string name,
+        string? description,
+        int? provinceId,
+        int? cityId,
+        string? address,
+        double? latitude,
+        double? longitude,
+        string? managerName,
+        string? managerPhone,
+        string? representativeName,
+        string? representativePhone,
+        string? contactPhone,
+        string? logoUrl,
+        string? coverImageUrl,
+        ShopType? shopType = null
+    )
     {
         Name = name.Trim();
         Description = description;
@@ -105,7 +149,10 @@ public sealed class Shop
         LogoUrl = logoUrl;
         CoverImageUrl = coverImageUrl;
         if (shopType.HasValue && shopType.Value != ShopType)
-            throw new StoreDomainException("کانال فروشگاه پس از ایجاد قابل تغییر نیست", "SHOP_CHANNEL_IMMUTABLE");
+            throw new StoreDomainException(
+                "کانال فروشگاه پس از ایجاد قابل تغییر نیست",
+                "SHOP_CHANNEL_IMMUTABLE"
+            );
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

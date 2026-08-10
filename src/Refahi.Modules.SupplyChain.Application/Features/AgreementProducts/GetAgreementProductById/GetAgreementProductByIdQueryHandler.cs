@@ -5,20 +5,28 @@ using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts
 
 namespace Refahi.Modules.SupplyChain.Application.Features.AgreementProducts.GetAgreementProductById;
 
-public class GetAgreementProductByIdQueryHandler : IRequestHandler<GetAgreementProductByIdQuery, AgreementProductDto?>
+public class GetAgreementProductByIdQueryHandler
+    : IRequestHandler<GetAgreementProductByIdQuery, AgreementProductDto?>
 {
     private readonly IAgreementRepository _repository;
 
-    public GetAgreementProductByIdQueryHandler(IAgreementRepository repository)
-        => _repository = repository;
+    public GetAgreementProductByIdQueryHandler(IAgreementRepository repository) =>
+        _repository = repository;
 
-    public async Task<AgreementProductDto?> Handle(GetAgreementProductByIdQuery request, CancellationToken cancellationToken)
+    public async Task<AgreementProductDto?> Handle(
+        GetAgreementProductByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var product = await _repository.GetProductByIdAsync(request.ProductId, cancellationToken);
 
         if (product is null || product.IsDeleted)
             return null;
-        var agreement = await _repository.GetByIdAsync(product.AgreementId, false, cancellationToken);
+        var agreement = await _repository.GetByIdAsync(
+            product.AgreementId,
+            false,
+            cancellationToken
+        );
 
         return new AgreementProductDto(
             product.Id,
@@ -35,6 +43,7 @@ public class GetAgreementProductByIdQueryHandler : IRequestHandler<GetAgreementP
             product.CreatedAt,
             (short)product.PricingMode,
             product.VatApplicable,
-            agreement?.SupplierId);
+            agreement?.SupplierId
+        );
     }
 }

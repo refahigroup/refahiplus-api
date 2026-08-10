@@ -16,15 +16,17 @@ internal static class SnappTripFlightMapper
             Child = request.Child,
             Infant = request.Infant,
             IsDomestic = request.IsDomestic,
-            OriginDestinationInformations = request.OriginDestinationInformations
-                .Select(leg => new SnappTripOriginDestinationInformation
-                {
-                    DepartureDate = leg.DepartureDate.ToString("yyyy-MM-dd"),
-                    OriginLocationCode = leg.OriginLocationCode,
-                    DestinationLocationCode = leg.DestinationLocationCode,
-                    OriginType = NormalizeLocationType(leg.OriginType),
-                    DestinationType = NormalizeLocationType(leg.DestinationType)
-                })
+            OriginDestinationInformations = request
+                .OriginDestinationInformations.Select(
+                    leg => new SnappTripOriginDestinationInformation
+                    {
+                        DepartureDate = leg.DepartureDate.ToString("yyyy-MM-dd"),
+                        OriginLocationCode = leg.OriginLocationCode,
+                        DestinationLocationCode = leg.DestinationLocationCode,
+                        OriginType = NormalizeLocationType(leg.OriginType),
+                        DestinationType = NormalizeLocationType(leg.DestinationType),
+                    }
+                )
                 .ToList(),
             TravelPreference = request.TravelPreference is null
                 ? null
@@ -32,10 +34,14 @@ internal static class SnappTripFlightMapper
                 {
                     CabinType = NormalizeCabinType(request.TravelPreference.CabinType),
                     AirTripType = NormalizeAirTripType(request.TravelPreference.AirTripType),
-                    MaxStopsQuantity = request.TravelPreference.MaxStopsQuantity?.ToString(CultureInfo.InvariantCulture) ?? "ALL",
+                    MaxStopsQuantity =
+                        request.TravelPreference.MaxStopsQuantity?.ToString(
+                            CultureInfo.InvariantCulture
+                        ) ?? "ALL",
                     VendorExcludeCodes = request.TravelPreference.VendorExcludeCodes?.ToList(),
-                    VendorPreferenceCodes = request.TravelPreference.VendorPreferenceCodes?.ToList()
-                }
+                    VendorPreferenceCodes =
+                        request.TravelPreference.VendorPreferenceCodes?.ToList(),
+                },
         };
     }
 
@@ -45,7 +51,7 @@ internal static class SnappTripFlightMapper
         {
             "AIRPORT" => "AIRPORT",
             "CITY" => "CITY",
-            var normalized => normalized
+            var normalized => normalized,
         };
     }
 
@@ -58,29 +64,34 @@ internal static class SnappTripFlightMapper
             "FIRST" => "FIRST",
             "FIRSTCLASS" => "FIRST",
             "FIRST_CLASS" => "FIRST",
-            var normalized => normalized
+            var normalized => normalized,
         };
     }
 
     private static string NormalizeAirTripType(string value)
     {
-        return value.Trim().Replace("-", string.Empty, StringComparison.Ordinal).Replace("_", string.Empty, StringComparison.Ordinal).ToUpperInvariant() switch
+        return value
+            .Trim()
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace("_", string.Empty, StringComparison.Ordinal)
+            .ToUpperInvariant() switch
         {
             "RETURN" => "RETURN",
             "ROUNDTRIP" => "RETURN",
             "ONEWAY" => "ONEWAY",
             "ONEWAYTRIP" => "ONEWAY",
-            var normalized => normalized
+            var normalized => normalized,
         };
     }
 
     public static FlightSearchResponse ToFlightResponse(
         SnappTripSearchResponse response,
-        string? maskedRawPayload)
+        string? maskedRawPayload
+    )
     {
         var searchId = response.SearchId?.ToString();
-        var offers = response.PricedItineraries
-            .Where(item => !string.IsNullOrWhiteSpace(item.FareSourceCode))
+        var offers = response
+            .PricedItineraries.Where(item => !string.IsNullOrWhiteSpace(item.FareSourceCode))
             .Select(item => ToFlightFareOffer(item, searchId, maskedRawPayload))
             .ToList();
 
@@ -92,7 +103,8 @@ internal static class SnappTripFlightMapper
             response.Error is null
                 ? null
                 : new FlightProviderError(response.Error.Code, response.Error.Message),
-            RawPayloadSnapshot: maskedRawPayload);
+            RawPayloadSnapshot: maskedRawPayload
+        );
     }
 
     public static SnappTripBookRequest ToSnappTripRequest(FlightBookRequest request)
@@ -102,8 +114,8 @@ internal static class SnappTripFlightMapper
             FareSourceCode = request.ProviderFareSourceCode,
             PhoneNumber = request.PhoneNumber,
             Email = request.Email,
-            Passengers = request.Passengers
-                .Select(passenger => new SnappTripBookPassenger
+            Passengers = request
+                .Passengers.Select(passenger => new SnappTripBookPassenger
                 {
                     NationalityCode = passenger.NationalityCode,
                     NationalId = passenger.NationalId,
@@ -119,16 +131,17 @@ internal static class SnappTripFlightMapper
                             CountryCode = passenger.PassportInfo.CountryCode,
                             IssueDate = passenger.PassportInfo.IssueDate?.ToString("yyyy-MM-dd"),
                             ExpireDate = passenger.PassportInfo.ExpireDate?.ToString("yyyy-MM-dd"),
-                            Number = passenger.PassportInfo.Number
-                        }
+                            Number = passenger.PassportInfo.Number,
+                        },
                 })
-                .ToList()
+                .ToList(),
         };
     }
 
     public static FlightBookResponse ToFlightResponse(
         SnappTripBookResponse response,
-        string? maskedRawPayload)
+        string? maskedRawPayload
+    )
     {
         return new FlightBookResponse(
             response.TrackingCode,
@@ -136,7 +149,8 @@ internal static class SnappTripFlightMapper
             response.BookId,
             response.PaymentCurrency,
             response.PaymentAmount,
-            RawPayloadSnapshot: maskedRawPayload);
+            RawPayloadSnapshot: maskedRawPayload
+        );
     }
 
     public static SnappTripIssueRequest ToSnappTripRequest(FlightIssueRequest request)
@@ -146,14 +160,16 @@ internal static class SnappTripFlightMapper
 
     public static FlightIssueResponse ToFlightResponse(
         SnappTripIssueResponse response,
-        string? maskedRawPayload)
+        string? maskedRawPayload
+    )
     {
         return new FlightIssueResponse(response.Status, RawPayloadSnapshot: maskedRawPayload);
     }
 
     public static FlightInquiryResponse ToFlightResponse(
         SnappTripInquiryResponse response,
-        string? maskedRawPayload)
+        string? maskedRawPayload
+    )
     {
         return new FlightInquiryResponse(
             response.Status,
@@ -167,9 +183,10 @@ internal static class SnappTripFlightMapper
                     response.Buyer.PhoneNumber,
                     response.Buyer.Email,
                     response.Buyer.ReceiverPhoneNumber,
-                    response.Buyer.ReceiverEmail),
-            response.Tickets
-                .Select(ticket => new FlightInquiryTicket(
+                    response.Buyer.ReceiverEmail
+                ),
+            response
+                .Tickets.Select(ticket => new FlightInquiryTicket(
                     ticket.Serial,
                     ticket.Pnr,
                     ticket.PassengerName,
@@ -177,18 +194,23 @@ internal static class SnappTripFlightMapper
                     ticket.Direction,
                     ticket.DocumentType,
                     ticket.DocumentId,
-                    ticket.CancellationRoutes
-                        .Where(route => !string.IsNullOrWhiteSpace(route.RouteId))
+                    ticket
+                        .CancellationRoutes.Where(route =>
+                            !string.IsNullOrWhiteSpace(route.RouteId)
+                        )
                         .Select(route => new FlightCancellationRoute(
                             route.RouteId,
                             route.Direction,
                             route.Origin,
                             null,
                             route.Destination,
-                            null))
-                        .ToList()))
+                            null
+                        ))
+                        .ToList()
+                ))
                 .ToList(),
-            RawPayloadSnapshot: maskedRawPayload);
+            RawPayloadSnapshot: maskedRawPayload
+        );
     }
 
     public static SnappTripPenaltyRequest ToSnappTripRequest(FlightCancellationQuoteRequest request)
@@ -198,13 +220,14 @@ internal static class SnappTripFlightMapper
             TrackingCode = request.TrackingCode,
             RouteId = request.RouteId,
             TicketSerials = request.TicketSerials.ToList(),
-            ReasonId = request.ReasonId
+            ReasonId = request.ReasonId,
         };
     }
 
     public static FlightCancellationQuoteResponse ToFlightResponse(
         SnappTripPenaltyResponse response,
-        string? maskedRawPayload)
+        string? maskedRawPayload
+    )
     {
         return new FlightCancellationQuoteResponse(
             response.PenaltyStatus,
@@ -215,8 +238,8 @@ internal static class SnappTripFlightMapper
             response.TotalAmount,
             response.TotalPenaltyAmount,
             response.TotalRefundAmount,
-            response.Tickets
-                .Select(ticket => new FlightCancellationTicketQuote(
+            response
+                .Tickets.Select(ticket => new FlightCancellationTicketQuote(
                     ticket.TicketSerial,
                     ticket.PassengerName,
                     ticket.PassengerType,
@@ -226,9 +249,11 @@ internal static class SnappTripFlightMapper
                     ticket.TicketPrice,
                     ticket.Currency,
                     ticket.NoShow,
-                    ticket.IsValid))
+                    ticket.IsValid
+                ))
                 .ToList(),
-            RawPayloadSnapshot: maskedRawPayload);
+            RawPayloadSnapshot: maskedRawPayload
+        );
     }
 
     public static SnappTripCancelRequest ToSnappTripRequest(FlightCancellationSubmitRequest request)
@@ -239,25 +264,28 @@ internal static class SnappTripFlightMapper
             Phone = request.Phone,
             RouteId = request.RouteId,
             TicketSerials = request.TicketSerials.ToList(),
-            ReasonId = request.ReasonId
+            ReasonId = request.ReasonId,
         };
     }
 
     public static FlightCancellationSubmitResponse ToFlightResponse(
         SnappTripCancelResponse response,
-        string? maskedRawPayload)
+        string? maskedRawPayload
+    )
     {
         return new FlightCancellationSubmitResponse(
             response.Message,
             response.Status,
             response.Id?.ToString(),
-            RawPayloadSnapshot: maskedRawPayload);
+            RawPayloadSnapshot: maskedRawPayload
+        );
     }
 
     private static FlightFareOffer ToFlightFareOffer(
         SnappTripPricedItinerary itinerary,
         string? searchId,
-        string? maskedRawPayload)
+        string? maskedRawPayload
+    )
     {
         var totalFare = itinerary.AirItineraryPricingInfo?.ItinTotalFare;
 
@@ -274,21 +302,27 @@ internal static class SnappTripFlightMapper
                 totalFare?.TotalTax ?? 0,
                 totalFare?.TotalCommission ?? 0,
                 totalFare?.ServiceTax ?? 0,
-                totalFare?.Currency ?? "IRR"),
+                totalFare?.Currency ?? "IRR"
+            ),
             itinerary.OriginDestinationOptions.Select(ToFlightOption).ToList(),
-            itinerary.AirItineraryPricingInfo?.PtcFareBreakdown
-                .Select(ToPassengerFareBreakdown)
-                .ToList() ?? new List<FlightPassengerFareBreakdown>(),
+            itinerary
+                .AirItineraryPricingInfo?.PtcFareBreakdown.Select(ToPassengerFareBreakdown)
+                .ToList()
+                ?? new List<FlightPassengerFareBreakdown>(),
             itinerary.AirItineraryPricingInfo?.FareType,
-            RawPayloadSnapshot: maskedRawPayload);
+            RawPayloadSnapshot: maskedRawPayload
+        );
     }
 
-    private static FlightOriginDestinationOption ToFlightOption(SnappTripOriginDestinationOption option)
+    private static FlightOriginDestinationOption ToFlightOption(
+        SnappTripOriginDestinationOption option
+    )
     {
         return new FlightOriginDestinationOption(
             option.FlightSegments.Select(ToFlightSegment).ToList(),
             option.JourneyDurationPerMinute,
-            option.ConnectionTimePerMinute);
+            option.ConnectionTimePerMinute
+        );
     }
 
     private static FlightSegmentOffer ToFlightSegment(SnappTripFlightSegment segment)
@@ -317,11 +351,13 @@ internal static class SnappTripFlightMapper
             StopQuantity: segment.StopQuantity,
             Baggage: segment.Baggage,
             IsCharter: segment.IsCharter,
-            IsReturn: segment.IsReturn);
+            IsReturn: segment.IsReturn
+        );
     }
 
     private static FlightPassengerFareBreakdown ToPassengerFareBreakdown(
-        SnappTripPtcFareBreakdown breakdown)
+        SnappTripPtcFareBreakdown breakdown
+    )
     {
         var fare = breakdown.PassengerFare;
 
@@ -334,13 +370,13 @@ internal static class SnappTripFlightMapper
                 0,
                 fare?.Commission ?? 0,
                 fare?.ServiceTax ?? 0,
-                fare?.Currency ?? "IRR"));
+                fare?.Currency ?? "IRR"
+            )
+        );
     }
 
     private static DateTime? ParseDateTime(string? value)
     {
-        return DateTime.TryParse(value, out var parsed)
-            ? parsed
-            : null;
+        return DateTime.TryParse(value, out var parsed) ? parsed : null;
     }
 }

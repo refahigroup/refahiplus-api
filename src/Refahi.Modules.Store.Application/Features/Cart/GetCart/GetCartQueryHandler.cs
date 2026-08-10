@@ -26,7 +26,8 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
         IShopRepository shopRepo,
         IShopProductRepository shopProductRepo,
         IStoreProductPriceResolver priceResolver,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _cartRepo = cartRepo;
         _productRepo = productRepo;
@@ -39,7 +40,11 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
     public async Task<CartDto> Handle(GetCartQuery request, CancellationToken cancellationToken)
     {
-        var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken);
+        var cart = await _cartRepo.GetByUserAndModuleIdAsync(
+            request.UserId,
+            request.ModuleId,
+            cancellationToken
+        );
 
         if (cart is null)
             return new CartDto(Guid.Empty, new List<CartItemDto>(), 0, 0, 0, 0);
@@ -48,7 +53,11 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
         // Cache shop names per ShopId
         var shopNameCache = new Dictionary<Guid, string?>();
-        var agreementProductCache = new Dictionary<Guid, Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?>();
+        var agreementProductCache =
+            new Dictionary<
+                Guid,
+                Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?
+            >();
 
         foreach (var item in cart.Items)
         {
@@ -64,38 +73,52 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
             if (product is null || product.IsDeleted)
             {
-                itemDtos.Add(new CartItemDto(
-                    Id: item.Id,
-                    ShopId: item.ShopId,
-                    ShopName: shopName,
-                    ProductId: item.ProductId,
-                    ProductTitle: "محصول حذف شده",
-                    ProductImageUrl: null,
-                    VariantId: item.VariantId,
-                    VariantLabel: null,
-                    SessionId: item.SessionId,
-                    UsageDate: item.UsageDate,
-                    SessionLabel: null,
-                    Quantity: item.Quantity,
-                    UnitPriceMinor: item.UnitPriceMinor,
-                    OriginalUnitPriceMinor: item.UnitPriceMinor,
-                    DiscountPercent: 0,
-                    TotalPriceMinor: item.UnitPriceMinor * item.Quantity,
-                    IsAvailable: false));
+                itemDtos.Add(
+                    new CartItemDto(
+                        Id: item.Id,
+                        ShopId: item.ShopId,
+                        ShopName: shopName,
+                        ProductId: item.ProductId,
+                        ProductTitle: "محصول حذف شده",
+                        ProductImageUrl: null,
+                        VariantId: item.VariantId,
+                        VariantLabel: null,
+                        SessionId: item.SessionId,
+                        UsageDate: item.UsageDate,
+                        SessionLabel: null,
+                        Quantity: item.Quantity,
+                        UnitPriceMinor: item.UnitPriceMinor,
+                        OriginalUnitPriceMinor: item.UnitPriceMinor,
+                        DiscountPercent: 0,
+                        TotalPriceMinor: item.UnitPriceMinor * item.Quantity,
+                        IsAvailable: false
+                    )
+                );
                 continue;
             }
 
-            var mainImage = product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
-                         ?? product.Images.FirstOrDefault()?.ImageUrl;
+            var mainImage =
+                product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
+                ?? product.Images.FirstOrDefault()?.ImageUrl;
 
-            var agreementProduct = await ResolveAgreementProductAsync(product.AgreementProductId, agreementProductCache, cancellationToken);
-            var salesModel = agreementProduct is null ? (SalesModel?)null : (SalesModel)agreementProduct.SalesModel;
+            var agreementProduct = await ResolveAgreementProductAsync(
+                product.AgreementProductId,
+                agreementProductCache,
+                cancellationToken
+            );
+            var salesModel = agreementProduct is null
+                ? (SalesModel?)null
+                : (SalesModel)agreementProduct.SalesModel;
             var isManual = agreementProduct?.PricingMode == (short)PricingMode.Manual;
             var deliveryType = agreementProduct is null
                 ? string.Empty
                 : ((DeliveryType)agreementProduct.DeliveryType).ToString();
-            var isUnsupportedSessionVariant = salesModel.HasValue
-                && StoreSalesModelRules.IsUnsupportedSessionVariant(salesModel.Value, item.VariantId);
+            var isUnsupportedSessionVariant =
+                salesModel.HasValue
+                && StoreSalesModelRules.IsUnsupportedSessionVariant(
+                    salesModel.Value,
+                    item.VariantId
+                );
 
             string? variantLabel = null;
             bool isAvailable = product.IsAvailable;
@@ -112,14 +135,24 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 {
                     currentUnitPrice = item.UnitPriceMinor;
                     priceSource = "Manual";
-                    isAvailable = isAvailable && item.Quantity == 1 && !item.VariantId.HasValue && !item.SessionId.HasValue;
+                    isAvailable =
+                        isAvailable
+                        && item.Quantity == 1
+                        && !item.VariantId.HasValue
+                        && !item.SessionId.HasValue;
                 }
                 else
                 {
-                    var priceVariantId = salesModel == SalesModel.SessionBased && item.SessionId.HasValue
-                        ? null
-                        : item.VariantId;
-                    var resolvedPrice = await _priceResolver.ResolveAsync(item.ShopId, product, priceVariantId, cancellationToken);
+                    var priceVariantId =
+                        salesModel == SalesModel.SessionBased && item.SessionId.HasValue
+                            ? null
+                            : item.VariantId;
+                    var resolvedPrice = await _priceResolver.ResolveAsync(
+                        item.ShopId,
+                        product,
+                        priceVariantId,
+                        cancellationToken
+                    );
                     originalUnitPrice = resolvedPrice.OriginalPriceMinor;
                     currentUnitPrice = resolvedPrice.UnitPriceMinor;
                     shopProductVariantId = resolvedPrice.ShopProductVariantId;
@@ -138,23 +171,35 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 {
                     variantLabel = !string.IsNullOrWhiteSpace(variant.SKU)
                         ? variant.SKU
-                        : string.Join(" / ", variant.Combinations.Select(c =>
-                        {
-                            var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
-                            var val = attr?.Values.FirstOrDefault(v => v.Id == c.VariantAttributeValueId);
-                            return val?.Value ?? string.Empty;
-                        }).Where(s => !string.IsNullOrEmpty(s)));
+                        : string.Join(
+                            " / ",
+                            variant
+                                .Combinations.Select(c =>
+                                {
+                                    var attr = product.VariantAttributes.FirstOrDefault(a =>
+                                        a.Id == c.VariantAttributeId
+                                    );
+                                    var val = attr?.Values.FirstOrDefault(v =>
+                                        v.Id == c.VariantAttributeValueId
+                                    );
+                                    return val?.Value ?? string.Empty;
+                                })
+                                .Where(s => !string.IsNullOrEmpty(s))
+                        );
                     if (salesModel == SalesModel.StockBased)
                     {
                         isAvailable = isAvailable && variant.HasLegacyStockAvailable(item.Quantity);
                     }
                     else if (salesModel == SalesModel.SessionBased && !item.SessionId.HasValue)
                     {
-                        isAvailable = isAvailable && await IsVariantCapacityAvailableAsync(
-                            variant,
-                            item.UsageDate,
-                            item.Quantity,
-                            cancellationToken);
+                        isAvailable =
+                            isAvailable
+                            && await IsVariantCapacityAvailableAsync(
+                                variant,
+                                item.UsageDate,
+                                item.Quantity,
+                                cancellationToken
+                            );
                     }
                     else
                     {
@@ -172,7 +217,11 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
             else if (!currentUnitPrice.HasValue)
             {
                 // بدون variant — قیمت اصلی از ShopProduct
-                var shopProduct = await _shopProductRepo.GetAsync(item.ShopId, item.ProductId, cancellationToken);
+                var shopProduct = await _shopProductRepo.GetAsync(
+                    item.ShopId,
+                    item.ProductId,
+                    cancellationToken
+                );
                 if (shopProduct is not null)
                 {
                     originalUnitPrice = shopProduct.Price;
@@ -185,12 +234,16 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 var session = product.Sessions.FirstOrDefault(s => s.Id == item.SessionId.Value);
                 if (session is not null)
                 {
-                    var titlePart = !string.IsNullOrWhiteSpace(session.Title) ? session.Title + " " : string.Empty;
-                    sessionLabel = $"{titlePart}{session.Date:yyyy-MM-dd} {session.StartTime:HH:mm}-{session.EndTime:HH:mm}";
-                    isAvailable = isAvailable &&
-                                  !isUnsupportedSessionVariant &&
-                                  session.IsAvailable &&
-                                  session.RemainingCapacity >= item.Quantity;
+                    var titlePart = !string.IsNullOrWhiteSpace(session.Title)
+                        ? session.Title + " "
+                        : string.Empty;
+                    sessionLabel =
+                        $"{titlePart}{session.Date:yyyy-MM-dd} {session.StartTime:HH:mm}-{session.EndTime:HH:mm}";
+                    isAvailable =
+                        isAvailable
+                        && !isUnsupportedSessionVariant
+                        && session.IsAvailable
+                        && session.RemainingCapacity >= item.Quantity;
                     if (currentUnitPrice.HasValue)
                     {
                         currentUnitPrice += session.PriceAdjustment;
@@ -203,14 +256,17 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 }
             }
 
-            var hasPriceChanged = !isManual && currentUnitPrice.HasValue && currentUnitPrice.Value != item.UnitPriceMinor;
+            var hasPriceChanged =
+                !isManual
+                && currentUnitPrice.HasValue
+                && currentUnitPrice.Value != item.UnitPriceMinor;
 
             // محاسبه DiscountPercent
             int discountPercent = 0;
             if (originalUnitPrice > 0 && originalUnitPrice > item.UnitPriceMinor)
             {
-                discountPercent = (int)Math.Round(
-                    (1.0 - (double)item.UnitPriceMinor / originalUnitPrice) * 100);
+                discountPercent = (int)
+                    Math.Round((1.0 - (double)item.UnitPriceMinor / originalUnitPrice) * 100);
             }
             else
             {
@@ -218,36 +274,40 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
                 originalUnitPrice = item.UnitPriceMinor;
             }
 
-            itemDtos.Add(new CartItemDto(
-                Id: item.Id,
-                ShopId: item.ShopId,
-                ShopName: shopName,
-                ProductId: item.ProductId,
-                ProductTitle: product.Title,
-                ProductImageUrl: mainImage,
-                VariantId: item.VariantId,
-                VariantLabel: variantLabel,
-                SessionId: item.SessionId,
-                UsageDate: item.UsageDate,
-                SessionLabel: sessionLabel,
-                Quantity: item.Quantity,
-                UnitPriceMinor: item.UnitPriceMinor,
-                OriginalUnitPriceMinor: originalUnitPrice,
-                DiscountPercent: discountPercent,
-                TotalPriceMinor: item.UnitPriceMinor * item.Quantity,
-                IsAvailable: isAvailable,
-                CurrentUnitPriceMinor: currentUnitPrice,
-                HasPriceChanged: hasPriceChanged,
-                ShopProductVariantId: shopProductVariantId,
-                PriceSource: priceSource,
-                PriceDisplayMode: isManual ? "InPerson" : "Fixed",
-                DeliveryType: deliveryType));
+            itemDtos.Add(
+                new CartItemDto(
+                    Id: item.Id,
+                    ShopId: item.ShopId,
+                    ShopName: shopName,
+                    ProductId: item.ProductId,
+                    ProductTitle: product.Title,
+                    ProductImageUrl: mainImage,
+                    VariantId: item.VariantId,
+                    VariantLabel: variantLabel,
+                    SessionId: item.SessionId,
+                    UsageDate: item.UsageDate,
+                    SessionLabel: sessionLabel,
+                    Quantity: item.Quantity,
+                    UnitPriceMinor: item.UnitPriceMinor,
+                    OriginalUnitPriceMinor: originalUnitPrice,
+                    DiscountPercent: discountPercent,
+                    TotalPriceMinor: item.UnitPriceMinor * item.Quantity,
+                    IsAvailable: isAvailable,
+                    CurrentUnitPriceMinor: currentUnitPrice,
+                    HasPriceChanged: hasPriceChanged,
+                    ShopProductVariantId: shopProductVariantId,
+                    PriceSource: priceSource,
+                    PriceDisplayMode: isManual ? "InPerson" : "Fixed",
+                    DeliveryType: deliveryType
+                )
+            );
         }
 
         var totalMinor = itemDtos.Sum(i => i.TotalPriceMinor);
         var originalTotalMinor = itemDtos.Sum(i => i.OriginalUnitPriceMinor * i.Quantity);
         var discountTotalMinor = originalTotalMinor - totalMinor;
-        if (discountTotalMinor < 0) discountTotalMinor = 0;
+        if (discountTotalMinor < 0)
+            discountTotalMinor = 0;
 
         return new CartDto(
             CartId: cart.Id,
@@ -255,25 +315,31 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
             TotalMinor: totalMinor,
             OriginalTotalMinor: originalTotalMinor,
             DiscountTotalMinor: discountTotalMinor,
-            TotalItems: cart.Items.Sum(i => i.Quantity));
+            TotalItems: cart.Items.Sum(i => i.Quantity)
+        );
     }
 
     private async Task<bool> IsVariantCapacityAvailableAsync(
         Refahi.Modules.Store.Domain.Entities.ProductVariant variant,
         DateOnly? usageDate,
         int quantity,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(variant, usageDate);
+            var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(
+                variant,
+                usageDate
+            );
             await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
                 variant,
                 normalizedUsageDate,
                 quantity,
                 _mediator,
                 excludeOrderId: null,
-                cancellationToken);
+                cancellationToken
+            );
 
             return true;
         }
@@ -285,15 +351,20 @@ public class GetCartQueryHandler : IRequestHandler<GetCartQuery, CartDto>
 
     private async Task<Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?> ResolveAgreementProductAsync(
         Guid agreementProductId,
-        IDictionary<Guid, Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?> cache,
-        CancellationToken cancellationToken)
+        IDictionary<
+            Guid,
+            Refahi.Modules.SupplyChain.Application.Contracts.Dtos.AgreementProductDto?
+        > cache,
+        CancellationToken cancellationToken
+    )
     {
         if (cache.TryGetValue(agreementProductId, out var cached))
             return cached;
 
         var agreementProduct = await _mediator.Send(
             new GetAgreementProductByIdQuery(agreementProductId),
-            cancellationToken);
+            cancellationToken
+        );
 
         cache[agreementProductId] = agreementProduct;
         return agreementProduct;

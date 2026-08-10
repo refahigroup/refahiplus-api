@@ -8,7 +8,11 @@ public class PathService : IPathService
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<PathService> _logger;
 
-    public PathService(IConfiguration configuration, IHostEnvironment hostEnvironment, ILogger<PathService> logger)
+    public PathService(
+        IConfiguration configuration,
+        IHostEnvironment hostEnvironment,
+        ILogger<PathService> logger
+    )
     {
         _configuration = configuration;
         _hostEnvironment = hostEnvironment;
@@ -19,9 +23,9 @@ public class PathService : IPathService
     {
         if (_hostEnvironment.IsDevelopment())
             return mediaPath;
-        
+
         string baseUrl = _configuration["MediaStorage:LoadBaseUrl"]?.ToLower() ?? "";
-        string result =  new Uri( new Uri(baseUrl), mediaPath).AbsoluteUri;
+        string result = new Uri(new Uri(baseUrl), mediaPath).AbsoluteUri;
 
         return result;
     }

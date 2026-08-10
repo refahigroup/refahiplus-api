@@ -5,20 +5,28 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Sessions.UpdateSession;
 
-public class UpdateSessionCommandHandler : IRequestHandler<UpdateSessionCommand, UpdateSessionResponse>
+public class UpdateSessionCommandHandler
+    : IRequestHandler<UpdateSessionCommand, UpdateSessionResponse>
 {
     private readonly IProductSessionRepository _sessionRepo;
 
-    public UpdateSessionCommandHandler(IProductSessionRepository sessionRepo)
-        => _sessionRepo = sessionRepo;
+    public UpdateSessionCommandHandler(IProductSessionRepository sessionRepo) =>
+        _sessionRepo = sessionRepo;
 
-    public async Task<UpdateSessionResponse> Handle(UpdateSessionCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateSessionResponse> Handle(
+        UpdateSessionCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var session = await _sessionRepo.GetByIdAsync(request.SessionId, cancellationToken)
+        var session =
+            await _sessionRepo.GetByIdAsync(request.SessionId, cancellationToken)
             ?? throw new StoreDomainException("سانس یافت نشد", "SESSION_NOT_FOUND");
 
         if (request.Capacity < session.SoldCount)
-            throw new StoreDomainException("ظرفیت سانس نمی‌تواند کمتر از تعداد فروخته‌شده باشد", "SESSION_CAPACITY_BELOW_SOLD_COUNT");
+            throw new StoreDomainException(
+                "ظرفیت سانس نمی‌تواند کمتر از تعداد فروخته‌شده باشد",
+                "SESSION_CAPACITY_BELOW_SOLD_COUNT"
+            );
 
         session.UpdateInfo(request.Capacity, request.Title, request.PriceAdjustment);
 

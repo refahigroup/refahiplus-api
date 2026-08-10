@@ -2,5 +2,5 @@
 
 public enum ProviderType
 {
-    SnappTrip = 1
+    SnappTrip = 1,
 }

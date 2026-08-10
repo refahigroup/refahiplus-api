@@ -17,7 +17,8 @@ public sealed class ChargeRefundProcessor
     public ChargeRefundProcessor(
         IChargeRequestRepository requests,
         ISender sender,
-        ILogger<ChargeRefundProcessor> logger)
+        ILogger<ChargeRefundProcessor> logger
+    )
     {
         _requests = requests;
         _sender = sender;
@@ -28,7 +29,8 @@ public sealed class ChargeRefundProcessor
         ChargeRequest request,
         string reason,
         string idempotencyKey,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         if (!request.OrderId.HasValue || !request.PaymentId.HasValue)
         {
@@ -48,7 +50,9 @@ public sealed class ChargeRefundProcessor
             return;
 
         if (request.Status != ChargeRequestStatus.Refunding)
-            throw new InvalidOperationException("درخواست شارژ در وضعیت قابل بازیابی بازگشت وجه نیست");
+            throw new InvalidOperationException(
+                "درخواست شارژ در وضعیت قابل بازیابی بازگشت وجه نیست"
+            );
 
         if (!request.OrderId.HasValue || !request.PaymentId.HasValue)
         {
@@ -61,16 +65,21 @@ public sealed class ChargeRefundProcessor
         request.BeginRefund(
             request.RefundReason ?? "تکمیل بازگشت وجه درخواست شارژ",
             request.RefundIdempotencyKey ?? $"charge-refund-{request.Id:N}",
-            DateTime.UtcNow);
+            DateTime.UtcNow
+        );
         request.StartRefundAttempt(Environment.MachineName, DateTime.UtcNow, LeaseDuration);
         await _requests.SaveChangesAsync(ct);
 
         try
         {
-            await _sender.Send(new CancelOrderCommand(
-                request.OrderId.Value,
-                request.RefundReason!,
-                request.RefundIdempotencyKey!), ct);
+            await _sender.Send(
+                new CancelOrderCommand(
+                    request.OrderId.Value,
+                    request.RefundReason!,
+                    request.RefundIdempotencyKey!
+                ),
+                ct
+            );
 
             request.MarkRefunded(DateTime.UtcNow);
             await _requests.SaveChangesAsync(ct);
@@ -81,12 +90,22 @@ public sealed class ChargeRefundProcessor
         }
         catch (Exception ex)
         {
-            var delay = TimeSpan.FromMinutes(Math.Min(30, Math.Pow(2, Math.Min(request.RefundAttemptCount, 5))));
-            request.MarkRefundAttemptFailed(ex.Message, DateTime.UtcNow.Add(delay), DateTime.UtcNow);
+            var delay = TimeSpan.FromMinutes(
+                Math.Min(30, Math.Pow(2, Math.Min(request.RefundAttemptCount, 5)))
+            );
+            request.MarkRefundAttemptFailed(
+                ex.Message,
+                DateTime.UtcNow.Add(delay),
+                DateTime.UtcNow
+            );
             await _requests.SaveChangesAsync(CancellationToken.None);
-            _logger.LogError(ex,
+            _logger.LogError(
+                ex,
                 "Charge refund attempt failed. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, Attempt={Attempt}",
-                request.Id, request.OrderId, request.RefundAttemptCount);
+                request.Id,
+                request.OrderId,
+                request.RefundAttemptCount
+            );
             throw;
         }
     }

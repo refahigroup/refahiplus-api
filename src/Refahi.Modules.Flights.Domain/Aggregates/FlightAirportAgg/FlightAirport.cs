@@ -2,9 +2,7 @@ namespace Refahi.Modules.Flights.Domain.Aggregates.FlightAirportAgg;
 
 public sealed class FlightAirport
 {
-    private FlightAirport()
-    {
-    }
+    private FlightAirport() { }
 
     private FlightAirport(
         string iataCode,
@@ -23,7 +21,8 @@ public sealed class FlightAirport
         string sourceVersion,
         string translationSource,
         string searchText,
-        DateTime importedAtUtc)
+        DateTime importedAtUtc
+    )
     {
         IataCode = iataCode;
         Apply(
@@ -42,7 +41,8 @@ public sealed class FlightAirport
             sourceVersion,
             translationSource,
             searchText,
-            importedAtUtc);
+            importedAtUtc
+        );
     }
 
     public string IataCode { get; private set; } = string.Empty;
@@ -81,8 +81,9 @@ public sealed class FlightAirport
         string sourceVersion,
         string translationSource,
         string searchText,
-        DateTime importedAtUtc)
-        => new(
+        DateTime importedAtUtc
+    ) =>
+        new(
             NormalizeCode(iataCode, 3),
             string.IsNullOrWhiteSpace(icaoCode) ? null : NormalizeCode(icaoCode, 4),
             NormalizeCode(cityCode, 3),
@@ -99,7 +100,8 @@ public sealed class FlightAirport
             Required(sourceVersion, nameof(sourceVersion)),
             Required(translationSource, nameof(translationSource)),
             Required(searchText, nameof(searchText)),
-            importedAtUtc);
+            importedAtUtc
+        );
 
     public void RefreshFromSource(
         string? icaoCode,
@@ -117,8 +119,9 @@ public sealed class FlightAirport
         string sourceVersion,
         string translationSource,
         string searchText,
-        DateTime importedAtUtc)
-        => Apply(
+        DateTime importedAtUtc
+    ) =>
+        Apply(
             string.IsNullOrWhiteSpace(icaoCode) ? null : NormalizeCode(icaoCode, 4),
             NormalizeCode(cityCode, 3),
             Required(airportNameFa, nameof(airportNameFa)),
@@ -134,7 +137,8 @@ public sealed class FlightAirport
             Required(sourceVersion, nameof(sourceVersion)),
             Required(translationSource, nameof(translationSource)),
             Required(searchText, nameof(searchText)),
-            importedAtUtc);
+            importedAtUtc
+        );
 
     public void Deactivate() => IsActive = false;
 
@@ -154,7 +158,8 @@ public sealed class FlightAirport
         string sourceVersion,
         string translationSource,
         string searchText,
-        DateTime importedAtUtc)
+        DateTime importedAtUtc
+    )
     {
         IcaoCode = icaoCode;
         CityCode = cityCode;

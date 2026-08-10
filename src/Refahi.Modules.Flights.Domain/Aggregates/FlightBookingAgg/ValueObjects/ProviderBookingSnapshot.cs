@@ -17,7 +17,8 @@ public sealed class ProviderBookingSnapshot : ValueObject
         DateTime bookedAtUtc,
         string? providerPnr = null,
         string? providerTraceId = null,
-        string? snapshotJson = null)
+        string? snapshotJson = null
+    )
     {
         if (string.IsNullOrWhiteSpace(providerBookingId))
         {
@@ -33,7 +34,9 @@ public sealed class ProviderBookingSnapshot : ValueObject
         ProviderBookingCaption = providerBookingCaption.Trim();
         BookedAtUtc = bookedAtUtc;
         ProviderPnr = string.IsNullOrWhiteSpace(providerPnr) ? null : providerPnr.Trim();
-        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId) ? null : providerTraceId.Trim();
+        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId)
+            ? null
+            : providerTraceId.Trim();
         SnapshotJson = string.IsNullOrWhiteSpace(snapshotJson) ? null : snapshotJson.Trim();
     }
 

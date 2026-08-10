@@ -1,3 +1,4 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +11,6 @@ using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
-using System;
 
 namespace Refahi.Modules.PaymentGateway.Infrastructure;
 
@@ -18,7 +18,8 @@ public static class DI
 {
     public static IServiceCollection RegisterInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration
+    )
     {
         string connectionString = configuration.GetConnectionString();
 
@@ -31,10 +32,14 @@ public static class DI
 
         // Providers
         services.UseSepProvider(configuration);
-        services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<SepPaymentGatewayProvider>());
+        services.AddScoped<IPaymentGatewayProvider>(sp =>
+            sp.GetRequiredService<SepPaymentGatewayProvider>()
+        );
 
         services.UseJibitProvider(configuration);
-        services.AddScoped<IPaymentGatewayProvider>(sp => sp.GetRequiredService<JibitPaymentGatewayProvider>());
+        services.AddScoped<IPaymentGatewayProvider>(sp =>
+            sp.GetRequiredService<JibitPaymentGatewayProvider>()
+        );
 
         services.AddScoped<IPaymentGatewayProviderFactory, PaymentGatewayProviderFactory>();
 

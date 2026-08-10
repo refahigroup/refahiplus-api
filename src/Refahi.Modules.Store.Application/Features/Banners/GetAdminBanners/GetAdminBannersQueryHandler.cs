@@ -6,7 +6,8 @@ using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Banners.GetAdminBanners;
 
-public class GetAdminBannersQueryHandler : IRequestHandler<GetAdminBannersQuery, List<AdminBannerDto>>
+public class GetAdminBannersQueryHandler
+    : IRequestHandler<GetAdminBannersQuery, List<AdminBannerDto>>
 {
     private readonly IBannerRepository _bannerRepo;
     private readonly IPathService _pathService;
@@ -17,7 +18,10 @@ public class GetAdminBannersQueryHandler : IRequestHandler<GetAdminBannersQuery,
         _pathService = pathService;
     }
 
-    public async Task<List<AdminBannerDto>> Handle(GetAdminBannersQuery request, CancellationToken cancellationToken)
+    public async Task<List<AdminBannerDto>> Handle(
+        GetAdminBannersQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var banners = await _bannerRepo.GetAllAsync(request.ModuleId, ct: cancellationToken);
 
@@ -29,10 +33,18 @@ public class GetAdminBannersQueryHandler : IRequestHandler<GetAdminBannersQuery,
         return filtered
             .OrderBy(b => b.SortOrder)
             .Select(b => new AdminBannerDto(
-                b.Id, b.ModuleId, b.ShopId, b.Title, _pathService.MakeAbsoluteMediaUrl(b.ImageUrl), b.LinkUrl,
+                b.Id,
+                b.ModuleId,
+                b.ShopId,
+                b.Title,
+                _pathService.MakeAbsoluteMediaUrl(b.ImageUrl),
+                b.LinkUrl,
                 b.BannerType.ToString(),
-                b.SortOrder, b.IsActive,
-                b.StartDate, b.EndDate))
+                b.SortOrder,
+                b.IsActive,
+                b.StartDate,
+                b.EndDate
+            ))
             .ToList();
     }
 }

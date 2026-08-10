@@ -16,9 +16,21 @@ public sealed class GetCatalogProductsEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("catalog/operators/{operator}/products", async (string @operator, ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(
-                new GetProductsQuery(ChargeEndpointHelpers.ParseOperator(@operator)), ct))))
+        routes
+            .MapGet(
+                "catalog/operators/{operator}/products",
+                async (string @operator, ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(
+                                new GetProductsQuery(
+                                    ChargeEndpointHelpers.ParseOperator(@operator)
+                                ),
+                                ct
+                            )
+                        )
+                    )
+            )
             .RequireRateLimiting(ChargeRateLimiting.PublicCatalogPolicy)
             .WithName("Charge.Catalog.Products")
             .WithTags("Charge.Catalog")

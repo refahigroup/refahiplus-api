@@ -13,8 +13,7 @@ public sealed record CreatePaymentIntentResponse(
     string Currency,
     string Status,
     List<AllocationResponse> Allocations,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);
 
-public sealed record AllocationResponse(
-    Guid WalletId,
-    long AmountMinor);
+public sealed record AllocationResponse(Guid WalletId, long AmountMinor);

@@ -1,3 +1,5 @@
+using System;
+using System.Net.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -6,14 +8,15 @@ using Polly.Extensions.Http;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit.Api;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit.Config;
 using Refahi.Shared.Extensions;
-using System;
-using System.Net.Http;
 
 namespace Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit;
 
 internal static class DI
 {
-    public static IServiceCollection UseJibitProvider(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection UseJibitProvider(
+        this IServiceCollection services,
+        IConfiguration config
+    )
     {
         services.Configure<JibitOptions>(config.GetSection("PaymentGateway:Providers:Jibit"));
 
@@ -24,13 +27,16 @@ internal static class DI
             options.SecretKey = options.SecretKey.ReplaceWithEnvironmentVariables();
         });
 
-        services.AddHttpClient<JibitApiClient>((sp, client) =>
-        {
-            var opts = sp.GetRequiredService<IOptions<JibitOptions>>().Value;
-            client.BaseAddress = new Uri(opts.BaseUrl.TrimEnd('/') + "/");
-            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
-        })
-        .AddPolicyHandler((sp, _) => CreateResiliencePolicy(sp));
+        services
+            .AddHttpClient<JibitApiClient>(
+                (sp, client) =>
+                {
+                    var opts = sp.GetRequiredService<IOptions<JibitOptions>>().Value;
+                    client.BaseAddress = new Uri(opts.BaseUrl.TrimEnd('/') + "/");
+                    client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
+                }
+            )
+            .AddPolicyHandler((sp, _) => CreateResiliencePolicy(sp));
 
         services.AddScoped<JibitPaymentGatewayProvider>();
 
@@ -45,16 +51,19 @@ internal static class DI
             .HandleTransientHttpError()
             .WaitAndRetryAsync(
                 retryCount: opts.RetryCount,
-                sleepDurationProvider: _ => TimeSpan.FromMilliseconds(opts.RetryDelayMilliseconds));
+                sleepDurationProvider: _ => TimeSpan.FromMilliseconds(opts.RetryDelayMilliseconds)
+            );
 
         var circuitBreaker = HttpPolicyExtensions
             .HandleTransientHttpError()
             .CircuitBreakerAsync(
                 handledEventsAllowedBeforeBreaking: opts.CircuitBreakerFailuresBeforeTrip,
-                durationOfBreak: TimeSpan.FromSeconds(opts.CircuitBreakerDurationSeconds));
+                durationOfBreak: TimeSpan.FromSeconds(opts.CircuitBreakerDurationSeconds)
+            );
 
         var timeout = Policy.TimeoutAsync<HttpResponseMessage>(
-            TimeSpan.FromSeconds(opts.TimeoutSeconds));
+            TimeSpan.FromSeconds(opts.TimeoutSeconds)
+        );
 
         return Policy.WrapAsync(retry, circuitBreaker, timeout);
     }

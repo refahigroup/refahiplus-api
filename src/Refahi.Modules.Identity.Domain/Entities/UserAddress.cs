@@ -73,9 +73,20 @@ public class UserAddress
         string? unit = null,
         double? latitude = null,
         double? longitude = null,
-        bool isDefault = false)
+        bool isDefault = false
+    )
     {
-        ValidateInput(title, provinceId, cityId, fullAddress, postalCode, receiverName, receiverPhone, plate, unit);
+        ValidateInput(
+            title,
+            provinceId,
+            cityId,
+            fullAddress,
+            postalCode,
+            receiverName,
+            receiverPhone,
+            plate,
+            unit
+        );
 
         return new UserAddress
         {
@@ -94,7 +105,7 @@ public class UserAddress
             Longitude = longitude,
             IsDefault = isDefault,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
     }
 
@@ -112,9 +123,20 @@ public class UserAddress
         string? plate = null,
         string? unit = null,
         double? latitude = null,
-        double? longitude = null)
+        double? longitude = null
+    )
     {
-        ValidateInput(title, provinceId, cityId, fullAddress, postalCode, receiverName, receiverPhone, plate, unit);
+        ValidateInput(
+            title,
+            provinceId,
+            cityId,
+            fullAddress,
+            postalCode,
+            receiverName,
+            receiverPhone,
+            plate,
+            unit
+        );
 
         Title = title?.Trim() ?? string.Empty;
         ProvinceId = provinceId;
@@ -135,7 +157,8 @@ public class UserAddress
     /// </summary>
     public void MarkAsDefault()
     {
-        if (IsDefault) return;
+        if (IsDefault)
+            return;
         IsDefault = true;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
@@ -145,7 +168,8 @@ public class UserAddress
     /// </summary>
     public void UnmarkAsDefault()
     {
-        if (!IsDefault) return;
+        if (!IsDefault)
+            return;
         IsDefault = false;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
@@ -163,10 +187,14 @@ public class UserAddress
         string receiverName,
         string receiverPhone,
         string? plate,
-        string? unit)
+        string? unit
+    )
     {
         if (title?.Length > 100)
-            throw new DomainException("عنوان آدرس نمی‌تواند بیشتر از ۱۰۰ کاراکتر باشد", "INVALID_ADDRESS_TITLE");
+            throw new DomainException(
+                "عنوان آدرس نمی‌تواند بیشتر از ۱۰۰ کاراکتر باشد",
+                "INVALID_ADDRESS_TITLE"
+            );
 
         if (provinceId <= 0)
             throw new DomainException("استان نامعتبر است", "INVALID_PROVINCE");
@@ -177,8 +205,11 @@ public class UserAddress
         if (string.IsNullOrWhiteSpace(fullAddress))
             throw new DomainException("متن آدرس الزامی است", "ADDRESS_TEXT_REQUIRED");
 
-        if (string.IsNullOrWhiteSpace(postalCode) || postalCode.Trim().Length != 10 ||
-            postalCode.Trim().Any(character => character is < '0' or > '9'))
+        if (
+            string.IsNullOrWhiteSpace(postalCode)
+            || postalCode.Trim().Length != 10
+            || postalCode.Trim().Any(character => character is < '0' or > '9')
+        )
             throw new DomainException("کد پستی باید ۱۰ رقم باشد", "INVALID_POSTAL_CODE");
 
         if (string.IsNullOrWhiteSpace(plate))
@@ -194,7 +225,11 @@ public class UserAddress
             throw new DomainException("شماره تحویل‌گیرنده الزامی است", "RECEIVER_PHONE_REQUIRED");
 
         var phone = receiverPhone.Trim();
-        if (phone.Length != 11 || !phone.StartsWith("09") || phone.Any(character => character is < '0' or > '9'))
+        if (
+            phone.Length != 11
+            || !phone.StartsWith("09")
+            || phone.Any(character => character is < '0' or > '9')
+        )
             throw new DomainException("شماره تحویل‌گیرنده نامعتبر است", "INVALID_RECEIVER_PHONE");
     }
 }

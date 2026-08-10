@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -6,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Identity.Application.Features.Roles.AssignRole;
 using Refahi.Modules.Identity.Application.Features.Roles.RemoveRole;
 using Refahi.Shared.Presentation;
-using System.Security.Claims;
 
 namespace Refahi.Modules.Identity.Api.Endpoints.Roles;
 
@@ -18,36 +18,44 @@ public class AssignRoleEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/users/{userId}/roles", async (
-                Guid userId,
-                [FromBody] AssignRoleRequest request,
-                HttpContext httpContext,
-                IMediator mediator) =>
-        {
-            var currentUserIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        routes
+            .MapPost(
+                "/users/{userId}/roles",
+                async (
+                    Guid userId,
+                    [FromBody] AssignRoleRequest request,
+                    HttpContext httpContext,
+                    IMediator mediator
+                ) =>
+                {
+                    var currentUserIdClaim = httpContext
+                        .User.FindFirst(ClaimTypes.NameIdentifier)
+                        ?.Value;
 
-            if (string.IsNullOrEmpty(currentUserIdClaim) || !Guid.TryParse(currentUserIdClaim, out var currentUserId))
-                return Results.Unauthorized();
+                    if (
+                        string.IsNullOrEmpty(currentUserIdClaim)
+                        || !Guid.TryParse(currentUserIdClaim, out var currentUserId)
+                    )
+                        return Results.Unauthorized();
 
-            var command = new AssignRoleCommand(userId, request.Role, currentUserId);
-            var result = await mediator.Send(command);
+                    var command = new AssignRoleCommand(userId, request.Role, currentUserId);
+                    var result = await mediator.Send(command);
 
-            if (!result.Success)
-                return Results.BadRequest(new { error = result.ErrorMessage });
+                    if (!result.Success)
+                        return Results.BadRequest(new { error = result.ErrorMessage });
 
-            return Results.Ok(new
-            {
-                success = true,
-                message = "Role assigned successfully"
-            });
-        })
-        .RequireAuthorization("AdminOnly")
-        .WithName("Identity.AssignRole")
-        .WithTags("Identity")
-        .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status403Forbidden);
+                    return Results.Ok(
+                        new { success = true, message = "Role assigned successfully" }
+                    );
+                }
+            )
+            .RequireAuthorization("AdminOnly")
+            .WithName("Identity.AssignRole")
+            .WithTags("Identity")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
     }
 }
 

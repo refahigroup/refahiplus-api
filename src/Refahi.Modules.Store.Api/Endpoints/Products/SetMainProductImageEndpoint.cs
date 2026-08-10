@@ -11,23 +11,26 @@ public class SetMainProductImageEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPatch("/provider/products/{id:guid}/images/{imageId:int}/set-main", async (
-            Guid id,
-            int imageId,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            await mediator.Send(new SetMainProductImageCommand(id, imageId), ct);
-            return Results.Ok(ApiResponseHelper.Success<object?>(null, "تصویر اصلی با موفقیت تنظیم شد"));
-        })
-        .WithName("Store.SetMainProductImage")
-        .WithTags("Store.Products")
-        .RequireAuthorization("VendorOrAdmin")
-        .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapPatch(
+                "/provider/products/{id:guid}/images/{imageId:int}/set-main",
+                async (Guid id, int imageId, IMediator mediator, CancellationToken ct) =>
+                {
+                    await mediator.Send(new SetMainProductImageCommand(id, imageId), ct);
+                    return Results.Ok(
+                        ApiResponseHelper.Success<object?>(null, "تصویر اصلی با موفقیت تنظیم شد")
+                    );
+                }
+            )
+            .WithName("Store.SetMainProductImage")
+            .WithTags("Store.Products")
+            .RequireAuthorization("VendorOrAdmin")
+            .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

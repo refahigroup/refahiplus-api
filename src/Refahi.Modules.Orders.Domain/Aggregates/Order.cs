@@ -13,19 +13,24 @@ namespace Refahi.Modules.Orders.Domain.Aggregates;
 /// </summary>
 public sealed class Order
 {
-    private Order() { _items = new List<OrderItem>(); _paymentPostings = new List<OrderPaymentPosting>(); _domainEvents = new List<IDomainEvent>(); }
+    private Order()
+    {
+        _items = new List<OrderItem>();
+        _paymentPostings = new List<OrderPaymentPosting>();
+        _domainEvents = new List<IDomainEvent>();
+    }
 
     public Guid Id { get; private set; }
-    public string OrderNumber { get; private set; } = string.Empty;    // شماره سفارش یکتا (مثل "ORD-240413-XXXX")
-    public Guid UserId { get; private set; }                           // FK → Identity (via Contract)
+    public string OrderNumber { get; private set; } = string.Empty; // شماره سفارش یکتا (مثل "ORD-240413-XXXX")
+    public Guid UserId { get; private set; } // FK → Identity (via Contract)
 
     // --- مبالغ (long / ریال) ---
-    public long TotalAmountMinor { get; private set; }                 // جمع کل قبل از تخفیف
-    public long DiscountAmountMinor { get; private set; }              // مجموع تخفیفات کالاها
-    public long ShippingFeeMinor { get; private set; }                 // هزینه ارسال
-    public string? DiscountCode { get; private set; }                  // کد تخفیف اعمال‌شده
-    public long DiscountCodeAmountMinor { get; private set; }          // مبلغ کاسته‌شده توسط کد تخفیف
-    public long FinalAmountMinor { get; private set; }                 // مبلغ نهایی قابل پرداخت
+    public long TotalAmountMinor { get; private set; } // جمع کل قبل از تخفیف
+    public long DiscountAmountMinor { get; private set; } // مجموع تخفیفات کالاها
+    public long ShippingFeeMinor { get; private set; } // هزینه ارسال
+    public string? DiscountCode { get; private set; } // کد تخفیف اعمال‌شده
+    public long DiscountCodeAmountMinor { get; private set; } // مبلغ کاسته‌شده توسط کد تخفیف
+    public long FinalAmountMinor { get; private set; } // مبلغ نهایی قابل پرداخت
     public string Currency { get; private set; } = "IRR";
 
     // --- وضعیت ---
@@ -33,17 +38,17 @@ public sealed class Order
     public PaymentState PaymentState { get; private set; }
 
     // --- ارتباط با Wallet ---
-    public Guid? PaymentIntentId { get; private set; }                 // از Wallets Module
-    public Guid? PaymentId { get; private set; }                       // از Wallets Module
+    public Guid? PaymentIntentId { get; private set; } // از Wallets Module
+    public Guid? PaymentId { get; private set; } // از Wallets Module
 
     // --- ماژول مبدا ---
-    public string SourceModule { get; private set; } = string.Empty;  // "Store", "Hotel", "Flight"
-    public Guid? SourceReferenceId { get; private set; }              // رفرنس اختیاری به رکورد اصلی در ماژول مبدا
-    public Guid? SourceOwnerId { get; private set; }                  // مالک منبع (برای Store برابر SupplierId)
-    public Guid? SourceShopId { get; private set; }                   // فروشگاه مبدا
-    public Guid? CreatedByUserId { get; private set; }                // اپراتور ایجادکننده سفارش
+    public string SourceModule { get; private set; } = string.Empty; // "Store", "Hotel", "Flight"
+    public Guid? SourceReferenceId { get; private set; } // رفرنس اختیاری به رکورد اصلی در ماژول مبدا
+    public Guid? SourceOwnerId { get; private set; } // مالک منبع (برای Store برابر SupplierId)
+    public Guid? SourceShopId { get; private set; } // فروشگاه مبدا
+    public Guid? CreatedByUserId { get; private set; } // اپراتور ایجادکننده سفارش
     public string ReferenceType { get; private set; } = string.Empty; // "HotelRequest", "Cart", ...
-    public Guid? SagaId { get; private set; }                         // optional workflow correlation id
+    public Guid? SagaId { get; private set; } // optional workflow correlation id
     public long? GrossAmountMinor { get; private set; }
     public decimal? CommissionPercent { get; private set; }
     public long? CommissionAmountMinor { get; private set; }
@@ -54,10 +59,10 @@ public sealed class Order
     public Guid? ReferenceId => SourceReferenceId;
 
     // --- اطلاعات ارسال (Snapshot از Identity) ---
-    public Guid? ShippingAddressId { get; private set; }              // FK soft → Identity.UserAddress
-    public string? ShippingAddressSnapshotJson { get; private set; }  // Snapshot JSON آدرس برای حفظ تاریخچه
-    public DateOnly? DeliveryDate { get; private set; }               // روز تحویل
-    public DeliveryTimeSlot DeliveryTimeSlot { get; private set; }    // بازه‌ی ساعتی تحویل (فاز ۲)
+    public Guid? ShippingAddressId { get; private set; } // FK soft → Identity.UserAddress
+    public string? ShippingAddressSnapshotJson { get; private set; } // Snapshot JSON آدرس برای حفظ تاریخچه
+    public DateOnly? DeliveryDate { get; private set; } // روز تحویل
+    public DeliveryTimeSlot DeliveryTimeSlot { get; private set; } // بازه‌ی ساعتی تحویل (فاز ۲)
 
     // --- Idempotency ---
     public string IdempotencyKey { get; private set; } = string.Empty;
@@ -91,7 +96,9 @@ public sealed class Order
             return OrderPaymentEligibility.Unavailable("وضعیت سفارش برای پرداخت معتبر نیست");
 
         if (PaymentState is not PaymentState.Unpaid and not PaymentState.Reserved)
-            return OrderPaymentEligibility.Unavailable("وضعیت پرداخت سفارش برای ادامه پرداخت معتبر نیست");
+            return OrderPaymentEligibility.Unavailable(
+                "وضعیت پرداخت سفارش برای ادامه پرداخت معتبر نیست"
+            );
 
         if (PayableUntil.HasValue && PayableUntil.Value <= now)
             return OrderPaymentEligibility.Unavailable("مهلت پرداخت سفارش به پایان رسیده است");
@@ -125,16 +132,23 @@ public sealed class Order
         Guid? sourceShopId = null,
         Guid? createdByUserId = null,
         OrderFinancialSnapshotData? financialSnapshot = null,
-        IReadOnlyList<OrderPaymentPostingData>? paymentPostings = null)
+        IReadOnlyList<OrderPaymentPostingData>? paymentPostings = null
+    )
     {
         if (items is null || items.Count == 0)
             throw new OrderDomainException("سفارش باید حداقل یک آیتم داشته باشد", "ORDER_EMPTY");
 
         if (shippingFeeMinor < 0)
-            throw new OrderDomainException("هزینه ارسال نمی‌تواند منفی باشد", "INVALID_SHIPPING_FEE");
+            throw new OrderDomainException(
+                "هزینه ارسال نمی‌تواند منفی باشد",
+                "INVALID_SHIPPING_FEE"
+            );
 
         if (discountCodeAmountMinor < 0)
-            throw new OrderDomainException("مبلغ کد تخفیف نمی‌تواند منفی باشد", "INVALID_DISCOUNT_CODE_AMOUNT");
+            throw new OrderDomainException(
+                "مبلغ کد تخفیف نمی‌تواند منفی باشد",
+                "INVALID_DISCOUNT_CODE_AMOUNT"
+            );
 
         var order = new Order
         {
@@ -155,7 +169,9 @@ public sealed class Order
             VatPercent = financialSnapshot?.VatPercent,
             VatAmountMinor = financialSnapshot?.VatAmountMinor,
             RecipientNetAmountMinor = financialSnapshot?.RecipientNetAmountMinor,
-            ReferenceType = string.IsNullOrWhiteSpace(referenceType) ? sourceModule : referenceType.Trim(),
+            ReferenceType = string.IsNullOrWhiteSpace(referenceType)
+                ? sourceModule
+                : referenceType.Trim(),
             SagaId = sagaId,
             PayableUntil = payableUntil,
             IdempotencyKey = idempotencyKey,
@@ -167,40 +183,46 @@ public sealed class Order
             DiscountCode = string.IsNullOrWhiteSpace(discountCode) ? null : discountCode.Trim(),
             DiscountCodeAmountMinor = discountCodeAmountMinor,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
 
         var sortOrder = 0;
         foreach (var item in items)
         {
-            order._items.Add(OrderItem.Create(
-                orderId: order.Id,
-                title: item.Title,
-                unitPriceMinor: item.UnitPriceMinor,
-                quantity: item.Quantity,
-                discountAmountMinor: item.DiscountAmountMinor,
-                sourceModule: sourceModule,
-                sourceItemId: item.SourceItemId,
-                categoryCode: item.CategoryCode,
-                tags: item.Tags,
-                metadataJson: item.MetadataJson,
-                sortOrder: sortOrder++,
-                deliveryMethod: item.DeliveryMethod));
+            order._items.Add(
+                OrderItem.Create(
+                    orderId: order.Id,
+                    title: item.Title,
+                    unitPriceMinor: item.UnitPriceMinor,
+                    quantity: item.Quantity,
+                    discountAmountMinor: item.DiscountAmountMinor,
+                    sourceModule: sourceModule,
+                    sourceItemId: item.SourceItemId,
+                    categoryCode: item.CategoryCode,
+                    tags: item.Tags,
+                    metadataJson: item.MetadataJson,
+                    sortOrder: sortOrder++,
+                    deliveryMethod: item.DeliveryMethod
+                )
+            );
         }
 
         order.RecalculateAmounts();
         order.ValidateAndAddPaymentPlan(financialSnapshot, paymentPostings);
 
-        order.AddDomainEvent(new OrderCreatedEvent(
-            OrderId: order.Id,
-            OrderNumber: order.OrderNumber,
-            UserId: order.UserId,
-            SourceModule: order.SourceModule,
-            SourceReferenceId: order.SourceReferenceId,
-            ReferenceType: order.ReferenceType,
-            SagaId: order.SagaId,
-            FinalAmountMinor: order.FinalAmountMinor,
-            OccurredAt: DateTimeOffset.UtcNow));
+        order.AddDomainEvent(
+            new OrderCreatedEvent(
+                OrderId: order.Id,
+                OrderNumber: order.OrderNumber,
+                UserId: order.UserId,
+                SourceModule: order.SourceModule,
+                SourceReferenceId: order.SourceReferenceId,
+                ReferenceType: order.ReferenceType,
+                SagaId: order.SagaId,
+                FinalAmountMinor: order.FinalAmountMinor,
+                OccurredAt: DateTimeOffset.UtcNow
+            )
+        );
 
         return order;
     }
@@ -235,17 +257,20 @@ public sealed class Order
         Status = OrderStatus.Confirmed;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new OrderPaidEvent(
-            OrderId: Id,
-            OrderNumber: OrderNumber,
-            UserId: UserId,
-            SourceModule: SourceModule,
-            SourceReferenceId: SourceReferenceId,
-            ReferenceType: ReferenceType,
-            SagaId: SagaId,
-            PaymentId: paymentId,
-            AmountMinor: FinalAmountMinor,
-            OccurredAt: DateTimeOffset.UtcNow));
+        AddDomainEvent(
+            new OrderPaidEvent(
+                OrderId: Id,
+                OrderNumber: OrderNumber,
+                UserId: UserId,
+                SourceModule: SourceModule,
+                SourceReferenceId: SourceReferenceId,
+                ReferenceType: ReferenceType,
+                SagaId: SagaId,
+                PaymentId: paymentId,
+                AmountMinor: FinalAmountMinor,
+                OccurredAt: DateTimeOffset.UtcNow
+            )
+        );
     }
 
     /// <summary>
@@ -254,7 +279,10 @@ public sealed class Order
     public void Cancel()
     {
         if (Status == OrderStatus.Delivered)
-            throw new OrderDomainException("سفارش تحویل شده قابل لغو نیست", "CANNOT_CANCEL_DELIVERED");
+            throw new OrderDomainException(
+                "سفارش تحویل شده قابل لغو نیست",
+                "CANNOT_CANCEL_DELIVERED"
+            );
         if (Status == OrderStatus.Cancelled)
             throw new OrderDomainException("سفارش قبلاً لغو شده", "ALREADY_CANCELLED");
 
@@ -296,40 +324,48 @@ public sealed class Order
         {
             (OrderStatus.Confirmed, OrderStatus.Processing) => true,
             (OrderStatus.Processing, OrderStatus.Shipped) => true,
-            (OrderStatus.Processing, OrderStatus.Delivered) when _items.All(x => x.DeliveryMethod == DeliveryMethod.None) => true,
+            (OrderStatus.Processing, OrderStatus.Delivered)
+                when _items.All(x => x.DeliveryMethod == DeliveryMethod.None) => true,
             (OrderStatus.Shipped, OrderStatus.Delivered) => true,
             (OrderStatus.Confirmed, OrderStatus.Cancelled) => true,
             (OrderStatus.Processing, OrderStatus.Cancelled) => true,
-            _ => false
+            _ => false,
         };
 
         if (!allowed)
             throw new OrderDomainException(
                 $"تغییر وضعیت از {Status} به {newStatus} مجاز نیست",
-                "INVALID_STATUS_TRANSITION");
+                "INVALID_STATUS_TRANSITION"
+            );
 
         var oldStatus = Status.ToString();
         Status = newStatus;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new OrderStatusChangedEvent(
-            OrderId: Id,
-            OrderNumber: OrderNumber,
-            OldStatus: oldStatus,
-            NewStatus: newStatus.ToString(),
-            OccurredAt: DateTimeOffset.UtcNow));
+        AddDomainEvent(
+            new OrderStatusChangedEvent(
+                OrderId: Id,
+                OrderNumber: OrderNumber,
+                OldStatus: oldStatus,
+                NewStatus: newStatus.ToString(),
+                OccurredAt: DateTimeOffset.UtcNow
+            )
+        );
 
         if (newStatus == OrderStatus.Delivered)
         {
-            AddDomainEvent(new OrderDeliveredEvent(
-                OrderId: Id,
-                OrderNumber: OrderNumber,
-                UserId: UserId,
-                SourceModule: SourceModule,
-                SourceReferenceId: SourceReferenceId,
-                ReferenceType: ReferenceType,
-                SagaId: SagaId,
-                OccurredAt: DateTimeOffset.UtcNow));
+            AddDomainEvent(
+                new OrderDeliveredEvent(
+                    OrderId: Id,
+                    OrderNumber: OrderNumber,
+                    UserId: UserId,
+                    SourceModule: SourceModule,
+                    SourceReferenceId: SourceReferenceId,
+                    ReferenceType: ReferenceType,
+                    SagaId: SagaId,
+                    OccurredAt: DateTimeOffset.UtcNow
+                )
+            );
         }
     }
 
@@ -342,54 +378,102 @@ public sealed class Order
         TotalAmountMinor = _items.Sum(i => i.UnitPriceMinor * i.Quantity);
         DiscountAmountMinor = _items.Sum(i => i.DiscountAmountMinor);
         // فرمول نهایی: قیمت کل - تخفیف کالاها - تخفیف کد + هزینه ارسال
-        var final = TotalAmountMinor - DiscountAmountMinor - DiscountCodeAmountMinor + ShippingFeeMinor;
-        if (final < 0) final = 0;
+        var final =
+            TotalAmountMinor - DiscountAmountMinor - DiscountCodeAmountMinor + ShippingFeeMinor;
+        if (final < 0)
+            final = 0;
         FinalAmountMinor = final;
     }
 
     private void ValidateAndAddPaymentPlan(
         OrderFinancialSnapshotData? snapshot,
-        IReadOnlyList<OrderPaymentPostingData>? postings)
+        IReadOnlyList<OrderPaymentPostingData>? postings
+    )
     {
-        var isInPerson = string.Equals(ReferenceType, "StoreInPerson", StringComparison.OrdinalIgnoreCase);
+        var isInPerson = string.Equals(
+            ReferenceType,
+            "StoreInPerson",
+            StringComparison.OrdinalIgnoreCase
+        );
         if (!isInPerson)
         {
             if (snapshot is not null || postings is { Count: > 0 })
-                throw new OrderDomainException("طرح مالی فقط برای سفارش حضوری پشتیبانی می‌شود", "UNSUPPORTED_PAYMENT_PLAN");
+                throw new OrderDomainException(
+                    "طرح مالی فقط برای سفارش حضوری پشتیبانی می‌شود",
+                    "UNSUPPORTED_PAYMENT_PLAN"
+                );
             return;
         }
 
-        if (_items.Count != 1 || _items[0].Quantity != 1 || _items[0].DiscountAmountMinor != 0 ||
-            ShippingFeeMinor != 0 || DiscountCodeAmountMinor != 0 || SourceReferenceId.HasValue ||
-            !_items[0].SourceItemId.HasValue)
-            throw new OrderDomainException("ساختار سفارش حضوری معتبر نیست", "INVALID_IN_PERSON_ORDER");
+        if (
+            _items.Count != 1
+            || _items[0].Quantity != 1
+            || _items[0].DiscountAmountMinor != 0
+            || ShippingFeeMinor != 0
+            || DiscountCodeAmountMinor != 0
+            || SourceReferenceId.HasValue
+            || !_items[0].SourceItemId.HasValue
+        )
+            throw new OrderDomainException(
+                "ساختار سفارش حضوری معتبر نیست",
+                "INVALID_IN_PERSON_ORDER"
+            );
 
         if (snapshot is null || postings is null || postings.Count == 0)
-            throw new OrderDomainException("اطلاعات مالی سفارش حضوری الزامی است", "IN_PERSON_FINANCIAL_PLAN_REQUIRED");
+            throw new OrderDomainException(
+                "اطلاعات مالی سفارش حضوری الزامی است",
+                "IN_PERSON_FINANCIAL_PLAN_REQUIRED"
+            );
 
-        var expectedCommission = CalculatePercentage(snapshot.GrossAmountMinor, snapshot.CommissionPercent);
+        var expectedCommission = CalculatePercentage(
+            snapshot.GrossAmountMinor,
+            snapshot.CommissionPercent
+        );
         var expectedVat = CalculatePercentage(expectedCommission, snapshot.VatPercent);
-        if (snapshot.GrossAmountMinor != FinalAmountMinor || snapshot.GrossAmountMinor != _items[0].UnitPriceMinor ||
-            snapshot.CommissionAmountMinor != expectedCommission || snapshot.VatAmountMinor != expectedVat ||
-            snapshot.RecipientNetAmountMinor != snapshot.GrossAmountMinor - expectedCommission - expectedVat ||
-            snapshot.RecipientNetAmountMinor < 0)
-            throw new OrderDomainException("محاسبات مالی سفارش حضوری معتبر نیست", "INVALID_IN_PERSON_FINANCIAL_SNAPSHOT");
+        if (
+            snapshot.GrossAmountMinor != FinalAmountMinor
+            || snapshot.GrossAmountMinor != _items[0].UnitPriceMinor
+            || snapshot.CommissionAmountMinor != expectedCommission
+            || snapshot.VatAmountMinor != expectedVat
+            || snapshot.RecipientNetAmountMinor
+                != snapshot.GrossAmountMinor - expectedCommission - expectedVat
+            || snapshot.RecipientNetAmountMinor < 0
+        )
+            throw new OrderDomainException(
+                "محاسبات مالی سفارش حضوری معتبر نیست",
+                "INVALID_IN_PERSON_FINANCIAL_SNAPSHOT"
+            );
 
-        var credits = postings.Where(x => x.Direction == PaymentPostingDirection.Credit).Sum(x => x.AmountMinor);
-        var debits = postings.Where(x => x.Direction == PaymentPostingDirection.Debit).Sum(x => x.AmountMinor);
+        var credits = postings
+            .Where(x => x.Direction == PaymentPostingDirection.Credit)
+            .Sum(x => x.AmountMinor);
+        var debits = postings
+            .Where(x => x.Direction == PaymentPostingDirection.Debit)
+            .Sum(x => x.AmountMinor);
         if (FinalAmountMinor + debits != credits)
-            throw new OrderDomainException("ثبت‌های مالی سفارش تراز نیستند", "UNBALANCED_PAYMENT_POSTINGS");
+            throw new OrderDomainException(
+                "ثبت‌های مالی سفارش تراز نیستند",
+                "UNBALANCED_PAYMENT_POSTINGS"
+            );
 
         for (var i = 0; i < postings.Count; i++)
         {
             var posting = postings[i];
-            _paymentPostings.Add(OrderPaymentPosting.Create(Id, posting.WalletId,
-                posting.Direction, posting.AmountMinor, posting.Purpose, i));
+            _paymentPostings.Add(
+                OrderPaymentPosting.Create(
+                    Id,
+                    posting.WalletId,
+                    posting.Direction,
+                    posting.AmountMinor,
+                    posting.Purpose,
+                    i
+                )
+            );
         }
     }
 
-    private static long CalculatePercentage(long amountMinor, decimal percent)
-        => checked((long)Math.Round(amountMinor * percent / 100m, 0, MidpointRounding.AwayFromZero));
+    private static long CalculatePercentage(long amountMinor, decimal percent) =>
+        checked((long)Math.Round(amountMinor * percent / 100m, 0, MidpointRounding.AwayFromZero));
 
     private static string GenerateOrderNumber()
     {
@@ -411,7 +495,8 @@ public sealed record OrderItemData(
     string CategoryCode,
     string[]? Tags,
     string? MetadataJson,
-    DeliveryMethod DeliveryMethod = DeliveryMethod.None);
+    DeliveryMethod DeliveryMethod = DeliveryMethod.None
+);
 
 public sealed record OrderFinancialSnapshotData(
     long GrossAmountMinor,
@@ -419,13 +504,15 @@ public sealed record OrderFinancialSnapshotData(
     long CommissionAmountMinor,
     decimal VatPercent,
     long VatAmountMinor,
-    long RecipientNetAmountMinor);
+    long RecipientNetAmountMinor
+);
 
 public sealed record OrderPaymentPostingData(
     Guid WalletId,
     PaymentPostingDirection Direction,
     long AmountMinor,
-    string Purpose);
+    string Purpose
+);
 
 public sealed record OrderPaymentEligibility(bool CanPay, string? UnavailableReason)
 {

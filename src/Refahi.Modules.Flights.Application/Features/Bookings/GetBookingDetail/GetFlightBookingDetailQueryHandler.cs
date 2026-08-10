@@ -17,14 +17,20 @@ public sealed class GetFlightBookingDetailQueryHandler
 
     public async Task<FlightBookingDetailDto?> Handle(
         GetFlightBookingDetailQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var booking = await _bookingRepository.GetAsync(new FlightBookingId(request.BookingId), cancellationToken);
+        var booking = await _bookingRepository.GetAsync(
+            new FlightBookingId(request.BookingId),
+            cancellationToken
+        );
         if (booking is null)
             return null;
 
-        if (!string.Equals(request.CallerRole, "Admin", StringComparison.OrdinalIgnoreCase)
-            && booking.UserId != request.UserId)
+        if (
+            !string.Equals(request.CallerRole, "Admin", StringComparison.OrdinalIgnoreCase)
+            && booking.UserId != request.UserId
+        )
         {
             return null;
         }

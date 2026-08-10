@@ -15,39 +15,39 @@ public class SendOtpEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/signup/send-otp", async (
-                [FromBody] SendOtpRequest request,
-                IMediator mediator) =>
-        {
-            if (request == null)
-                return Results.BadRequest("Request body is required");
+        routes
+            .MapPost(
+                "/signup/send-otp",
+                async ([FromBody] SendOtpRequest request, IMediator mediator) =>
+                {
+                    if (request == null)
+                        return Results.BadRequest("Request body is required");
 
-            var command = new SendOtpCommand(
-                request.MobileNumber,
-                request.Email);
+                    var command = new SendOtpCommand(request.MobileNumber, request.Email);
 
-            var result = await mediator.Send(command);
+                    var result = await mediator.Send(command);
 
-            if (!result.Success)
-                return Results.BadRequest(new { error = result.ErrorMessage });
+                    if (!result.Success)
+                        return Results.BadRequest(new { error = result.ErrorMessage });
 
-            return Results.Ok(new
-            {
-                success = true,
-                message = "OTP sent successfully",
-                token = result.Token,
-                expiresAt = result.ExpiresAt,
-                expires_at = result.ExpiresAt,
-                flow = "signUp"
-            });
-        })
-        .WithName("Identity.SignUp.SendOtp")
-        .WithTags("Identity")
-        .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest);
+                    return Results.Ok(
+                        new
+                        {
+                            success = true,
+                            message = "OTP sent successfully",
+                            token = result.Token,
+                            expiresAt = result.ExpiresAt,
+                            expires_at = result.ExpiresAt,
+                            flow = "signUp",
+                        }
+                    );
+                }
+            )
+            .WithName("Identity.SignUp.SendOtp")
+            .WithTags("Identity")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest);
     }
 }
 
-public record SendOtpRequest(
-    string? MobileNumber,
-    string? Email);
+public record SendOtpRequest(string? MobileNumber, string? Email);

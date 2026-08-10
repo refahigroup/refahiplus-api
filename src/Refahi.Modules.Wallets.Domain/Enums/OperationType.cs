@@ -9,5 +9,5 @@ public enum OperationType : short
     Reserve = 2,
     Payment = 3,
     Release = 4,
-    Refund = 5
+    Refund = 5,
 }

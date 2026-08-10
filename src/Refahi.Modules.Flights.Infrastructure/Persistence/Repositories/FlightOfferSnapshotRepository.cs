@@ -15,18 +15,18 @@ public sealed class FlightOfferSnapshotRepository : IFlightOfferSnapshotReposito
 
     public async Task<FlightOfferSnapshot?> GetByTokenAsync(
         string offerToken,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
-        return await _dbContext.FlightOfferSnapshots
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                offer => offer.OfferToken == offerToken,
-                cancellationToken);
+        return await _dbContext
+            .FlightOfferSnapshots.AsNoTracking()
+            .FirstOrDefaultAsync(offer => offer.OfferToken == offerToken, cancellationToken);
     }
 
     public async Task AddAsync(
         FlightOfferSnapshot offerSnapshot,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await _dbContext.FlightOfferSnapshots.AddAsync(offerSnapshot, cancellationToken);
     }

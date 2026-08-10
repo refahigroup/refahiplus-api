@@ -11,21 +11,23 @@ public class CancelSessionEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapDelete("/provider/sessions/{id:guid}", async (
-            Guid id,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new CancelSessionCommand(id), ct);
-            return Results.Ok(ApiResponseHelper.Success(result, "سانس با موفقیت لغو شد"));
-        })
-        .WithName("Store.CancelSession")
-        .WithTags("Store.Sessions")
-        .RequireAuthorization("VendorOrAdmin")
-        .Produces<ApiResponse<CancelSessionResponse>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapDelete(
+                "/provider/sessions/{id:guid}",
+                async (Guid id, IMediator mediator, CancellationToken ct) =>
+                {
+                    var result = await mediator.Send(new CancelSessionCommand(id), ct);
+                    return Results.Ok(ApiResponseHelper.Success(result, "سانس با موفقیت لغو شد"));
+                }
+            )
+            .WithName("Store.CancelSession")
+            .WithTags("Store.Sessions")
+            .RequireAuthorization("VendorOrAdmin")
+            .Produces<ApiResponse<CancelSessionResponse>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

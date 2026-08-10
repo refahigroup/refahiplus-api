@@ -7,10 +7,8 @@ public class SetMainProductImageCommandValidator : AbstractValidator<SetMainProd
 {
     public SetMainProductImageCommandValidator()
     {
-        RuleFor(x => x.ProductId)
-            .NotEmpty().WithMessage("شناسه محصول الزامی است");
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("شناسه محصول الزامی است");
 
-        RuleFor(x => x.ImageId)
-            .GreaterThan(0).WithMessage("شناسه تصویر معتبر نیست");
+        RuleFor(x => x.ImageId).GreaterThan(0).WithMessage("شناسه تصویر معتبر نیست");
     }
 }

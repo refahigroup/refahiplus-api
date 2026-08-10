@@ -6,16 +6,21 @@ using Refahi.Modules.SupplyChain.Domain.Exceptions;
 
 namespace Refahi.Modules.SupplyChain.Application.Features.AgreementProducts.UpdateAgreementProduct;
 
-public class UpdateAgreementProductCommandHandler : IRequestHandler<UpdateAgreementProductCommand, Unit>
+public class UpdateAgreementProductCommandHandler
+    : IRequestHandler<UpdateAgreementProductCommand, Unit>
 {
     private readonly IAgreementRepository _repository;
 
-    public UpdateAgreementProductCommandHandler(IAgreementRepository repository)
-        => _repository = repository;
+    public UpdateAgreementProductCommandHandler(IAgreementRepository repository) =>
+        _repository = repository;
 
-    public async Task<Unit> Handle(UpdateAgreementProductCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        UpdateAgreementProductCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var agreement = await _repository.GetByIdAsync(request.AgreementId, true, cancellationToken)
+        var agreement =
+            await _repository.GetByIdAsync(request.AgreementId, true, cancellationToken)
             ?? throw new SupplyChainDomainException("قرارداد یافت نشد", "AGREEMENT_NOT_FOUND");
 
         agreement.UpdateProduct(
@@ -27,7 +32,8 @@ public class UpdateAgreementProductCommandHandler : IRequestHandler<UpdateAgreem
             (DeliveryType)request.DeliveryType,
             (SalesModel)request.SalesModel,
             request.CommissionPercent,
-            request.VatApplicable);
+            request.VatApplicable
+        );
 
         await _repository.SaveChangesAsync(cancellationToken);
 

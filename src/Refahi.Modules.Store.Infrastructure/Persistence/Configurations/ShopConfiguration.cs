@@ -8,10 +8,10 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
 {
     public void Configure(EntityTypeBuilder<Shop> builder)
     {
-        builder.ToTable("shops", table =>
-            table.HasCheckConstraint(
-                "CK_shops_shop_type",
-                "\"ShopType\" IN (1, 2)"));
+        builder.ToTable(
+            "shops",
+            table => table.HasCheckConstraint("CK_shops_shop_type", "\"ShopType\" IN (1, 2)")
+        );
 
         builder.HasKey(s => s.Id);
 
@@ -19,21 +19,21 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.Property(s => s.Slug).HasMaxLength(200).IsRequired();
         builder.Property(s => s.LogoUrl).HasMaxLength(500);
         builder.Property(s => s.CoverImageUrl).HasMaxLength(500);
-        
+
         // Location
         builder.Property(s => s.ProvinceId);
         builder.Property(s => s.CityId);
         builder.Property(s => s.Address).HasMaxLength(500);
         builder.Property(s => s.Latitude);
         builder.Property(s => s.Longitude);
-        
+
         // Contact info
         builder.Property(s => s.ManagerName).HasMaxLength(200);
         builder.Property(s => s.ManagerPhone).HasMaxLength(20);
         builder.Property(s => s.RepresentativeName).HasMaxLength(200);
         builder.Property(s => s.RepresentativePhone).HasMaxLength(20);
         builder.Property(s => s.ContactPhone).HasMaxLength(20);
-        
+
         builder.Property(s => s.Description).HasMaxLength(2000);
 
         builder.Property(s => s.ShopType).IsRequired();
@@ -49,6 +49,5 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.HasIndex(s => s.SupplierId);
         builder.HasIndex(s => s.CityId);
         builder.HasIndex(s => s.ProvinceId);
-
     }
 }

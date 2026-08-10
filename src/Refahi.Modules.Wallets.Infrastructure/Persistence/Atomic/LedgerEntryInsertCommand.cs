@@ -1,7 +1,7 @@
 #nullable enable
 
-using Refahi.Modules.Wallets.Domain.Enums;
 using System;
+using Refahi.Modules.Wallets.Domain.Enums;
 
 namespace Refahi.Modules.Wallets.Infrastructure.Persistence.Atomic;
 
@@ -11,7 +11,8 @@ namespace Refahi.Modules.Wallets.Infrastructure.Persistence.Atomic;
 /// </summary>
 internal static class LedgerEntryInsertCommand
 {
-    internal const string CommandText = @"
+    internal const string CommandText =
+        @"
 insert into wallets.ledger_entries (
   ledger_entry_id,
   wallet_id,
@@ -56,7 +57,8 @@ values (
         Guid? relatedEntryId,
         RelationType relationType,
         string? externalReference,
-        string? metadataJson) =>
+        string? metadataJson
+    ) =>
         new(
             ledgerEntryId,
             walletId,
@@ -70,7 +72,8 @@ values (
             relatedEntryId,
             (short)relationType,
             externalReference,
-            metadataJson);
+            metadataJson
+        );
 }
 
 internal sealed record LedgerEntryInsertParameters(
@@ -86,4 +89,5 @@ internal sealed record LedgerEntryInsertParameters(
     Guid? RelatedEntryId,
     short RelationType,
     string? ExternalReference,
-    string? MetadataJson);
+    string? MetadataJson
+);

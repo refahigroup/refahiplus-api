@@ -23,11 +23,16 @@ public class InMemoryNotificationService : INotificationService
         _logger = logger;
     }
 
-    public Task<SendOtpResult> SendOtp(string receipt, OtpReceiptType type, OtpType otpType, CancellationToken cancellationToken)
+    public Task<SendOtpResult> SendOtp(
+        string receipt,
+        OtpReceiptType type,
+        OtpType otpType,
+        CancellationToken cancellationToken
+    )
     {
         // Check rate limiting: max sends per receipt in time window
         CleanupOldSendHistory();
-        
+
         if (!_sendHistory.TryGetValue(receipt, out var sendTimes))
         {
             sendTimes = new List<DateTime>();
@@ -39,10 +44,14 @@ public class InMemoryNotificationService : INotificationService
         {
             _logger.LogWarning(
                 "OTP rate limit exceeded for {Receipt}. {Count} OTPs sent in last {Window} minutes",
-                receipt, recentSends, _rateLimitWindow.TotalMinutes);
-            
+                receipt,
+                recentSends,
+                _rateLimitWindow.TotalMinutes
+            );
+
             throw new InvalidOperationException(
-                $"Rate limit exceeded. Maximum {_maxOtpPerReceipt} OTP requests allowed per {_rateLimitWindow.TotalMinutes} minutes.");
+                $"Rate limit exceeded. Maximum {_maxOtpPerReceipt} OTP requests allowed per {_rateLimitWindow.TotalMinutes} minutes."
+            );
         }
 
         // Generate OTP code (6 digits)
@@ -60,7 +69,7 @@ public class InMemoryNotificationService : INotificationService
             OtpType = otpType,
             ExpiresAt = DateTime.UtcNow.Add(_otpExpiration),
             IsUsed = false,
-            ValidationAttempts = 0
+            ValidationAttempts = 0,
         };
 
         _otpStore[referenceCode] = entry;
@@ -71,7 +80,12 @@ public class InMemoryNotificationService : INotificationService
         // Audit log
         _logger.LogInformation(
             "OTP sent. ReferenceCode={ReferenceCode}, Receipt={Receipt}, Type={Type}, OtpType={OtpType}, ExpiresAt={ExpiresAt}",
-            referenceCode, MaskReceipt(receipt), type, otpType, entry.ExpiresAt);
+            referenceCode,
+            MaskReceipt(receipt),
+            type,
+            otpType,
+            entry.ExpiresAt
+        );
 
         // Development log (for testing - shows actual OTP)
         _logger.LogDebug("OTP Code for {Receipt}: {Code}", MaskReceipt(receipt), otpCode);
@@ -81,11 +95,19 @@ public class InMemoryNotificationService : INotificationService
         return Task.FromResult(new SendOtpResult(referenceCode, entry.ExpiresAt));
     }
 
-    public Task<OtpValidationResult> ValidateOtp(string referenceCode, string otp, OtpType otpType, CancellationToken cancellationToken)
+    public Task<OtpValidationResult> ValidateOtp(
+        string referenceCode,
+        string otp,
+        OtpType otpType,
+        CancellationToken cancellationToken
+    )
     {
         if (!_otpStore.TryGetValue(referenceCode, out var entry))
         {
-            _logger.LogWarning("OTP validation failed. Reference code not found: {ReferenceCode}", referenceCode);
+            _logger.LogWarning(
+                "OTP validation failed. Reference code not found: {ReferenceCode}",
+                referenceCode
+            );
             return Task.FromResult(new OtpValidationResult(false));
         }
 
@@ -95,7 +117,9 @@ public class InMemoryNotificationService : INotificationService
             _otpStore.TryRemove(referenceCode, out _);
             _logger.LogWarning(
                 "OTP validation failed. Reference code expired: {ReferenceCode}, Receipt={Receipt}",
-                referenceCode, MaskReceipt(entry.Receipt));
+                referenceCode,
+                MaskReceipt(entry.Receipt)
+            );
             return Task.FromResult(new OtpValidationResult(false));
         }
 
@@ -104,7 +128,9 @@ public class InMemoryNotificationService : INotificationService
         {
             _logger.LogWarning(
                 "OTP validation failed. Reference code already used: {ReferenceCode}, Receipt={Receipt}",
-                referenceCode, MaskReceipt(entry.Receipt));
+                referenceCode,
+                MaskReceipt(entry.Receipt)
+            );
             return Task.FromResult(new OtpValidationResult(false));
         }
 
@@ -115,7 +141,10 @@ public class InMemoryNotificationService : INotificationService
             _otpStore.TryRemove(referenceCode, out _);
             _logger.LogWarning(
                 "OTP validation failed. Max attempts ({MaxAttempts}) exceeded: {ReferenceCode}, Receipt={Receipt}",
-                _maxValidationAttempts, referenceCode, MaskReceipt(entry.Receipt));
+                _maxValidationAttempts,
+                referenceCode,
+                MaskReceipt(entry.Receipt)
+            );
             return Task.FromResult(new OtpValidationResult(false));
         }
 
@@ -124,7 +153,10 @@ public class InMemoryNotificationService : INotificationService
         {
             _logger.LogWarning(
                 "OTP validation failed. Type mismatch: {ReferenceCode}, Expected={Expected}, Actual={Actual}",
-                referenceCode, entry.OtpType, otpType);
+                referenceCode,
+                entry.OtpType,
+                otpType
+            );
             return Task.FromResult(new OtpValidationResult(false));
         }
 
@@ -133,7 +165,11 @@ public class InMemoryNotificationService : INotificationService
         {
             _logger.LogWarning(
                 "OTP validation failed. Invalid code: {ReferenceCode}, Receipt={Receipt}, Attempts={Attempts}/{MaxAttempts}",
-                referenceCode, MaskReceipt(entry.Receipt), entry.ValidationAttempts, _maxValidationAttempts);
+                referenceCode,
+                MaskReceipt(entry.Receipt),
+                entry.ValidationAttempts,
+                _maxValidationAttempts
+            );
             return Task.FromResult(new OtpValidationResult(false));
         }
 
@@ -143,7 +179,10 @@ public class InMemoryNotificationService : INotificationService
         // Audit log - successful validation
         _logger.LogInformation(
             "OTP validated successfully. ReferenceCode={ReferenceCode}, Receipt={Receipt}, Type={Type}",
-            referenceCode, MaskReceipt(entry.Receipt), entry.ReceiptType);
+            referenceCode,
+            MaskReceipt(entry.Receipt),
+            entry.ReceiptType
+        );
 
         // Return validation result with receipt info
         var result = new OtpValidationResult(true, entry.Receipt, entry.ReceiptType);
@@ -158,19 +197,25 @@ public class InMemoryNotificationService : INotificationService
         string[] phoneNumbers,
         string body,
         string? sender = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         // In-memory implementation: just log the SMS
         var recipientList = string.Join(", ", phoneNumbers.Select(MaskReceipt));
 
         _logger.LogInformation(
             "SMS sent (in-memory). Recipients={Recipients}, Sender={Sender}, Body={Body}",
-            recipientList, sender ?? "default", body);
+            recipientList,
+            sender ?? "default",
+            body
+        );
 
         // Development log (for testing - shows full details)
         _logger.LogDebug(
             "SMS Details - Recipients: [{Numbers}], Body: {Body}",
-            string.Join(", ", phoneNumbers), body);
+            string.Join(", ", phoneNumbers),
+            body
+        );
 
         return Task.CompletedTask;
     }
@@ -185,11 +230,11 @@ public class InMemoryNotificationService : INotificationService
     private void CleanupOldSendHistory()
     {
         var cutoffTime = DateTime.UtcNow - _rateLimitWindow;
-        
+
         foreach (var kvp in _sendHistory)
         {
             kvp.Value.RemoveAll(t => t < cutoffTime);
-            
+
             // Remove empty entries
             if (kvp.Value.Count == 0)
             {
@@ -215,9 +260,7 @@ public class InMemoryNotificationService : INotificationService
             var parts = receipt.Split('@');
             var username = parts[0];
             var domain = parts[1];
-            var maskedUsername = username.Length > 2 
-                ? $"{username[..2]}***" 
-                : "***";
+            var maskedUsername = username.Length > 2 ? $"{username[..2]}***" : "***";
             return $"{maskedUsername}@{domain}";
         }
 

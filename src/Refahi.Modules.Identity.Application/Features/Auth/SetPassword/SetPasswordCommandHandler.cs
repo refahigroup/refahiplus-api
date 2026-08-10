@@ -16,7 +16,10 @@ public class SetPasswordCommandHandler : IRequestHandler<SetPasswordCommand, Set
         _userRepository = userRepository;
     }
 
-    public async Task<SetPasswordResult> Handle(SetPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<SetPasswordResult> Handle(
+        SetPasswordCommand request,
+        CancellationToken cancellationToken
+    )
     {
         // Validation
         if (string.IsNullOrWhiteSpace(request.MobileOrEmail))
@@ -30,7 +33,10 @@ public class SetPasswordCommandHandler : IRequestHandler<SetPasswordCommand, Set
         }
 
         // Find user
-        var user = await _userRepository.GetByMobileOrEmailAsync(request.MobileOrEmail, cancellationToken);
+        var user = await _userRepository.GetByMobileOrEmailAsync(
+            request.MobileOrEmail,
+            cancellationToken
+        );
 
         if (user == null)
         {

@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Refahi.Modules.Hotels.Application.Contracts.Providers;
@@ -10,9 +13,6 @@ using Refahi.Modules.Hotels.Domain.Aggregates.ProviderBookingCacheAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.ProviderBookingCacheAgg.Enums;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 
 namespace Refahi.Modules.Hotels.Application.HotelRequests.FinalizeHotelBookingAfterPayment;
 
@@ -34,7 +34,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         IHotelProviderBookingCacheRepository providerBookingCacheRepository,
         IHotelProvider provider,
         IMediator mediator,
-        ILogger<FinalizeHotelBookingAfterPaymentCommandHandler> logger)
+        ILogger<FinalizeHotelBookingAfterPaymentCommandHandler> logger
+    )
     {
         _repository = repository;
         _sagaRepository = sagaRepository;
@@ -46,7 +47,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
 
     public async Task<Unit> Handle(
         FinalizeHotelBookingAfterPaymentCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var hotelRequest = await _repository.GetByOrderIdAsync(request.OrderId, cancellationToken);
         if (hotelRequest is null)
@@ -61,7 +63,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             _logger.LogWarning(
                 "Hotel saga not found during paid event finalization. OrderId={OrderId}, RequestId={RequestId}",
                 request.OrderId,
-                hotelRequest.Id);
+                hotelRequest.Id
+            );
             return Unit.Value;
         }
 
@@ -71,7 +74,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 "Hotel saga mismatch during paid event finalization. SagaId={SagaId}, OrderId={OrderId}, RequestId={RequestId}",
                 saga.SagaId,
                 request.OrderId,
-                hotelRequest.Id);
+                hotelRequest.Id
+            );
             return Unit.Value;
         }
 
@@ -81,7 +85,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 "Hotel paid event skipped because saga is terminal. SagaId={SagaId}, Status={Status}, OrderId={OrderId}",
                 saga.SagaId,
                 saga.Status,
-                request.OrderId);
+                request.OrderId
+            );
             return Unit.Value;
         }
 
@@ -90,18 +95,21 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             _logger.LogWarning(
                 "Hotel request ownership mismatch during finalization. OrderId={OrderId}, RequestId={RequestId}",
                 request.OrderId,
-                hotelRequest.Id);
+                hotelRequest.Id
+            );
             return Unit.Value;
         }
 
-        using var scope = _logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["UserId"] = request.UserId,
-            ["SagaId"] = saga.SagaId,
-            ["HotelRequestId"] = hotelRequest.Id,
-            ["OrderId"] = request.OrderId,
-            ["ProviderBookingCode"] = hotelRequest.ProviderBookingCode
-        });
+        using var scope = _logger.BeginScope(
+            new Dictionary<string, object?>
+            {
+                ["UserId"] = request.UserId,
+                ["SagaId"] = saga.SagaId,
+                ["HotelRequestId"] = hotelRequest.Id,
+                ["OrderId"] = request.OrderId,
+                ["ProviderBookingCode"] = hotelRequest.ProviderBookingCode,
+            }
+        );
 
         var now = DateTime.UtcNow;
         saga.MarkPaid(request.OrderId, now);
@@ -109,24 +117,32 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
 
         var order = await _mediator.Send(
             new GetOrderByIdQuery(request.OrderId, request.UserId, "User"),
-            cancellationToken);
+            cancellationToken
+        );
 
-        if (order is null ||
-            !order.SourceModule.Equals("Hotel", StringComparison.OrdinalIgnoreCase) ||
-            !order.ReferenceType.Equals("HotelRequest", StringComparison.OrdinalIgnoreCase) ||
-            !order.PaymentState.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+        if (
+            order is null
+            || !order.SourceModule.Equals("Hotel", StringComparison.OrdinalIgnoreCase)
+            || !order.ReferenceType.Equals("HotelRequest", StringComparison.OrdinalIgnoreCase)
+            || !order.PaymentState.Equals("Paid", StringComparison.OrdinalIgnoreCase)
+        )
         {
             _logger.LogWarning(
                 "Blocked hotel provider booking because order is not paid or not a HotelRequest order. OrderId={OrderId}, RequestId={RequestId}",
                 request.OrderId,
-                hotelRequest.Id);
+                hotelRequest.Id
+            );
             saga.Fail("Paid event did not match a paid HotelRequest order.", DateTime.UtcNow);
             await _repository.SaveChangesAsync(cancellationToken);
             return Unit.Value;
         }
 
-        if (!string.IsNullOrWhiteSpace(hotelRequest.ProviderBookingCode) ||
-            saga.Status is HotelBookingSagaStatus.ProviderBookingConfirmed or HotelBookingSagaStatus.Completed)
+        if (
+            !string.IsNullOrWhiteSpace(hotelRequest.ProviderBookingCode)
+            || saga.Status
+                is HotelBookingSagaStatus.ProviderBookingConfirmed
+                    or HotelBookingSagaStatus.Completed
+        )
         {
             if (saga.Status == HotelBookingSagaStatus.Paid)
                 saga.MarkProviderBookingStarted(DateTime.UtcNow);
@@ -140,7 +156,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 saga.SagaId,
                 request.OrderId,
                 hotelRequest.Id,
-                hotelRequest.ProviderBookingCode);
+                hotelRequest.ProviderBookingCode
+            );
             return Unit.Value;
         }
 
@@ -150,7 +167,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 "Retrying hotel provider booking because saga is already started. SagaId={SagaId}, OrderId={OrderId}, RequestId={RequestId}",
                 saga.SagaId,
                 request.OrderId,
-                hotelRequest.Id);
+                hotelRequest.Id
+            );
         }
 
         var draft = BuildProviderDraft(hotelRequest);
@@ -163,7 +181,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             request.OrderId,
             hotelRequest.Id,
             hotelRequest.ProviderName,
-            draft.IdempotencyKey);
+            draft.IdempotencyKey
+        );
 
         saga.MarkProviderBookingStarted(DateTime.UtcNow);
         var cacheEntry = await GetOrCreateProviderCacheEntryAsync(
@@ -172,7 +191,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             requestHash,
             saga.SagaId,
             hotelRequest.Id,
-            cancellationToken);
+            cancellationToken
+        );
         cacheEntry.EnsureSameRequest(requestHash);
         cacheEntry.MarkAttemptStarted(DateTime.UtcNow);
         await _providerBookingCacheRepository.SaveChangesAsync(cancellationToken);
@@ -187,7 +207,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 cacheEntry.MarkCompleted(
                     providerResult.BookingCode,
                     JsonSerializer.Serialize(providerResult),
-                    DateTime.UtcNow);
+                    DateTime.UtcNow
+                );
                 await _providerBookingCacheRepository.SaveChangesAsync(cancellationToken);
             }
 
@@ -205,7 +226,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 saga.SagaId,
                 request.OrderId,
                 hotelRequest.Id,
-                providerBookingCode);
+                providerBookingCode
+            );
         }
         catch (Exception ex)
         {
@@ -214,17 +236,22 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 "Hotel provider booking failed after payment. SagaId={SagaId}, OrderId={OrderId}, RequestId={RequestId}",
                 saga.SagaId,
                 request.OrderId,
-                hotelRequest.Id);
+                hotelRequest.Id
+            );
 
             if (string.IsNullOrWhiteSpace(cacheEntry.ProviderBookingCode))
             {
-                cacheEntry.MarkFailed("Provider booking failed before booking code was issued.", DateTime.UtcNow);
+                cacheEntry.MarkFailed(
+                    "Provider booking failed before booking code was issued.",
+                    DateTime.UtcNow
+                );
                 await ExecuteCompensationAsync(
                     saga,
                     hotelRequest,
                     request.OrderId,
                     "Provider booking failed after payment.",
-                    cancellationToken);
+                    cancellationToken
+                );
                 return Unit.Value;
             }
 
@@ -232,7 +259,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             {
                 cacheEntry.MarkFailed(
                     "Provider booking was created but confirmation failed after the retry threshold.",
-                    DateTime.UtcNow);
+                    DateTime.UtcNow
+                );
                 await _providerBookingCacheRepository.SaveChangesAsync(cancellationToken);
 
                 await ExecuteCompensationAsync(
@@ -240,12 +268,16 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                     hotelRequest,
                     request.OrderId,
                     "Provider booking confirmation failed after retry threshold; external cancellation required.",
-                    cancellationToken);
+                    cancellationToken
+                );
 
                 return Unit.Value;
             }
 
-            saga.RecordRecoverableFailure("Provider booking created but confirmation failed; reconciliation will retry.", DateTime.UtcNow);
+            saga.RecordRecoverableFailure(
+                "Provider booking created but confirmation failed; reconciliation will retry.",
+                DateTime.UtcNow
+            );
             await _repository.SaveChangesAsync(cancellationToken);
             throw;
         }
@@ -259,12 +291,14 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         string requestHash,
         Guid sagaId,
         Guid hotelRequestId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var cacheEntry = await _providerBookingCacheRepository.GetAsync(
             providerName,
             idempotencyKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (cacheEntry is not null)
             return cacheEntry;
@@ -275,7 +309,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             requestHash,
             sagaId,
             hotelRequestId,
-            DateTime.UtcNow);
+            DateTime.UtcNow
+        );
 
         await _providerBookingCacheRepository.AddAsync(cacheEntry, cancellationToken);
         return cacheEntry;
@@ -283,7 +318,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
 
     private async Task ConfirmOrReconcileProviderBookingAsync(
         string providerBookingCode,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         BookingStatusDto? status = null;
         try
@@ -295,11 +331,14 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             _logger.LogWarning(
                 ex,
                 "Hotel provider status lookup failed before confirmation. ProviderBookingCode={ProviderBookingCode}",
-                providerBookingCode);
+                providerBookingCode
+            );
         }
 
-        if (status is not null &&
-            status.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase))
+        if (
+            status is not null
+            && status.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase)
+        )
         {
             return;
         }
@@ -312,24 +351,28 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.HotelRequest hotelRequest,
         Guid orderId,
         string reason,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            var cancelResult = await _mediator.Send(new CancelOrderCommand(
-                orderId,
-                reason,
-                $"hotel-saga-compensation-{saga.SagaId:N}"),
-                cancellationToken);
+            var cancelResult = await _mediator.Send(
+                new CancelOrderCommand(orderId, reason, $"hotel-saga-compensation-{saga.SagaId:N}"),
+                cancellationToken
+            );
 
             hotelRequest.MarkFailed(DateTime.UtcNow);
-            saga.Compensate($"{reason} Order compensation action: {cancelResult.PaymentAction}.", DateTime.UtcNow);
+            saga.Compensate(
+                $"{reason} Order compensation action: {cancelResult.PaymentAction}.",
+                DateTime.UtcNow
+            );
 
             _logger.LogWarning(
                 "Hotel saga compensated after provider failure. SagaId={SagaId}, OrderId={OrderId}, PaymentAction={PaymentAction}",
                 saga.SagaId,
                 orderId,
-                cancelResult.PaymentAction);
+                cancelResult.PaymentAction
+            );
 
             await _repository.SaveChangesAsync(cancellationToken);
         }
@@ -337,14 +380,16 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         {
             saga.RecordRecoverableFailure(
                 $"Provider failed and compensation failed: {compensationException.Message}",
-                DateTime.UtcNow);
+                DateTime.UtcNow
+            );
             await _repository.SaveChangesAsync(cancellationToken);
 
             _logger.LogError(
                 compensationException,
                 "Hotel compensation failed after provider booking failure. SagaId={SagaId}, OrderId={OrderId}",
                 saga.SagaId,
-                orderId);
+                orderId
+            );
 
             throw;
         }
@@ -352,70 +397,88 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
 
     private static string ComputeRequestHash(BookingDraftDto draft)
     {
-        var payload = JsonSerializer.Serialize(new
-        {
-            draft.HotelId,
-            draft.RoomId,
-            draft.CheckIn,
-            draft.CheckOut,
-            draft.RoomsCount,
-            draft.BoardType,
-            draft.Email,
-            draft.Phone,
-            Guests = draft.Guests
-                .Select(g => new { g.FullName, g.Age, g.Type })
-                .ToArray()
-        });
+        var payload = JsonSerializer.Serialize(
+            new
+            {
+                draft.HotelId,
+                draft.RoomId,
+                draft.CheckIn,
+                draft.CheckOut,
+                draft.RoomsCount,
+                draft.BoardType,
+                draft.Email,
+                draft.Phone,
+                Guests = draft
+                    .Guests.Select(g => new
+                    {
+                        g.FullName,
+                        g.Age,
+                        g.Type,
+                    })
+                    .ToArray(),
+            }
+        );
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash);
     }
 
-    private static BookingDraftDto BuildProviderDraft(Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.HotelRequest request)
+    private static BookingDraftDto BuildProviderDraft(
+        Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.HotelRequest request
+    )
     {
         using var search = JsonDocument.Parse(request.SearchCriteriaSnapshot);
         using var room = JsonDocument.Parse(request.SelectedRoomSnapshot);
         using var guests = JsonDocument.Parse(request.GuestInfoSnapshot);
 
         var root = guests.RootElement;
-        var guestItems = root.TryGetProperty("guests", out var guestsElement) &&
-            guestsElement.ValueKind == JsonValueKind.Array
-            ? guestsElement.EnumerateArray().Select(ReadGuest).ToList()
-            : [];
+        var guestItems =
+            root.TryGetProperty("guests", out var guestsElement)
+            && guestsElement.ValueKind == JsonValueKind.Array
+                ? guestsElement.EnumerateArray().Select(ReadGuest).ToList()
+                : [];
 
         return new BookingDraftDto
         {
             HotelId = request.ProviderHotelId,
             RoomId = request.ProviderRoomId,
-            CheckIn = ReadDateOnly(search.RootElement, "checkIn")
+            CheckIn =
+                ReadDateOnly(search.RootElement, "checkIn")
                 ?? ReadDateOnly(search.RootElement, "check_in")
                 ?? throw new InvalidOperationException("تاریخ ورود درخواست هتل معتبر نیست"),
-            CheckOut = ReadDateOnly(search.RootElement, "checkOut")
+            CheckOut =
+                ReadDateOnly(search.RootElement, "checkOut")
                 ?? ReadDateOnly(search.RootElement, "check_out")
                 ?? throw new InvalidOperationException("تاریخ خروج درخواست هتل معتبر نیست"),
-            RoomsCount = ReadInt(search.RootElement, "rooms") ?? ReadInt(search.RootElement, "roomsCount") ?? 1,
-            BoardType = ReadString(room.RootElement, "boardType")
+            RoomsCount =
+                ReadInt(search.RootElement, "rooms")
+                ?? ReadInt(search.RootElement, "roomsCount")
+                ?? 1,
+            BoardType =
+                ReadString(room.RootElement, "boardType")
                 ?? ReadString(room.RootElement, "board_type")
                 ?? "BedBreakfast",
             Guests = guestItems,
             Email = ReadString(root, "email"),
-            Phone = ReadString(root, "phone")
+            Phone = ReadString(root, "phone"),
         };
     }
 
-    private static GuestDto ReadGuest(JsonElement element)
-        => new()
+    private static GuestDto ReadGuest(JsonElement element) =>
+        new()
         {
             FullName = ReadString(element, "fullName") ?? ReadString(element, "full_name") ?? "",
             Age = ReadInt(element, "age") ?? 30,
-            Type = ReadString(element, "type") ?? "Adult"
+            Type = ReadString(element, "type") ?? "Adult",
         };
 
     private static string? ReadString(JsonElement element, string propertyName)
     {
-        if (element.ValueKind != JsonValueKind.Object ||
-            !element.TryGetProperty(propertyName, out var value) ||
-            value.ValueKind != JsonValueKind.String)
+        if (
+            element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty(propertyName, out var value)
+            || value.ValueKind != JsonValueKind.String
+        )
         {
             return null;
         }
@@ -425,8 +488,10 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
 
     private static int? ReadInt(JsonElement element, string propertyName)
     {
-        if (element.ValueKind != JsonValueKind.Object ||
-            !element.TryGetProperty(propertyName, out var value))
+        if (
+            element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty(propertyName, out var value)
+        )
         {
             return null;
         }
@@ -435,7 +500,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         {
             JsonValueKind.Number when value.TryGetInt32(out var number) => number,
             JsonValueKind.String when int.TryParse(value.GetString(), out var number) => number,
-            _ => null
+            _ => null,
         };
     }
 

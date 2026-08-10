@@ -1,12 +1,12 @@
-﻿using FluentValidation;
+﻿using System.Net;
+using FluentValidation;
 using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
 using Refahi.Modules.Orders.Domain.Exceptions;
 using Refahi.Modules.References.Domain.Exceptions;
+using Refahi.Modules.Store.Application.Contracts.Vouchers;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.SupplyChain.Domain.Exceptions;
-using Refahi.Modules.Store.Application.Contracts.Vouchers;
 using Refahi.Shared.Presentation;
-using System.Net;
 
 namespace Refahi.Api.Middlewares;
 
@@ -61,7 +61,8 @@ public sealed class ApiExceptionMiddleware
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = status;
             await context.Response.WriteAsJsonAsync(
-                new VoucherErrorResponse(false, ex.Code, ex.Message, status));
+                new VoucherErrorResponse(false, ex.Code, ex.Message, status)
+            );
         }
         catch (ReferencesDomainException ex)
         {
@@ -88,17 +89,17 @@ public sealed class ApiExceptionMiddleware
     /// <summary>
     /// Handle FluentValidation exceptions
     /// </summary>
-    private static Task HandleValidationExceptionAsync(HttpContext context, ValidationException exception)
+    private static Task HandleValidationExceptionAsync(
+        HttpContext context,
+        ValidationException exception
+    )
     {
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
 
-        var errors = exception.Errors
-            .GroupBy(x => x.PropertyName)
-            .ToDictionary(
-                g => g.Key,
-                g => g.Select(x => x.ErrorMessage).ToArray()
-            );
+        var errors = exception
+            .Errors.GroupBy(x => x.PropertyName)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.ErrorMessage).ToArray());
 
         var response = ApiResponseHelper.ValidationError(errors);
         return context.Response.WriteAsJsonAsync(response);
@@ -149,7 +150,7 @@ public sealed class ApiExceptionMiddleware
                 "خطایی در سرور رخ داد. لطفا بعدا دوباره تلاش کنید",
                 traceId: context.TraceIdentifier,
                 statusCode: (int)HttpStatusCode.InternalServerError
-            )
+            ),
         };
 
         context.Response.StatusCode = response.StatusCode;
@@ -167,6 +168,6 @@ public static class ApiExceptionMiddlewareExtensions
     /// Register global exception handling middleware
     /// Must be called early in middleware pipeline
     /// </summary>
-    public static IApplicationBuilder UseApiExceptionMiddleware(this IApplicationBuilder builder)
-        => builder.UseMiddleware<ApiExceptionMiddleware>();
+    public static IApplicationBuilder UseApiExceptionMiddleware(this IApplicationBuilder builder) =>
+        builder.UseMiddleware<ApiExceptionMiddleware>();
 }

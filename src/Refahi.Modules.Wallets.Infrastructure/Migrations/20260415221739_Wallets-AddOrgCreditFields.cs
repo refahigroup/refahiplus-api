@@ -17,14 +17,16 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
                 table: "wallets",
                 type: "character varying(100)",
                 maxLength: 100,
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "contract_expires_at",
                 schema: "wallets",
                 table: "wallets",
                 type: "timestamp with time zone",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
@@ -33,12 +35,14 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "allowed_category_code",
                 schema: "wallets",
-                table: "wallets");
+                table: "wallets"
+            );
 
             migrationBuilder.DropColumn(
                 name: "contract_expires_at",
                 schema: "wallets",
-                table: "wallets");
+                table: "wallets"
+            );
         }
     }
 }

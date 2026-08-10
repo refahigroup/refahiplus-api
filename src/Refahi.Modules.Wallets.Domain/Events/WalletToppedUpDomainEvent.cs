@@ -1,6 +1,6 @@
+using System;
 using Refahi.Modules.Wallets.Domain.ValueObjects;
 using Refahi.Shared.Domain;
-using System;
 
 namespace Refahi.Modules.Wallets.Domain.Events;
 

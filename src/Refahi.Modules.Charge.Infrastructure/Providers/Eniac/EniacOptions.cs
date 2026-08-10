@@ -1,4 +1,5 @@
 namespace Refahi.Modules.Charge.Infrastructure.Providers.Eniac;
+
 public sealed class EniacOptions
 {
     public const string Section = "Charge:Providers:Eniac";

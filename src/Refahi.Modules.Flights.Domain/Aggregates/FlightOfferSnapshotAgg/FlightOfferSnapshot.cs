@@ -27,18 +27,31 @@ public sealed class FlightOfferSnapshot
         string publicOfferSnapshotJson,
         string? providerSnapshotJson,
         DateTime createdAtUtc,
-        DateTime expiresAtUtc)
+        DateTime expiresAtUtc
+    )
     {
         Id = id;
         OfferToken = Require(offerToken, "Offer token is required.");
         ProviderName = Require(providerName, "Provider name is required.");
-        ProviderFareSourceCode = Require(providerFareSourceCode, "Provider fare source code is required.");
-        ProviderSearchId = string.IsNullOrWhiteSpace(providerSearchId) ? null : providerSearchId.Trim();
-        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId) ? null : providerTraceId.Trim();
+        ProviderFareSourceCode = Require(
+            providerFareSourceCode,
+            "Provider fare source code is required."
+        );
+        ProviderSearchId = string.IsNullOrWhiteSpace(providerSearchId)
+            ? null
+            : providerSearchId.Trim();
+        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId)
+            ? null
+            : providerTraceId.Trim();
         TotalFareAmount = totalFareAmount;
         Currency = Require(currency, "Currency is required.").ToUpperInvariant();
-        PublicOfferSnapshotJson = Require(publicOfferSnapshotJson, "Public offer snapshot is required.");
-        ProviderSnapshotJson = string.IsNullOrWhiteSpace(providerSnapshotJson) ? null : providerSnapshotJson.Trim();
+        PublicOfferSnapshotJson = Require(
+            publicOfferSnapshotJson,
+            "Public offer snapshot is required."
+        );
+        ProviderSnapshotJson = string.IsNullOrWhiteSpace(providerSnapshotJson)
+            ? null
+            : providerSnapshotJson.Trim();
         CreatedAtUtc = createdAtUtc;
         ExpiresAtUtc = expiresAtUtc;
 
@@ -76,7 +89,8 @@ public sealed class FlightOfferSnapshot
         string publicOfferSnapshotJson,
         string? providerSnapshotJson,
         DateTime createdAtUtc,
-        DateTime expiresAtUtc)
+        DateTime expiresAtUtc
+    )
     {
         return new FlightOfferSnapshot(
             Guid.NewGuid(),
@@ -90,7 +104,8 @@ public sealed class FlightOfferSnapshot
             publicOfferSnapshotJson,
             providerSnapshotJson,
             createdAtUtc,
-            expiresAtUtc);
+            expiresAtUtc
+        );
     }
 
     public bool IsExpired(DateTime nowUtc) => ExpiresAtUtc <= nowUtc;

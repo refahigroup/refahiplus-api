@@ -11,9 +11,7 @@ public class GetMediaAssetQueryHandler : IRequestHandler<GetMediaAssetQuery, Med
     private readonly IMediaAssetRepository _repository;
     private readonly IMediaStorageService _storage;
 
-    public GetMediaAssetQueryHandler(
-        IMediaAssetRepository repository,
-        IMediaStorageService storage)
+    public GetMediaAssetQueryHandler(IMediaAssetRepository repository, IMediaStorageService storage)
     {
         _repository = repository;
         _storage = storage;
@@ -22,7 +20,8 @@ public class GetMediaAssetQueryHandler : IRequestHandler<GetMediaAssetQuery, Med
     public async Task<MediaAssetDto?> Handle(GetMediaAssetQuery request, CancellationToken ct)
     {
         var asset = await _repository.GetByIdAsync(request.Id, ct);
-        if (asset is null || asset.IsDeleted) return null;
+        if (asset is null || asset.IsDeleted)
+            return null;
 
         return new MediaAssetDto(
             asset.Id,
@@ -34,6 +33,7 @@ public class GetMediaAssetQueryHandler : IRequestHandler<GetMediaAssetQuery, Med
             asset.EntityType,
             asset.EntityId,
             asset.UploadedByUserId,
-            asset.UploadedAt);
+            asset.UploadedAt
+        );
     }
 }

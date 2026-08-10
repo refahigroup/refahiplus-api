@@ -11,19 +11,30 @@ public class GetSuppliersQueryHandler : IRequestHandler<GetSuppliersQuery, Suppl
 {
     private readonly ISupplierRepository _repository;
 
-    public GetSuppliersQueryHandler(ISupplierRepository repository)
-        => _repository = repository;
+    public GetSuppliersQueryHandler(ISupplierRepository repository) => _repository = repository;
 
-    public async Task<SuppliersPagedResponse> Handle(GetSuppliersQuery request, CancellationToken cancellationToken)
+    public async Task<SuppliersPagedResponse> Handle(
+        GetSuppliersQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        SupplierStatus? status = request.Status.HasValue ? (SupplierStatus)request.Status.Value : null;
+        SupplierStatus? status = request.Status.HasValue
+            ? (SupplierStatus)request.Status.Value
+            : null;
         SupplierType? type = request.Type.HasValue ? (SupplierType)request.Type.Value : null;
 
         int page = request.Page > 0 ? request.Page : 1;
         int size = request.Size > 0 ? request.Size : 20;
 
         var (items, total) = await _repository.GetPagedAsync(
-            status, type, request.ProvinceId, request.Search, page, size, cancellationToken);
+            status,
+            type,
+            request.ProvinceId,
+            request.Search,
+            page,
+            size,
+            cancellationToken
+        );
 
         int totalPages = (int)Math.Ceiling(total / (double)size);
 
@@ -32,7 +43,8 @@ public class GetSuppliersQueryHandler : IRequestHandler<GetSuppliersQuery, Suppl
             page,
             size,
             total,
-            totalPages);
+            totalPages
+        );
     }
 
     private static SupplierListItemDto MapToListItem(Supplier s)
@@ -49,6 +61,7 @@ public class GetSuppliersQueryHandler : IRequestHandler<GetSuppliersQuery, Suppl
             (short)s.Status,
             s.Status.ToString(),
             s.CityId,
-            s.CreatedAt);
+            s.CreatedAt
+        );
     }
 }

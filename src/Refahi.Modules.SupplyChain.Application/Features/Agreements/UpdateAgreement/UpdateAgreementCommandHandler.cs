@@ -10,23 +10,35 @@ public class UpdateAgreementCommandHandler : IRequestHandler<UpdateAgreementComm
 {
     private readonly IAgreementRepository _repository;
 
-    public UpdateAgreementCommandHandler(IAgreementRepository repository)
-        => _repository = repository;
+    public UpdateAgreementCommandHandler(IAgreementRepository repository) =>
+        _repository = repository;
 
-    public async Task<Unit> Handle(UpdateAgreementCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        UpdateAgreementCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var agreement = await _repository.GetByIdAsync(request.Id, false, cancellationToken)
+        var agreement =
+            await _repository.GetByIdAsync(request.Id, false, cancellationToken)
             ?? throw new SupplyChainDomainException("قرارداد یافت نشد", "AGREEMENT_NOT_FOUND");
 
-        var exists = await _repository.ExistsByAgreementNoAsync(request.AgreementNo, request.Id, cancellationToken);
+        var exists = await _repository.ExistsByAgreementNoAsync(
+            request.AgreementNo,
+            request.Id,
+            cancellationToken
+        );
         if (exists)
-            throw new SupplyChainDomainException("شماره قرارداد تکراری است", "AGREEMENT_NO_DUPLICATED");
+            throw new SupplyChainDomainException(
+                "شماره قرارداد تکراری است",
+                "AGREEMENT_NO_DUPLICATED"
+            );
 
         agreement.UpdateDetails(
             request.AgreementNo,
             (AgreementType)request.Type,
             request.FromDate,
-            request.ToDate);
+            request.ToDate
+        );
 
         _repository.Update(agreement);
         await _repository.SaveChangesAsync(cancellationToken);

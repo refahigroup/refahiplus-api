@@ -35,13 +35,15 @@ public sealed record OrderFinancialSnapshotInput(
     long CommissionAmountMinor,
     decimal VatPercent,
     long VatAmountMinor,
-    long RecipientNetAmountMinor);
+    long RecipientNetAmountMinor
+);
 
 public sealed record OrderPaymentPostingInput(
     Guid WalletId,
     short Direction,
     long AmountMinor,
-    string Purpose);
+    string Purpose
+);
 
 public sealed record CreateOrderItemInput(
     string Title,
@@ -52,10 +54,12 @@ public sealed record CreateOrderItemInput(
     string CategoryCode,
     string[]? Tags,
     string? MetadataJson,
-    short DeliveryMethod = 0);
+    short DeliveryMethod = 0
+);
 
 public sealed record CreateOrderResponse(
     Guid OrderId,
     string OrderNumber,
     long FinalAmountMinor,
-    string Currency = "IRR");
+    string Currency = "IRR"
+);

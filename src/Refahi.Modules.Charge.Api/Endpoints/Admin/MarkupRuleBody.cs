@@ -8,4 +8,5 @@ public sealed record MarkupRuleBody(
     decimal Percent,
     long FixedAmountMinor,
     DateTime EffectiveFrom,
-    DateTime? EffectiveTo);
+    DateTime? EffectiveTo
+);

@@ -7,9 +7,8 @@ namespace Refahi.Modules.Identity.Application.Features.Auth.SignUp;
 /// <summary>
 /// Validates OTP and creates a new user account
 /// </summary>
-public record ValidateOtpAndCreateUserCommand(
-    string Token,
-    string OtpCode) : IRequest<ValidateOtpResult>;
+public record ValidateOtpAndCreateUserCommand(string Token, string OtpCode)
+    : IRequest<ValidateOtpResult>;
 
 public record ValidateOtpResult(
     bool Success,
@@ -19,4 +18,5 @@ public record ValidateOtpResult(
     string? Email = null,
     bool IsNewUser = true,
     bool RegistrationCompleted = true,
-    bool ProfileRequired = false);
+    bool ProfileRequired = false
+);

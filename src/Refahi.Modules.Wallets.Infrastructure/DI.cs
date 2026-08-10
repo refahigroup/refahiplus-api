@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,14 +13,15 @@ using Refahi.Modules.Wallets.Infrastructure.Persistence.Repositories;
 using Refahi.Modules.Wallets.Infrastructure.Workers;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
-using System;
-using System.Linq;
 
 namespace Refahi.Modules.Wallets.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         string connectionString = configuration.GetConnectionString();
 
@@ -29,21 +32,33 @@ public static class DI
 
         // Read repositories (Dapper-based queries)
         services.AddScoped<IWalletReadRepository>(sp => new WalletReadRepository(connectionString));
-        services.AddScoped<IPaymentReadRepository>(sp => new PaymentReadRepository(connectionString));
+        services.AddScoped<IPaymentReadRepository>(sp => new PaymentReadRepository(
+            connectionString
+        ));
 
         // Write repositories
-        services.AddScoped<IWalletWriteRepository>(sp => new WalletWriteRepository(connectionString));
+        services.AddScoped<IWalletWriteRepository>(sp => new WalletWriteRepository(
+            connectionString
+        ));
 
         // Atomic writers (explicit SQL transaction execution)
         services.AddScoped<IWalletAtomicWriter>(sp => new WalletAtomicWriter(connectionString));
         services.AddScoped<IPaymentAtomicWriter>(sp => new PaymentAtomicWriter(connectionString));
-        services.AddScoped<IPaymentIntegrityRepairer>(sp => new PaymentIntegrityRepairer(connectionString));
-        services.AddHostedService<PaymentIntegrityAuditWorker>(sp => new PaymentIntegrityAuditWorker(
-            connectionString, sp.GetRequiredService<ILogger<PaymentIntegrityAuditWorker>>()));
-        
+        services.AddScoped<IPaymentIntegrityRepairer>(sp => new PaymentIntegrityRepairer(
+            connectionString
+        ));
+        services.AddHostedService<PaymentIntegrityAuditWorker>(
+            sp => new PaymentIntegrityAuditWorker(
+                connectionString,
+                sp.GetRequiredService<ILogger<PaymentIntegrityAuditWorker>>()
+            )
+        );
+
         // Balance rebuilder (reconciliation & drift repair)
-        services.AddScoped<IBalanceRebuilder>(sp => 
-            new BalanceRebuilder(connectionString, sp.GetRequiredService<ILogger<BalanceRebuilder>>()));
+        services.AddScoped<IBalanceRebuilder>(sp => new BalanceRebuilder(
+            connectionString,
+            sp.GetRequiredService<ILogger<BalanceRebuilder>>()
+        ));
 
         return services;
     }
@@ -57,6 +72,5 @@ public static class DI
         var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
 
         tools.ApplyMigrations<WalletsDbContext>();
-
     }
 }

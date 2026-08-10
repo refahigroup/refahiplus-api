@@ -13,22 +13,26 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "CommissionPercent",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "CommissionPrice",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "DiscountedPrice",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "Price",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
         }
 
         /// <inheritdoc />
@@ -40,7 +44,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "numeric(5,2)",
                 nullable: false,
-                defaultValue: 0m);
+                defaultValue: 0m
+            );
 
             migrationBuilder.AddColumn<long>(
                 name: "CommissionPrice",
@@ -48,7 +53,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "bigint",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0L
+            );
 
             migrationBuilder.AddColumn<long>(
                 name: "DiscountedPrice",
@@ -56,7 +62,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "bigint",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0L
+            );
 
             migrationBuilder.AddColumn<long>(
                 name: "Price",
@@ -64,7 +71,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "bigint",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0L
+            );
         }
     }
 }

@@ -7,7 +7,7 @@ public enum ChargeProviderFailureKind : short
     Transport = 3,
     Authentication = 4,
     InvalidResponse = 5,
-    Cancelled = 6
+    Cancelled = 6,
 }
 
 public sealed class ChargeProviderException : Exception
@@ -23,7 +23,8 @@ public sealed class ChargeProviderException : Exception
         Guid? providerCallLogId = null,
         int? httpStatusCode = null,
         int? providerResultCode = null,
-        Exception? innerException = null)
+        Exception? innerException = null
+    )
         : base(message, innerException)
     {
         FailureKind = failureKind;
@@ -52,4 +53,5 @@ public sealed record ProviderCallContext(
     Guid? ChargeRequestId,
     Guid? OrderId,
     Guid? SagaId,
-    string CorrelationId);
+    string CorrelationId
+);

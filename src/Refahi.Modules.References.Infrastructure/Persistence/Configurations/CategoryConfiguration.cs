@@ -26,7 +26,8 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.HasIndex(c => c.ParentId);
 
         // Self-referencing navigation
-        builder.HasMany(c => c.Children)
+        builder
+            .HasMany(c => c.Children)
             .WithOne()
             .HasForeignKey(c => c.ParentId)
             .OnDelete(DeleteBehavior.Restrict);

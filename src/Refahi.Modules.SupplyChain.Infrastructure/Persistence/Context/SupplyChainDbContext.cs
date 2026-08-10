@@ -7,7 +7,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Context;
 
 public class SupplyChainDbContext : DbContext
 {
-    public SupplyChainDbContext(DbContextOptions<SupplyChainDbContext> options) : base(options) { }
+    public SupplyChainDbContext(DbContextOptions<SupplyChainDbContext> options)
+        : base(options) { }
 
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<SupplierLink> SupplierLinks => Set<SupplierLink>();

@@ -1,7 +1,7 @@
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Refahi.Modules.Charge.Application.Contracts.Providers;
 using Refahi.Modules.Charge.Domain.Enums;
-using System.Text.Json;
 
 namespace Refahi.Modules.Charge.Application.Services;
 
@@ -14,22 +14,31 @@ public sealed class ChargeRequestQuoteService
     public ChargeRequestQuoteService(
         IChargeProviderResolver providers,
         ChargePricingService pricing,
-        IConfiguration configuration)
+        IConfiguration configuration
+    )
     {
         _providers = providers;
         _pricing = pricing;
         _configuration = configuration;
     }
 
-    public async Task<ResolvedChargeQuote> ResolveAsync(ChargeSelection selection, CancellationToken ct)
+    public async Task<ResolvedChargeQuote> ResolveAsync(
+        ChargeSelection selection,
+        CancellationToken ct
+    )
     {
         var capability = ChargeCapabilityPolicy.Get(selection.Operator, selection.ServiceType);
 
         if (!capability.IsSupported)
             throw new ArgumentException(capability.UnavailableReason);
 
-        if (selection.RequestedAmountMinor.HasValue &&
-            (selection.RequestedAmountMinor < capability.MinimumAmountMinor || selection.RequestedAmountMinor > capability.MaximumAmountMinor))
+        if (
+            selection.RequestedAmountMinor.HasValue
+            && (
+                selection.RequestedAmountMinor < capability.MinimumAmountMinor
+                || selection.RequestedAmountMinor > capability.MaximumAmountMinor
+            )
+        )
         {
             throw new ArgumentException("مبلغ انتخاب‌شده خارج از محدوده مجاز این خدمت است");
         }
@@ -43,11 +52,13 @@ public sealed class ChargeRequestQuoteService
             selection.ServiceType,
             product.CostMinor,
             now,
-            ct);
+            ct
+        );
 
         var ttlMinutes = int.TryParse(
             _configuration["Charge:RequestTtlMinutes"],
-            out var configuredTtl)
+            out var configuredTtl
+        )
             ? Math.Clamp(configuredTtl, 1, 120)
             : 20;
 
@@ -64,32 +75,35 @@ public sealed class ChargeRequestQuoteService
             price.FixedAmountMinor,
             price.MarkupAmountMinor,
             price.FinalAmountMinor,
-            now.AddMinutes(ttlMinutes));
+            now.AddMinutes(ttlMinutes)
+        );
     }
 
     private static Task<ResolvedSelection> ResolveSelectionAsync(
         IChargeProvider provider,
         ChargeSelection selection,
-        CancellationToken ct)
-        => selection.ServiceType switch
+        CancellationToken ct
+    ) =>
+        selection.ServiceType switch
         {
             ChargeServiceType.DirectCharge => ResolveDirectAsync(provider, selection, ct),
             ChargeServiceType.InternetPackage => ResolvePackageAsync(provider, selection, ct),
             ChargeServiceType.PostpaidBill => ResolveBillAsync(provider, selection, ct),
             ChargeServiceType.CreditLimit => Task.FromResult(ResolveCredit(selection)),
             ChargeServiceType.PinCharge => ResolvePinAsync(provider, selection, ct),
-            _ => throw new ArgumentException("نوع خدمت پشتیبانی نمی‌شود")
+            _ => throw new ArgumentException("نوع خدمت پشتیبانی نمی‌شود"),
         };
 
     private static async Task<ResolvedSelection> ResolveDirectAsync(
         IChargeProvider provider,
         ChargeSelection selection,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var amount = selection.RequestedAmountMinor ?? 0;
-        var minimum = ChargeCapabilityPolicy
-            .Get(selection.Operator, selection.ServiceType)
-            .MinimumAmountMinor ?? 1;
+        var minimum =
+            ChargeCapabilityPolicy.Get(selection.Operator, selection.ServiceType).MinimumAmountMinor
+            ?? 1;
 
         if (amount < minimum)
             throw new ArgumentException($"حداقل مبلغ شارژ این اپراتور {minimum} ریال است");
@@ -98,46 +112,68 @@ public sealed class ChargeRequestQuoteService
         {
             var eligibility = await provider.CheckEligibilityAsync(
                 new(selection.Operator, selection.DestinationMobileNumber, amount, "CUSTOM", 1001),
-                ct);
+                ct
+            );
             if (eligibility.Supported && eligibility.Eligible == false)
-                throw new ArgumentException(eligibility.Message ?? "امکان خرید این شارژ وجود ندارد");
+                throw new ArgumentException(
+                    eligibility.Message ?? "امکان خرید این شارژ وجود ندارد"
+                );
         }
 
-        return new("CUSTOM", "شارژ مستقیم", 1001, 0, amount, JsonSerializer.Serialize(new { amount }));
+        return new(
+            "CUSTOM",
+            "شارژ مستقیم",
+            1001,
+            0,
+            amount,
+            JsonSerializer.Serialize(new { amount })
+        );
     }
 
     private static async Task<ResolvedSelection> ResolvePackageAsync(
         IChargeProvider provider,
         ChargeSelection selection,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         if (string.IsNullOrWhiteSpace(selection.ProviderProductId))
             throw new ArgumentException("شناسه بسته الزامی است");
 
-        var product = (await provider.GetProductsAsync(selection.Operator, ct))
-            .FirstOrDefault(x => x.ProviderProductId == selection.ProviderProductId);
+        var product = (await provider.GetProductsAsync(selection.Operator, ct)).FirstOrDefault(x =>
+            x.ProviderProductId == selection.ProviderProductId
+        );
 
-        product ??= (await provider.GetOffersAsync(
+        product ??= (
+            await provider.GetOffersAsync(
                 selection.Operator,
                 selection.DestinationMobileNumber,
                 ChargeOfferCategory.All,
-                ct))
-            .FirstOrDefault(x => x.ProviderProductId == selection.ProviderProductId);
+                ct
+            )
+        ).FirstOrDefault(x => x.ProviderProductId == selection.ProviderProductId);
 
         if (product is null || !product.IsActive)
             throw new ArgumentException("بسته انتخاب‌شده معتبر یا فعال نیست");
 
-        var amount = product.AmountWithTaxMinor > 0
-            ? product.AmountWithTaxMinor
-            : product.AmountMinor;
+        var amount =
+            product.AmountWithTaxMinor > 0 ? product.AmountWithTaxMinor : product.AmountMinor;
 
         if (selection.Operator is ChargeOperator.Irancell or ChargeOperator.Mci)
         {
             var eligibility = await provider.CheckEligibilityAsync(
-                new(selection.Operator, selection.DestinationMobileNumber, amount, product.ProviderProductId, 1002),
-                ct);
+                new(
+                    selection.Operator,
+                    selection.DestinationMobileNumber,
+                    amount,
+                    product.ProviderProductId,
+                    1002
+                ),
+                ct
+            );
             if (eligibility.Supported && eligibility.Eligible == false)
-                throw new ArgumentException(eligibility.Message ?? "امکان خرید این بسته وجود ندارد");
+                throw new ArgumentException(
+                    eligibility.Message ?? "امکان خرید این بسته وجود ندارد"
+                );
         }
 
         return new(
@@ -146,26 +182,38 @@ public sealed class ChargeRequestQuoteService
             1002,
             0,
             amount,
-            JsonSerializer.Serialize(product));
+            JsonSerializer.Serialize(product)
+        );
     }
 
     private static async Task<ResolvedSelection> ResolveBillAsync(
         IChargeProvider provider,
         ChargeSelection selection,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         if (selection.Operator != ChargeOperator.Irancell)
-            throw new ArgumentException("پرداخت قبض در این قرارداد فقط برای ایرانسل پشتیبانی می‌شود");
+            throw new ArgumentException(
+                "پرداخت قبض در این قرارداد فقط برای ایرانسل پشتیبانی می‌شود"
+            );
 
         var balance = await provider.GetPostpaidBalanceAsync(
             selection.Operator,
             selection.DestinationMobileNumber,
-            ct);
+            ct
+        );
         var amount = balance.OutstandingBalanceMinor ?? 0;
         if (amount <= 0)
             throw new ArgumentException("بدهی قابل پرداختی برای این شماره وجود ندارد");
 
-        return new("CUSTOM", "پرداخت قبض ایرانسل", 1001, 1, amount, JsonSerializer.Serialize(balance));
+        return new(
+            "CUSTOM",
+            "پرداخت قبض ایرانسل",
+            1001,
+            1,
+            amount,
+            JsonSerializer.Serialize(balance)
+        );
     }
 
     private static ResolvedSelection ResolveCredit(ChargeSelection selection)
@@ -181,21 +229,27 @@ public sealed class ChargeRequestQuoteService
             1001,
             2,
             selection.RequestedAmountMinor!.Value,
-            JsonSerializer.Serialize(new { amount = selection.RequestedAmountMinor }));
+            JsonSerializer.Serialize(new { amount = selection.RequestedAmountMinor })
+        );
     }
 
     private static async Task<ResolvedSelection> ResolvePinAsync(
         IChargeProvider provider,
         ChargeSelection selection,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        if (selection.Operator is not (ChargeOperator.Irancell or ChargeOperator.Mci or ChargeOperator.Rightel))
+        if (
+            selection.Operator
+            is not (ChargeOperator.Irancell or ChargeOperator.Mci or ChargeOperator.Rightel)
+        )
             throw new ArgumentException("این اپراتور پین شارژ ارائه نمی‌دهد");
         if (!selection.PinCategoryId.HasValue)
             throw new ArgumentException("دسته‌بندی پین الزامی است");
 
-        var category = (await provider.GetPinCategoriesAsync(ct))
-            .FirstOrDefault(x => x.CategoryId == selection.PinCategoryId);
+        var category = (await provider.GetPinCategoriesAsync(ct)).FirstOrDefault(x =>
+            x.CategoryId == selection.PinCategoryId
+        );
         if (category is null)
             throw new ArgumentException("دسته‌بندی پین معتبر نیست");
         if (category.Operator != selection.Operator)
@@ -208,7 +262,8 @@ public sealed class ChargeRequestQuoteService
             1003,
             0,
             cost,
-            JsonSerializer.Serialize(category));
+            JsonSerializer.Serialize(category)
+        );
     }
 
     private sealed record ResolvedSelection(
@@ -217,7 +272,8 @@ public sealed class ChargeRequestQuoteService
         int ProductCategory,
         int PayBill,
         long CostMinor,
-        string SnapshotJson);
+        string SnapshotJson
+    );
 }
 
 public sealed record ChargeSelection(
@@ -227,7 +283,8 @@ public sealed record ChargeSelection(
     string? ProviderProductId,
     long? RequestedAmountMinor,
     int? PinCategoryId,
-    int PinCount);
+    int PinCount
+);
 
 public sealed record ResolvedChargeQuote(
     string ProviderName,
@@ -242,4 +299,5 @@ public sealed record ResolvedChargeQuote(
     long MarkupFixedMinor,
     long MarkupAmountMinor,
     long FinalAmountMinor,
-    DateTime ExpireAt);
+    DateTime ExpireAt
+);

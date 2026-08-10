@@ -33,40 +33,44 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => p.IsDeleted);
 
         // Optimistic concurrency via PostgreSQL system column xmin.
-        builder.Property(p => p.Version)
-            .HasColumnName("xmin")
-            .HasColumnType("xid")
-            .IsRowVersion();
+        builder.Property(p => p.Version).HasColumnName("xmin").HasColumnType("xid").IsRowVersion();
 
         // Owned collections via private backing fields
-        builder.HasMany(p => p.Images)
+        builder
+            .HasMany(p => p.Images)
             .WithOne()
             .HasForeignKey("ProductId")
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(p => p.Images).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany(p => p.Variants)
+        builder
+            .HasMany(p => p.Variants)
             .WithOne()
             .HasForeignKey("ProductId")
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(p => p.Variants).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany(p => p.Specifications)
+        builder
+            .HasMany(p => p.Specifications)
             .WithOne()
             .HasForeignKey("ProductId")
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(p => p.Specifications).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany(p => p.Sessions)
+        builder
+            .HasMany(p => p.Sessions)
             .WithOne()
             .HasForeignKey("ProductId")
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(p => p.Sessions).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany(p => p.VariantAttributes)
+        builder
+            .HasMany(p => p.VariantAttributes)
             .WithOne()
             .HasForeignKey("ProductId")
             .OnDelete(DeleteBehavior.Cascade);
-        builder.Navigation(p => p.VariantAttributes).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder
+            .Navigation(p => p.VariantAttributes)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

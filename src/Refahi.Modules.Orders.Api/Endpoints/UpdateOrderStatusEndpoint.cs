@@ -13,24 +13,30 @@ public class UpdateOrderStatusEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPut("/{orderId:guid}/status", async (
-            Guid orderId,
-            UpdateOrderStatusRequest request,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var command = new UpdateOrderStatusCommand(orderId, request.NewStatus);
-            var result = await mediator.Send(command, ct);
-            return Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Orders.UpdateOrderStatus")
-        .WithTags("Orders")
-        .RequireAuthorization("VendorOrAdmin")
-        .Produces<ApiResponse<UpdateOrderStatusResponse>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapPut(
+                "/{orderId:guid}/status",
+                async (
+                    Guid orderId,
+                    UpdateOrderStatusRequest request,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var command = new UpdateOrderStatusCommand(orderId, request.NewStatus);
+                    var result = await mediator.Send(command, ct);
+                    return Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Orders.UpdateOrderStatus")
+            .WithTags("Orders")
+            .RequireAuthorization("VendorOrAdmin")
+            .Produces<ApiResponse<UpdateOrderStatusResponse>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

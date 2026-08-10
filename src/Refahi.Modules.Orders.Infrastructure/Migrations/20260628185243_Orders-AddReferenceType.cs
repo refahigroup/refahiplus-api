@@ -17,16 +17,14 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 type: "character varying(80)",
                 maxLength: 80,
                 nullable: false,
-                defaultValue: "Unknown");
+                defaultValue: "Unknown"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "reference_type",
-                schema: "orders",
-                table: "orders");
+            migrationBuilder.DropColumn(name: "reference_type", schema: "orders", table: "orders");
         }
     }
 }

@@ -7,4 +7,5 @@ public sealed record PrepareFlightOrderCommand(
     Guid BookingId,
     Guid UserId,
     string CallerRole,
-    string IdempotencyKey) : IRequest<PrepareFlightOrderResponse>;
+    string IdempotencyKey
+) : IRequest<PrepareFlightOrderResponse>;

@@ -5,14 +5,17 @@ namespace Refahi.Modules.Store.Domain.Entities;
 
 public sealed class ProductVariant
 {
-    private ProductVariant() { _combinations = new List<ProductVariantCombination>(); }
+    private ProductVariant()
+    {
+        _combinations = new List<ProductVariantCombination>();
+    }
 
     public Guid Id { get; private set; }
     public Guid ProductId { get; private set; }
-    public string? SKU { get; private set; }            // اختیاری — کد موجودی
+    public string? SKU { get; private set; } // اختیاری — کد موجودی
     public string? ImageUrl { get; private set; }
     public int StockCount { get; private set; }
-    public long PriceMinor { get; private set; }        // قیمت مستقل (ریال)
+    public long PriceMinor { get; private set; } // قیمت مستقل (ریال)
     public long? DiscountedPriceMinor { get; private set; } // قیمت تخفیف‌خورده (ریال)
     public DateOnly? FromDate { get; private set; }
     public DateOnly? ToDate { get; private set; }
@@ -21,37 +24,44 @@ public sealed class ProductVariant
     public bool IsAvailable { get; private set; }
 
     public bool RequiresUsageDate =>
-        CapacityType == VariantCapacityType.PerEligibleDay &&
-        FromDate.HasValue &&
-        ToDate.HasValue &&
-        FromDate.Value != ToDate.Value;
+        CapacityType == VariantCapacityType.PerEligibleDay
+        && FromDate.HasValue
+        && ToDate.HasValue
+        && FromDate.Value != ToDate.Value;
 
-    public bool UsesLegacyStockFor(SalesModel salesModel)
-        => salesModel == SalesModel.StockBased;
+    public bool UsesLegacyStockFor(SalesModel salesModel) => salesModel == SalesModel.StockBased;
 
-    public bool UsesAccessCapacityFor(SalesModel salesModel)
-        => salesModel == SalesModel.SessionBased;
+    public bool UsesAccessCapacityFor(SalesModel salesModel) =>
+        salesModel == SalesModel.SessionBased;
 
-    public bool HasLegacyStockAvailable(int requestedQuantity)
-        => IsAvailable && StockCount >= requestedQuantity;
+    public bool HasLegacyStockAvailable(int requestedQuantity) =>
+        IsAvailable && StockCount >= requestedQuantity;
 
-    public bool IsAvailableFor(SalesModel salesModel)
-        => salesModel switch
+    public bool IsAvailableFor(SalesModel salesModel) =>
+        salesModel switch
         {
             SalesModel.StockBased => IsAvailable,
-            SalesModel.SessionBased => CapacityType == VariantCapacityType.Unlimited || Capacity is > 0,
-            _ => IsAvailable
+            SalesModel.SessionBased => CapacityType == VariantCapacityType.Unlimited
+                || Capacity is > 0,
+            _ => IsAvailable,
         };
 
     private readonly List<ProductVariantCombination> _combinations;
     public IReadOnlyList<ProductVariantCombination> Combinations => _combinations.AsReadOnly();
 
     internal static ProductVariant Create(
-        Guid productId, int stockCount, long priceMinor, long? discountedPriceMinor = null,
-        string? imageUrl = null, string? sku = null,
-        DateOnly? fromDate = null, DateOnly? toDate = null,
-        VariantCapacityType capacityType = VariantCapacityType.Unlimited, int? capacity = null,
-        SalesModel salesModel = SalesModel.StockBased)
+        Guid productId,
+        int stockCount,
+        long priceMinor,
+        long? discountedPriceMinor = null,
+        string? imageUrl = null,
+        string? sku = null,
+        DateOnly? fromDate = null,
+        DateOnly? toDate = null,
+        VariantCapacityType capacityType = VariantCapacityType.Unlimited,
+        int? capacity = null,
+        SalesModel salesModel = SalesModel.StockBased
+    )
     {
         ValidatePrice(priceMinor, discountedPriceMinor);
         ValidateValidityRange(fromDate, toDate);
@@ -70,7 +80,7 @@ public sealed class ProductVariant
             ToDate = toDate,
             CapacityType = capacityType,
             Capacity = normalizedCapacity,
-            IsAvailable = DetermineInitialAvailability(salesModel, stockCount)
+            IsAvailable = DetermineInitialAvailability(salesModel, stockCount),
         };
     }
 
@@ -91,7 +101,8 @@ public sealed class ProductVariant
         DateOnly? toDate,
         VariantCapacityType capacityType,
         int? capacity,
-        SalesModel salesModel)
+        SalesModel salesModel
+    )
     {
         ValidatePrice(priceMinor, discountedPriceMinor);
         ValidateValidityRange(fromDate, toDate);
@@ -127,11 +138,21 @@ public sealed class ProductVariant
             throw new StoreDomainException("تنوع محصول فعال نیست", "VARIANT_NOT_AVAILABLE");
 
         if (RequiresUsageDate && usageDate is null)
-            throw new StoreDomainException("انتخاب تاریخ استفاده برای این تنوع الزامی است", "USAGE_DATE_REQUIRED");
+            throw new StoreDomainException(
+                "انتخاب تاریخ استفاده برای این تنوع الزامی است",
+                "USAGE_DATE_REQUIRED"
+            );
 
-        if (usageDate.HasValue && FromDate.HasValue && ToDate.HasValue &&
-            (usageDate.Value < FromDate.Value || usageDate.Value > ToDate.Value))
-            throw new StoreDomainException("تاریخ استفاده خارج از بازه اعتبار تنوع است", "USAGE_DATE_OUT_OF_RANGE");
+        if (
+            usageDate.HasValue
+            && FromDate.HasValue
+            && ToDate.HasValue
+            && (usageDate.Value < FromDate.Value || usageDate.Value > ToDate.Value)
+        )
+            throw new StoreDomainException(
+                "تاریخ استفاده خارج از بازه اعتبار تنوع است",
+                "USAGE_DATE_OUT_OF_RANGE"
+            );
     }
 
     public void EnsureCapacityAvailable(int requestedQuantity, int soldCountInScope)
@@ -154,8 +175,8 @@ public sealed class ProductVariant
             throw new StoreDomainException("ظرفیت تنوع کافی نیست", "INSUFFICIENT_VARIANT_CAPACITY");
     }
 
-    internal void AddCombination(Guid attributeId, Guid valueId)
-        => _combinations.Add(ProductVariantCombination.Create(Id, attributeId, valueId));
+    internal void AddCombination(Guid attributeId, Guid valueId) =>
+        _combinations.Add(ProductVariantCombination.Create(Id, attributeId, valueId));
 
     internal void DecreaseStock(int quantity)
     {
@@ -181,38 +202,60 @@ public sealed class ProductVariant
             throw new StoreDomainException("قیمت باید بیشتر از صفر باشد", "INVALID_PRICE");
 
         if (discountedPriceMinor is null or <= 0)
-            throw new StoreDomainException("قیمت تخفیف‌خورده باید بیشتر از صفر باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده باید بیشتر از صفر باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
 
         if (discountedPriceMinor > priceMinor)
-            throw new StoreDomainException("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
     }
 
     private static void ValidateValidityRange(DateOnly? fromDate, DateOnly? toDate)
     {
         if (fromDate.HasValue != toDate.HasValue)
-            throw new StoreDomainException("تاریخ شروع و پایان اعتبار باید همزمان ثبت شوند", "INVALID_VARIANT_VALIDITY_RANGE");
+            throw new StoreDomainException(
+                "تاریخ شروع و پایان اعتبار باید همزمان ثبت شوند",
+                "INVALID_VARIANT_VALIDITY_RANGE"
+            );
 
         if (fromDate.HasValue && fromDate.Value > toDate!.Value)
-            throw new StoreDomainException("تاریخ شروع اعتبار باید قبل از تاریخ پایان باشد", "INVALID_VARIANT_VALIDITY_RANGE");
+            throw new StoreDomainException(
+                "تاریخ شروع اعتبار باید قبل از تاریخ پایان باشد",
+                "INVALID_VARIANT_VALIDITY_RANGE"
+            );
     }
 
-    private static int? ValidateAndNormalizeCapacity(VariantCapacityType capacityType, int? capacity)
+    private static int? ValidateAndNormalizeCapacity(
+        VariantCapacityType capacityType,
+        int? capacity
+    )
     {
         return capacityType switch
         {
             VariantCapacityType.Unlimited => null,
-            VariantCapacityType.TotalPeriod or VariantCapacityType.PerEligibleDay when capacity is > 0 => capacity,
+            VariantCapacityType.TotalPeriod
+            or VariantCapacityType.PerEligibleDay when capacity is > 0 => capacity,
             VariantCapacityType.TotalPeriod or VariantCapacityType.PerEligibleDay =>
-                throw new StoreDomainException("ظرفیت تنوع باید بیشتر از صفر باشد", "INVALID_VARIANT_CAPACITY"),
-            _ => throw new StoreDomainException("نوع ظرفیت تنوع معتبر نیست", "INVALID_VARIANT_CAPACITY_TYPE")
+                throw new StoreDomainException(
+                    "ظرفیت تنوع باید بیشتر از صفر باشد",
+                    "INVALID_VARIANT_CAPACITY"
+                ),
+            _ => throw new StoreDomainException(
+                "نوع ظرفیت تنوع معتبر نیست",
+                "INVALID_VARIANT_CAPACITY_TYPE"
+            ),
         };
     }
 
-    private static bool DetermineInitialAvailability(SalesModel salesModel, int stockCount)
-        => salesModel switch
+    private static bool DetermineInitialAvailability(SalesModel salesModel, int stockCount) =>
+        salesModel switch
         {
             SalesModel.StockBased => stockCount > 0,
             SalesModel.SessionBased => true,
-            _ => stockCount > 0
+            _ => stockCount > 0,
         };
 }

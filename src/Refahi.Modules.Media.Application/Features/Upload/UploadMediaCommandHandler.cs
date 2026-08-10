@@ -16,7 +16,8 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Upl
     public UploadMediaCommandHandler(
         IMediaStorageService storage,
         IMediaAssetRepository repository,
-        IMediaContentValidator contentValidator)
+        IMediaContentValidator contentValidator
+    )
     {
         _storage = storage;
         _repository = repository;
@@ -39,8 +40,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Upl
         Refahi.Modules.Media.Application.Services.MediaStorageResult storageResult;
         try
         {
-            storageResult = await _storage.SaveAsync(
-                request.FileStream, extension, mediaType, ct);
+            storageResult = await _storage.SaveAsync(request.FileStream, extension, mediaType, ct);
         }
         catch (MediaDomainException)
         {
@@ -50,7 +50,8 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Upl
         {
             throw new MediaDomainException(
                 "ذخیره فایل با خطا مواجه شد: " + ex.Message,
-                "MEDIA_STORAGE_FAILED");
+                "MEDIA_STORAGE_FAILED"
+            );
         }
 
         // ۴. ثبت در DB با compensating action
@@ -65,7 +66,8 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Upl
                 mediaType,
                 request.UploadedByUserId,
                 request.EntityType,
-                request.EntityId);
+                request.EntityId
+            );
 
             await _repository.AddAsync(asset, ct);
             await _repository.SaveChangesAsync(ct);
@@ -74,7 +76,8 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Upl
                 asset.Id,
                 _storage.GetPublicUrl(asset.StoragePath),
                 asset.ContentType,
-                asset.FileSizeBytes);
+                asset.FileSizeBytes
+            );
         }
         catch
         {

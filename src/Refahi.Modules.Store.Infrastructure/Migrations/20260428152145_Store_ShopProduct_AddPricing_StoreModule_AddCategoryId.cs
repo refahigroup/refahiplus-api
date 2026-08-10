@@ -16,7 +16,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_products",
                 type: "numeric(5,2)",
                 nullable: false,
-                defaultValue: 0m);
+                defaultValue: 0m
+            );
 
             migrationBuilder.AddColumn<long>(
                 name: "CommissionPrice",
@@ -24,7 +25,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_products",
                 type: "bigint",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0L
+            );
 
             migrationBuilder.AddColumn<long>(
                 name: "DiscountedPrice",
@@ -32,7 +34,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_products",
                 type: "bigint",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0L
+            );
 
             migrationBuilder.AddColumn<long>(
                 name: "Price",
@@ -40,14 +43,16 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_products",
                 type: "bigint",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0L
+            );
 
             migrationBuilder.AddColumn<int>(
                 name: "CategoryId",
                 schema: "store",
                 table: "modules",
                 type: "integer",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
@@ -56,27 +61,24 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "CommissionPercent",
                 schema: "store",
-                table: "shop_products");
+                table: "shop_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "CommissionPrice",
                 schema: "store",
-                table: "shop_products");
+                table: "shop_products"
+            );
 
             migrationBuilder.DropColumn(
                 name: "DiscountedPrice",
                 schema: "store",
-                table: "shop_products");
+                table: "shop_products"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "Price",
-                schema: "store",
-                table: "shop_products");
+            migrationBuilder.DropColumn(name: "Price", schema: "store", table: "shop_products");
 
-            migrationBuilder.DropColumn(
-                name: "CategoryId",
-                schema: "store",
-                table: "modules");
+            migrationBuilder.DropColumn(name: "CategoryId", schema: "store", table: "modules");
         }
     }
 }

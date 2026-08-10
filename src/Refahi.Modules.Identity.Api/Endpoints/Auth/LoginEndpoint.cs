@@ -17,52 +17,64 @@ public class LoginEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/login", async (
-                [FromBody] LoginCommand request,
-                IMediator mediator,
-                ITokenService tokenService,
-                IRefreshTokenRepository refreshTokenRepository) =>
-        {
+        routes
+            .MapPost(
+                "/login",
+                async (
+                    [FromBody] LoginCommand request,
+                    IMediator mediator,
+                    ITokenService tokenService,
+                    IRefreshTokenRepository refreshTokenRepository
+                ) =>
+                {
+                    if (request is null)
+                        return Results.BadRequest();
 
-            if (request is null)
-                return Results.BadRequest();
+                    var user = await mediator.Send(request);
 
-            var user = await mediator.Send(request);
+                    if (user is null)
+                        return Results.Unauthorized();
 
-            if (user is null)
-                return Results.Unauthorized();
+                    var identity = new UserIdentity(
+                        user.Id.ToString(),
+                        user.MobileNumber ?? user.Email ?? "Unknown",
+                        string.Join(",", user.Roles)
+                    );
 
-            var identity = new UserIdentity(
-                user.Id.ToString(),
-                user.MobileNumber ?? user.Email ?? "Unknown",
-                string.Join(",", user.Roles));
+                    var tokens = await tokenService.CreateTokensAsync(identity);
 
-            var tokens = await tokenService.CreateTokensAsync(identity);
+                    // Store refresh token in database
+                    var refreshToken = Domain.Entities.RefreshToken.Create(
+                        userId: user.Id,
+                        token: tokens.RefreshToken,
+                        expiresAt: tokens.RefreshTokenExpiresAtUtc.HasValue
+                            ? tokens.RefreshTokenExpiresAtUtc.Value.UtcDateTime
+                            : DateTime.UtcNow.AddDays(7)
+                    );
 
-            // Store refresh token in database
-            var refreshToken = Domain.Entities.RefreshToken.Create(
-                userId: user.Id,
-                token: tokens.RefreshToken,
-                expiresAt: tokens.RefreshTokenExpiresAtUtc.HasValue ? tokens.RefreshTokenExpiresAtUtc.Value.UtcDateTime : DateTime.UtcNow.AddDays(7)
-            );
+                    await refreshTokenRepository.AddAsync(refreshToken);
 
-            await refreshTokenRepository.AddAsync(refreshToken);
+                    return Results.Ok(
+                        new
+                        {
+                            access_token = tokens.AccessToken,
+                            token_type = tokens.TokenType,
+                            expires_in = (int)
+                                (
+                                    tokens.AccessTokenExpiresAtUtc - DateTimeOffset.UtcNow
+                                ).TotalSeconds,
+                            expires_at_utc = tokens.AccessTokenExpiresAtUtc,
 
-            return Results.Ok(new
-            {
-                access_token = tokens.AccessToken,
-                token_type = tokens.TokenType,
-                expires_in = (int)(tokens.AccessTokenExpiresAtUtc - DateTimeOffset.UtcNow).TotalSeconds,
-                expires_at_utc = tokens.AccessTokenExpiresAtUtc,
-
-                refresh_token = tokens.RefreshToken,
-                refresh_expires_at_utc = tokens.RefreshTokenExpiresAtUtc
-            });
-        })
-        .WithName("Identity.Login")
-        .WithTags("Identity")
-        .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+                            refresh_token = tokens.RefreshToken,
+                            refresh_expires_at_utc = tokens.RefreshTokenExpiresAtUtc,
+                        }
+                    );
+                }
+            )
+            .WithName("Identity.Login")
+            .WithTags("Identity")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
     }
 }

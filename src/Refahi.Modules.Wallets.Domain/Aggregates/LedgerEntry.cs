@@ -1,7 +1,7 @@
+using System;
 using Refahi.Modules.Wallets.Domain.Enums;
 using Refahi.Modules.Wallets.Domain.Exceptions;
 using Refahi.Modules.Wallets.Domain.ValueObjects;
-using System;
 
 namespace Refahi.Modules.Wallets.Domain.Aggregates;
 
@@ -23,17 +23,17 @@ public sealed class LedgerEntry
     public OperationType OperationType { get; }
     public EntryType EntryType { get; }
     public Money Money { get; }
-    
+
     /// <summary>
     /// Amount in minor units (compatibility property).
     /// </summary>
     public long AmountMinor => Money.AmountMinor;
-    
+
     /// <summary>
     /// Currency code (compatibility property).
     /// </summary>
     public string Currency => Money.Currency.Code;
-    
+
     public DateTimeOffset EffectiveAt { get; }
     public DateTimeOffset CreatedAt { get; }
 
@@ -56,7 +56,8 @@ public sealed class LedgerEntry
         Guid? relatedEntryId = null,
         RelationType relationType = RelationType.None,
         string? externalReference = null,
-        string? metadataJson = null)
+        string? metadataJson = null
+    )
     {
         Id = ledgerEntryId;
         WalletId = walletId;
@@ -91,7 +92,8 @@ public sealed class LedgerEntry
         Guid? relatedEntryId = null,
         RelationType relationType = RelationType.None,
         string? externalReference = null,
-        string? metadataJson = null)
+        string? metadataJson = null
+    )
     {
         if (amountMinor <= 0)
             throw new InvalidAmountWalletDomainException("Amount must be positive (minor units).");

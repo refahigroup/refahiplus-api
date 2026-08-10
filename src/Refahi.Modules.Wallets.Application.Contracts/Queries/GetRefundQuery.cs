@@ -8,7 +8,5 @@ namespace Refahi.Modules.Wallets.Application.Contracts.Queries;
 /// <summary>
 /// Query to retrieve refund details (read-only).
 /// </summary>
-public record GetRefundQuery(
-    Guid PaymentId,
-    Guid RefundId
-) : IRequest<CommandResponse<GetRefundResponse>>;
+public record GetRefundQuery(Guid PaymentId, Guid RefundId)
+    : IRequest<CommandResponse<GetRefundResponse>>;

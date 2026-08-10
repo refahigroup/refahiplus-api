@@ -18,15 +18,13 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 schema: "store",
                 table: "cart_items",
                 type: "date",
-                nullable: true);
+                nullable: true
+            );
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "UsageDate",
-                schema: "store",
-                table: "cart_items");
+            migrationBuilder.DropColumn(name: "UsageDate", schema: "store", table: "cart_items");
         }
     }
 }

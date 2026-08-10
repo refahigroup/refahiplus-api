@@ -14,23 +14,34 @@ public sealed class ConvertChargeRequestToOrderEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("charge-requests/{requestId:guid}/order", async (Guid requestId, HttpContext http, ISender sender, CancellationToken ct) =>
-        {
-            if (!ChargeEndpointHelpers.TryUserId(http, out var userId))
-                return Results.Unauthorized();
+        routes
+            .MapPost(
+                "charge-requests/{requestId:guid}/order",
+                async (Guid requestId, HttpContext http, ISender sender, CancellationToken ct) =>
+                {
+                    if (!ChargeEndpointHelpers.TryUserId(http, out var userId))
+                        return Results.Unauthorized();
 
-            var key = http.Request.Headers["Idempotency-Key"].FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(key))
-                return Results.BadRequest(ApiResponseHelper.Error("هدر Idempotency-Key الزامی است"));
+                    var key = http.Request.Headers["Idempotency-Key"].FirstOrDefault();
+                    if (string.IsNullOrWhiteSpace(key))
+                        return Results.BadRequest(
+                            ApiResponseHelper.Error("هدر Idempotency-Key الزامی است")
+                        );
 
-            var result = await sender.Send(new ConvertChargeRequestToOrderCommand(requestId, userId, key), ct);
-            return Results.Ok(ApiResponseHelper.Success(result, "سفارش شارژ آماده پرداخت شد"));
-        })
-        .RequireAuthorization("UserOrAdmin")
-        .WithName("Charge.Requests.ConvertToOrder")
-        .WithTags("Charge.Requests")
-        .Produces<ApiResponse<ConvertChargeRequestToOrderResponse>>(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+                    var result = await sender.Send(
+                        new ConvertChargeRequestToOrderCommand(requestId, userId, key),
+                        ct
+                    );
+                    return Results.Ok(
+                        ApiResponseHelper.Success(result, "سفارش شارژ آماده پرداخت شد")
+                    );
+                }
+            )
+            .RequireAuthorization("UserOrAdmin")
+            .WithName("Charge.Requests.ConvertToOrder")
+            .WithTags("Charge.Requests")
+            .Produces<ApiResponse<ConvertChargeRequestToOrderResponse>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
     }
 }

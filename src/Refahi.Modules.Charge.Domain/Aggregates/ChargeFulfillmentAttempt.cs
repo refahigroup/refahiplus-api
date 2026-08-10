@@ -5,6 +5,7 @@ namespace Refahi.Modules.Charge.Domain.Aggregates;
 public sealed class ChargeFulfillmentAttempt
 {
     private ChargeFulfillmentAttempt() { }
+
     public Guid Id { get; private set; }
     public Guid ChargeRequestId { get; private set; }
     public Guid? ProviderCallLogId { get; private set; }
@@ -20,9 +21,21 @@ public sealed class ChargeFulfillmentAttempt
     public long LatencyMilliseconds { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
-    public static ChargeFulfillmentAttempt Create(Guid requestId, FulfillmentAttemptType type, bool success, int? eniacCode,
-        string? operatorCode, string? rrn, string? traceId, string? message, string requestJson, string responseJson,
-        long latencyMilliseconds, DateTime nowUtc, Guid? providerCallLogId = null)
+    public static ChargeFulfillmentAttempt Create(
+        Guid requestId,
+        FulfillmentAttemptType type,
+        bool success,
+        int? eniacCode,
+        string? operatorCode,
+        string? rrn,
+        string? traceId,
+        string? message,
+        string requestJson,
+        string responseJson,
+        long latencyMilliseconds,
+        DateTime nowUtc,
+        Guid? providerCallLogId = null
+    )
     {
         return new()
         {
@@ -39,7 +52,7 @@ public sealed class ChargeFulfillmentAttempt
             RequestSnapshotJson = requestJson,
             ResponseSnapshotJson = responseJson,
             LatencyMilliseconds = latencyMilliseconds,
-            CreatedAt = nowUtc
+            CreatedAt = nowUtc,
         };
     }
 }

@@ -22,7 +22,8 @@ public class BackfillShopProductVariantsCommandHandler
         IShopProductRepository shopProductRepo,
         IProductRepository productRepo,
         IShopRepository shopRepo,
-        ILogger<BackfillShopProductVariantsCommandHandler> logger)
+        ILogger<BackfillShopProductVariantsCommandHandler> logger
+    )
     {
         _shopProductRepo = shopProductRepo;
         _productRepo = productRepo;
@@ -32,22 +33,26 @@ public class BackfillShopProductVariantsCommandHandler
 
     public async Task<ShopProductVariantBackfillResultDto> Handle(
         BackfillShopProductVariantsCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var detailLimit = Math.Clamp(request.DetailLimit, 0, MaxDetailLimit);
 
         var shopProducts = await _shopProductRepo.ListForVariantBackfillAsync(
             request.ShopId,
             request.ProductId,
-            cancellationToken);
+            cancellationToken
+        );
 
         var products = await _productRepo.GetByIdsForAdminWithDetailsAsync(
             shopProducts.Select(sp => sp.ProductId).Distinct().ToArray(),
-            cancellationToken);
+            cancellationToken
+        );
 
         var shops = await _shopRepo.GetByIdsAsync(
             shopProducts.Select(sp => sp.ShopId).Distinct().ToArray(),
-            cancellationToken);
+            cancellationToken
+        );
 
         var productMap = products.ToDictionary(p => p.Id, p => p);
         var shopMap = shops.ToDictionary(s => s.Id, s => s);
@@ -64,13 +69,19 @@ public class BackfillShopProductVariantsCommandHandler
         {
             if (!productMap.TryGetValue(shopProduct.ProductId, out var product))
             {
-                AddWarning(warnings, $"محصول {shopProduct.ProductId} برای محصول فروشگاه {shopProduct.Id} یافت نشد و رد شد.");
+                AddWarning(
+                    warnings,
+                    $"محصول {shopProduct.ProductId} برای محصول فروشگاه {shopProduct.Id} یافت نشد و رد شد."
+                );
                 continue;
             }
 
             if (product.IsDeleted)
             {
-                AddWarning(warnings, $"محصول حذف‌شده {product.Id} برای محصول فروشگاه {shopProduct.Id} رد شد.");
+                AddWarning(
+                    warnings,
+                    $"محصول حذف‌شده {product.Id} برای محصول فروشگاه {shopProduct.Id} رد شد."
+                );
                 continue;
             }
 
@@ -80,8 +91,8 @@ public class BackfillShopProductVariantsCommandHandler
             productsWithVariants++;
 
             var newOfferings = new List<ShopProductVariant>();
-            var existingVariantIds = shopProduct.VariantOfferings
-                .Where(v => !v.IsDeleted)
+            var existingVariantIds = shopProduct
+                .VariantOfferings.Where(v => !v.IsDeleted)
                 .Select(v => v.ProductVariantId)
                 .ToHashSet();
 
@@ -96,7 +107,10 @@ public class BackfillShopProductVariantsCommandHandler
                 if (!IsValidVariantPrice(variant, out var warning))
                 {
                     skippedInvalidVariants++;
-                    AddWarning(warnings, $"{warning} ShopProductId={shopProduct.Id}, ProductVariantId={variant.Id}.");
+                    AddWarning(
+                        warnings,
+                        $"{warning} ShopProductId={shopProduct.Id}, ProductVariantId={variant.Id}."
+                    );
                     continue;
                 }
 
@@ -104,16 +118,21 @@ public class BackfillShopProductVariantsCommandHandler
 
                 if (createdItems.Count < detailLimit)
                 {
-                    createdItems.Add(new ShopProductVariantBackfillCreatedItemDto(
-                        shopProduct.ShopId,
-                        shopMap.TryGetValue(shopProduct.ShopId, out var shop) ? shop.Name : string.Empty,
-                        product.Id,
-                        product.Title,
-                        shopProduct.Id,
-                        variant.Id,
-                        BuildVariantName(product, variant),
-                        variant.PriceMinor,
-                        variant.DiscountedPriceMinor));
+                    createdItems.Add(
+                        new ShopProductVariantBackfillCreatedItemDto(
+                            shopProduct.ShopId,
+                            shopMap.TryGetValue(shopProduct.ShopId, out var shop)
+                                ? shop.Name
+                                : string.Empty,
+                            product.Id,
+                            product.Title,
+                            shopProduct.Id,
+                            variant.Id,
+                            BuildVariantName(product, variant),
+                            variant.PriceMinor,
+                            variant.DiscountedPriceMinor
+                        )
+                    );
                 }
                 else
                 {
@@ -127,17 +146,25 @@ public class BackfillShopProductVariantsCommandHandler
                     variant.Id,
                     variant.PriceMinor,
                     variant.DiscountedPriceMinor,
-                    isActive: true);
+                    isActive: true
+                );
 
                 newOfferings.Add(offering);
             }
 
             if (newOfferings.Count > 0)
-                await _shopProductRepo.AddVariantOfferingsAsync(shopProduct, newOfferings, cancellationToken);
+                await _shopProductRepo.AddVariantOfferingsAsync(
+                    shopProduct,
+                    newOfferings,
+                    cancellationToken
+                );
         }
 
         if (createdItemsCapped)
-            AddWarning(warnings, $"فهرست ردیف‌های ایجادشده در پاسخ به {detailLimit} مورد محدود شد.");
+            AddWarning(
+                warnings,
+                $"فهرست ردیف‌های ایجادشده در پاسخ به {detailLimit} مورد محدود شد."
+            );
 
         if (!request.DryRun)
         {
@@ -147,7 +174,8 @@ public class BackfillShopProductVariantsCommandHandler
                 productsWithVariants,
                 createdOfferings,
                 skippedExistingOfferings,
-                skippedInvalidVariants);
+                skippedInvalidVariants
+            );
         }
 
         return new ShopProductVariantBackfillResultDto(
@@ -158,7 +186,8 @@ public class BackfillShopProductVariantsCommandHandler
             skippedExistingOfferings,
             skippedInvalidVariants,
             createdItems,
-            warnings);
+            warnings
+        );
     }
 
     private static bool IsValidVariantPrice(ProductVariant variant, out string warning)
@@ -187,11 +216,15 @@ public class BackfillShopProductVariantsCommandHandler
 
     private static string BuildVariantName(Product product, ProductVariant variant)
     {
-        var parts = variant.Combinations
-            .Select(c =>
+        var parts = variant
+            .Combinations.Select(c =>
             {
-                var attribute = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
-                var value = attribute?.Values.FirstOrDefault(v => v.Id == c.VariantAttributeValueId);
+                var attribute = product.VariantAttributes.FirstOrDefault(a =>
+                    a.Id == c.VariantAttributeId
+                );
+                var value = attribute?.Values.FirstOrDefault(v =>
+                    v.Id == c.VariantAttributeValueId
+                );
 
                 return attribute is null || value is null
                     ? null

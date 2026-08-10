@@ -1,6 +1,6 @@
-using Refahi.Modules.PaymentGateway.Domain.Enums;
 using System.Threading;
 using System.Threading.Tasks;
+using Refahi.Modules.PaymentGateway.Domain.Enums;
 
 namespace Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
 

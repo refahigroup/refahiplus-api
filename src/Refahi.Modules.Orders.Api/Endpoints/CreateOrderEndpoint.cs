@@ -8,6 +8,7 @@ public class CreateOrderEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder) return;
+        if (app is not IEndpointRouteBuilder)
+            return;
     }
 }

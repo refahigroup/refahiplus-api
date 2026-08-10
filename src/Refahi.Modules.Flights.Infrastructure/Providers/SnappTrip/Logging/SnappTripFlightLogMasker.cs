@@ -11,11 +11,14 @@ internal static partial class SnappTripFlightLogMasker
         if (string.IsNullOrWhiteSpace(value))
             return value;
 
-        var masked = SensitiveJsonFieldRegex().Replace(value, match =>
-            $"{match.Groups["prefix"].Value}{Mask}{match.Groups["suffix"].Value}");
+        var masked = SensitiveJsonFieldRegex()
+            .Replace(
+                value,
+                match => $"{match.Groups["prefix"].Value}{Mask}{match.Groups["suffix"].Value}"
+            );
 
-        masked = ApiKeyHeaderRegex().Replace(masked, match =>
-            $"{match.Groups["prefix"].Value}{Mask}");
+        masked = ApiKeyHeaderRegex()
+            .Replace(masked, match => $"{match.Groups["prefix"].Value}{Mask}");
 
         return masked;
     }
@@ -33,11 +36,13 @@ internal static partial class SnappTripFlightLogMasker
 
     [GeneratedRegex(
         "(?<prefix>\"(?:fareSourceCode|nationalId|documentId|phoneNumber|receiverPhoneNumber|phone|email|receiverEmail|number|passportNumber|apiKey|api-key)\"\\s*:\\s*\")(?<value>.*?)(?<suffix>\")",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+    )]
     private static partial Regex SensitiveJsonFieldRegex();
 
     [GeneratedRegex(
         "(?<prefix>(?:api-key|ApiKey|Authorization)\\s*[:=]\\s*)(?<value>[^\\s,;]+)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+    )]
     private static partial Regex ApiKeyHeaderRegex();
 }

@@ -22,7 +22,8 @@ public class CartConfiguration : IEntityTypeConfiguration<Cart>
         // Each user has one cart per module
         builder.HasIndex(c => new { c.UserId, c.ModuleId }).IsUnique();
 
-        builder.HasMany(c => c.Items)
+        builder
+            .HasMany(c => c.Items)
             .WithOne()
             .HasForeignKey("CartId")
             .OnDelete(DeleteBehavior.Cascade);

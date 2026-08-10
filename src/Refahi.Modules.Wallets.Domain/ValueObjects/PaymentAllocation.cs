@@ -65,11 +65,15 @@ public sealed record PaymentAllocation
         ValidateSameCurrency(allocs);
 
         if (allocs[0].Amount.Currency != expectedTotal.Currency)
-            throw new InvalidOperationException($"Allocation currency {allocs[0].Amount.Currency} does not match expected total currency {expectedTotal.Currency}.");
+            throw new InvalidOperationException(
+                $"Allocation currency {allocs[0].Amount.Currency} does not match expected total currency {expectedTotal.Currency}."
+            );
 
         var sum = allocs.Sum(a => a.Amount.AmountMinor);
         if (sum != expectedTotal.AmountMinor)
-            throw new InvalidOperationException($"Sum of allocations ({sum}) does not match expected total ({expectedTotal.AmountMinor}).");
+            throw new InvalidOperationException(
+                $"Sum of allocations ({sum}) does not match expected total ({expectedTotal.AmountMinor})."
+            );
     }
 
     public override string ToString() => $"{WalletId}: {Amount}";

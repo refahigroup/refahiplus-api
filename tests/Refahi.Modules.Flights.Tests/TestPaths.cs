@@ -8,7 +8,10 @@ internal static class TestPaths
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
 
-            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Refahi.Backend.slnx")))
+            while (
+                directory is not null
+                && !File.Exists(Path.Combine(directory.FullName, "Refahi.Backend.slnx"))
+            )
             {
                 directory = directory.Parent;
             }

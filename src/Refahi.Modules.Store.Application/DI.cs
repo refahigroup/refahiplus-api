@@ -9,7 +9,10 @@ namespace Refahi.Modules.Store.Application;
 
 public static class DI
 {
-    public static IServiceCollection RegisterApplication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterApplication(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var assembly = typeof(DI).Assembly;
 
@@ -27,11 +30,18 @@ public static class DI
             .AddScoped<IStoreInPersonFinancialPlanner, StoreInPersonFinancialPlanner>();
         services.AddScoped<IOnlineOfferEligibilityService, OnlineOfferEligibilityService>();
 
-        services.AddOptions<StorePaymentDistributionOptions>()
+        services
+            .AddOptions<StorePaymentDistributionOptions>()
             .Bind(configuration.GetSection(StorePaymentDistributionOptions.SectionName))
-            .Validate(x => x.RefahiRevenueWalletId != Guid.Empty, "شناسه کیف درآمد رفاهی الزامی است")
+            .Validate(
+                x => x.RefahiRevenueWalletId != Guid.Empty,
+                "شناسه کیف درآمد رفاهی الزامی است"
+            )
             .Validate(x => x.RefahiVatWalletId != Guid.Empty, "شناسه کیف مالیات رفاهی الزامی است")
-            .Validate(x => x.RefahiRevenueWalletId != x.RefahiVatWalletId, "کیف درآمد و مالیات باید متفاوت باشند")
+            .Validate(
+                x => x.RefahiRevenueWalletId != x.RefahiVatWalletId,
+                "کیف درآمد و مالیات باید متفاوت باشند"
+            )
             .Validate(x => x.VatRatePercent is >= 0 and <= 100, "نرخ مالیات نامعتبر است")
             .ValidateOnStart();
 

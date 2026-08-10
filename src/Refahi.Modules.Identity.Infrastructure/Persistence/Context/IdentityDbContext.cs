@@ -5,12 +5,10 @@ using Refahi.Modules.Identity.Infrastructure.Persistence.Configurations;
 
 namespace Refahi.Modules.Identity.Infrastructure.Persistence.Context;
 
-
 public class IdentityDbContext : DbContext
 {
-    public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options)
-    {
-    }
+    public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
+        : base(options) { }
 
     public DbSet<User> Users => Set<User>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();

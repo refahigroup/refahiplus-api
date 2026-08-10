@@ -5,7 +5,6 @@
 /// </summary>
 public sealed class SnappTripCityAvailabilityRequest
 {
-
     public int city_id { get; set; }
 
     /// <summary>

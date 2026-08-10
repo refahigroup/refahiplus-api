@@ -9,12 +9,15 @@ public class DeleteSupplierCommandHandler : IRequestHandler<DeleteSupplierComman
 {
     private readonly ISupplierRepository _repository;
 
-    public DeleteSupplierCommandHandler(ISupplierRepository repository)
-        => _repository = repository;
+    public DeleteSupplierCommandHandler(ISupplierRepository repository) => _repository = repository;
 
-    public async Task<Unit> Handle(DeleteSupplierCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DeleteSupplierCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var supplier = await _repository.GetByIdAsync(request.Id, false, cancellationToken)
+        var supplier =
+            await _repository.GetByIdAsync(request.Id, false, cancellationToken)
             ?? throw new SupplyChainDomainException("تامین‌کننده یافت نشد", "SUPPLIER_NOT_FOUND");
 
         supplier.MarkDeleted();

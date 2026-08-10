@@ -1,5 +1,4 @@
-﻿
-namespace Refahi.Modules.Hotels.Domain.Abstraction
+﻿namespace Refahi.Modules.Hotels.Domain.Abstraction
 {
     public abstract class ValueObject
     {
@@ -12,17 +11,19 @@ namespace Refahi.Modules.Hotels.Domain.Abstraction
 
             var other = (ValueObject)obj;
 
-            return GetEqualityComponents()
-                .SequenceEqual(other.GetEqualityComponents());
+            return GetEqualityComponents().SequenceEqual(other.GetEqualityComponents());
         }
 
         public override int GetHashCode()
         {
             return GetEqualityComponents()
-                .Aggregate(1, (current, obj) =>
-                {
-                    return HashCode.Combine(current, obj);
-                });
+                .Aggregate(
+                    1,
+                    (current, obj) =>
+                    {
+                        return HashCode.Combine(current, obj);
+                    }
+                );
         }
     }
 }

@@ -17,7 +17,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 table: "outbox_messages",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
 
             migrationBuilder.AddColumn<string>(
                 name: "status",
@@ -26,20 +27,23 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 type: "character varying(30)",
                 maxLength: 30,
                 nullable: false,
-                defaultValue: "Pending");
+                defaultValue: "Pending"
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "saga_id",
                 schema: "orders",
                 table: "orders",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_outbox_messages_status_occurred_at",
                 schema: "orders",
                 table: "outbox_messages",
-                columns: new[] { "status", "occurred_at" });
+                columns: new[] { "status", "occurred_at" }
+            );
         }
 
         /// <inheritdoc />
@@ -48,22 +52,18 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "ix_outbox_messages_status_occurred_at",
                 schema: "orders",
-                table: "outbox_messages");
+                table: "outbox_messages"
+            );
 
             migrationBuilder.DropColumn(
                 name: "retry_count",
                 schema: "orders",
-                table: "outbox_messages");
+                table: "outbox_messages"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "status",
-                schema: "orders",
-                table: "outbox_messages");
+            migrationBuilder.DropColumn(name: "status", schema: "orders", table: "outbox_messages");
 
-            migrationBuilder.DropColumn(
-                name: "saga_id",
-                schema: "orders",
-                table: "orders");
+            migrationBuilder.DropColumn(name: "saga_id", schema: "orders", table: "orders");
         }
     }
 }

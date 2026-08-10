@@ -8,9 +8,7 @@ public class AssignRoleCommandValidator : AbstractValidator<AssignRoleCommand>
     public AssignRoleCommandValidator()
     {
         // UserId validation
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("User ID is required");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("User ID is required");
 
         // Role validation
         RuleFor(x => x.Role)
@@ -19,15 +17,20 @@ public class AssignRoleCommandValidator : AbstractValidator<AssignRoleCommand>
             .MaximumLength(50)
             .WithMessage("Role name must not exceed 50 characters")
             .Must(BeValidRole)
-            .WithMessage(x => $"Invalid role '{x.Role}'. Valid manually assignable roles are: {string.Join(", ", DomainRoles.ManuallyAssignable)}");
+            .WithMessage(x =>
+                $"Invalid role '{x.Role}'. Valid manually assignable roles are: {string.Join(", ", DomainRoles.ManuallyAssignable)}"
+            );
 
         // AssignedBy validation (optional in command, but should be valid GUID if provided)
-        When(x => x.AssignedBy.HasValue, () =>
-        {
-            RuleFor(x => x.AssignedBy)
-                .NotEmpty()
-                .WithMessage("Assigned by user ID must be a valid GUID when provided");
-        });
+        When(
+            x => x.AssignedBy.HasValue,
+            () =>
+            {
+                RuleFor(x => x.AssignedBy)
+                    .NotEmpty()
+                    .WithMessage("Assigned by user ID must be a valid GUID when provided");
+            }
+        );
     }
 
     private bool BeValidRole(string role)

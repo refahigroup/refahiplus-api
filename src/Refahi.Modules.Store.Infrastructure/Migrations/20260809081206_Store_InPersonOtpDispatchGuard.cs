@@ -16,7 +16,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 schema: "store",
                 table: "store_orders",
                 type: "timestamp with time zone",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
@@ -25,7 +26,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "OtpDispatchStartedAt",
                 schema: "store",
-                table: "store_orders");
+                table: "store_orders"
+            );
         }
     }
 }

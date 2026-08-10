@@ -1,6 +1,6 @@
-using MediatR;
 using System;
 using System.Collections.Generic;
+using MediatR;
 
 namespace Refahi.Modules.Store.Application.Contracts.Queries;
 

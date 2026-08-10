@@ -11,4 +11,5 @@ public sealed record AgreementListItemDto(
     string StatusName,
     DateTimeOffset FromDate,
     DateTimeOffset ToDate,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);

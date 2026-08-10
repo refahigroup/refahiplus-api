@@ -8,7 +8,9 @@ public sealed class PlaceStoreOrderCommandValidator : AbstractValidator<PlaceSto
     public PlaceStoreOrderCommandValidator()
     {
         RuleFor(x => x.IdempotencyKey)
-            .NotEmpty().WithMessage("کلید یکتایی الزامی است")
-            .MaximumLength(200).WithMessage("کلید یکتایی نمی‌تواند بیشتر از ۲۰۰ کاراکتر باشد");
+            .NotEmpty()
+            .WithMessage("کلید یکتایی الزامی است")
+            .MaximumLength(200)
+            .WithMessage("کلید یکتایی نمی‌تواند بیشتر از ۲۰۰ کاراکتر باشد");
     }
 }

@@ -22,37 +22,43 @@ public class DetectDriftEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("/admin/{walletId:guid}/drift", async (
-            [FromRoute] Guid walletId,
-            [FromServices] ISender mediator,
-            CancellationToken ct) =>
-        {
-            var query = new DetectDriftQuery(walletId);
+        routes
+            .MapGet(
+                "/admin/{walletId:guid}/drift",
+                async (
+                    [FromRoute] Guid walletId,
+                    [FromServices] ISender mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var query = new DetectDriftQuery(walletId);
 
-            try
-            {
-                var result = await mediator.Send(query, ct);
+                    try
+                    {
+                        var result = await mediator.Send(query, ct);
 
-                return result.Status == CommandStatus.Completed
-                    ? Results.Ok(result.Data)
-                    : Results.BadRequest(new ErrorResponse("QUERY_ERROR", "Query failed"));
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
-            {
-                return Results.NotFound(new ErrorResponse("WALLET_NOT_FOUND", ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    title: "Internal server error",
-                    detail: ex.Message,
-                    statusCode: StatusCodes.Status500InternalServerError);
-            }
-        })
-        .WithName("DetectDrift")
-        .WithTags("Wallets", "Admin")
-        .Produces<DriftReportResponse>(StatusCodes.Status200OK)
-        .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status500InternalServerError);
+                        return result.Status == CommandStatus.Completed
+                            ? Results.Ok(result.Data)
+                            : Results.BadRequest(new ErrorResponse("QUERY_ERROR", "Query failed"));
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+                    {
+                        return Results.NotFound(new ErrorResponse("WALLET_NOT_FOUND", ex.Message));
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Problem(
+                            title: "Internal server error",
+                            detail: ex.Message,
+                            statusCode: StatusCodes.Status500InternalServerError
+                        );
+                    }
+                }
+            )
+            .WithName("DetectDrift")
+            .WithTags("Wallets", "Admin")
+            .Produces<DriftReportResponse>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status500InternalServerError);
     }
 }

@@ -9,12 +9,16 @@ public class ReorderProductImagesCommandHandler : IRequestHandler<ReorderProduct
 {
     private readonly IProductRepository _productRepo;
 
-    public ReorderProductImagesCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public ReorderProductImagesCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
-    public async Task<Unit> Handle(ReorderProductImagesCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        ReorderProductImagesCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         var map = request.Items.Select(i => (i.ImageId, i.SortOrder));

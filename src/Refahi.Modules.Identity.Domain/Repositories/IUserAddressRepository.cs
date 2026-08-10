@@ -11,13 +11,23 @@ public interface IUserAddressRepository
     Task<UserAddress?> GetByIdAsync(Guid addressId, CancellationToken cancellationToken = default);
 
     /// <summary>دریافت یک آدرس متعلق به کاربر مشخص.</summary>
-    Task<UserAddress?> GetByIdForUserAsync(Guid addressId, Guid userId, CancellationToken cancellationToken = default);
+    Task<UserAddress?> GetByIdForUserAsync(
+        Guid addressId,
+        Guid userId,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>لیست آدرس‌های یک کاربر — مرتب‌شده بر اساس IsDefault (پیش‌فرض اول)، سپس CreatedAt نزولی.</summary>
-    Task<IReadOnlyList<UserAddress>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<UserAddress>> GetByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>دریافت آدرس پیش‌فرض کاربر (در صورت وجود).</summary>
-    Task<UserAddress?> GetDefaultForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<UserAddress?> GetDefaultForUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default
+    );
 
     Task AddAsync(UserAddress address, CancellationToken cancellationToken = default);
 
@@ -29,5 +39,9 @@ public interface IUserAddressRepository
     /// همه‌ی آدرس‌های دیگر کاربر را از حالت پیش‌فرض خارج می‌کند.
     /// (به‌غیر از addressId اگر مقدار داشته باشد.)
     /// </summary>
-    Task UnsetDefaultForUserAsync(Guid userId, Guid? exceptAddressId = null, CancellationToken cancellationToken = default);
+    Task UnsetDefaultForUserAsync(
+        Guid userId,
+        Guid? exceptAddressId = null,
+        CancellationToken cancellationToken = default
+    );
 }

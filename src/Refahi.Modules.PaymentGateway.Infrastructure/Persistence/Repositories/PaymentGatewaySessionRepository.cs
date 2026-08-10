@@ -1,13 +1,13 @@
-using Microsoft.EntityFrameworkCore;
-using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
-using Refahi.Modules.PaymentGateway.Domain.Aggregates;
-using Refahi.Modules.PaymentGateway.Domain.Enums;
-using Refahi.Modules.PaymentGateway.Infrastructure.Persistence.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
+using Refahi.Modules.PaymentGateway.Domain.Aggregates;
+using Refahi.Modules.PaymentGateway.Domain.Enums;
+using Refahi.Modules.PaymentGateway.Infrastructure.Persistence.Context;
 
 namespace Refahi.Modules.PaymentGateway.Infrastructure.Persistence.Repositories;
 
@@ -20,7 +20,10 @@ public class PaymentGatewaySessionRepository : IPaymentGatewaySessionRepository
         _context = context;
     }
 
-    public async Task<PaymentGatewaySession?> GetByIdAsync(Guid sessionId, CancellationToken ct = default)
+    public async Task<PaymentGatewaySession?> GetByIdAsync(
+        Guid sessionId,
+        CancellationToken ct = default
+    )
     {
         return await _context.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
     }
@@ -29,19 +32,15 @@ public class PaymentGatewaySessionRepository : IPaymentGatewaySessionRepository
         Guid userId,
         int take,
         PaymentSessionStatus? status = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
-        var query = _context.Sessions
-            .AsNoTracking()
-            .Where(s => s.UserId == userId);
+        var query = _context.Sessions.AsNoTracking().Where(s => s.UserId == userId);
 
         if (status.HasValue)
             query = query.Where(s => s.Status == status.Value);
 
-        return await query
-            .OrderByDescending(s => s.InitiatedAt)
-            .Take(take)
-            .ToListAsync(ct);
+        return await query.OrderByDescending(s => s.InitiatedAt).Take(take).ToListAsync(ct);
     }
 
     public async Task AddAsync(PaymentGatewaySession session, CancellationToken ct = default)

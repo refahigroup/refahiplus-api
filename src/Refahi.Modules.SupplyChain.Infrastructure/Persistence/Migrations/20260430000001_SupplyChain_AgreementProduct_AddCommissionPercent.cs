@@ -16,7 +16,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 table: "agreement_products",
                 type: "numeric(5,2)",
                 nullable: false,
-                defaultValue: 0m);
+                defaultValue: 0m
+            );
         }
 
         /// <inheritdoc />
@@ -25,7 +26,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "CommissionPercent",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
         }
     }
 }

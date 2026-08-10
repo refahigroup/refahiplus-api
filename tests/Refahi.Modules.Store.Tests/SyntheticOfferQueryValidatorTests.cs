@@ -11,14 +11,20 @@ public sealed class SyntheticOfferQueryValidatorTests
     public void Catalog_rejects_invalid_price_range_and_page_size()
     {
         var validator = new GetProductCatalogV2QueryValidator();
-        var result = validator.Validate(new GetProductCatalogV2Query(
-            ModuleId: 1,
-            MinPriceMinor: 20,
-            MaxPriceMinor: 10,
-            PageSize: 31));
+        var result = validator.Validate(
+            new GetProductCatalogV2Query(
+                ModuleId: 1,
+                MinPriceMinor: 20,
+                MaxPriceMinor: 10,
+                PageSize: 31
+            )
+        );
 
         Assert.Contains(result.Errors, x => x.PropertyName == string.Empty);
-        Assert.Contains(result.Errors, x => x.PropertyName == nameof(GetProductCatalogV2Query.PageSize));
+        Assert.Contains(
+            result.Errors,
+            x => x.PropertyName == nameof(GetProductCatalogV2Query.PageSize)
+        );
     }
 
     [Theory]
@@ -37,13 +43,19 @@ public sealed class SyntheticOfferQueryValidatorTests
     public void Offers_rejects_invalid_usage_range_and_offer_kind()
     {
         var validator = new GetSyntheticOffersV2QueryValidator();
-        var result = validator.Validate(new GetSyntheticOffersV2Query(
-            1,
-            OfferKind: "Unknown",
-            UsageFrom: new DateOnly(2026, 7, 20),
-            UsageTo: new DateOnly(2026, 7, 19)));
+        var result = validator.Validate(
+            new GetSyntheticOffersV2Query(
+                1,
+                OfferKind: "Unknown",
+                UsageFrom: new DateOnly(2026, 7, 20),
+                UsageTo: new DateOnly(2026, 7, 19)
+            )
+        );
 
-        Assert.Contains(result.Errors, x => x.PropertyName == nameof(GetSyntheticOffersV2Query.OfferKind));
+        Assert.Contains(
+            result.Errors,
+            x => x.PropertyName == nameof(GetSyntheticOffersV2Query.OfferKind)
+        );
         Assert.Contains(result.Errors, x => x.PropertyName == string.Empty);
     }
 
@@ -51,10 +63,9 @@ public sealed class SyntheticOfferQueryValidatorTests
     public void Offers_rejects_product_id_and_slug_together()
     {
         var validator = new GetSyntheticOffersV2QueryValidator();
-        var result = validator.Validate(new GetSyntheticOffersV2Query(
-            1,
-            ProductId: Guid.NewGuid(),
-            ProductSlug: "product"));
+        var result = validator.Validate(
+            new GetSyntheticOffersV2Query(1, ProductId: Guid.NewGuid(), ProductSlug: "product")
+        );
 
         Assert.Contains(result.Errors, x => x.PropertyName == string.Empty);
     }

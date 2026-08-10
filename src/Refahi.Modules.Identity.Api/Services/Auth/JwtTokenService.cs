@@ -1,5 +1,4 @@
-﻿
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -32,7 +31,10 @@ public sealed class JwtTokenService : ITokenService
         _signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
     }
 
-    public async Task<TokenResult> CreateTokensAsync(UserIdentity user, CancellationToken ct = default)
+    public async Task<TokenResult> CreateTokensAsync(
+        UserIdentity user,
+        CancellationToken ct = default
+    )
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -46,14 +48,21 @@ public sealed class JwtTokenService : ITokenService
             new(JwtRegisteredClaimNames.UniqueName, user.Username),
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Name, user.Username),
-
             new(JwtRegisteredClaimNames.Jti, jti),
-            new(JwtRegisteredClaimNames.Iat, now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
-            new(JwtRegisteredClaimNames.Nbf, now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+            new(
+                JwtRegisteredClaimNames.Iat,
+                now.ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64
+            ),
+            new(
+                JwtRegisteredClaimNames.Nbf,
+                now.ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64
+            ),
         };
 
-        var roles = user.Role
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var roles = user
+            .Role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (Guid.TryParse(user.Id, out var userId))
@@ -101,4 +110,3 @@ public sealed class JwtTokenService : ITokenService
         return Base64UrlEncoder.Encode(bytes.ToArray()); // URL-safe
     }
 }
-

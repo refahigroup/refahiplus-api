@@ -7,10 +7,8 @@ public class UpdateOrderStatusCommandValidator : AbstractValidator<UpdateOrderSt
 {
     public UpdateOrderStatusCommandValidator()
     {
-        RuleFor(x => x.OrderId)
-            .NotEmpty().WithMessage("شناسه سفارش الزامی است");
+        RuleFor(x => x.OrderId).NotEmpty().WithMessage("شناسه سفارش الزامی است");
 
-        RuleFor(x => x.NewStatus)
-            .IsInEnum().WithMessage("وضعیت سفارش معتبر نیست");
+        RuleFor(x => x.NewStatus).IsInEnum().WithMessage("وضعیت سفارش معتبر نیست");
     }
 }

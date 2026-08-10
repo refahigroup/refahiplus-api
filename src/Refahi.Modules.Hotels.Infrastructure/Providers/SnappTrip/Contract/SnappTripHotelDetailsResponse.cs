@@ -12,19 +12,18 @@ public sealed class SnappTripHotelDetail
     public string title_en { get; set; } = default!;
     public string accommodation_title { get; set; } = default!;
     public string accommodation_type { get; set; } = default!;
-    public SnappTripHotelDetailReviews reviews { get; set; } = new ();
+    public SnappTripHotelDetailReviews reviews { get; set; } = new();
     public string description { get; set; } = default!;
     public SnappTripHotelDetailGalleryItem cover { get; set; } = new();
     public List<SnappTripHotelDetailGalleryItem> gallery { get; set; } = new();
     public int stars { get; set; }
     public string address { get; set; } = default!;
     public SnappTripCity city { get; set; } = new();
-    public SnappTripHotelDetailLocation location { get; set; } = new () ;
+    public SnappTripHotelDetailLocation location { get; set; } = new();
     public List<SnappTripHotelDetailFacility> facilities { get; set; } = new();
-    public SnappTripHotelDetailPolicy policies { get; set; } = new ();
+    public SnappTripHotelDetailPolicy policies { get; set; } = new();
     public bool is_marketplace { get; set; } = false;
     public bool enabled { get; set; } = true;
-
 }
 
 public sealed class SnappTripHotelDetailReviews

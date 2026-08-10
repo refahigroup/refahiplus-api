@@ -9,10 +9,11 @@ public class GetCategorySubtreeIdsQueryHandler
 {
     private readonly ICategoryRepository _categoryRepository;
 
-    public GetCategorySubtreeIdsQueryHandler(ICategoryRepository categoryRepository)
-        => _categoryRepository = categoryRepository;
+    public GetCategorySubtreeIdsQueryHandler(ICategoryRepository categoryRepository) =>
+        _categoryRepository = categoryRepository;
 
     public Task<IReadOnlyList<int>> Handle(
-        GetCategorySubtreeIdsQuery request, CancellationToken cancellationToken)
-        => _categoryRepository.GetSubtreeIdsAsync(request.RootCategoryId, cancellationToken);
+        GetCategorySubtreeIdsQuery request,
+        CancellationToken cancellationToken
+    ) => _categoryRepository.GetSubtreeIdsAsync(request.RootCategoryId, cancellationToken);
 }

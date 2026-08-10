@@ -1,5 +1,5 @@
-using Refahi.Modules.PaymentGateway.Domain.Enums;
 using System;
+using Refahi.Modules.PaymentGateway.Domain.Enums;
 
 namespace Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
 
@@ -13,10 +13,17 @@ public static class PaymentGatewayCallbackUrlBuilder
         string requestScheme,
         string requestHost,
         string? forwardedProto = null,
-        string? forwardedHost = null)
+        string? forwardedHost = null
+    )
     {
         var providerSlug = provider.ToString().ToLowerInvariant();
-        var baseUrl = ResolveBaseUrl(publicBaseUrl, requestScheme, requestHost, forwardedProto, forwardedHost);
+        var baseUrl = ResolveBaseUrl(
+            publicBaseUrl,
+            requestScheme,
+            requestHost,
+            forwardedProto,
+            forwardedHost
+        );
         return $"{baseUrl.TrimEnd('/')}{CallbackPathPrefix}/{providerSlug}";
     }
 
@@ -25,7 +32,8 @@ public static class PaymentGatewayCallbackUrlBuilder
         string requestScheme,
         string requestHost,
         string? forwardedProto,
-        string? forwardedHost)
+        string? forwardedHost
+    )
     {
         if (!string.IsNullOrWhiteSpace(publicBaseUrl))
             return publicBaseUrl.Trim();
@@ -56,8 +64,8 @@ public static class PaymentGatewayCallbackUrlBuilder
     private static bool IsLocalHost(string host)
     {
         var hostWithoutPort = host.Split(':', 2)[0];
-        return hostWithoutPort.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-               hostWithoutPort.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
-               hostWithoutPort.Equals("::1", StringComparison.OrdinalIgnoreCase);
+        return hostWithoutPort.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || hostWithoutPort.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            || hostWithoutPort.Equals("::1", StringComparison.OrdinalIgnoreCase);
     }
 }

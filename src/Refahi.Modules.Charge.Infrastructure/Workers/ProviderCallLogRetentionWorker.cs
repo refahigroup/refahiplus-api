@@ -12,7 +12,10 @@ public sealed class ProviderCallLogRetentionWorker : BackgroundService
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<ProviderCallLogRetentionWorker> _logger;
 
-    public ProviderCallLogRetentionWorker(IServiceScopeFactory scopes, ILogger<ProviderCallLogRetentionWorker> logger)
+    public ProviderCallLogRetentionWorker(
+        IServiceScopeFactory scopes,
+        ILogger<ProviderCallLogRetentionWorker> logger
+    )
     {
         _scopes = scopes;
         _logger = logger;
@@ -22,7 +25,8 @@ public sealed class ProviderCallLogRetentionWorker : BackgroundService
     {
         await CleanupAsync(stoppingToken);
         using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
-        while (await timer.WaitForNextTickAsync(stoppingToken)) await CleanupAsync(stoppingToken);
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+            await CleanupAsync(stoppingToken);
     }
 
     private async Task CleanupAsync(CancellationToken ct)
@@ -33,8 +37,13 @@ public sealed class ProviderCallLogRetentionWorker : BackgroundService
             do
             {
                 using var scope = _scopes.CreateScope();
-                var repository = scope.ServiceProvider.GetRequiredService<IProviderCallLogRepository>();
-                deleted = await repository.DeleteOlderThanAsync(DateTime.UtcNow.AddDays(-RetentionDays), BatchSize, ct);
+                var repository =
+                    scope.ServiceProvider.GetRequiredService<IProviderCallLogRepository>();
+                deleted = await repository.DeleteOlderThanAsync(
+                    DateTime.UtcNow.AddDays(-RetentionDays),
+                    BatchSize,
+                    ct
+                );
             } while (deleted == BatchSize && !ct.IsCancellationRequested);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }

@@ -7,7 +7,8 @@ using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts
 
 namespace Refahi.Modules.Store.Application.Features.Products.CreateProduct;
 
-public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, CreateProductResponse>
+public class CreateProductCommandHandler
+    : IRequestHandler<CreateProductCommand, CreateProductResponse>
 {
     private readonly IProductRepository _productRepo;
     private readonly IMediator _mediator;
@@ -18,14 +19,22 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         _mediator = mediator;
     }
 
-    public async Task<CreateProductResponse> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+    public async Task<CreateProductResponse> Handle(
+        CreateProductCommand request,
+        CancellationToken cancellationToken
+    )
     {
         // Validate the AgreementProduct exists and is not deleted
         var agreementProduct = await _mediator.Send(
-            new GetAgreementProductByIdQuery(request.AgreementProductId), cancellationToken);
+            new GetAgreementProductByIdQuery(request.AgreementProductId),
+            cancellationToken
+        );
 
         if (agreementProduct is null || agreementProduct.IsDeleted)
-            throw new StoreDomainException("قرارداد محصول یافت نشد یا غیرفعال است", "AGREEMENT_PRODUCT_NOT_FOUND");
+            throw new StoreDomainException(
+                "قرارداد محصول یافت نشد یا غیرفعال است",
+                "AGREEMENT_PRODUCT_NOT_FOUND"
+            );
 
         if (await _productRepo.SlugExistsAsync(request.Slug.Trim().ToLower(), cancellationToken))
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
@@ -37,7 +46,8 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             request.Slug,
             request.Description,
             isUnlimited ? 0 : request.StockCount,
-            initialAvailability: isUnlimited ? true : null);
+            initialAvailability: isUnlimited ? true : null
+        );
 
         await _productRepo.AddAsync(product, cancellationToken);
 

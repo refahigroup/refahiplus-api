@@ -6,7 +6,8 @@ public sealed record FlightSearchRequest(
     int Infant,
     bool? IsDomestic,
     IReadOnlyCollection<FlightSearchLeg> OriginDestinationInformations,
-    FlightTravelPreference? TravelPreference);
+    FlightTravelPreference? TravelPreference
+);
 
 public sealed record FlightSearchLeg(
     DateOnly DepartureDate,
@@ -15,14 +16,16 @@ public sealed record FlightSearchLeg(
     string OriginType,
     string DestinationType,
     string? OriginCaption = null,
-    string? DestinationCaption = null);
+    string? DestinationCaption = null
+);
 
 public sealed record FlightTravelPreference(
     string CabinType,
     string AirTripType,
     int? MaxStopsQuantity = null,
     IReadOnlyCollection<string>? VendorExcludeCodes = null,
-    IReadOnlyCollection<string>? VendorPreferenceCodes = null);
+    IReadOnlyCollection<string>? VendorPreferenceCodes = null
+);
 
 public sealed record FlightSearchResponse(
     bool Success,
@@ -31,7 +34,8 @@ public sealed record FlightSearchResponse(
     IReadOnlyCollection<FlightFareOffer> Offers,
     FlightProviderError? Error = null,
     string? ProviderTraceId = null,
-    string? RawPayloadSnapshot = null);
+    string? RawPayloadSnapshot = null
+);
 
 public sealed record FlightFareOffer(
     string ProviderName,
@@ -45,12 +49,14 @@ public sealed record FlightFareOffer(
     IReadOnlyCollection<FlightPassengerFareBreakdown> PassengerFareBreakdowns,
     string? FareType,
     string? ProviderTraceId = null,
-    string? RawPayloadSnapshot = null);
+    string? RawPayloadSnapshot = null
+);
 
 public sealed record FlightOriginDestinationOption(
     IReadOnlyCollection<FlightSegmentOffer> FlightSegments,
     int? JourneyDurationPerMinute,
-    int? ConnectionTimePerMinute);
+    int? ConnectionTimePerMinute
+);
 
 public sealed record FlightSegmentOffer(
     string? ProviderSegmentId,
@@ -76,12 +82,14 @@ public sealed record FlightSegmentOffer(
     int? StopQuantity,
     string? Baggage,
     bool? IsCharter,
-    bool? IsReturn);
+    bool? IsReturn
+);
 
 public sealed record FlightPassengerFareBreakdown(
     string? PassengerType,
     int Quantity,
-    FlightMoney Fare);
+    FlightMoney Fare
+);
 
 public sealed record FlightMoney(
     long BaseFare,
@@ -89,13 +97,15 @@ public sealed record FlightMoney(
     long TotalTax,
     long TotalCommission,
     long ServiceTax,
-    string Currency);
+    string Currency
+);
 
 public sealed record FlightBookRequest(
     string ProviderFareSourceCode,
     string PhoneNumber,
     string Email,
-    IReadOnlyCollection<FlightBookPassenger> Passengers);
+    IReadOnlyCollection<FlightBookPassenger> Passengers
+);
 
 public sealed record FlightBookPassenger(
     string NationalityCode,
@@ -105,13 +115,15 @@ public sealed record FlightBookPassenger(
     string Gender,
     DateOnly Birthday,
     string PassengerType,
-    FlightPassportInfo? PassportInfo);
+    FlightPassportInfo? PassportInfo
+);
 
 public sealed record FlightPassportInfo(
     string? CountryCode,
     DateOnly? IssueDate,
     DateOnly? ExpireDate,
-    string? Number);
+    string? Number
+);
 
 public sealed record FlightBookResponse(
     string? TrackingCode,
@@ -120,14 +132,16 @@ public sealed record FlightBookResponse(
     string? PaymentCurrency,
     long? PaymentAmount,
     string? ProviderTraceId = null,
-    string? RawPayloadSnapshot = null);
+    string? RawPayloadSnapshot = null
+);
 
 public sealed record FlightIssueRequest(string BookId);
 
 public sealed record FlightIssueResponse(
     string? Status,
     string? ProviderTraceId = null,
-    string? RawPayloadSnapshot = null);
+    string? RawPayloadSnapshot = null
+);
 
 public sealed record FlightInquiryRequest(string BookId);
 
@@ -138,7 +152,8 @@ public sealed record FlightInquiryResponse(
     FlightInquiryBuyer? Buyer,
     IReadOnlyCollection<FlightInquiryTicket> Tickets,
     string? ProviderTraceId = null,
-    string? RawPayloadSnapshot = null);
+    string? RawPayloadSnapshot = null
+);
 
 public sealed record FlightInquiryBuyer(
     string? FirstName,
@@ -146,7 +161,8 @@ public sealed record FlightInquiryBuyer(
     string? PhoneNumber,
     string? Email,
     string? ReceiverPhoneNumber,
-    string? ReceiverEmail);
+    string? ReceiverEmail
+);
 
 public sealed record FlightInquiryTicket(
     string? Serial,
@@ -156,7 +172,8 @@ public sealed record FlightInquiryTicket(
     string? Direction,
     string? DocumentType,
     string? DocumentId,
-    IReadOnlyCollection<FlightCancellationRoute> CancellationRoutes);
+    IReadOnlyCollection<FlightCancellationRoute> CancellationRoutes
+);
 
 public sealed record FlightCancellationRoute(
     string RouteId,
@@ -164,13 +181,15 @@ public sealed record FlightCancellationRoute(
     string? Origin,
     string? OriginCaption,
     string? Destination,
-    string? DestinationCaption);
+    string? DestinationCaption
+);
 
 public sealed record FlightCancellationQuoteRequest(
     string TrackingCode,
     string RouteId,
     IReadOnlyCollection<string> TicketSerials,
-    int ReasonId);
+    int ReasonId
+);
 
 public sealed record FlightCancellationQuoteResponse(
     string? PenaltyStatus,
@@ -183,7 +202,8 @@ public sealed record FlightCancellationQuoteResponse(
     long TotalRefundAmount,
     IReadOnlyCollection<FlightCancellationTicketQuote> Tickets,
     string? ProviderTraceId = null,
-    string? RawPayloadSnapshot = null);
+    string? RawPayloadSnapshot = null
+);
 
 public sealed record FlightCancellationTicketQuote(
     string TicketSerial,
@@ -195,20 +215,23 @@ public sealed record FlightCancellationTicketQuote(
     long TicketPrice,
     string? Currency,
     bool NoShow,
-    bool IsValid);
+    bool IsValid
+);
 
 public sealed record FlightCancellationSubmitRequest(
     string TrackingCode,
     string? Phone,
     string RouteId,
     IReadOnlyCollection<string> TicketSerials,
-    int ReasonId);
+    int ReasonId
+);
 
 public sealed record FlightCancellationSubmitResponse(
     string? Message,
     string? Status,
     string? ProviderCancellationId,
     string? ProviderTraceId = null,
-    string? RawPayloadSnapshot = null);
+    string? RawPayloadSnapshot = null
+);
 
 public sealed record FlightProviderError(string? Code, string? Message);

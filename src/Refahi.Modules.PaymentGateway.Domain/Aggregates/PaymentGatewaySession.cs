@@ -1,8 +1,8 @@
+using System;
 using Refahi.Modules.PaymentGateway.Domain.Common;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
 using Refahi.Modules.PaymentGateway.Domain.Events;
 using Refahi.Modules.PaymentGateway.Domain.Exceptions;
-using System;
 
 namespace Refahi.Modules.PaymentGateway.Domain.Aggregates;
 
@@ -74,7 +74,8 @@ public sealed class PaymentGatewaySession : EntityBase
         string returnBaseUrl,
         int expiryMinutes = 15,
         string? succeededCallbackUrl = null,
-        string? failedCallbackUrl = null)
+        string? failedCallbackUrl = null
+    )
     {
         if (amountMinor <= 0)
             throw new InvalidPaymentAmountException("مبلغ پرداخت باید بزرگتر از صفر باشد.");
@@ -96,7 +97,7 @@ public sealed class PaymentGatewaySession : EntityBase
             SucceededCallbackUrl = succeededCallbackUrl,
             FailedCallbackUrl = failedCallbackUrl,
             InitiatedAt = now,
-            ExpiresAt = now.AddMinutes(expiryMinutes)
+            ExpiresAt = now.AddMinutes(expiryMinutes),
         };
     }
 
@@ -109,7 +110,9 @@ public sealed class PaymentGatewaySession : EntityBase
         EnsureNotTerminal();
         EnsureNotExpired();
         if (Status != PaymentSessionStatus.Initiated)
-            throw new InvalidPaymentSessionStateException($"صدور توکن فقط از وضعیت Initiated امکان‌پذیر است. وضعیت فعلی: {Status}");
+            throw new InvalidPaymentSessionStateException(
+                $"صدور توکن فقط از وضعیت Initiated امکان‌پذیر است. وضعیت فعلی: {Status}"
+            );
 
         ProviderToken = token;
         Status = PaymentSessionStatus.TokenReceived;
@@ -127,13 +130,15 @@ public sealed class PaymentGatewaySession : EntityBase
         string? refNum,
         string? traceNo,
         string? securePan,
-        string? rawCallbackJson)
+        string? rawCallbackJson
+    )
     {
         EnsureNotExpired();
 
         if (Status is PaymentSessionStatus.Succeeded or PaymentSessionStatus.Failed)
             throw new PaymentSessionAlreadyProcessedException(
-                "این جلسه پرداخت قبلاً پردازش شده است.");
+                "این جلسه پرداخت قبلاً پردازش شده است."
+            );
 
         ProviderRefNum = refNum;
         ProviderTraceNo = traceNo;
@@ -142,7 +147,11 @@ public sealed class PaymentGatewaySession : EntityBase
         Status = PaymentSessionStatus.CallbackReceived;
     }
 
-    public void MarkAsSucceeded(Guid topUpLedgerEntryId, int providerResultCode, string? providerResultDescription = null)
+    public void MarkAsSucceeded(
+        Guid topUpLedgerEntryId,
+        int providerResultCode,
+        string? providerResultDescription = null
+    )
     {
         var boundedDescription = TruncateProviderResultDescription(providerResultDescription);
 
@@ -152,15 +161,18 @@ public sealed class PaymentGatewaySession : EntityBase
         ProviderResultDescription = boundedDescription;
         CompletedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new PaymentSessionSucceededDomainEvent(
-            SessionId: Id,
-            UserId: UserId,
-            WalletId: WalletId,
-            AmountMinor: AmountMinor,
-            Currency: Currency,
-            Provider: Provider,
-            TopUpLedgerEntryId: topUpLedgerEntryId,
-            OccurredAt: CompletedAt.Value));
+        AddDomainEvent(
+            new PaymentSessionSucceededDomainEvent(
+                SessionId: Id,
+                UserId: UserId,
+                WalletId: WalletId,
+                AmountMinor: AmountMinor,
+                Currency: Currency,
+                Provider: Provider,
+                TopUpLedgerEntryId: topUpLedgerEntryId,
+                OccurredAt: CompletedAt.Value
+            )
+        );
     }
 
     public void MarkAsFailed(int? providerResultCode, string? providerResultDescription)
@@ -172,15 +184,18 @@ public sealed class PaymentGatewaySession : EntityBase
         ProviderResultDescription = boundedDescription;
         CompletedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new PaymentSessionFailedDomainEvent(
-            SessionId: Id,
-            UserId: UserId,
-            WalletId: WalletId,
-            AmountMinor: AmountMinor,
-            Currency: Currency,
-            Provider: Provider,
-            FailureReason: boundedDescription,
-            OccurredAt: CompletedAt.Value));
+        AddDomainEvent(
+            new PaymentSessionFailedDomainEvent(
+                SessionId: Id,
+                UserId: UserId,
+                WalletId: WalletId,
+                AmountMinor: AmountMinor,
+                Currency: Currency,
+                Provider: Provider,
+                FailureReason: boundedDescription,
+                OccurredAt: CompletedAt.Value
+            )
+        );
     }
 
     public void MarkAsExpired()
@@ -199,9 +214,10 @@ public sealed class PaymentGatewaySession : EntityBase
     public bool IsExpired() => DateTimeOffset.UtcNow > ExpiresAt && !IsTerminal();
 
     public bool IsTerminal() =>
-        Status is PaymentSessionStatus.Succeeded
-            or PaymentSessionStatus.Failed
-            or PaymentSessionStatus.Expired;
+        Status
+            is PaymentSessionStatus.Succeeded
+                or PaymentSessionStatus.Failed
+                or PaymentSessionStatus.Expired;
 
     public string BuildSuccessRedirectUrl() =>
         SucceededCallbackUrl ?? $"{ReturnBaseUrl.TrimEnd('/')}/{Id}";
@@ -217,7 +233,9 @@ public sealed class PaymentGatewaySession : EntityBase
 
     private static string? TruncateProviderResultDescription(string? description)
     {
-        return string.IsNullOrEmpty(description) || description.Length <= ProviderResultDescriptionMaxLength
+        return
+            string.IsNullOrEmpty(description)
+            || description.Length <= ProviderResultDescriptionMaxLength
             ? description
             : description[..ProviderResultDescriptionMaxLength];
     }
@@ -225,6 +243,8 @@ public sealed class PaymentGatewaySession : EntityBase
     private void EnsureNotTerminal()
     {
         if (IsTerminal())
-            throw new InvalidPaymentSessionStateException($"جلسه پرداخت در وضعیت نهایی {Status} قرار دارد و قابل تغییر نیست.");
+            throw new InvalidPaymentSessionStateException(
+                $"جلسه پرداخت در وضعیت نهایی {Status} قرار دارد و قابل تغییر نیست."
+            );
     }
 }

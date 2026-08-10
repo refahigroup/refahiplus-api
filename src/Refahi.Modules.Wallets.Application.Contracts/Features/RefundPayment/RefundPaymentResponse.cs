@@ -14,9 +14,7 @@ public sealed record RefundPaymentResponse(
     long AmountMinor,
     string Currency,
     List<RefundAllocationResponse> Allocations,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt
+);
 
-public sealed record RefundAllocationResponse(
-    Guid WalletId,
-    long AmountMinor,
-    Guid LedgerEntryId);
+public sealed record RefundAllocationResponse(Guid WalletId, long AmountMinor, Guid LedgerEntryId);

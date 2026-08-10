@@ -9,14 +9,16 @@ public record AdminListUsersQuery(
     string? Role = null,
     bool? IsActive = null,
     int PageNumber = 1,
-    int PageSize = 20) : IRequest<AdminUsersPagedResponse>;
+    int PageSize = 20
+) : IRequest<AdminUsersPagedResponse>;
 
 public record AdminUsersPagedResponse(
     IEnumerable<AdminUserDto> Data,
     int PageNumber,
     int PageSize,
     int TotalCount,
-    int TotalPages);
+    int TotalPages
+);
 
 public record AdminUserDto(
     Guid Id,
@@ -30,4 +32,5 @@ public record AdminUserDto(
     DateTime CreatedAt,
     string? FirstName,
     string? LastName,
-    IEnumerable<string> Roles);
+    IEnumerable<string> Roles
+);

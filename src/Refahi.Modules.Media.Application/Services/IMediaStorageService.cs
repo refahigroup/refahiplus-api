@@ -11,7 +11,8 @@ public interface IMediaStorageService
         Stream fileStream,
         string fileExtension,
         MediaType mediaType,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 
     Task DeleteAsync(string storagePath, CancellationToken ct = default);
 
@@ -19,6 +20,6 @@ public interface IMediaStorageService
 }
 
 public sealed record MediaStorageResult(
-    string StoredFileName,    // مثلاً "abc123.jpg"
-    string StoragePath        // نسبی، با /: "images/2026/04/29/abc123.jpg"
+    string StoredFileName, // مثلاً "abc123.jpg"
+    string StoragePath // نسبی، با /: "images/2026/04/29/abc123.jpg"
 );

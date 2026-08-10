@@ -9,14 +9,12 @@ public sealed class GetProductsValidator : AbstractValidator<GetProductsQuery>
 {
     public GetProductsValidator()
     {
-        RuleFor(x => x.Operator)
-            .IsInEnum()
-            .WithMessage("اپراتور معتبر نیست");
+        RuleFor(x => x.Operator).IsInEnum().WithMessage("اپراتور معتبر نیست");
     }
 }
 
-
-public sealed class GetProductsQueryHandlers : IRequestHandler<GetProductsQuery, IReadOnlyList<ChargeProductDto>>
+public sealed class GetProductsQueryHandlers
+    : IRequestHandler<GetProductsQuery, IReadOnlyList<ChargeProductDto>>
 {
     private readonly IChargeProviderResolver _providers;
 

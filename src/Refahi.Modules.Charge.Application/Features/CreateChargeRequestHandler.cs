@@ -12,17 +12,11 @@ public sealed class CreateChargeRequestValidator : AbstractValidator<CreateCharg
 {
     public CreateChargeRequestValidator()
     {
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("شناسه کاربر الزامی است");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("شناسه کاربر الزامی است");
 
-        RuleFor(x => x.Operator)
-            .IsInEnum()
-            .WithMessage("اپراتور معتبر نیست");
+        RuleFor(x => x.Operator).IsInEnum().WithMessage("اپراتور معتبر نیست");
 
-        RuleFor(x => x.ServiceType)
-            .IsInEnum()
-            .WithMessage("نوع خدمت معتبر نیست");
+        RuleFor(x => x.ServiceType).IsInEnum().WithMessage("نوع خدمت معتبر نیست");
 
         RuleFor(x => x.DestinationMobileNumber)
             .Matches("^09[0-9]{9}$")
@@ -33,31 +27,42 @@ public sealed class CreateChargeRequestValidator : AbstractValidator<CreateCharg
             .WithMessage("مبلغ مورد انتظار معتبر نیست");
 
         RuleFor(x => x.IdempotencyKey)
-            .NotEmpty().MaximumLength(200)
+            .NotEmpty()
+            .MaximumLength(200)
             .WithMessage("کلید تکرارپذیری الزامی است");
 
-        RuleFor(x => x.PinCount).InclusiveBetween(1, 100)
+        RuleFor(x => x.PinCount)
+            .InclusiveBetween(1, 100)
             .When(x => x.ServiceType == ChargeServiceType.PinCharge)
             .WithMessage("تعداد پین باید بین یک تا صد باشد");
     }
 }
 
-public sealed class CreateChargeRequestHandler : IRequestHandler<CreateChargeRequestCommand, CreateChargeRequestResponse>
+public sealed class CreateChargeRequestHandler
+    : IRequestHandler<CreateChargeRequestCommand, CreateChargeRequestResponse>
 {
     private readonly IChargeRequestRepository _requests;
     private readonly ChargeRequestQuoteService _quotes;
 
     public CreateChargeRequestHandler(
         IChargeRequestRepository requests,
-        ChargeRequestQuoteService quotes)
+        ChargeRequestQuoteService quotes
+    )
     {
         _requests = requests;
         _quotes = quotes;
     }
 
-    public async Task<CreateChargeRequestResponse> Handle(CreateChargeRequestCommand command, CancellationToken ct)
+    public async Task<CreateChargeRequestResponse> Handle(
+        CreateChargeRequestCommand command,
+        CancellationToken ct
+    )
     {
-        var existing = await _requests.GetByIdempotencyKeyAsync(command.UserId, command.IdempotencyKey.Trim(), ct);
+        var existing = await _requests.GetByIdempotencyKeyAsync(
+            command.UserId,
+            command.IdempotencyKey.Trim(),
+            ct
+        );
 
         if (existing is not null)
             return new(
@@ -70,24 +75,30 @@ public sealed class CreateChargeRequestHandler : IRequestHandler<CreateChargeReq
                 existing.Currency
             );
 
-        var quote = await _quotes.ResolveAsync(new ChargeSelection(
-            command.Operator,
-            command.ServiceType,
-            command.DestinationMobileNumber,
-            command.ProviderProductId,
-            command.RequestedAmountMinor,
-            command.PinCategoryId,
-            command.PinCount), ct
+        var quote = await _quotes.ResolveAsync(
+            new ChargeSelection(
+                command.Operator,
+                command.ServiceType,
+                command.DestinationMobileNumber,
+                command.ProviderProductId,
+                command.RequestedAmountMinor,
+                command.PinCategoryId,
+                command.PinCount
+            ),
+            ct
         );
 
         if (quote.FinalAmountMinor != command.ExpectedFinalAmountMinor)
         {
-            throw new ChargeQuoteChangedException(new ChargeRequestQuoteResponse(
-                quote.ExpireAt,
-                quote.ProviderCostMinor,
-                quote.MarkupAmountMinor,
-                quote.FinalAmountMinor,
-                "IRR"));
+            throw new ChargeQuoteChangedException(
+                new ChargeRequestQuoteResponse(
+                    quote.ExpireAt,
+                    quote.ProviderCostMinor,
+                    quote.MarkupAmountMinor,
+                    quote.FinalAmountMinor,
+                    "IRR"
+                )
+            );
         }
 
         var now = DateTime.UtcNow;

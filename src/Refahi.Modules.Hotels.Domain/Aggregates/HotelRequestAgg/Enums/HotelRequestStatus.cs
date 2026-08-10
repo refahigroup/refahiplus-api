@@ -8,5 +8,5 @@ public enum HotelRequestStatus
     Cancelled = 4,
     ProviderConfirmed = 5,
     Completed = 6,
-    Failed = 7
+    Failed = 7,
 }

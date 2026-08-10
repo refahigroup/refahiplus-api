@@ -5,16 +5,20 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.DailyDeals.UpdateDailyDeal;
 
-public class UpdateDailyDealCommandHandler : IRequestHandler<UpdateDailyDealCommand, UpdateDailyDealResponse>
+public class UpdateDailyDealCommandHandler
+    : IRequestHandler<UpdateDailyDealCommand, UpdateDailyDealResponse>
 {
     private readonly IDailyDealRepository _dealRepo;
 
-    public UpdateDailyDealCommandHandler(IDailyDealRepository dealRepo)
-        => _dealRepo = dealRepo;
+    public UpdateDailyDealCommandHandler(IDailyDealRepository dealRepo) => _dealRepo = dealRepo;
 
-    public async Task<UpdateDailyDealResponse> Handle(UpdateDailyDealCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateDailyDealResponse> Handle(
+        UpdateDailyDealCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var deal = await _dealRepo.GetByIdAsync(request.DealId, cancellationToken)
+        var deal =
+            await _dealRepo.GetByIdAsync(request.DealId, cancellationToken)
             ?? throw new StoreDomainException("پیشنهاد ویژه یافت نشد", "DAILY_DEAL_NOT_FOUND");
 
         if (!DateTimeOffset.TryParse(request.StartTime, out var startTime))

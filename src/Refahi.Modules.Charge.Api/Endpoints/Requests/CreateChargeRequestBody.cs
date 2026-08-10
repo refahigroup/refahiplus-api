@@ -11,4 +11,5 @@ public sealed record CreateChargeRequestBody(
     long? RequestedAmountMinor,
     int? PinCategoryId,
     long ExpectedFinalAmountMinor,
-    int PinCount = 1);
+    int PinCount = 1
+);

@@ -16,7 +16,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_products",
                 type: "character varying(2000)",
                 maxLength: 2000,
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
@@ -25,7 +26,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "Description",
                 schema: "store",
-                table: "shop_products");
+                table: "shop_products"
+            );
         }
     }
 }

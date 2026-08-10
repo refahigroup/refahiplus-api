@@ -8,13 +8,13 @@ namespace Refahi.Modules.Media.Application;
 public static class DI
 {
     public static IServiceCollection RegisterApplication(
-        this IServiceCollection services, IConfiguration configuration)
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var assembly = typeof(DI).Assembly;
 
-        services
-            .AddMediatR(assembly)
-            .AddValidatorsFromAssembly(assembly);
+        services.AddMediatR(assembly).AddValidatorsFromAssembly(assembly);
 
         return services;
     }

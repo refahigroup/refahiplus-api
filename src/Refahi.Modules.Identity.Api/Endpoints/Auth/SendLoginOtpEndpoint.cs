@@ -15,30 +15,38 @@ public class SendLoginOtpEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/login/send-otp", async (
-                [FromBody] SendLoginOtpCommand request,
-                IMediator mediator) =>
-        {
-            if (request is null)
-                return Results.BadRequest();
+        routes
+            .MapPost(
+                "/login/send-otp",
+                async ([FromBody] SendLoginOtpCommand request, IMediator mediator) =>
+                {
+                    if (request is null)
+                        return Results.BadRequest();
 
-            var result = await mediator.Send(request);
+                    var result = await mediator.Send(request);
 
-            if (!result.Success)
-                return Results.BadRequest(ApiResponseHelper.Error(result.ErrorMessage ?? "ارسال کد ورود ناموفق بود"));
+                    if (!result.Success)
+                        return Results.BadRequest(
+                            ApiResponseHelper.Error(
+                                result.ErrorMessage ?? "ارسال کد ورود ناموفق بود"
+                            )
+                        );
 
-            return Results.Ok(new
-            {
-                success = true,
-                token = result.Token,
-                expires_at = result.ExpiresAt,
-                flow = result.Flow
-            });
-        })
-        .WithName("Identity.Auth.SendLoginOtp")
-        .WithTags("Identity")
-        .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status400BadRequest);
+                    return Results.Ok(
+                        new
+                        {
+                            success = true,
+                            token = result.Token,
+                            expires_at = result.ExpiresAt,
+                            flow = result.Flow,
+                        }
+                    );
+                }
+            )
+            .WithName("Identity.Auth.SendLoginOtp")
+            .WithTags("Identity")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status400BadRequest);
     }
 }

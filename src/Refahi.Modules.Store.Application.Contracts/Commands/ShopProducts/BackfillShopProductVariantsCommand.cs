@@ -6,7 +6,8 @@ public sealed record BackfillShopProductVariantsCommand(
     Guid? ShopId = null,
     Guid? ProductId = null,
     bool DryRun = true,
-    int DetailLimit = 100) : IRequest<ShopProductVariantBackfillResultDto>;
+    int DetailLimit = 100
+) : IRequest<ShopProductVariantBackfillResultDto>;
 
 public sealed record ShopProductVariantBackfillResultDto(
     bool DryRun,
@@ -16,7 +17,8 @@ public sealed record ShopProductVariantBackfillResultDto(
     int SkippedExistingOfferings,
     int SkippedInvalidVariants,
     IReadOnlyList<ShopProductVariantBackfillCreatedItemDto> CreatedItems,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings
+);
 
 public sealed record ShopProductVariantBackfillCreatedItemDto(
     Guid ShopId,
@@ -27,4 +29,5 @@ public sealed record ShopProductVariantBackfillCreatedItemDto(
     Guid ProductVariantId,
     string VariantName,
     long PriceMinor,
-    long? DiscountedPriceMinor);
+    long? DiscountedPriceMinor
+);

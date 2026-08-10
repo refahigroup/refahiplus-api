@@ -12,4 +12,10 @@ public sealed record CreateSessionCommand(
     long PriceAdjustment
 ) : IRequest<CreateSessionResponse>;
 
-public sealed record CreateSessionResponse(Guid SessionId, string Date, string StartTime, string EndTime, int Capacity);
+public sealed record CreateSessionResponse(
+    Guid SessionId,
+    string Date,
+    string StartTime,
+    string EndTime,
+    int Capacity
+);

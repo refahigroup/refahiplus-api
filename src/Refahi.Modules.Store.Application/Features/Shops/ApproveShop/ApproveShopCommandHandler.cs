@@ -9,13 +9,16 @@ public class ApproveShopCommandHandler : IRequestHandler<ApproveShopCommand, App
 {
     private readonly IShopRepository _shopRepository;
 
-    public ApproveShopCommandHandler(IShopRepository shopRepository)
-        => _shopRepository = shopRepository;
+    public ApproveShopCommandHandler(IShopRepository shopRepository) =>
+        _shopRepository = shopRepository;
 
     public async Task<ApproveShopResponse> Handle(
-        ApproveShopCommand request, CancellationToken cancellationToken)
+        ApproveShopCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var shop = await _shopRepository.GetByIdAsync(request.ShopId, cancellationToken)
+        var shop =
+            await _shopRepository.GetByIdAsync(request.ShopId, cancellationToken)
             ?? throw new StoreDomainException("فروشگاه یافت نشد", "SHOP_NOT_FOUND");
 
         shop.Approve();

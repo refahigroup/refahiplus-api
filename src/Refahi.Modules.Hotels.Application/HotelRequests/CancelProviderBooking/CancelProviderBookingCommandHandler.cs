@@ -21,7 +21,8 @@ public sealed class CancelProviderBookingCommandHandler
         IHotelBookingSagaRepository sagaRepository,
         IHotelProviderBookingCacheRepository providerBookingCacheRepository,
         IHotelProvider provider,
-        ILogger<CancelProviderBookingCommandHandler> logger)
+        ILogger<CancelProviderBookingCommandHandler> logger
+    )
     {
         _requestRepository = requestRepository;
         _sagaRepository = sagaRepository;
@@ -32,31 +33,41 @@ public sealed class CancelProviderBookingCommandHandler
 
     public async Task<CancelProviderBookingResponse> Handle(
         CancelProviderBookingCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var saga = await _sagaRepository.GetAsync(request.SagaId, cancellationToken)
+        var saga =
+            await _sagaRepository.GetAsync(request.SagaId, cancellationToken)
             ?? throw new InvalidOperationException("Hotel booking saga was not found.");
 
-        var hotelRequest = await _requestRepository.GetAsync(saga.HotelRequestId, cancellationToken)
+        var hotelRequest =
+            await _requestRepository.GetAsync(saga.HotelRequestId, cancellationToken)
             ?? throw new InvalidOperationException("Hotel request was not found.");
 
-        var cacheEntry = await _providerBookingCacheRepository.GetBySagaIdAsync(saga.SagaId, cancellationToken);
-        var providerBookingCode = hotelRequest.ProviderBookingCode ?? cacheEntry?.ProviderBookingCode;
+        var cacheEntry = await _providerBookingCacheRepository.GetBySagaIdAsync(
+            saga.SagaId,
+            cancellationToken
+        );
+        var providerBookingCode =
+            hotelRequest.ProviderBookingCode ?? cacheEntry?.ProviderBookingCode;
 
-        using var scope = _logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["UserId"] = saga.UserId,
-            ["SagaId"] = saga.SagaId,
-            ["HotelRequestId"] = saga.HotelRequestId,
-            ["OrderId"] = saga.OrderId,
-            ["ProviderBookingCode"] = providerBookingCode
-        });
+        using var scope = _logger.BeginScope(
+            new Dictionary<string, object?>
+            {
+                ["UserId"] = saga.UserId,
+                ["SagaId"] = saga.SagaId,
+                ["HotelRequestId"] = saga.HotelRequestId,
+                ["OrderId"] = saga.OrderId,
+                ["ProviderBookingCode"] = providerBookingCode,
+            }
+        );
 
         if (string.IsNullOrWhiteSpace(providerBookingCode))
         {
             _logger.LogInformation(
                 "Skipping provider cancellation because no provider booking code exists. SagaId={SagaId}",
-                saga.SagaId);
+                saga.SagaId
+            );
 
             return new CancelProviderBookingResponse(
                 saga.SagaId,
@@ -64,7 +75,8 @@ public sealed class CancelProviderBookingCommandHandler
                 null,
                 "NoProviderBooking",
                 false,
-                false);
+                false
+            );
         }
 
         if (saga.ProviderBookingStatus == HotelProviderBookingStatus.Cancelled)
@@ -75,7 +87,8 @@ public sealed class CancelProviderBookingCommandHandler
                 providerBookingCode,
                 "Cancelled",
                 false,
-                false);
+                false
+            );
         }
 
         if (saga.ProviderBookingStatus == HotelProviderBookingStatus.ExternallyUnresolved)
@@ -86,7 +99,8 @@ public sealed class CancelProviderBookingCommandHandler
                 providerBookingCode,
                 "ExternallyUnresolved",
                 false,
-                true);
+                true
+            );
         }
 
         var idempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey)
@@ -107,9 +121,14 @@ public sealed class CancelProviderBookingCommandHandler
             saga.SagaId,
             hotelRequest.ProviderName,
             providerBookingCode,
-            idempotencyKey);
+            idempotencyKey
+        );
 
-        var providerResult = await _provider.CancelBookingAsync(providerBookingCode, idempotencyKey, reason);
+        var providerResult = await _provider.CancelBookingAsync(
+            providerBookingCode,
+            idempotencyKey,
+            reason
+        );
         now = DateTime.UtcNow;
 
         if (providerResult.IsCancelled)
@@ -123,7 +142,8 @@ public sealed class CancelProviderBookingCommandHandler
                 "Hotel provider booking cancellation completed. SagaId={SagaId}, ProviderBookingCode={ProviderBookingCode}, Status={Status}",
                 saga.SagaId,
                 providerBookingCode,
-                providerResult.Status);
+                providerResult.Status
+            );
 
             return new CancelProviderBookingResponse(
                 saga.SagaId,
@@ -131,7 +151,8 @@ public sealed class CancelProviderBookingCommandHandler
                 providerBookingCode,
                 providerResult.Status,
                 true,
-                false);
+                false
+            );
         }
 
         var unresolvedReason = providerResult.IsUnsupported
@@ -147,7 +168,8 @@ public sealed class CancelProviderBookingCommandHandler
             "Hotel provider booking remains externally unresolved. SagaId={SagaId}, ProviderBookingCode={ProviderBookingCode}, Outcome={Outcome}",
             saga.SagaId,
             providerBookingCode,
-            providerResult.Status);
+            providerResult.Status
+        );
 
         return new CancelProviderBookingResponse(
             saga.SagaId,
@@ -155,6 +177,7 @@ public sealed class CancelProviderBookingCommandHandler
             providerBookingCode,
             "ExternallyUnresolved",
             true,
-            true);
+            true
+        );
     }
 }

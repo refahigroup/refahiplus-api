@@ -17,7 +17,7 @@ public sealed class CancelChargeRequestHandler : IRequestHandler<CancelChargeReq
     {
         var request = await _requests.GetForUserAsync(command.RequestId, command.UserId, ct);
 
-        if (request is null) 
+        if (request is null)
             return false;
 
         request.Cancel(DateTime.UtcNow);

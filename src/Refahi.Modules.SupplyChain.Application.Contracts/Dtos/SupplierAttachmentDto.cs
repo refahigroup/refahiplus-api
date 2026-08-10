@@ -7,4 +7,5 @@ public sealed record SupplierAttachmentDto(
     string? FileName,
     string? ContentType,
     long? SizeBytes,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);

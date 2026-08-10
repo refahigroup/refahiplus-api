@@ -27,7 +27,8 @@ public sealed class FlightSegment
         string destinationAirportCode,
         string destinationCaption,
         DateTime departureAtUtc,
-        DateTime arrivalAtUtc)
+        DateTime arrivalAtUtc
+    )
     {
         if (sequence <= 0)
         {
@@ -43,9 +44,14 @@ public sealed class FlightSegment
         FlightNumber = Require(flightNumber, "Flight number is required.");
         AirlineCode = Require(airlineCode, "Airline code is required.").ToUpperInvariant();
         AirlineName = Require(airlineName, "Airline name is required.");
-        OriginAirportCode = Require(originAirportCode, "Origin airport code is required.").ToUpperInvariant();
+        OriginAirportCode = Require(originAirportCode, "Origin airport code is required.")
+            .ToUpperInvariant();
         OriginCaption = Require(originCaption, "Origin caption is required.");
-        DestinationAirportCode = Require(destinationAirportCode, "Destination airport code is required.").ToUpperInvariant();
+        DestinationAirportCode = Require(
+                destinationAirportCode,
+                "Destination airport code is required."
+            )
+            .ToUpperInvariant();
         DestinationCaption = Require(destinationCaption, "Destination caption is required.");
         Sequence = sequence;
         DepartureAtUtc = departureAtUtc;

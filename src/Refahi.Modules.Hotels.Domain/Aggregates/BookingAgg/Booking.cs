@@ -10,9 +10,7 @@ public sealed class Booking
     private readonly List<Guest> _guests = new();
     private readonly List<IDomainEvent> _domainEvents = new();
 
-    private Booking()
-    {
-    }
+    private Booking() { }
 
     public BookingId Id { get; private set; }
 
@@ -29,9 +27,9 @@ public sealed class Booking
     public int RoomsCount { get; private set; }
     public RoomBoardType BoardType { get; private set; }
 
-    public Money BasePrice { get; private set; }      // provider price
-    public Money MarginAmount { get; private set; }   // our margin
-    public Money CustomerPrice { get; private set; }  // final price
+    public Money BasePrice { get; private set; } // provider price
+    public Money MarginAmount { get; private set; } // our margin
+    public Money CustomerPrice { get; private set; } // final price
 
     public BookingStatus Status { get; private set; }
 
@@ -67,9 +65,11 @@ public sealed class Booking
         Money margin,
         Money customerPrice,
         DateTime nowUtc,
-        DateTime? lockedUntilUtc = null)
+        DateTime? lockedUntilUtc = null
+    )
     {
-        if (guests == null) throw new DomainException("Guests are required.");
+        if (guests == null)
+            throw new DomainException("Guests are required.");
 
         var guestList = guests.ToList();
         if (guestList.Count == 0)
@@ -78,7 +78,13 @@ public sealed class Booking
         if (roomsCount <= 0)
             throw new DomainException("Rooms count must be greater than zero.");
 
-        if (!string.Equals(basePrice.Currency, customerPrice.Currency, StringComparison.OrdinalIgnoreCase))
+        if (
+            !string.Equals(
+                basePrice.Currency,
+                customerPrice.Currency,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
             throw new DomainException("Currency mismatch between base and customer price.");
 
         var booking = new Booking
@@ -97,7 +103,7 @@ public sealed class Booking
             Status = BookingStatus.Provisional,
             CreatedAt = nowUtc,
             UpdatedAt = nowUtc,
-            LockedUntil = lockedUntilUtc
+            LockedUntil = lockedUntilUtc,
         };
 
         booking._guests.AddRange(guestList);
@@ -121,8 +127,7 @@ public sealed class Booking
 
     public void MarkPaymentFailed(DateTime nowUtc)
     {
-        if (Status != BookingStatus.PaymentPending &&
-            Status != BookingStatus.Provisional)
+        if (Status != BookingStatus.PaymentPending && Status != BookingStatus.Provisional)
             throw new DomainException("Payment can only fail from provisional or pending state.");
 
         Status = BookingStatus.PaymentFailed;
@@ -134,7 +139,9 @@ public sealed class Booking
     public void MarkPaymentSucceeded(DateTime nowUtc)
     {
         if (Status != BookingStatus.PaymentPending)
-            throw new DomainException("Cannot succeed payment before entering payment pending state.");
+            throw new DomainException(
+                "Cannot succeed payment before entering payment pending state."
+            );
 
         Status = BookingStatus.ConfirmingProvider;
         UpdatedAt = nowUtc;
@@ -167,8 +174,7 @@ public sealed class Booking
 
     public void MarkExpired(DateTime nowUtc)
     {
-        if (Status != BookingStatus.Provisional &&
-            Status != BookingStatus.PaymentPending)
+        if (Status != BookingStatus.Provisional && Status != BookingStatus.PaymentPending)
         {
             // only provisional or paymentPending can expire; ignore others
             return;

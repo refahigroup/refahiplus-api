@@ -21,8 +21,18 @@ public sealed class IdentityAddressValidationTests
     {
         var validator = new AddAddressCommandValidator();
 
-        var persianDigits = await validator.ValidateAsync(ValidCommand() with { PostalCode = "۱۲۳۴۵۶۷۸۹۰" });
-        var letters = await validator.ValidateAsync(ValidCommand() with { PostalCode = "12345A7890" });
+        var persianDigits = await validator.ValidateAsync(
+            ValidCommand() with
+            {
+                PostalCode = "۱۲۳۴۵۶۷۸۹۰",
+            }
+        );
+        var letters = await validator.ValidateAsync(
+            ValidCommand() with
+            {
+                PostalCode = "12345A7890",
+            }
+        );
 
         Assert.Contains(persianDigits.Errors, error => error.PropertyName == "PostalCode");
         Assert.Contains(letters.Errors, error => error.PropertyName == "PostalCode");
@@ -36,7 +46,13 @@ public sealed class IdentityAddressValidationTests
     {
         var validator = new AddAddressCommandValidator();
 
-        var result = await validator.ValidateAsync(ValidCommand() with { Plate = plate, Unit = unit });
+        var result = await validator.ValidateAsync(
+            ValidCommand() with
+            {
+                Plate = plate,
+                Unit = unit,
+            }
+        );
 
         Assert.False(result.IsValid);
     }
@@ -45,27 +61,49 @@ public sealed class IdentityAddressValidationTests
     public void Domain_preserves_optional_title_and_requires_numeric_postal_code()
     {
         var address = UserAddress.Create(
-            Guid.NewGuid(), string.Empty, 8, 301, "تهران، خیابان نمونه", "1234567890",
-            "کاربر نمونه", "09120000000", "12", "2");
+            Guid.NewGuid(),
+            string.Empty,
+            8,
+            301,
+            "تهران، خیابان نمونه",
+            "1234567890",
+            "کاربر نمونه",
+            "09120000000",
+            "12",
+            "2"
+        );
 
         Assert.Equal(string.Empty, address.Title);
-        Assert.ThrowsAny<Exception>(() => UserAddress.Create(
-            Guid.NewGuid(), string.Empty, 8, 301, "تهران، خیابان نمونه", "12345A7890",
-            "کاربر نمونه", "09120000000", "12", "2"));
+        Assert.ThrowsAny<Exception>(() =>
+            UserAddress.Create(
+                Guid.NewGuid(),
+                string.Empty,
+                8,
+                301,
+                "تهران، خیابان نمونه",
+                "12345A7890",
+                "کاربر نمونه",
+                "09120000000",
+                "12",
+                "2"
+            )
+        );
     }
 
-    private static AddAddressCommand ValidCommand() => new(
-        Guid.NewGuid(),
-        "خانه",
-        8,
-        301,
-        "تهران، خیابان نمونه",
-        "1234567890",
-        "کاربر نمونه",
-        "09120000000",
-        "12",
-        "2",
-        null,
-        null,
-        false);
+    private static AddAddressCommand ValidCommand() =>
+        new(
+            Guid.NewGuid(),
+            "خانه",
+            8,
+            301,
+            "تهران، خیابان نمونه",
+            "1234567890",
+            "کاربر نمونه",
+            "09120000000",
+            "12",
+            "2",
+            null,
+            null,
+            false
+        );
 }

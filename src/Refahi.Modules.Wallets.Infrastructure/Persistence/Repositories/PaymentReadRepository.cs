@@ -25,7 +25,8 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
 
     public async Task<GetPaymentIntentResponse?> GetPaymentIntentAsync(
         Guid intentId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
@@ -46,7 +47,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     FROM wallets.payment_intents
                     WHERE intent_id = @IntentId",
                 parameters: new { IntentId = intentId },
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
         if (intentData == null)
             return null;
@@ -63,7 +66,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     WHERE intent_id = @IntentId
                     ORDER BY sequence",
                 parameters: new { IntentId = intentId },
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
         return new GetPaymentIntentResponse(
             IntentId: intentData.IntentId,
@@ -71,10 +76,13 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
             Status: MapIntentStatus(intentData.Status),
             AmountMinor: intentData.AmountMinor,
             Currency: intentData.Currency,
-            Allocations: allocations.Select(a => new AllocationDto(
-                WalletId: a.WalletId,
-                AmountMinor: a.AmountMinor,
-                LedgerEntryId: a.LedgerEntryId)).ToList(),
+            Allocations: allocations
+                .Select(a => new AllocationDto(
+                    WalletId: a.WalletId,
+                    AmountMinor: a.AmountMinor,
+                    LedgerEntryId: a.LedgerEntryId
+                ))
+                .ToList(),
             CreatedAt: intentData.CreatedAt,
             CompletedAt: intentData.CapturedAt,
             ReleasedAt: intentData.ReleasedAt
@@ -83,7 +91,8 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
 
     public async Task<GetPaymentResponse?> GetPaymentAsync(
         Guid paymentId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
@@ -103,7 +112,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     FROM wallets.payments
                     WHERE payment_id = @PaymentId",
                 parameters: new { PaymentId = paymentId },
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
         if (paymentData == null)
             return null;
@@ -120,7 +131,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     WHERE payment_id = @PaymentId
                     ORDER BY sequence",
                 parameters: new { PaymentId = paymentId },
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
         return new GetPaymentResponse(
             PaymentId: paymentData.PaymentId,
@@ -129,10 +142,13 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
             Status: MapPaymentStatus(paymentData.Status),
             AmountMinor: paymentData.AmountMinor,
             Currency: paymentData.Currency,
-            Allocations: allocations.Select(a => new AllocationDto(
-                WalletId: a.WalletId,
-                AmountMinor: a.AmountMinor,
-                LedgerEntryId: a.LedgerEntryId)).ToList(),
+            Allocations: allocations
+                .Select(a => new AllocationDto(
+                    WalletId: a.WalletId,
+                    AmountMinor: a.AmountMinor,
+                    LedgerEntryId: a.LedgerEntryId
+                ))
+                .ToList(),
             CompletedAt: paymentData.CompletedAt
         );
     }
@@ -140,7 +156,8 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
     public async Task<GetRefundResponse?> GetRefundAsync(
         Guid paymentId,
         Guid refundId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
@@ -161,7 +178,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     FROM wallets.refunds
                     WHERE refund_id = @RefundId AND payment_id = @PaymentId",
                 parameters: new { RefundId = refundId, PaymentId = paymentId },
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
         if (refundData == null)
             return null;
@@ -178,7 +197,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     WHERE refund_id = @RefundId
                     ORDER BY sequence",
                 parameters: new { RefundId = refundId },
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
         return new GetRefundResponse(
             RefundId: refundData.RefundId,
@@ -187,10 +208,13 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
             Status: MapRefundStatus(refundData.Status),
             AmountMinor: refundData.AmountMinor,
             Currency: refundData.Currency,
-            Allocations: allocations.Select(a => new AllocationDto(
-                WalletId: a.WalletId,
-                AmountMinor: a.AmountMinor,
-                LedgerEntryId: a.LedgerEntryId)).ToList(),
+            Allocations: allocations
+                .Select(a => new AllocationDto(
+                    WalletId: a.WalletId,
+                    AmountMinor: a.AmountMinor,
+                    LedgerEntryId: a.LedgerEntryId
+                ))
+                .ToList(),
             CompletedAt: refundData.CompletedAt,
             Reason: refundData.Reason
         );
@@ -199,25 +223,28 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
     // ===================================================================
     // PRIVATE MAPPING HELPERS (Read-only, no business logic)
     // ===================================================================
-    private static string MapIntentStatus(short status) => status switch
-    {
-        1 => "Reserved",
-        2 => "Captured",
-        3 => "Released",
-        _ => $"Unknown({status})"
-    };
+    private static string MapIntentStatus(short status) =>
+        status switch
+        {
+            1 => "Reserved",
+            2 => "Captured",
+            3 => "Released",
+            _ => $"Unknown({status})",
+        };
 
-    private static string MapPaymentStatus(short status) => status switch
-    {
-        1 => "Completed",
-        _ => $"Unknown({status})"
-    };
+    private static string MapPaymentStatus(short status) =>
+        status switch
+        {
+            1 => "Completed",
+            _ => $"Unknown({status})",
+        };
 
-    private static string MapRefundStatus(short status) => status switch
-    {
-        1 => "Completed",
-        _ => $"Unknown({status})"
-    };
+    private static string MapRefundStatus(short status) =>
+        status switch
+        {
+            1 => "Completed",
+            _ => $"Unknown({status})",
+        };
 
     // ===================================================================
     // INTERNAL DTOs (Dapper mapping targets)
@@ -230,7 +257,8 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
         string Currency,
         DateTimeOffset CreatedAt,
         DateTimeOffset? CapturedAt,
-        DateTimeOffset? ReleasedAt);
+        DateTimeOffset? ReleasedAt
+    );
 
     private sealed record PaymentRow(
         Guid PaymentId,
@@ -239,7 +267,8 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
         short Status,
         long AmountMinor,
         string Currency,
-        DateTimeOffset CompletedAt);
+        DateTimeOffset CompletedAt
+    );
 
     private sealed record RefundRow(
         Guid RefundId,
@@ -249,10 +278,8 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
         long AmountMinor,
         string Currency,
         string? Reason,
-        DateTimeOffset CompletedAt);
+        DateTimeOffset CompletedAt
+    );
 
-    private sealed record AllocationRow(
-        Guid WalletId,
-        long AmountMinor,
-        Guid? LedgerEntryId);
+    private sealed record AllocationRow(Guid WalletId, long AmountMinor, Guid? LedgerEntryId);
 }

@@ -19,32 +19,36 @@ public class GetShopBySlugQueryHandler : IRequestHandler<GetShopBySlugQuery, Sho
     }
 
     public async Task<ShopDto?> Handle(
-        GetShopBySlugQuery request, CancellationToken cancellationToken)
+        GetShopBySlugQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var shop = await _shopRepository.GetBySlugAsync(request.Slug, cancellationToken);
         return shop is null ? null : MapToDto(shop);
     }
 
-    private ShopDto MapToDto(Shop s) => new(
-        s.Id,
-        s.Name,
-        s.Slug,
-        s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
-        s.CoverImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.CoverImageUrl),
-        s.ShopType.ToString(),
-        s.Status.ToString(),
-        s.SupplierId,
-        s.ProvinceId,
-        s.CityId,
-        s.Address,
-        s.Latitude,
-        s.Longitude,
-        s.ManagerName,
-        s.ManagerPhone,
-        s.RepresentativeName,
-        s.RepresentativePhone,
-        s.ContactPhone,
-        s.Description,
-        s.IsPopular,
-        s.CreatedAt);
+    private ShopDto MapToDto(Shop s) =>
+        new(
+            s.Id,
+            s.Name,
+            s.Slug,
+            s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
+            s.CoverImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.CoverImageUrl),
+            s.ShopType.ToString(),
+            s.Status.ToString(),
+            s.SupplierId,
+            s.ProvinceId,
+            s.CityId,
+            s.Address,
+            s.Latitude,
+            s.Longitude,
+            s.ManagerName,
+            s.ManagerPhone,
+            s.RepresentativeName,
+            s.RepresentativePhone,
+            s.ContactPhone,
+            s.Description,
+            s.IsPopular,
+            s.CreatedAt
+        );
 }

@@ -10,5 +10,5 @@ public enum SalesModel : short
     SessionBased = 3,
 
     [Obsolete("نام legacy است؛ از InventoryBased استفاده کنید.")]
-    StockBased = InventoryBased
+    StockBased = InventoryBased,
 }

@@ -15,11 +15,13 @@ public sealed record CreateHotelRequestCommand(
     string Breakdown,
     string? Fees,
     string GuestInfoSnapshot,
-    string IdempotencyKey) : IRequest<CreateHotelRequestResponse>;
+    string IdempotencyKey
+) : IRequest<CreateHotelRequestResponse>;
 
 public sealed record CreateHotelRequestResponse(
     Guid RequestId,
     string Status,
     DateTime ExpireAt,
     long TotalPrice,
-    string Currency);
+    string Currency
+);

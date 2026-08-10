@@ -8,5 +8,5 @@ public enum ProviderCallOutcome : short
     TransportError = 4,
     AuthenticationError = 5,
     InvalidResponse = 6,
-    Cancelled = 7
+    Cancelled = 7,
 }

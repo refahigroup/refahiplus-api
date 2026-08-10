@@ -23,7 +23,7 @@ public sealed record ProductDetailV2Dto(
     List<SyntheticOfferDto> Offers,
     double AverageRating,
     int ReviewCount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);
 
 public sealed record SelectedShopV2Dto(Guid Id, string Name, string Slug);
-

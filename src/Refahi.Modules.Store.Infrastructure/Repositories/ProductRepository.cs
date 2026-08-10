@@ -14,44 +14,46 @@ public class ProductRepository : IProductRepository
 
     public ProductRepository(StoreDbContext db) => _db = db;
 
-    public Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => QueryWithDetails()
-            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
+    public Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        QueryWithDetails().FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
 
-    public Task<Product?> GetBySlugAsync(string slug, CancellationToken ct = default)
-        => QueryWithDetails()
-            .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted, ct);
+    public Task<Product?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+        QueryWithDetails().FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted, ct);
 
     public Task<Product?> GetDisplayableBySlugAsync(
         string slug,
         IReadOnlyList<Guid> allowedAgreementProductIds,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         if (allowedAgreementProductIds.Count == 0)
             return Task.FromResult<Product?>(null);
 
         return QueryWithDetails()
             .FirstOrDefaultAsync(
-                p => p.Slug == slug
-                     && !p.IsDeleted
-                     && p.IsAvailable
-                     && allowedAgreementProductIds.Contains(p.AgreementProductId),
-                ct);
+                p =>
+                    p.Slug == slug
+                    && !p.IsDeleted
+                    && p.IsAvailable
+                    && allowedAgreementProductIds.Contains(p.AgreementProductId),
+                ct
+            );
     }
 
     public async Task<(List<Product> Items, int Total)> GetPagedAsync(
-        Guid? shopId, int page, int pageSize, CancellationToken ct = default)
+        Guid? shopId,
+        int page,
+        int pageSize,
+        CancellationToken ct = default
+    )
     {
         IQueryable<Product> q;
 
         if (shopId.HasValue)
         {
-            q = _db.ShopProducts
-                .Where(sp => sp.ShopId == shopId.Value && sp.IsActive && !sp.IsDeleted)
-                .Join(_db.Products,
-                    sp => sp.ProductId,
-                    p => p.Id,
-                    (_, p) => p)
+            q = _db
+                .ShopProducts.Where(sp => sp.ShopId == shopId.Value && sp.IsActive && !sp.IsDeleted)
+                .Join(_db.Products, sp => sp.ProductId, p => p.Id, (_, p) => p)
                 .Where(p => !p.IsDeleted && p.IsAvailable);
         }
         else
@@ -60,8 +62,7 @@ public class ProductRepository : IProductRepository
         }
 
         var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderByDescending(p => p.CreatedAt)
+        var items = await q.OrderByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(p => p.Images)
@@ -71,35 +72,20 @@ public class ProductRepository : IProductRepository
     }
 
     public async Task<(List<Product> Items, int Total)> SearchAsync(
-        string query, int page, int pageSize, CancellationToken ct = default)
-    {
-        var q = _db.Products
-            .Where(p => !p.IsDeleted && p.IsAvailable &&
-                        (p.Title.Contains(query) || (p.Description != null && p.Description.Contains(query))));
-
-        var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderByDescending(p => p.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Include(p => p.Images)
-            .ToListAsync(ct);
-
-        return (items, total);
-    }
-
-    public async Task<(List<Product> Items, int Total)> SearchAsync(
-        string query, IReadOnlyList<Guid> allowedAgreementProductIds,
-        int page, int pageSize, CancellationToken ct = default)
+        string query,
+        int page,
+        int pageSize,
+        CancellationToken ct = default
+    )
     {
         var q = _db.Products.Where(p =>
-            !p.IsDeleted && p.IsAvailable
-            && allowedAgreementProductIds.Contains(p.AgreementProductId)
-            && (p.Title.Contains(query) || (p.Description != null && p.Description.Contains(query))));
+            !p.IsDeleted
+            && p.IsAvailable
+            && (p.Title.Contains(query) || (p.Description != null && p.Description.Contains(query)))
+        );
 
         var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderByDescending(p => p.CreatedAt)
+        var items = await q.OrderByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(p => p.Images)
@@ -108,29 +94,58 @@ public class ProductRepository : IProductRepository
         return (items, total);
     }
 
-    public async Task<List<Product>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
+    public async Task<(List<Product> Items, int Total)> SearchAsync(
+        string query,
+        IReadOnlyList<Guid> allowedAgreementProductIds,
+        int page,
+        int pageSize,
+        CancellationToken ct = default
+    )
+    {
+        var q = _db.Products.Where(p =>
+            !p.IsDeleted
+            && p.IsAvailable
+            && allowedAgreementProductIds.Contains(p.AgreementProductId)
+            && (p.Title.Contains(query) || (p.Description != null && p.Description.Contains(query)))
+        );
+
+        var total = await q.CountAsync(ct);
+        var items = await q.OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(p => p.Images)
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
+    public async Task<List<Product>> GetByIdsAsync(
+        IReadOnlyList<Guid> ids,
+        CancellationToken ct = default
+    )
     {
         if (ids.Count == 0)
             return [];
 
-        return await _db.Products
-            .Where(p => ids.Contains(p.Id))
+        return await _db
+            .Products.Where(p => ids.Contains(p.Id))
             .Include(p => p.Images)
             .ToListAsync(ct);
     }
 
-    public async Task<List<Product>> GetByIdsForAdminWithDetailsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
+    public async Task<List<Product>> GetByIdsForAdminWithDetailsAsync(
+        IReadOnlyList<Guid> ids,
+        CancellationToken ct = default
+    )
     {
         if (ids.Count == 0)
             return [];
 
-        return await QueryWithDetails()
-            .Where(p => ids.Contains(p.Id))
-            .ToListAsync(ct);
+        return await QueryWithDetails().Where(p => ids.Contains(p.Id)).ToListAsync(ct);
     }
 
-    public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default)
-        => _db.Products.AnyAsync(p => p.Slug == slug, ct);
+    public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) =>
+        _db.Products.AnyAsync(p => p.Slug == slug, ct);
 
     public async Task AddAsync(Product product, CancellationToken ct = default)
     {
@@ -141,67 +156,83 @@ public class ProductRepository : IProductRepository
     public async Task AddVariantAttributeAsync(
         Product product,
         VariantAttribute attribute,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await ThrowIfVariantAttributeAlreadyExistsAsync(attribute.ProductId, attribute.Name, ct);
 
-        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $@"
             INSERT INTO store.variant_attributes (""Id"", ""ProductId"", ""Name"", ""SortOrder"")
-            VALUES ({attribute.Id}, {attribute.ProductId}, {attribute.Name}, {attribute.SortOrder})", ct);
+            VALUES ({attribute.Id}, {attribute.ProductId}, {attribute.Name}, {attribute.SortOrder})",
+            ct
+        );
     }
 
     public async Task AddVariantAttributeValueAsync(
         Product product,
         VariantAttributeValue value,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
-        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $@"
             INSERT INTO store.variant_attribute_values (""Id"", ""VariantAttributeId"", ""Value"", ""SortOrder"")
-            VALUES ({value.Id}, {value.VariantAttributeId}, {value.Value}, {value.SortOrder})", ct);
+            VALUES ({value.Id}, {value.VariantAttributeId}, {value.Value}, {value.SortOrder})",
+            ct
+        );
     }
 
     public async Task AddProductVariantAsync(
         Product product,
         ProductVariant variant,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
 
-        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $@"
             INSERT INTO store.product_variants
                 (""Id"", ""ProductId"", ""SKU"", ""ImageUrl"", ""StockCount"", ""PriceMinor"", ""DiscountedPriceMinor"", ""FromDate"", ""ToDate"", ""CapacityType"", ""Capacity"", ""IsAvailable"")
             VALUES
-                ({variant.Id}, {variant.ProductId}, {variant.SKU}, {variant.ImageUrl}, {variant.StockCount}, {variant.PriceMinor}, {variant.DiscountedPriceMinor}, {variant.FromDate}, {variant.ToDate}, {(short)variant.CapacityType}, {variant.Capacity}, {variant.IsAvailable})", ct);
+                ({variant.Id}, {variant.ProductId}, {variant.SKU}, {variant.ImageUrl}, {variant.StockCount}, {variant.PriceMinor}, {variant.DiscountedPriceMinor}, {variant.FromDate}, {variant.ToDate}, {(short)variant.CapacityType}, {variant.Capacity}, {variant.IsAvailable})",
+            ct
+        );
 
         foreach (var combination in variant.Combinations)
         {
-            await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $@"
                 INSERT INTO store.product_variant_combinations
                     (""Id"", ""ProductVariantId"", ""VariantAttributeId"", ""VariantAttributeValueId"")
                 VALUES
-                    ({combination.Id}, {combination.ProductVariantId}, {combination.VariantAttributeId}, {combination.VariantAttributeValueId})", ct);
+                    ({combination.Id}, {combination.ProductVariantId}, {combination.VariantAttributeId}, {combination.VariantAttributeValueId})",
+                ct
+            );
         }
 
         await transaction.CommitAsync(ct);
     }
-    public Task<Product?> GetByIdForAdminAsync(Guid id, CancellationToken ct = default)
-        => QueryWithDetails()
-            .FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public Task<Product?> GetByIdForAdminAsync(Guid id, CancellationToken ct = default) =>
+        QueryWithDetails().FirstOrDefaultAsync(p => p.Id == id, ct);
 
     public async Task<(List<Product> Items, int Total)> GetPagedAdminAsync(
-        Guid? shopId, bool? isDeleted,
-        int page, int pageSize, CancellationToken ct = default)
+        Guid? shopId,
+        bool? isDeleted,
+        int page,
+        int pageSize,
+        CancellationToken ct = default
+    )
     {
         IQueryable<Product> q;
 
         if (shopId.HasValue)
         {
-            q = _db.ShopProducts
-                .Where(sp => sp.ShopId == shopId.Value && !sp.IsDeleted)
-                .Join(_db.Products,
-                    sp => sp.ProductId,
-                    p => p.Id,
-                    (_, p) => p);
+            q = _db
+                .ShopProducts.Where(sp => sp.ShopId == shopId.Value && !sp.IsDeleted)
+                .Join(_db.Products, sp => sp.ProductId, p => p.Id, (_, p) => p);
         }
         else
         {
@@ -212,8 +243,7 @@ public class ProductRepository : IProductRepository
             q = q.Where(p => p.IsDeleted == isDeleted.Value);
 
         var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderByDescending(p => p.CreatedAt)
+        var items = await q.OrderByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(p => p.Images)
@@ -222,37 +252,67 @@ public class ProductRepository : IProductRepository
         return (items, total);
     }
 
-    public async Task<(List<Product> Items, int Total)> GetCatalogPagedAsync(Guid? supplierId,
-        int? categoryId, bool includeInactive, int page, int pageSize, CancellationToken ct = default)
+    public async Task<(List<Product> Items, int Total)> GetCatalogPagedAsync(
+        Guid? supplierId,
+        int? categoryId,
+        bool includeInactive,
+        int page,
+        int pageSize,
+        CancellationToken ct = default
+    )
     {
-        var query = _db.Products.AsNoTracking().Where(x => !x.IsDeleted && x.SupplierId != Guid.Empty);
-        if (!includeInactive) query = query.Where(x => x.IsAvailable);
-        if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
-        if (categoryId.HasValue) query = query.Where(x => x.CategoryId == categoryId.Value);
+        var query = _db
+            .Products.AsNoTracking()
+            .Where(x => !x.IsDeleted && x.SupplierId != Guid.Empty);
+        if (!includeInactive)
+            query = query.Where(x => x.IsAvailable);
+        if (supplierId.HasValue)
+            query = query.Where(x => x.SupplierId == supplierId.Value);
+        if (categoryId.HasValue)
+            query = query.Where(x => x.CategoryId == categoryId.Value);
         var total = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)
-            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
         return (items, total);
     }
 
-    public Task<List<Product>> GetCatalogEligibilityCandidatesAsync(Guid? supplierId, int? categoryId,
-        CancellationToken ct = default)
+    public Task<List<Product>> GetCatalogEligibilityCandidatesAsync(
+        Guid? supplierId,
+        int? categoryId,
+        CancellationToken ct = default
+    )
     {
-        var query = _db.Products.AsNoTracking()
+        var query = _db
+            .Products.AsNoTracking()
             .Where(x => !x.IsDeleted && x.IsAvailable && x.SupplierId != Guid.Empty);
-        if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
-        if (categoryId.HasValue) query = query.Where(x => x.CategoryId == categoryId.Value);
+        if (supplierId.HasValue)
+            query = query.Where(x => x.SupplierId == supplierId.Value);
+        if (categoryId.HasValue)
+            query = query.Where(x => x.CategoryId == categoryId.Value);
         return query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).ToListAsync(ct);
     }
 
     public async Task<(List<Product> Items, int Total)> GetCatalogPageByIdsAsync(
-        IReadOnlyCollection<Guid> eligibleIds, int page, int pageSize, CancellationToken ct = default)
+        IReadOnlyCollection<Guid> eligibleIds,
+        int page,
+        int pageSize,
+        CancellationToken ct = default
+    )
     {
-        if (eligibleIds.Count == 0) return ([], 0);
+        if (eligibleIds.Count == 0)
+            return ([], 0);
         var query = _db.Products.AsNoTracking().Where(x => eligibleIds.Contains(x.Id));
         var total = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)
-            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
         return (items, total);
     }
 
@@ -276,9 +336,9 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    private IQueryable<Product> QueryWithDetails()
-        => _db.Products
-            .AsSplitQuery()
+    private IQueryable<Product> QueryWithDetails() =>
+        _db
+            .Products.AsSplitQuery()
             .Include(p => p.Images)
             .Include(p => p.Variants)
                 .ThenInclude(v => v.Combinations)
@@ -304,11 +364,10 @@ public class ProductRepository : IProductRepository
 
     private async Task<bool> TrySuppressTimestampOnlyProductConcurrencyAsync(
         DbUpdateConcurrencyException exception,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        var productEntries = exception.Entries
-            .Where(e => e.Entity is Product)
-            .ToList();
+        var productEntries = exception.Entries.Where(e => e.Entity is Product).ToList();
 
         if (productEntries.Count == 0 || productEntries.Count != exception.Entries.Count)
             return false;
@@ -332,37 +391,34 @@ public class ProductRepository : IProductRepository
         return true;
     }
 
-    private bool HasAnyPendingProductChildAdditions(IEnumerable<EntityEntry> productEntries)
-        => productEntries
+    private bool HasAnyPendingProductChildAdditions(IEnumerable<EntityEntry> productEntries) =>
+        productEntries
             .Select(e => ((Product)e.Entity).Id)
             .Distinct()
             .Any(HasPendingProductChildAdditions);
 
-    private bool HasPendingProductChildAdditions(Guid productId)
-        => _db.ChangeTracker.Entries<VariantAttribute>()
-               .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
-           || _db.ChangeTracker.Entries<VariantAttributeValue>()
-               .Any(e => e.State == EntityState.Added)
-           || _db.ChangeTracker.Entries<ProductVariant>()
-               .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
-           || _db.ChangeTracker.Entries<ProductImage>()
-               .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
-           || _db.ChangeTracker.Entries<ProductSpecification>()
-               .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
-           || _db.ChangeTracker.Entries<ProductSession>()
-               .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId);
+    private bool HasPendingProductChildAdditions(Guid productId) =>
+        _db.ChangeTracker.Entries<VariantAttribute>()
+            .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
+        || _db.ChangeTracker.Entries<VariantAttributeValue>().Any(e => e.State == EntityState.Added)
+        || _db.ChangeTracker.Entries<ProductVariant>()
+            .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
+        || _db.ChangeTracker.Entries<ProductImage>()
+            .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
+        || _db.ChangeTracker.Entries<ProductSpecification>()
+            .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId)
+        || _db.ChangeTracker.Entries<ProductSession>()
+            .Any(e => e.State == EntityState.Added && e.Entity.ProductId == productId);
 
     private async Task<bool> AreProductsStillActiveAsync(
         IReadOnlyCollection<EntityEntry> productEntries,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        var productIds = productEntries
-            .Select(e => ((Product)e.Entity).Id)
-            .Distinct()
-            .ToList();
+        var productIds = productEntries.Select(e => ((Product)e.Entity).Id).Distinct().ToList();
 
-        var activeProductCount = await _db.Products
-            .AsNoTracking()
+        var activeProductCount = await _db
+            .Products.AsNoTracking()
             .CountAsync(p => productIds.Contains(p.Id) && !p.IsDeleted, ct);
 
         return activeProductCount == productIds.Count;
@@ -370,41 +426,46 @@ public class ProductRepository : IProductRepository
 
     private async Task ThrowIfAddedVariantAttributeAlreadyExistsAsync(CancellationToken ct)
     {
-        var addedAttributes = _db.ChangeTracker
-            .Entries<VariantAttribute>()
+        var addedAttributes = _db
+            .ChangeTracker.Entries<VariantAttribute>()
             .Where(e => e.State == EntityState.Added)
             .Select(e => e.Entity)
             .ToList();
 
         foreach (var attribute in addedAttributes)
-            await ThrowIfVariantAttributeAlreadyExistsAsync(attribute.ProductId, attribute.Name, ct);
+            await ThrowIfVariantAttributeAlreadyExistsAsync(
+                attribute.ProductId,
+                attribute.Name,
+                ct
+            );
     }
 
     private async Task ThrowIfVariantAttributeAlreadyExistsAsync(
         Guid productId,
         string name,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var normalizedName = name.Trim();
         var normalizedNameLower = normalizedName.ToLower();
-        var alreadyExists = await _db.VariantAttributes
-            .AsNoTracking()
+        var alreadyExists = await _db
+            .VariantAttributes.AsNoTracking()
             .AnyAsync(a => a.ProductId == productId && a.Name.ToLower() == normalizedNameLower, ct);
 
         if (alreadyExists)
             throw new StoreDomainException(
                 "ویژگی تنوع قبلاً برای این محصول ثبت شده است",
-                "VARIANT_ATTRIBUTE_ALREADY_EXISTS");
+                "VARIANT_ATTRIBUTE_ALREADY_EXISTS"
+            );
     }
 
     private static bool IsOnlyUpdatedAtModified(EntityEntry entry)
     {
-        var modifiedProperties = entry.Properties
-            .Where(p => p.IsModified)
+        var modifiedProperties = entry
+            .Properties.Where(p => p.IsModified)
             .Select(p => p.Metadata.Name)
             .ToList();
 
-        return modifiedProperties.Count == 1
-            && modifiedProperties[0] == nameof(Product.UpdatedAt);
+        return modifiedProperties.Count == 1 && modifiedProperties[0] == nameof(Product.UpdatedAt);
     }
 }

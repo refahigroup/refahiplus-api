@@ -1,12 +1,12 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep.Api;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep.Config;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep.Contract;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep;
 
@@ -26,7 +26,10 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
 
     public PaymentGatewayProviderType ProviderType => PaymentGatewayProviderType.Sep;
 
-    public async Task<GetTokenResult> GetTokenAsync(GetTokenRequest request, CancellationToken ct = default)
+    public async Task<GetTokenResult> GetTokenAsync(
+        GetTokenRequest request,
+        CancellationToken ct = default
+    )
     {
         try
         {
@@ -37,7 +40,7 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
                 Amount = request.AmountMinor,
                 ResNum = request.ResNum,
                 RedirectURL = request.CallbackUrl,
-                CellNumber = request.CellNumber
+                CellNumber = request.CellNumber,
             };
 
             var response = await _apiClient.RequestTokenAsync(sepRequest, ct);
@@ -45,8 +48,11 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
             if (response.Status == 1 && !string.IsNullOrEmpty(response.Token))
                 return new GetTokenResult(true, response.Token);
 
-            return new GetTokenResult(false, null,
-                $"SEP token request failed. Status={response.Status} ErrorCode={response.ErrorCode} Error={response.ErrorDesc}");
+            return new GetTokenResult(
+                false,
+                null,
+                $"SEP token request failed. Status={response.Status} ErrorCode={response.ErrorCode} Error={response.ErrorDesc}"
+            );
         }
         catch (Exception ex)
         {
@@ -59,34 +65,39 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
         return $"{_options.PaymentBaseUrl.TrimEnd('/')}?token={Uri.EscapeDataString(token)}";
     }
 
-    public async Task<VerifyResult> VerifyAsync(VerifyRequest request, CancellationToken ct = default)
+    public async Task<VerifyResult> VerifyAsync(
+        VerifyRequest request,
+        CancellationToken ct = default
+    )
     {
         try
         {
             var sepRequest = new SepVerifyRequest
             {
                 RefNum = request.RefNum,
-                TerminalNumber = long.Parse(_options.TerminalId)
+                TerminalNumber = long.Parse(_options.TerminalId),
             };
 
             var response = await _apiClient.VerifyTransactionAsync(sepRequest, ct);
             var verifiedAmount = response.TransactionDetail?.OrginalAmount ?? 0;
 
-            if (response.Success &&
-                response.ResultCode == 0 &&
-                response.TransactionDetail is not null &&
-                verifiedAmount == request.ExpectedAmountMinor)
+            if (
+                response.Success
+                && response.ResultCode == 0
+                && response.TransactionDetail is not null
+                && verifiedAmount == request.ExpectedAmountMinor
+            )
             {
                 return new VerifyResult(true, verifiedAmount, response.ResultCode);
             }
 
-            var description = BuildVerifyFailureDescription(response, request.ExpectedAmountMinor, verifiedAmount);
+            var description = BuildVerifyFailureDescription(
+                response,
+                request.ExpectedAmountMinor,
+                verifiedAmount
+            );
 
-            return new VerifyResult(
-                false,
-                verifiedAmount,
-                response.ResultCode,
-                description);
+            return new VerifyResult(false, verifiedAmount, response.ResultCode, description);
         }
         catch (Exception ex)
         {
@@ -94,14 +105,17 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
         }
     }
 
-    public async Task<ReverseResult> ReverseAsync(ReverseRequest request, CancellationToken ct = default)
+    public async Task<ReverseResult> ReverseAsync(
+        ReverseRequest request,
+        CancellationToken ct = default
+    )
     {
         try
         {
             var sepRequest = new SepReverseRequest
             {
                 RefNum = request.RefNum,
-                TerminalNumber = long.Parse(_options.TerminalId)
+                TerminalNumber = long.Parse(_options.TerminalId),
             };
 
             var response = await _apiClient.ReverseTransactionAsync(sepRequest, ct);
@@ -112,7 +126,8 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
             return new ReverseResult(
                 false,
                 response.ResultCode,
-                response.ResultDescription ?? GetSepResultDescription(response.ResultCode));
+                response.ResultDescription ?? GetSepResultDescription(response.ResultCode)
+            );
         }
         catch (Exception ex)
         {
@@ -123,7 +138,8 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
     private static string BuildVerifyFailureDescription(
         SepVerifyResponse response,
         long expectedAmount,
-        long verifiedAmount)
+        long verifiedAmount
+    )
     {
         if (response.ResultCode == 0 && response.TransactionDetail is null)
             return "SEP verify response did not include TransactionDetail.";
@@ -134,16 +150,17 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
         return response.ResultDescription ?? GetSepResultDescription(response.ResultCode);
     }
 
-    private static string GetSepResultDescription(int resultCode) => resultCode switch
-    {
-        0 => "SEP transaction succeeded.",
-        2 => "SEP duplicate request.",
-        5 => "SEP transaction has been reversed.",
-        -2 => "SEP transaction was not found.",
-        -6 => "SEP transaction verify window has expired.",
-        -104 => "SEP terminal is inactive.",
-        -105 => "SEP terminal was not found.",
-        -106 => "SEP requester IP address is not allowed.",
-        _ => $"Unknown SEP result code ({resultCode})."
-    };
+    private static string GetSepResultDescription(int resultCode) =>
+        resultCode switch
+        {
+            0 => "SEP transaction succeeded.",
+            2 => "SEP duplicate request.",
+            5 => "SEP transaction has been reversed.",
+            -2 => "SEP transaction was not found.",
+            -6 => "SEP transaction verify window has expired.",
+            -104 => "SEP terminal is inactive.",
+            -105 => "SEP terminal was not found.",
+            -106 => "SEP requester IP address is not allowed.",
+            _ => $"Unknown SEP result code ({resultCode}).",
+        };
 }

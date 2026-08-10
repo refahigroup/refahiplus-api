@@ -14,7 +14,9 @@ public sealed class CreateWalletCommandValidatorTests
     [InlineData("provider")]
     public void Accepts_supported_internal_wallet_types(string walletType)
     {
-        var result = _validator.Validate(new CreateWalletCommand(Guid.NewGuid(), walletType, "IRR"));
+        var result = _validator.Validate(
+            new CreateWalletCommand(Guid.NewGuid(), walletType, "IRR")
+        );
 
         Assert.True(result.IsValid);
     }
@@ -25,6 +27,9 @@ public sealed class CreateWalletCommandValidatorTests
         var result = _validator.Validate(new CreateWalletCommand(Guid.NewGuid(), "SYSTEM", "IRR"));
 
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(CreateWalletCommand.WalletType));
+        Assert.Contains(
+            result.Errors,
+            error => error.PropertyName == nameof(CreateWalletCommand.WalletType)
+        );
     }
 }

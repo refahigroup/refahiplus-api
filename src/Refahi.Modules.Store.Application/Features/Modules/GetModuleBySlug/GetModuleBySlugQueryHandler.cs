@@ -18,7 +18,9 @@ public class GetModuleBySlugQueryHandler : IRequestHandler<GetModuleBySlugQuery,
     }
 
     public async Task<ModuleDto?> Handle(
-        GetModuleBySlugQuery request, CancellationToken cancellationToken)
+        GetModuleBySlugQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var module = await _moduleRepo.GetBySlugAsync(request.Slug, cancellationToken);
         if (module is null)

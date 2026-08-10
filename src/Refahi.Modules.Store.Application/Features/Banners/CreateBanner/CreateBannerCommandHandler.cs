@@ -11,10 +11,12 @@ public class CreateBannerCommandHandler : IRequestHandler<CreateBannerCommand, C
 {
     private readonly IBannerRepository _bannerRepo;
 
-    public CreateBannerCommandHandler(IBannerRepository bannerRepo)
-        => _bannerRepo = bannerRepo;
+    public CreateBannerCommandHandler(IBannerRepository bannerRepo) => _bannerRepo = bannerRepo;
 
-    public async Task<CreateBannerResponse> Handle(CreateBannerCommand request, CancellationToken cancellationToken)
+    public async Task<CreateBannerResponse> Handle(
+        CreateBannerCommand request,
+        CancellationToken cancellationToken
+    )
     {
         if (!Enum.IsDefined(typeof(BannerType), request.BannerType))
             throw new StoreDomainException("نوع بنر معتبر نیست", "INVALID_BANNER_TYPE");
@@ -44,7 +46,8 @@ public class CreateBannerCommandHandler : IRequestHandler<CreateBannerCommand, C
             request.LinkUrl,
             request.SortOrder,
             startDate,
-            endDate);
+            endDate
+        );
 
         await _bannerRepo.AddAsync(banner, cancellationToken);
 

@@ -12,13 +12,17 @@ internal static class AddressLocationValidation
         IMediator mediator,
         int provinceId,
         int cityId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var city = await mediator.Send(new GetCityByIdQuery(cityId), ct);
         if (city is null || !city.IsActive)
             throw new DomainException("شهر انتخاب‌شده معتبر نیست", "INVALID_CITY");
 
         if (city.ProvinceId != provinceId)
-            throw new DomainException("شهر انتخاب‌شده متعلق به استان انتخاب‌شده نیست", "CITY_PROVINCE_MISMATCH");
+            throw new DomainException(
+                "شهر انتخاب‌شده متعلق به استان انتخاب‌شده نیست",
+                "CITY_PROVINCE_MISMATCH"
+            );
     }
 }

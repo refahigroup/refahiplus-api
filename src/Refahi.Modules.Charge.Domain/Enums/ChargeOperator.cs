@@ -6,5 +6,5 @@ public enum ChargeOperator : short
     Mci = 2,
     Rightel = 3,
     Shatel = 4,
-    Taliya = 5
+    Taliya = 5,
 }

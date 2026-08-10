@@ -10,13 +10,23 @@ public static class CheckoutRequestFingerprint
     {
         var selections = request.CartItemDeliveryMethods is null
             ? string.Empty
-            : string.Join(',', request.CartItemDeliveryMethods
-                .OrderBy(x => x.Key)
-                .Select(x => $"{x.Key:N}:{x.Value}"));
-        var canonical = string.Join('|', "store-checkout-v3", request.ModuleId,
+            : string.Join(
+                ',',
+                request
+                    .CartItemDeliveryMethods.OrderBy(x => x.Key)
+                    .Select(x => $"{x.Key:N}:{x.Value}")
+            );
+        var canonical = string.Join(
+            '|',
+            "store-checkout-v3",
+            request.ModuleId,
             request.ShippingAddressId?.ToString("N") ?? "-",
             request.DeliveryDate?.ToString("yyyy-MM-dd") ?? "-",
-            request.DeliveryTimeSlot, selections);
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
+            request.DeliveryTimeSlot,
+            selections
+        );
+        return Convert
+            .ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))
+            .ToLowerInvariant();
     }
 }

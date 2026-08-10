@@ -14,13 +14,13 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
     private static readonly HotelBookingSagaStatus[] CandidateStatuses =
     [
         HotelBookingSagaStatus.Paid,
-        HotelBookingSagaStatus.ProviderBookingStarted
+        HotelBookingSagaStatus.ProviderBookingStarted,
     ];
 
     private static readonly HotelBookingSagaStatus[] ExternalCancellationCandidateStatuses =
     [
         HotelBookingSagaStatus.Compensated,
-        HotelBookingSagaStatus.Failed
+        HotelBookingSagaStatus.Failed,
     ];
 
     private readonly IServiceScopeFactory _scopeFactory;
@@ -28,7 +28,8 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
 
     public HotelProviderReconciliationWorker(
         IServiceScopeFactory scopeFactory,
-        ILogger<HotelProviderReconciliationWorker> logger)
+        ILogger<HotelProviderReconciliationWorker> logger
+    )
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
@@ -58,28 +59,32 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
     private async Task ReconcileOnceAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var sagaRepository = scope.ServiceProvider.GetRequiredService<IHotelBookingSagaRepository>();
+        var sagaRepository =
+            scope.ServiceProvider.GetRequiredService<IHotelBookingSagaRepository>();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
         var candidates = await sagaRepository.GetStuckAsync(
             CandidateStatuses,
             DateTime.UtcNow.AddMinutes(-5),
             25,
-            cancellationToken);
+            cancellationToken
+        );
 
         foreach (var saga in candidates)
         {
             if (saga.OrderId is null)
                 continue;
 
-            using var logScope = _logger.BeginScope(new Dictionary<string, object?>
-            {
-                ["UserId"] = saga.UserId,
-                ["SagaId"] = saga.SagaId,
-                ["HotelRequestId"] = saga.HotelRequestId,
-                ["OrderId"] = saga.OrderId,
-                ["ProviderBookingCode"] = null
-            });
+            using var logScope = _logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["UserId"] = saga.UserId,
+                    ["SagaId"] = saga.SagaId,
+                    ["HotelRequestId"] = saga.HotelRequestId,
+                    ["OrderId"] = saga.OrderId,
+                    ["ProviderBookingCode"] = null,
+                }
+            );
 
             try
             {
@@ -88,13 +93,18 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
                     saga.SagaId,
                     saga.HotelRequestId,
                     saga.OrderId,
-                    saga.Status);
+                    saga.Status
+                );
 
-                await mediator.Send(new FinalizeHotelBookingAfterPaymentCommand(
-                    saga.OrderId.Value,
-                    saga.UserId,
-                    Guid.Empty,
-                    saga.SagaId), cancellationToken);
+                await mediator.Send(
+                    new FinalizeHotelBookingAfterPaymentCommand(
+                        saga.OrderId.Value,
+                        saga.UserId,
+                        Guid.Empty,
+                        saga.SagaId
+                    ),
+                    cancellationToken
+                );
             }
             catch (Exception ex)
             {
@@ -103,7 +113,8 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
                     "Hotel provider reconciliation failed for saga. SagaId={SagaId}, HotelRequestId={HotelRequestId}, OrderId={OrderId}",
                     saga.SagaId,
                     saga.HotelRequestId,
-                    saga.OrderId);
+                    saga.OrderId
+                );
             }
         }
 
@@ -111,25 +122,31 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
             ExternalCancellationCandidateStatuses,
             DateTime.UtcNow.AddMinutes(-5),
             25,
-            cancellationToken);
+            cancellationToken
+        );
 
         foreach (var saga in cancellationCandidates)
         {
-            if (saga.ProviderBookingStatus is HotelProviderBookingStatus.Cancelled or
-                HotelProviderBookingStatus.ExternallyUnresolved or
-                HotelProviderBookingStatus.None)
+            if (
+                saga.ProviderBookingStatus
+                is HotelProviderBookingStatus.Cancelled
+                    or HotelProviderBookingStatus.ExternallyUnresolved
+                    or HotelProviderBookingStatus.None
+            )
             {
                 continue;
             }
 
-            using var logScope = _logger.BeginScope(new Dictionary<string, object?>
-            {
-                ["UserId"] = saga.UserId,
-                ["SagaId"] = saga.SagaId,
-                ["HotelRequestId"] = saga.HotelRequestId,
-                ["OrderId"] = saga.OrderId,
-                ["ProviderBookingCode"] = null
-            });
+            using var logScope = _logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["UserId"] = saga.UserId,
+                    ["SagaId"] = saga.SagaId,
+                    ["HotelRequestId"] = saga.HotelRequestId,
+                    ["OrderId"] = saga.OrderId,
+                    ["ProviderBookingCode"] = null,
+                }
+            );
 
             try
             {
@@ -139,12 +156,16 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
                     saga.HotelRequestId,
                     saga.OrderId,
                     saga.Status,
-                    saga.ProviderBookingStatus);
+                    saga.ProviderBookingStatus
+                );
 
-                await mediator.Send(new CancelProviderBookingCommand(
-                    saga.SagaId,
-                    $"Saga is {saga.Status}; external provider booking must be cancelled or marked unresolved."),
-                    cancellationToken);
+                await mediator.Send(
+                    new CancelProviderBookingCommand(
+                        saga.SagaId,
+                        $"Saga is {saga.Status}; external provider booking must be cancelled or marked unresolved."
+                    ),
+                    cancellationToken
+                );
             }
             catch (Exception ex)
             {
@@ -153,7 +174,8 @@ public sealed class HotelProviderReconciliationWorker : BackgroundService
                     "Hotel provider external-state reconciliation failed for saga. SagaId={SagaId}, HotelRequestId={HotelRequestId}, OrderId={OrderId}",
                     saga.SagaId,
                     saga.HotelRequestId,
-                    saga.OrderId);
+                    saga.OrderId
+                );
             }
         }
     }

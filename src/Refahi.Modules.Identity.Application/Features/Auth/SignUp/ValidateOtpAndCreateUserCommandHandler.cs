@@ -8,7 +8,8 @@ using Refahi.Shared.Services.Notification;
 
 namespace Refahi.Modules.Identity.Application.Features.Auth.SignUp;
 
-public class ValidateOtpAndCreateUserCommandHandler : IRequestHandler<ValidateOtpAndCreateUserCommand, ValidateOtpResult>
+public class ValidateOtpAndCreateUserCommandHandler
+    : IRequestHandler<ValidateOtpAndCreateUserCommand, ValidateOtpResult>
 {
     private readonly INotificationService _notificationService;
     private readonly IUserRegistrationService _registrationService;
@@ -17,16 +18,25 @@ public class ValidateOtpAndCreateUserCommandHandler : IRequestHandler<ValidateOt
     public ValidateOtpAndCreateUserCommandHandler(
         INotificationService notificationService,
         IUserRegistrationService registrationService,
-        IOptions<IdentityOptions> options)
+        IOptions<IdentityOptions> options
+    )
     {
         _notificationService = notificationService;
         _registrationService = registrationService;
         _options = options.Value;
     }
 
-    public async Task<ValidateOtpResult> Handle(ValidateOtpAndCreateUserCommand request, CancellationToken cancellationToken)
+    public async Task<ValidateOtpResult> Handle(
+        ValidateOtpAndCreateUserCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var validationResult = await _notificationService.ValidateOtp(request.Token, request.OtpCode, OtpType.SignUp, cancellationToken);
+        var validationResult = await _notificationService.ValidateOtp(
+            request.Token,
+            request.OtpCode,
+            OtpType.SignUp,
+            cancellationToken
+        );
 
         if (!validationResult.IsValid)
             return new ValidateOtpResult(false, "Invalid or expired OTP code");
@@ -39,7 +49,11 @@ public class ValidateOtpAndCreateUserCommandHandler : IRequestHandler<ValidateOt
         else if (validationResult.ReceiptType == OtpReceiptType.Email)
             email = validationResult.Receipt;
 
-        var registrationResult = await _registrationService.RegisterAsync(mobileNumber, email, cancellationToken);
+        var registrationResult = await _registrationService.RegisterAsync(
+            mobileNumber,
+            email,
+            cancellationToken
+        );
 
         if (!registrationResult.Success || registrationResult.User is null)
             return new ValidateOtpResult(false, registrationResult.ErrorMessage);
@@ -54,6 +68,7 @@ public class ValidateOtpAndCreateUserCommandHandler : IRequestHandler<ValidateOt
             registrationResult.Email,
             IsNewUser: true,
             RegistrationCompleted: registrationCompleted,
-            ProfileRequired: !registrationCompleted);
+            ProfileRequired: !registrationCompleted
+        );
     }
 }

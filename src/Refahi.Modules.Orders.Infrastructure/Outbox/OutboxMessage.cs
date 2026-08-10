@@ -3,12 +3,12 @@ namespace Refahi.Modules.Orders.Infrastructure.Outbox;
 public class OutboxMessage
 {
     public Guid Id { get; set; }
-    public string EventType { get; set; } = string.Empty;   // AssemblyQualifiedName
-    public string EventData { get; set; } = string.Empty;   // JSON payload
+    public string EventType { get; set; } = string.Empty; // AssemblyQualifiedName
+    public string EventData { get; set; } = string.Empty; // JSON payload
     public DateTimeOffset OccurredAt { get; set; }
     public int RetryCount { get; set; }
     public string Status { get; set; } = OutboxMessageStatus.Pending;
-    public DateTimeOffset? ProcessedAt { get; set; }        // null = هنوز پردازش نشده
+    public DateTimeOffset? ProcessedAt { get; set; } // null = هنوز پردازش نشده
     public string? Error { get; set; }
 }
 
