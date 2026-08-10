@@ -1,4 +1,5 @@
 using MediatR;
+using Refahi.Modules.References.Application.Contracts.Dtos;
 using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.SupplyChain.Application.Abstractions;
 using Refahi.Modules.SupplyChain.Application.Contracts.Dtos;
@@ -29,19 +30,9 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
             ? (s.CompanyName ?? $"{s.FirstName} {s.LastName}".Trim())
             : string.Empty;
 
-        // Batch-fetch category names for all products
-        var categoryIds = agreement.Products
-            .Where(p => !p.IsDeleted && p.CategoryId.HasValue)
-            .Select(p => p.CategoryId!.Value)
-            .Distinct()
-            .ToList();
-
-        var categoryNames = new Dictionary<int, string>();
-        foreach (var catId in categoryIds)
-        {
-            var cat = await _mediator.Send(new GetCategoryByIdQuery(catId), cancellationToken);
-            if (cat is not null) categoryNames[catId] = cat.Name;
-        }
+        var categoryTree = await _mediator.Send(
+            new GetCategoriesQuery(IncludeInactive: true), cancellationToken);
+        var categoryNames = Flatten(categoryTree).ToDictionary(x => x.Id, x => x.Name);
 
         var products = agreement.Products
             .Where(p => !p.IsDeleted)
@@ -62,6 +53,20 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
                 p.VatApplicable))
             .ToList();
 
+        var terms = agreement.CategoryTerms
+            .Where(x => !x.IsDeleted)
+            .Select(x => new AgreementCategoryTermDto(
+                x.Id,
+                x.AgreementId,
+                x.CategoryId,
+                categoryNames.TryGetValue(x.CategoryId, out var categoryName) ? categoryName : null,
+                (short)x.AllowedSalesChannels,
+                x.CommissionPercent,
+                x.IsDeleted,
+                x.CreatedAt,
+                x.UpdatedAt))
+            .ToList();
+
         return new AgreementDto(
             agreement.Id,
             agreement.AgreementNo,
@@ -77,6 +82,18 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
             agreement.IsDeleted,
             agreement.CreatedAt,
             agreement.UpdatedAt,
-            products);
+            products,
+            terms);
+    }
+
+    private static IEnumerable<CategoryDto> Flatten(IEnumerable<CategoryDto> categories)
+    {
+        foreach (var category in categories)
+        {
+            yield return category;
+            if (category.Children is null) continue;
+            foreach (var child in Flatten(category.Children))
+                yield return child;
+        }
     }
 }

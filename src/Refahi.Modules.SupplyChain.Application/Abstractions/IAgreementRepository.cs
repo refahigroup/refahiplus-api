@@ -9,6 +9,10 @@ public interface IAgreementRepository
 {
     Task<Agreement?> GetByIdAsync(Guid id, bool includeProducts, CancellationToken ct);
     Task<AgreementProduct?> GetProductByIdAsync(Guid productId, CancellationToken ct);
+    Task<IReadOnlyList<AgreementCategoryTermCandidate>> GetCategoryTermCandidatesAsync(
+        IReadOnlyCollection<Guid> supplierIds,
+        IReadOnlyCollection<int> categoryIds,
+        CancellationToken ct);
     Task<(IReadOnlyList<Agreement> Items, int Total)> GetPagedAsync(
         Guid? supplierId, AgreementStatus? status, AgreementType? type, string? search,
         int page, int size, CancellationToken ct);
@@ -26,5 +30,20 @@ public interface IAgreementRepository
     void Update(Agreement agreement);
     /// <summary>Explicitly registers a newly-created AgreementProduct as Added so EF generates INSERT.</summary>
     void AddProduct(AgreementProduct product);
+    void AddCategoryTerm(AgreementCategoryTerm term);
     Task SaveChangesAsync(CancellationToken ct);
 }
+
+public sealed record AgreementCategoryTermCandidate(
+    Guid TermId,
+    Guid AgreementId,
+    Guid SupplierId,
+    int CategoryId,
+    SalesChannel AllowedSalesChannels,
+    decimal CommissionPercent,
+    bool TermIsDeleted,
+    DateTimeOffset TermCreatedAt,
+    AgreementStatus AgreementStatus,
+    bool AgreementIsDeleted,
+    DateTimeOffset AgreementFromDate,
+    DateTimeOffset AgreementToDate);

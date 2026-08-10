@@ -174,6 +174,9 @@ public sealed class GetProductBySlugEligibilityTests
         public Task<Product?> GetBySlugAsync(string slug, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<Product> Items, int Total)> GetPagedAsync(Guid? shopId, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<Product> Items, int Total)> GetPagedAdminAsync(Guid? shopId, bool? isDeleted, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<(List<Product> Items, int Total)> GetCatalogPagedAsync(Guid? supplierId, int? categoryId, bool includeInactive, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<List<Product>> GetCatalogEligibilityCandidatesAsync(Guid? supplierId, int? categoryId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<(List<Product> Items, int Total)> GetCatalogPageByIdsAsync(IReadOnlyCollection<Guid> eligibleIds, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<Product> Items, int Total)> SearchAsync(string query, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(List<Product> Items, int Total)> SearchAsync(string query, IReadOnlyList<Guid> allowedAgreementProductIds, int page, int pageSize, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<List<Product>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default) => throw new NotSupportedException();

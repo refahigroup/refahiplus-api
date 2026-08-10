@@ -34,6 +34,8 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
             return;
         if (notification.ReferenceType.Equals("StoreInPerson", StringComparison.OrdinalIgnoreCase))
             return;
+        if (notification.ReferenceType.Equals("StoreOrder", StringComparison.OrdinalIgnoreCase))
+            return;
 
         var order = await _mediator.Send(
             new GetOrderByIdQuery(notification.OrderId, notification.UserId, "Admin"),

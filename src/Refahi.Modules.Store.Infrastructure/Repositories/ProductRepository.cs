@@ -222,6 +222,40 @@ public class ProductRepository : IProductRepository
         return (items, total);
     }
 
+    public async Task<(List<Product> Items, int Total)> GetCatalogPagedAsync(Guid? supplierId,
+        int? categoryId, bool includeInactive, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _db.Products.AsNoTracking().Where(x => !x.IsDeleted && x.SupplierId != Guid.Empty);
+        if (!includeInactive) query = query.Where(x => x.IsAvailable);
+        if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
+        if (categoryId.HasValue) query = query.Where(x => x.CategoryId == categoryId.Value);
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        return (items, total);
+    }
+
+    public Task<List<Product>> GetCatalogEligibilityCandidatesAsync(Guid? supplierId, int? categoryId,
+        CancellationToken ct = default)
+    {
+        var query = _db.Products.AsNoTracking()
+            .Where(x => !x.IsDeleted && x.IsAvailable && x.SupplierId != Guid.Empty);
+        if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
+        if (categoryId.HasValue) query = query.Where(x => x.CategoryId == categoryId.Value);
+        return query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).ToListAsync(ct);
+    }
+
+    public async Task<(List<Product> Items, int Total)> GetCatalogPageByIdsAsync(
+        IReadOnlyCollection<Guid> eligibleIds, int page, int pageSize, CancellationToken ct = default)
+    {
+        if (eligibleIds.Count == 0) return ([], 0);
+        var query = _db.Products.AsNoTracking().Where(x => eligibleIds.Contains(x.Id));
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        return (items, total);
+    }
+
     public async Task UpdateAsync(Product product, CancellationToken ct = default)
     {
         if (_db.Entry(product).State == EntityState.Detached)

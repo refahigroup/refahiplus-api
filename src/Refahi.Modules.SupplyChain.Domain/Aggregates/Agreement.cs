@@ -12,6 +12,7 @@ public sealed class Agreement
     private Agreement()
     {
         _products = new List<AgreementProduct>();
+        _categoryTerms = new List<AgreementCategoryTerm>();
     }
 
     public Guid Id { get; private set; }
@@ -31,6 +32,9 @@ public sealed class Agreement
 
     private readonly List<AgreementProduct> _products;
     public IReadOnlyList<AgreementProduct> Products => _products.AsReadOnly();
+
+    private readonly List<AgreementCategoryTerm> _categoryTerms;
+    public IReadOnlyList<AgreementCategoryTerm> CategoryTerms => _categoryTerms.AsReadOnly();
 
     // --- Factory ---
     public static Agreement Create(
@@ -172,6 +176,50 @@ public sealed class Agreement
 
         product.MarkDeleted();
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public AgreementCategoryTerm AddCategoryTerm(
+        int categoryId,
+        SalesChannel allowedSalesChannels,
+        decimal commissionPercent)
+    {
+        EnsureTermsAreMutable("افزودن");
+        var term = AgreementCategoryTerm.Create(Id, categoryId, allowedSalesChannels, commissionPercent);
+        _categoryTerms.Add(term);
+        UpdatedAt = DateTimeOffset.UtcNow;
+        return term;
+    }
+
+    public void UpdateCategoryTerm(
+        Guid termId,
+        int categoryId,
+        SalesChannel allowedSalesChannels,
+        decimal commissionPercent)
+    {
+        EnsureTermsAreMutable("ویرایش");
+        var term = _categoryTerms.FirstOrDefault(x => x.Id == termId && !x.IsDeleted)
+            ?? throw new SupplyChainDomainException("شرط دسته‌بندی قرارداد یافت نشد", "AGREEMENT_CATEGORY_TERM_NOT_FOUND");
+
+        term.Update(categoryId, allowedSalesChannels, commissionPercent);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void RemoveCategoryTerm(Guid termId)
+    {
+        EnsureTermsAreMutable("حذف");
+        var term = _categoryTerms.FirstOrDefault(x => x.Id == termId && !x.IsDeleted)
+            ?? throw new SupplyChainDomainException("شرط دسته‌بندی قرارداد یافت نشد", "AGREEMENT_CATEGORY_TERM_NOT_FOUND");
+
+        term.MarkDeleted();
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    private void EnsureTermsAreMutable(string operation)
+    {
+        if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
+            throw new SupplyChainDomainException(
+                $"{operation} شرط دسته‌بندی قرارداد تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است",
+                "STATUS_IMMUTABLE");
     }
 
     public void MarkDeleted()

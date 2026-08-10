@@ -20,6 +20,8 @@ public static class StorePermissions
     public const string EditShopProfile = nameof(EditShopProfile);
     public const string ViewIncomeWallet = nameof(ViewIncomeWallet);
     public const string RefundInPersonOrder = nameof(RefundInPersonOrder);
+    public const string ManageCatalog = nameof(ManageCatalog);
+    public const string RedeemVoucher = nameof(RedeemVoucher);
 }
 
 public sealed record StoreAccessAssignmentDto(
@@ -36,7 +38,14 @@ public sealed record VendorShopAccessDto(
 
 public sealed record StoreVendorContextDto(
     Guid VendorId, string VendorName, IReadOnlyList<string> Roles,
-    IReadOnlyList<string> Permissions, IReadOnlyList<VendorShopAccessDto> Shops);
+    IReadOnlyList<string> Permissions, IReadOnlyList<VendorShopAccessDto> Shops)
+{
+    public bool CanManageProducts =>
+        Permissions.Contains(StorePermissions.ManageCatalog, StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyList<Guid> ManageOfferShopIds => Shops
+        .Where(x => x.Permissions.Contains(StorePermissions.ManageCatalog, StringComparer.OrdinalIgnoreCase))
+        .Select(x => x.Id).ToArray();
+}
 
 public sealed record GetStoreVendorContextsQuery(Guid UserId)
     : IRequest<IReadOnlyList<StoreVendorContextDto>>;

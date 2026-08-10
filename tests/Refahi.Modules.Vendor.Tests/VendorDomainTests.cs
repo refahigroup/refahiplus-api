@@ -2,6 +2,7 @@ using Refahi.Modules.Orders.Domain.Aggregates;
 using Refahi.Modules.Orders.Domain.Enums;
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Enums;
+using Refahi.Modules.Store.Domain.Exceptions;
 using Xunit;
 
 namespace Refahi.Modules.Vendor.Tests;
@@ -31,8 +32,8 @@ public sealed class VendorDomainTests
     }
 
     [Fact]
-    public void ShopTypeOnlyContainsOnlineAndPhysical() =>
-        Assert.Equal([ShopType.Online, ShopType.Physical], Enum.GetValues<ShopType>());
+    public void ShopTypeOnlyContainsOnlineAndInPersonChannels() =>
+        Assert.Equal([ShopType.Online, ShopType.InPerson], Enum.GetValues<ShopType>().Distinct());
 
     [Fact]
     public void InPersonFinancialSnapshotAcceptsGrossCommissionVatAndNetPlan()
@@ -58,11 +59,12 @@ public sealed class VendorDomainTests
     }
 
     [Fact]
-    public void ShopTypeCanBeChangedByAdminUpdate()
+    public void ShopChannelCannotBeChangedAfterCreation()
     {
         var shop = Shop.Create("فروشگاه تست", "vendor-shop-test", ShopType.Online, Guid.NewGuid());
-        shop.UpdateInfo(shop.Name, null, null, null, null, null, null,
-            null, null, null, null, null, null, null, ShopType.Physical);
-        Assert.Equal(ShopType.Physical, shop.ShopType);
+        var ex = Assert.Throws<StoreDomainException>(() => shop.UpdateInfo(shop.Name, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, ShopType.InPerson));
+        Assert.Equal("SHOP_CHANNEL_IMMUTABLE", ex.ErrorCode);
+        Assert.Equal(ShopType.Online, shop.ShopType);
     }
 }

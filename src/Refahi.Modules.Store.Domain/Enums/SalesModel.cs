@@ -5,7 +5,10 @@ namespace Refahi.Modules.Store.Domain.Enums;
 /// </summary>
 public enum SalesModel : short
 {
-    StockBased = 1,     // موجودی عددی ساده
-    SessionBased = 2,   // سانس/ظرفیت
-    Unlimited = 3
+    Unlimited = 1,
+    InventoryBased = 2,
+    SessionBased = 3,
+
+    [Obsolete("نام legacy است؛ از InventoryBased استفاده کنید.")]
+    StockBased = InventoryBased
 }

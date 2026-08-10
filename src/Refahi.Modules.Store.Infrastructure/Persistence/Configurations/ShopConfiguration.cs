@@ -37,6 +37,7 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.Property(s => s.Description).HasMaxLength(2000);
 
         builder.Property(s => s.ShopType).IsRequired();
+        builder.Ignore(s => s.Channel);
         builder.Property(s => s.Status).IsRequired();
         builder.Property(s => s.SupplierId).IsRequired();
         builder.Property(s => s.IsPopular).IsRequired();

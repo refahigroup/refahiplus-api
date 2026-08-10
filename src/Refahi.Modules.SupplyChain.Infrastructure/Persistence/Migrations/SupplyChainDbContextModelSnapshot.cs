@@ -175,6 +175,47 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                     b.ToTable("suppliers", "supplychain");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.SupplyChain.Domain.Entities.AgreementCategoryTerm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgreementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("AllowedSalesChannels")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("CommissionPercent")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgreementId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("CategoryId", "AllowedSalesChannels", "IsDeleted", "AgreementId")
+                        .HasDatabaseName("IX_agreement_category_terms_effective_lookup");
+
+                    b.ToTable("agreement_category_terms", "supplychain");
+                });
+
             modelBuilder.Entity("Refahi.Modules.SupplyChain.Domain.Entities.AgreementProduct", b =>
                 {
                     b.Property<Guid>("Id")
@@ -321,6 +362,15 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.SupplyChain.Domain.Entities.AgreementCategoryTerm", b =>
+                {
+                    b.HasOne("Refahi.Modules.SupplyChain.Domain.Aggregates.Agreement", null)
+                        .WithMany("CategoryTerms")
+                        .HasForeignKey("AgreementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Refahi.Modules.SupplyChain.Domain.Entities.AgreementProduct", b =>
                 {
                     b.HasOne("Refahi.Modules.SupplyChain.Domain.Aggregates.Agreement", null)
@@ -350,6 +400,8 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Refahi.Modules.SupplyChain.Domain.Aggregates.Agreement", b =>
                 {
+                    b.Navigation("CategoryTerms");
+
                     b.Navigation("Products");
                 });
 

@@ -14,6 +14,7 @@ public class SupplyChainDbContext : DbContext
     public DbSet<SupplierAttachment> SupplierAttachments => Set<SupplierAttachment>();
     public DbSet<Agreement> Agreements => Set<Agreement>();
     public DbSet<AgreementProduct> AgreementProducts => Set<AgreementProduct>();
+    public DbSet<AgreementCategoryTerm> AgreementCategoryTerms => Set<AgreementCategoryTerm>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

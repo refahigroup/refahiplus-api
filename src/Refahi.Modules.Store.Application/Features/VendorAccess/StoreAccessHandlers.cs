@@ -84,17 +84,21 @@ public sealed class GetStoreVendorContextsHandler(
                     result.UnionWith(new[] { StorePermissions.ViewOrders, StorePermissions.ManageOrders,
                         StorePermissions.CreateInPersonOrder, StorePermissions.EditVendorProfile,
                         StorePermissions.EditShopProfile, StorePermissions.ViewIncomeWallet,
-                        StorePermissions.RefundInPersonOrder });
+                        StorePermissions.RefundInPersonOrder, StorePermissions.ManageCatalog });
+                    result.Add(StorePermissions.RedeemVoucher);
                     break;
                 case StoreAccessRoles.VendorSupervisor:
                 case StoreAccessRoles.ShopSupervisor:
                     result.UnionWith(new[] { StorePermissions.ViewOrders, StorePermissions.ManageOrders,
                         StorePermissions.CreateInPersonOrder });
+                    result.Add(StorePermissions.ManageCatalog);
+                    result.Add(StorePermissions.RedeemVoucher);
                     if (role == StoreAccessRoles.ShopSupervisor) result.Add(StorePermissions.EditShopProfile);
                     break;
                 case StoreAccessRoles.ShopCashier:
                     result.Add(StorePermissions.CreateInPersonOrder);
                     result.Add(StorePermissions.ViewOwnOrders);
+                    result.Add(StorePermissions.RedeemVoucher);
                     break;
             }
         }

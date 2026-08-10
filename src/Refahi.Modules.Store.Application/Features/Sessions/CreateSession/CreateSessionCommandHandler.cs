@@ -23,9 +23,17 @@ public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand,
         var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
-        if (ap is null || ap.SalesModel != (short)SalesModel.SessionBased)
-            throw new StoreDomainException("این محصول سانسی نیست", "NOT_SESSION_PRODUCT");
+        if (product.AgreementProductId == Guid.Empty)
+        {
+            if (product.SalesModel != SalesModel.SessionBased)
+                throw new StoreDomainException("این محصول سانسی نیست", "NOT_SESSION_PRODUCT");
+        }
+        else
+        {
+            var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
+            if (ap is null || ap.SalesModel != (short)SalesModel.SessionBased)
+                throw new StoreDomainException("این محصول سانسی نیست", "NOT_SESSION_PRODUCT");
+        }
 
         if (!DateOnly.TryParse(request.Date, out var date))
             throw new StoreDomainException("تاریخ وارد شده معتبر نیست", "INVALID_DATE");

@@ -22,7 +22,7 @@ public class AgreementRepository : IAgreementRepository
             .AsQueryable();
 
         if (includeProducts)
-            query = query.Include(a => a.Products);
+            query = query.Include(a => a.Products).Include(a => a.CategoryTerms);
 
         return await query.FirstOrDefaultAsync(a => a.Id == id, ct);
     }
@@ -82,6 +82,36 @@ public class AgreementRepository : IAgreementRepository
     public Task<AgreementProduct?> GetProductByIdAsync(Guid productId, CancellationToken ct)
         => _context.AgreementProducts
             .FirstOrDefaultAsync(p => p.Id == productId, ct);
+
+    public async Task<IReadOnlyList<AgreementCategoryTermCandidate>> GetCategoryTermCandidatesAsync(
+        IReadOnlyCollection<Guid> supplierIds,
+        IReadOnlyCollection<int> categoryIds,
+        CancellationToken ct)
+    {
+        if (supplierIds.Count == 0 || categoryIds.Count == 0)
+            return [];
+
+        return await (
+            from term in _context.AgreementCategoryTerms.AsNoTracking()
+            join agreement in _context.Agreements.AsNoTracking()
+                on term.AgreementId equals agreement.Id
+            where supplierIds.Contains(agreement.SupplierId)
+                  && categoryIds.Contains(term.CategoryId)
+            select new AgreementCategoryTermCandidate(
+                term.Id,
+                agreement.Id,
+                agreement.SupplierId,
+                term.CategoryId,
+                term.AllowedSalesChannels,
+                term.CommissionPercent,
+                term.IsDeleted,
+                term.CreatedAt,
+                agreement.Status,
+                agreement.IsDeleted,
+                agreement.FromDate,
+                agreement.ToDate))
+            .ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<Guid>> GetApprovedProductIdsByCategoryAsync(
         int categoryId, CancellationToken ct)
@@ -166,6 +196,9 @@ public class AgreementRepository : IAgreementRepository
 
     public void AddProduct(AgreementProduct product)
         => _context.AgreementProducts.Add(product);
+
+    public void AddCategoryTerm(AgreementCategoryTerm term)
+        => _context.AgreementCategoryTerms.Add(term);
 
     public async Task SaveChangesAsync(CancellationToken ct)
         => await _context.SaveChangesAsync(ct);

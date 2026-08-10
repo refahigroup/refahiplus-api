@@ -25,6 +25,7 @@ public static class DI
             .AddScoped<IDeliveryService, DeliveryService>()
             .AddScoped<IStoreProductPriceResolver, StoreProductPriceResolver>()
             .AddScoped<IStoreInPersonFinancialPlanner, StoreInPersonFinancialPlanner>();
+        services.AddScoped<IOnlineOfferEligibilityService, OnlineOfferEligibilityService>();
 
         services.AddOptions<StorePaymentDistributionOptions>()
             .Bind(configuration.GetSection(StorePaymentDistributionOptions.SectionName))

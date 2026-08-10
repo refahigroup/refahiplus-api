@@ -8,6 +8,7 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.SupplyChain.Api.Endpoints.AgreementProducts;
 
+[Obsolete("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations.")]
 public class UpdateAgreementProductEndpoint : IEndpoint
 {
     public void Map(object app)
@@ -38,6 +39,7 @@ public class UpdateAgreementProductEndpoint : IEndpoint
         })
         .WithName("SupplyChain.UpdateAgreementProduct")
         .WithTags("SupplyChain.AgreementProducts")
+        .WithMetadata(new ObsoleteAttribute("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."))
         .RequireAuthorization("AdminOnly")
         .Produces(StatusCodes.Status200OK)
         .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)

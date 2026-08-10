@@ -30,9 +30,12 @@ public sealed class StoreProviderOwnershipFilter(
             return Results.Unauthorized();
 
         var supplierId = await ResolveSupplierIdAsync(context, http, http.RequestAborted);
+        var permission = IsCatalogRoute(http.Request.Path)
+            ? StorePermissions.ManageCatalog
+            : StorePermissions.EditVendorProfile;
         if (!supplierId.HasValue ||
             !await mediator.Send(new AuthorizeStoreResourceQuery(
-                userId, supplierId.Value, null, StorePermissions.EditVendorProfile), http.RequestAborted))
+                userId, supplierId.Value, null, permission), http.RequestAborted))
             return Results.Json(
                 ApiResponseHelper.Error("دسترسی به منبع فروشگاه وجود ندارد", statusCode: 403),
                 statusCode: StatusCodes.Status403Forbidden);
@@ -57,7 +60,9 @@ public sealed class StoreProviderOwnershipFilter(
         {
             var product = await products.GetByIdAsync(productId.Value, ct);
             if (product is not null)
-                return await SupplierByAgreementProductAsync(product.AgreementProductId, ct);
+                return product.SupplierId != Guid.Empty
+                    ? product.SupplierId
+                    : await SupplierByAgreementProductAsync(product.AgreementProductId, ct);
         }
 
         if (http.Request.Path.Value?.Contains("/provider/sessions/", StringComparison.OrdinalIgnoreCase) == true &&
@@ -66,7 +71,9 @@ public sealed class StoreProviderOwnershipFilter(
             var session = await sessions.GetByIdAsync(sessionId, ct);
             var product = session is null ? null : await products.GetByIdAsync(session.ProductId, ct);
             if (product is not null)
-                return await SupplierByAgreementProductAsync(product.AgreementProductId, ct);
+                return product.SupplierId != Guid.Empty
+                    ? product.SupplierId
+                    : await SupplierByAgreementProductAsync(product.AgreementProductId, ct);
         }
         return null;
     }
@@ -81,4 +88,8 @@ public sealed class StoreProviderOwnershipFilter(
     private static Guid? RouteGuid(HttpContext context, string key)
         => context.Request.RouteValues.TryGetValue(key, out var value) &&
            Guid.TryParse(value?.ToString(), out var id) ? id : null;
+
+    private static bool IsCatalogRoute(PathString path)
+        => path.Value?.Contains("/provider/products", StringComparison.OrdinalIgnoreCase) == true ||
+           path.Value?.Contains("/provider/sessions", StringComparison.OrdinalIgnoreCase) == true;
 }

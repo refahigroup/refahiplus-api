@@ -15,14 +15,17 @@ public class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.Property(i => i.CartId).IsRequired();
         builder.Property(i => i.ShopId).IsRequired();
         builder.Property(i => i.ProductId).IsRequired();
+        builder.Property(i => i.OfferId);
         builder.Property(i => i.VariantId);
         builder.Property(i => i.SessionId);     // v1.1 — nullable FK to product_sessions
         builder.Property(i => i.UsageDate).HasColumnType("date");
         builder.Property(i => i.Quantity).IsRequired();
         builder.Property(i => i.UnitPriceMinor).IsRequired();
+        builder.Property(i => i.OriginalUnitPriceMinor).IsRequired().HasDefaultValue(0L);
 
         builder.HasIndex(i => i.CartId);
         builder.HasIndex(i => i.ShopId);
         builder.HasIndex(i => i.ProductId);
+        builder.HasIndex(i => i.OfferId);
     }
 }
