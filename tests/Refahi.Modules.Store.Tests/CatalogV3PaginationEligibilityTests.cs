@@ -226,7 +226,8 @@ public sealed class CatalogV3PaginationEligibilityTests
         var repository = new FakeProductRepository([product]);
         var actorId = Guid.NewGuid();
         var authorization = new FilterMediator(product.SupplierId);
-        var handlers = new ProductV3SubresourceHandlers(repository, authorization);
+        var pathService = new FakePathService();
+        var handlers = new ProductV3SubresourceHandlers(repository, authorization, pathService);
         var offer = Offer.Create(
             product.Id,
             Guid.NewGuid(),
@@ -289,10 +290,7 @@ public sealed class CatalogV3PaginationEligibilityTests
         );
         Assert.Empty(product.Variants);
 
-        var deniedHandlers = new ProductV3SubresourceHandlers(
-            repository,
-            new FilterMediator(Guid.NewGuid())
-        );
+        var deniedHandlers = new ProductV3SubresourceHandlers(repository,new FilterMediator(Guid.NewGuid()), pathService);
         var denied =
             await Assert.ThrowsAsync<Refahi.Modules.Store.Domain.Exceptions.StoreDomainException>(
                 () =>
@@ -324,9 +322,13 @@ public sealed class CatalogV3PaginationEligibilityTests
             "خدمت",
             "structural-session"
         );
+
+        var pathService = new FakePathService();
+
         var handlers = new ProductV3SubresourceHandlers(
             new FakeProductRepository([product]),
-            new EligibilityMediator(new HashSet<int>())
+            new EligibilityMediator(new HashSet<int>()),
+            pathService
         );
 
         var created = await handlers.Handle(
@@ -722,12 +724,16 @@ public sealed class CatalogV3PaginationEligibilityTests
                 now.AddDays(1)
             ),
         };
+
         var catalog = new FakePublicCatalogRepository(candidates);
         var eligibility = new PublicEligibilityMediator(new HashSet<Guid> { supplierA });
+        var pathService = new FakePathService();
+
         var handler = new GetPublicProductCatalogV3Handler(
             catalog,
             new FakeStoreModuleRepository(StoreModule.Create("فروشگاه", "store", categoryId: 7)),
-            eligibility
+            eligibility,
+            pathService
         );
 
         var first = await handler.Handle(
@@ -835,9 +841,13 @@ public sealed class CatalogV3PaginationEligibilityTests
             new AddProductSpecificationCommand(product.Id, "مدت", "یک ساعت", 0),
             CancellationToken.None
         );
+
+        var pathService = new FakePathService();
+
         var structural = new ProductV3SubresourceHandlers(
             repository,
-            new EligibilityMediator(new HashSet<int>())
+            new EligibilityMediator(new HashSet<int>()),
+            pathService
         );
         var session = await structural.Handle(
             new CreateProductSessionV3Command(
@@ -868,11 +878,13 @@ public sealed class CatalogV3PaginationEligibilityTests
                 offerId: offerId
             ),
         ]);
+
         var handler = new GetPublicProductDetailV3Handler(
             catalog,
             new FakeStoreModuleRepository(StoreModule.Create("فروشگاه", "store", categoryId: 7)),
             repository,
-            new PublicEligibilityMediator(new HashSet<Guid> { supplier })
+            new PublicEligibilityMediator(new HashSet<Guid> { supplier }),
+            pathService
         );
 
         var detail = await handler.Handle(
@@ -1336,6 +1348,11 @@ public sealed class CatalogV3PaginationEligibilityTests
             CancellationToken ct = default
         )
             where TNotification : INotification => Task.CompletedTask;
+    }
+
+    private sealed class FakePathService : IPathService
+    {
+        public string MakeAbsoluteMediaUrl(string mediaPath) => mediaPath;
     }
 
     private sealed class FilterMediator(
