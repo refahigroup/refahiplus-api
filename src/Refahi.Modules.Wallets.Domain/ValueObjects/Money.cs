@@ -60,11 +60,15 @@ public sealed record Money
     public Money Subtract(Money other)
     {
         if (Currency != other.Currency)
-            throw new InvalidOperationException($"Cannot subtract {other.Currency} from {Currency}.");
+            throw new InvalidOperationException(
+                $"Cannot subtract {other.Currency} from {Currency}."
+            );
 
         var result = AmountMinor - other.AmountMinor;
         if (result <= 0)
-            throw new InvalidOperationException("Subtraction would result in zero or negative amount.");
+            throw new InvalidOperationException(
+                "Subtraction would result in zero or negative amount."
+            );
 
         return new Money(result, Currency);
     }

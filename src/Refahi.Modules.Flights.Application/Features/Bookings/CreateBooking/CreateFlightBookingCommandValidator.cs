@@ -2,13 +2,12 @@ using FluentValidation;
 
 namespace Refahi.Modules.Flights.Application.Features.Bookings.CreateBooking;
 
-public sealed class CreateFlightBookingCommandValidator : AbstractValidator<CreateFlightBookingCommand>
+public sealed class CreateFlightBookingCommandValidator
+    : AbstractValidator<CreateFlightBookingCommand>
 {
     public CreateFlightBookingCommandValidator()
     {
-        RuleFor(command => command.UserId)
-            .NotEmpty()
-            .WithMessage("شناسه کاربر الزامی است.");
+        RuleFor(command => command.UserId).NotEmpty().WithMessage("شناسه کاربر الزامی است.");
 
         RuleFor(command => command.OfferToken)
             .NotEmpty()
@@ -20,9 +19,7 @@ public sealed class CreateFlightBookingCommandValidator : AbstractValidator<Crea
             .MaximumLength(200)
             .WithMessage("کلید یکتاسازی الزامی است.");
 
-        RuleFor(command => command.Contact)
-            .NotNull()
-            .WithMessage("اطلاعات تماس الزامی است.");
+        RuleFor(command => command.Contact).NotNull().WithMessage("اطلاعات تماس الزامی است.");
 
         RuleFor(command => command.Contact.MobileNumber)
             .NotEmpty()
@@ -37,16 +34,15 @@ public sealed class CreateFlightBookingCommandValidator : AbstractValidator<Crea
             .When(command => command.Contact is not null)
             .WithMessage("ایمیل معتبر الزامی است.");
 
-        RuleFor(command => command.Passengers)
-            .NotEmpty()
-            .WithMessage("حداقل یک مسافر الزامی است.");
+        RuleFor(command => command.Passengers).NotEmpty().WithMessage("حداقل یک مسافر الزامی است.");
 
         RuleForEach(command => command.Passengers)
             .SetValidator(new FlightBookingPassengerInputValidator());
     }
 }
 
-internal sealed class FlightBookingPassengerInputValidator : AbstractValidator<FlightBookingPassengerInput>
+internal sealed class FlightBookingPassengerInputValidator
+    : AbstractValidator<FlightBookingPassengerInput>
 {
     public FlightBookingPassengerInputValidator()
     {
@@ -67,9 +63,11 @@ internal sealed class FlightBookingPassengerInputValidator : AbstractValidator<F
 
         RuleFor(passenger => passenger.PassengerType)
             .NotEmpty()
-            .Must(value => value.Equals("Adult", StringComparison.OrdinalIgnoreCase)
+            .Must(value =>
+                value.Equals("Adult", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("Child", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("Infant", StringComparison.OrdinalIgnoreCase))
+                || value.Equals("Infant", StringComparison.OrdinalIgnoreCase)
+            )
             .WithMessage("نوع مسافر معتبر نیست.");
 
         RuleFor(passenger => passenger.BirthDate)
@@ -82,8 +80,10 @@ internal sealed class FlightBookingPassengerInputValidator : AbstractValidator<F
             .WithMessage("کد ملیت مسافر معتبر نیست.");
 
         RuleFor(passenger => passenger)
-            .Must(passenger => !string.IsNullOrWhiteSpace(passenger.NationalCode)
-                || !string.IsNullOrWhiteSpace(passenger.Passport?.Number))
+            .Must(passenger =>
+                !string.IsNullOrWhiteSpace(passenger.NationalCode)
+                || !string.IsNullOrWhiteSpace(passenger.Passport?.Number)
+            )
             .WithMessage("کد ملی یا شماره گذرنامه مسافر الزامی است.");
     }
 }

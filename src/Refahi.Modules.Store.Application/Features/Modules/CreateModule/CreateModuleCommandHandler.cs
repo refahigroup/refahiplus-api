@@ -10,11 +10,13 @@ public class CreateModuleCommandHandler : IRequestHandler<CreateModuleCommand, C
 {
     private readonly IStoreModuleRepository _moduleRepo;
 
-    public CreateModuleCommandHandler(IStoreModuleRepository moduleRepo)
-        => _moduleRepo = moduleRepo;
+    public CreateModuleCommandHandler(IStoreModuleRepository moduleRepo) =>
+        _moduleRepo = moduleRepo;
 
     public async Task<CreateModuleResponse> Handle(
-        CreateModuleCommand request, CancellationToken cancellationToken)
+        CreateModuleCommand request,
+        CancellationToken cancellationToken
+    )
     {
         if (await _moduleRepo.SlugExistsAsync(request.Slug.Trim().ToLower(), ct: cancellationToken))
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
@@ -25,7 +27,8 @@ public class CreateModuleCommandHandler : IRequestHandler<CreateModuleCommand, C
             request.Description,
             request.IconUrl,
             request.SortOrder,
-            request.CategoryId);
+            request.CategoryId
+        );
 
         await _moduleRepo.AddAsync(module, cancellationToken);
 

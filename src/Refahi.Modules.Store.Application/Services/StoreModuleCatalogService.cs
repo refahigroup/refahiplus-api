@@ -15,7 +15,8 @@ internal sealed class StoreModuleCatalogService : IStoreModuleCatalogService
     public StoreModuleCatalogService(
         IStoreModuleRepository moduleRepo,
         IMediator mediator,
-        IMemoryCache cache)
+        IMemoryCache cache
+    )
     {
         _moduleRepo = moduleRepo;
         _mediator = mediator;
@@ -23,7 +24,9 @@ internal sealed class StoreModuleCatalogService : IStoreModuleCatalogService
     }
 
     public async Task<IReadOnlyList<Guid>> GetDisplayableAgreementProductIdsAsync(
-        int moduleId, CancellationToken ct = default)
+        int moduleId,
+        CancellationToken ct = default
+    )
     {
         var cacheKey = $"store_module_displayable_apids:{moduleId}";
 
@@ -38,13 +41,17 @@ internal sealed class StoreModuleCatalogService : IStoreModuleCatalogService
         }
 
         var categoryIds = await _mediator.Send(
-            new GetCategorySubtreeIdsQuery(module.CategoryId.Value), ct);
+            new GetCategorySubtreeIdsQuery(module.CategoryId.Value),
+            ct
+        );
 
         if (categoryIds.Count == 0)
             return [];
 
         var apIds = await _mediator.Send(
-            new GetDisplayableAgreementProductIdsByCategoriesQuery(categoryIds), ct);
+            new GetDisplayableAgreementProductIdsByCategoriesQuery(categoryIds),
+            ct
+        );
 
         _cache.Set(cacheKey, apIds, TimeSpan.FromMinutes(2));
         return apIds;

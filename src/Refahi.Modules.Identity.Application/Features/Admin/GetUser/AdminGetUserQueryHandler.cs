@@ -11,13 +11,17 @@ public class AdminGetUserQueryHandler : IRequestHandler<AdminGetUserQuery, Admin
 {
     private readonly IUserRepository _userRepository;
 
-    public AdminGetUserQueryHandler(IUserRepository userRepository)
-        => _userRepository = userRepository;
+    public AdminGetUserQueryHandler(IUserRepository userRepository) =>
+        _userRepository = userRepository;
 
-    public async Task<AdminUserDetailDto?> Handle(AdminGetUserQuery request, CancellationToken cancellationToken)
+    public async Task<AdminUserDetailDto?> Handle(
+        AdminGetUserQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-        if (user is null) return null;
+        if (user is null)
+            return null;
 
         return new AdminUserDetailDto(
             user.Id,
@@ -33,6 +37,7 @@ public class AdminGetUserQueryHandler : IRequestHandler<AdminGetUserQuery, Admin
             user.Profile?.LastName,
             user.Profile?.NationalCode,
             user.Profile?.ProfileImageUrl,
-            user.Roles.Select(r => r.Role));
+            user.Roles.Select(r => r.Role)
+        );
     }
 }

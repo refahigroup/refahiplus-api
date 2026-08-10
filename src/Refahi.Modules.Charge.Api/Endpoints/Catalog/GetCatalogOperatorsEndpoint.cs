@@ -15,8 +15,14 @@ public sealed class GetCatalogOperatorsEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("catalog/operators", async (ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetOperatorsQuery(), ct))))
+        routes
+            .MapGet(
+                "catalog/operators",
+                async (ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(await sender.Send(new GetOperatorsQuery(), ct))
+                    )
+            )
             .RequireRateLimiting(ChargeRateLimiting.PublicCatalogPolicy)
             .WithName("Charge.Catalog.Operators")
             .WithTags("Charge.Catalog")

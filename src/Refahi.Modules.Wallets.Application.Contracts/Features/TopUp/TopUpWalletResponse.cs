@@ -9,4 +9,5 @@ public sealed record TopUpWalletResponse(
     long AmountMinor,
     string Currency,
     long AvailableBalanceMinor,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);

@@ -9,12 +9,15 @@ public class UpdateBannerCommandHandler : IRequestHandler<UpdateBannerCommand, U
 {
     private readonly IBannerRepository _bannerRepo;
 
-    public UpdateBannerCommandHandler(IBannerRepository bannerRepo)
-        => _bannerRepo = bannerRepo;
+    public UpdateBannerCommandHandler(IBannerRepository bannerRepo) => _bannerRepo = bannerRepo;
 
-    public async Task<UpdateBannerResponse> Handle(UpdateBannerCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateBannerResponse> Handle(
+        UpdateBannerCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var banner = await _bannerRepo.GetByIdAsync(request.Id, cancellationToken)
+        var banner =
+            await _bannerRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("بنر یافت نشد", "BANNER_NOT_FOUND");
 
         DateTimeOffset? startDate = null;
@@ -34,8 +37,15 @@ public class UpdateBannerCommandHandler : IRequestHandler<UpdateBannerCommand, U
             endDate = parsedEnd.ToUniversalTime();
         }
 
-        banner.Update(request.Title, request.ImageUrl, request.LinkUrl,
-            request.SortOrder, request.IsActive, startDate, endDate);
+        banner.Update(
+            request.Title,
+            request.ImageUrl,
+            request.LinkUrl,
+            request.SortOrder,
+            request.IsActive,
+            startDate,
+            endDate
+        );
 
         await _bannerRepo.UpdateAsync(banner, cancellationToken);
 

@@ -6,5 +6,5 @@ namespace Refahi.Api.Services.Notification.Dtos;
 public enum AppName
 {
     Refahi = 1,
-    RefahiAgent = 2
+    RefahiAgent = 2,
 }

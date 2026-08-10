@@ -7,6 +7,7 @@ public record AdminEditUserCommand(
     Guid UserId,
     string FirstName,
     string LastName,
-    string? NationalCode = null) : IRequest<AdminEditUserResult>;
+    string? NationalCode = null
+) : IRequest<AdminEditUserResult>;
 
 public record AdminEditUserResult(bool Success, string? ErrorMessage = null);

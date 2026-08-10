@@ -4,7 +4,8 @@ using Refahi.Modules.Charge.Application.Contracts.Providers;
 
 namespace Refahi.Modules.Charge.Application.Features.Catalog;
 
-public sealed class GetPackageTypesQueryHandlers : IRequestHandler<GetPackageTypesQuery, IReadOnlyList<PackageTypeDto>>
+public sealed class GetPackageTypesQueryHandlers
+    : IRequestHandler<GetPackageTypesQuery, IReadOnlyList<PackageTypeDto>>
 {
     private readonly IChargeProviderResolver _providers;
 

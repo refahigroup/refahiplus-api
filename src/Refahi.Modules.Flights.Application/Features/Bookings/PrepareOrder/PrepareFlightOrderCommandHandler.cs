@@ -20,7 +20,8 @@ public sealed class PrepareFlightOrderCommandHandler
 
     public PrepareFlightOrderCommandHandler(
         IFlightBookingRepository bookingRepository,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _bookingRepository = bookingRepository;
         _mediator = mediator;
@@ -28,16 +29,23 @@ public sealed class PrepareFlightOrderCommandHandler
 
     public async Task<PrepareFlightOrderResponse> Handle(
         PrepareFlightOrderCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var booking = await _bookingRepository.GetAsync(new FlightBookingId(request.BookingId), cancellationToken)
-            ?? throw new InvalidOperationException("رزرو پرواز یافت نشد.");
+        var booking =
+            await _bookingRepository.GetAsync(
+                new FlightBookingId(request.BookingId),
+                cancellationToken
+            ) ?? throw new InvalidOperationException("رزرو پرواز یافت نشد.");
 
         EnsureOwner(booking, request.UserId, request.CallerRole);
 
-        if (booking.Status is FlightBookingStatus.Expired
-            or FlightBookingStatus.Cancelled
-            or FlightBookingStatus.Refunded)
+        if (
+            booking.Status
+            is FlightBookingStatus.Expired
+                or FlightBookingStatus.Cancelled
+                or FlightBookingStatus.Refunded
+        )
         {
             throw new InvalidOperationException("رزرو پرواز قابل پرداخت نیست.");
         }
@@ -47,10 +55,10 @@ public sealed class PrepareFlightOrderCommandHandler
 
         if (booking.OrderId.HasValue)
         {
-            var existingOrder = await _mediator.Send(new GetOrderByIdQuery(
-                booking.OrderId.Value,
-                request.UserId,
-                request.CallerRole), cancellationToken);
+            var existingOrder = await _mediator.Send(
+                new GetOrderByIdQuery(booking.OrderId.Value, request.UserId, request.CallerRole),
+                cancellationToken
+            );
 
             if (existingOrder is null)
                 throw new InvalidOperationException("سفارش رزرو پرواز یافت نشد.");
@@ -66,17 +74,17 @@ public sealed class PrepareFlightOrderCommandHandler
                 existingOrder.Id,
                 existingOrder.OrderNumber,
                 existingOrder.FinalAmountMinor,
-                existingOrder.PaymentState);
+                existingOrder.PaymentState
+            );
         }
 
         if (booking.Status != FlightBookingStatus.ProviderBooked)
             throw new InvalidOperationException("برای این رزرو امکان ایجاد سفارش وجود ندارد.");
 
-        var sourceOrders = await _mediator.Send(new GetOrdersBySourceQuery(
-            "Flight",
-            booking.Id.Value,
-            PageNumber: 1,
-            PageSize: 1), cancellationToken);
+        var sourceOrders = await _mediator.Send(
+            new GetOrdersBySourceQuery("Flight", booking.Id.Value, PageNumber: 1, PageSize: 1),
+            cancellationToken
+        );
         var sourceOrder = sourceOrders.Data.FirstOrDefault();
         if (sourceOrder is not null)
         {
@@ -84,52 +92,67 @@ public sealed class PrepareFlightOrderCommandHandler
             booking.MarkPaymentPending(DateTime.UtcNow);
             await _bookingRepository.SaveChangesAsync(cancellationToken);
 
-            var existingOrder = await _mediator.Send(new GetOrderByIdQuery(
-                sourceOrder.Id,
-                request.UserId,
-                request.CallerRole), cancellationToken);
+            var existingOrder = await _mediator.Send(
+                new GetOrderByIdQuery(sourceOrder.Id, request.UserId, request.CallerRole),
+                cancellationToken
+            );
 
             return new PrepareFlightOrderResponse(
                 booking.Id.Value,
                 sourceOrder.Id,
                 sourceOrder.OrderNumber,
                 sourceOrder.FinalAmountMinor,
-                existingOrder?.PaymentState ?? "Unpaid");
+                existingOrder?.PaymentState ?? "Unpaid"
+            );
         }
 
-        var metadataJson = JsonSerializer.Serialize(new
-        {
-            provider = booking.Provider.ProviderName,
-            provider_caption = booking.Provider.ProviderCaption,
-            provider_fare_id = booking.SelectedFare.ProviderFareId,
-            provider_book_id = booking.ProviderBooking.ProviderBookingId,
-            tracking_code = booking.ProviderBooking.ProviderBookingCaption,
-            provider_trace_id = booking.ProviderBooking.ProviderTraceId ?? booking.Provider.ProviderTraceId,
-            origin = booking.Segments.OrderBy(segment => segment.Sequence).First().OriginAirportCode,
-            destination = booking.Segments.OrderBy(segment => segment.Sequence).Last().DestinationAirportCode,
-            passenger_count = booking.Passengers.Count,
-            expires_at_utc = booking.ExpiresAtUtc
-        }, JsonOptions);
+        var metadataJson = JsonSerializer.Serialize(
+            new
+            {
+                provider = booking.Provider.ProviderName,
+                provider_caption = booking.Provider.ProviderCaption,
+                provider_fare_id = booking.SelectedFare.ProviderFareId,
+                provider_book_id = booking.ProviderBooking.ProviderBookingId,
+                tracking_code = booking.ProviderBooking.ProviderBookingCaption,
+                provider_trace_id = booking.ProviderBooking.ProviderTraceId
+                    ?? booking.Provider.ProviderTraceId,
+                origin = booking
+                    .Segments.OrderBy(segment => segment.Sequence)
+                    .First()
+                    .OriginAirportCode,
+                destination = booking
+                    .Segments.OrderBy(segment => segment.Sequence)
+                    .Last()
+                    .DestinationAirportCode,
+                passenger_count = booking.Passengers.Count,
+                expires_at_utc = booking.ExpiresAtUtc,
+            },
+            JsonOptions
+        );
 
         var title = BuildOrderTitle(booking);
-        var orderResult = await _mediator.Send(new CreateOrderCommand(
-            UserId: booking.UserId,
-            SourceModule: "Flight",
-            SourceReferenceId: booking.Id.Value,
-            Items:
-            [
-                new CreateOrderItemInput(
-                    Title: title,
-                    UnitPriceMinor: booking.FareBreakdown.PayableAmount.Amount,
-                    Quantity: 1,
-                    DiscountAmountMinor: 0,
-                    SourceItemId: booking.Id.Value,
-                    CategoryCode: FlightBooking.CategoryCode,
-                    Tags: ["flight", booking.Provider.ProviderName],
-                    MetadataJson: metadataJson)
-            ],
-            IdempotencyKey: $"flight-order-{booking.Id.Value}-{request.IdempotencyKey.Trim()}"),
-            cancellationToken);
+        var orderResult = await _mediator.Send(
+            new CreateOrderCommand(
+                UserId: booking.UserId,
+                SourceModule: "Flight",
+                SourceReferenceId: booking.Id.Value,
+                Items:
+                [
+                    new CreateOrderItemInput(
+                        Title: title,
+                        UnitPriceMinor: booking.FareBreakdown.PayableAmount.Amount,
+                        Quantity: 1,
+                        DiscountAmountMinor: 0,
+                        SourceItemId: booking.Id.Value,
+                        CategoryCode: FlightBooking.CategoryCode,
+                        Tags: ["flight", booking.Provider.ProviderName],
+                        MetadataJson: metadataJson
+                    ),
+                ],
+                IdempotencyKey: $"flight-order-{booking.Id.Value}-{request.IdempotencyKey.Trim()}"
+            ),
+            cancellationToken
+        );
 
         booking.AttachOrder(orderResult.OrderId, orderResult.OrderNumber, DateTime.UtcNow);
         booking.MarkPaymentPending(DateTime.UtcNow);
@@ -141,7 +164,8 @@ public sealed class PrepareFlightOrderCommandHandler
             orderResult.OrderId,
             orderResult.OrderNumber,
             orderResult.FinalAmountMinor,
-            "Unpaid");
+            "Unpaid"
+        );
     }
 
     private static string BuildOrderTitle(FlightBooking booking)
@@ -155,7 +179,10 @@ public sealed class PrepareFlightOrderCommandHandler
 
     private static void EnsureOwner(FlightBooking booking, Guid userId, string callerRole)
     {
-        if (!string.Equals(callerRole, "Admin", StringComparison.OrdinalIgnoreCase) && booking.UserId != userId)
+        if (
+            !string.Equals(callerRole, "Admin", StringComparison.OrdinalIgnoreCase)
+            && booking.UserId != userId
+        )
             throw new UnauthorizedAccessException("دسترسی به این رزرو مجاز نیست.");
     }
 }

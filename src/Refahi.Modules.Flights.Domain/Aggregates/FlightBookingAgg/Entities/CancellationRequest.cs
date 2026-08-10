@@ -16,7 +16,8 @@ public sealed class CancellationRequest
         Guid id,
         CancellationQuoteSnapshot quote,
         string reason,
-        DateTime requestedAtUtc)
+        DateTime requestedAtUtc
+    )
     {
         if (id == Guid.Empty)
         {
@@ -53,7 +54,9 @@ public sealed class CancellationRequest
 
         Status = CancellationRequestStatus.Cancelled;
         CompletedAtUtc = completedAtUtc;
-        ProviderCancellationId = string.IsNullOrWhiteSpace(providerCancellationId) ? null : providerCancellationId.Trim();
+        ProviderCancellationId = string.IsNullOrWhiteSpace(providerCancellationId)
+            ? null
+            : providerCancellationId.Trim();
     }
 
     public void MarkFailed(string reason, DateTime completedAtUtc)

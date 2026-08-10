@@ -18,7 +18,8 @@ public class CreateReviewCommandHandler : IRequestHandler<CreateReviewCommand, C
         IReviewRepository reviewRepo,
         IProductRepository productRepo,
         IShopProductRepository shopProductRepo,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _reviewRepo = reviewRepo;
         _productRepo = productRepo;
@@ -26,35 +27,63 @@ public class CreateReviewCommandHandler : IRequestHandler<CreateReviewCommand, C
         _mediator = mediator;
     }
 
-    public async Task<CreateReviewResponse> Handle(CreateReviewCommand request, CancellationToken cancellationToken)
+    public async Task<CreateReviewResponse> Handle(
+        CreateReviewCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         // Verify the user has a delivered order from a shop that carries this product
-        var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(product.Id, isActive: true, page: 1, pageSize: 1, cancellationToken);
+        var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(
+            product.Id,
+            isActive: true,
+            page: 1,
+            pageSize: 1,
+            cancellationToken
+        );
         var shopId = shopProducts.FirstOrDefault()?.ShopId;
 
         if (shopId.HasValue)
         {
-            var hasPurchased = await _mediator.Send(new HasUserPurchasedQuery(
-                UserId: request.UserId,
-                SourceModule: "Store",
-                SourceReferenceId: shopId.Value), cancellationToken);
+            var hasPurchased = await _mediator.Send(
+                new HasUserPurchasedQuery(
+                    UserId: request.UserId,
+                    SourceModule: "Store",
+                    SourceReferenceId: shopId.Value
+                ),
+                cancellationToken
+            );
 
             if (!hasPurchased)
-                throw new StoreDomainException("فقط خریداران می‌توانند نظر ثبت کنند", "PURCHASE_REQUIRED");
+                throw new StoreDomainException(
+                    "فقط خریداران می‌توانند نظر ثبت کنند",
+                    "PURCHASE_REQUIRED"
+                );
         }
 
-        var alreadyReviewed = await _reviewRepo.UserHasReviewedAsync(request.ProductId, request.UserId, cancellationToken);
+        var alreadyReviewed = await _reviewRepo.UserHasReviewedAsync(
+            request.ProductId,
+            request.UserId,
+            cancellationToken
+        );
         if (alreadyReviewed)
-            throw new StoreDomainException("شما قبلاً برای این محصول نظر ثبت کرده‌اید", "REVIEW_ALREADY_EXISTS");
+            throw new StoreDomainException(
+                "شما قبلاً برای این محصول نظر ثبت کرده‌اید",
+                "REVIEW_ALREADY_EXISTS"
+            );
 
-        var review = Review.Create(request.ProductId, request.UserId, request.Rating, request.Comment);
+        var review = Review.Create(
+            request.ProductId,
+            request.UserId,
+            request.Rating,
+            request.Comment
+        );
 
         await _reviewRepo.AddAsync(review, cancellationToken);
 
         return new CreateReviewResponse(review.Id);
     }
 }
-

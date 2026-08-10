@@ -17,11 +17,28 @@ public sealed class GetCatalogOffersEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("catalog/operators/{operator}/offers", async (string @operator, [FromBody] OffersBody body, ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetOffersQuery(
-                ChargeEndpointHelpers.ParseOperator(@operator),
-                body.MobileNumber,
-                body.Category), ct))))
+        routes
+            .MapPost(
+                "catalog/operators/{operator}/offers",
+                async (
+                    string @operator,
+                    [FromBody] OffersBody body,
+                    ISender sender,
+                    CancellationToken ct
+                ) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(
+                                new GetOffersQuery(
+                                    ChargeEndpointHelpers.ParseOperator(@operator),
+                                    body.MobileNumber,
+                                    body.Category
+                                ),
+                                ct
+                            )
+                        )
+                    )
+            )
             .RequireRateLimiting(ChargeRateLimiting.PublicCatalogPolicy)
             .WithName("Charge.Catalog.Offers")
             .WithTags("Charge.Catalog")

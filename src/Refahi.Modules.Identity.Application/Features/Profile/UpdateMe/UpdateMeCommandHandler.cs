@@ -12,13 +12,19 @@ public class UpdateMeCommandHandler : IRequestHandler<UpdateMeCommand, UpdateMeR
     private readonly IUserRepository _userRepository;
     private readonly IUserProfileRepository _profileRepository;
 
-    public UpdateMeCommandHandler(IUserRepository userRepository, IUserProfileRepository profileRepository)
+    public UpdateMeCommandHandler(
+        IUserRepository userRepository,
+        IUserProfileRepository profileRepository
+    )
     {
         _userRepository = userRepository;
         _profileRepository = profileRepository;
     }
 
-    public async Task<UpdateMeResult> Handle(UpdateMeCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateMeResult> Handle(
+        UpdateMeCommand request,
+        CancellationToken cancellationToken
+    )
     {
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
@@ -33,13 +39,19 @@ public class UpdateMeCommandHandler : IRequestHandler<UpdateMeCommand, UpdateMeR
             var newProfile = Domain.Entities.UserProfile.Create(
                 request.UserId,
                 request.FirstName,
-                request.LastName);
+                request.LastName
+            );
             await _profileRepository.AddAsync(newProfile, cancellationToken);
             profile = newProfile;
         }
         else
         {
-            profile.Update(request.FirstName, request.LastName, profile.NationalCode, profile.Gender);
+            profile.Update(
+                request.FirstName,
+                request.LastName,
+                profile.NationalCode,
+                profile.Gender
+            );
             await _profileRepository.UpdateAsync(profile, cancellationToken);
         }
 
@@ -49,7 +61,8 @@ public class UpdateMeCommandHandler : IRequestHandler<UpdateMeCommand, UpdateMeR
             profile.FirstName,
             profile.LastName,
             profile.NationalCode,
-            profile.Gender);
+            profile.Gender
+        );
 
         var meDto = new MeDetailDto(
             user.Id,
@@ -57,7 +70,8 @@ public class UpdateMeCommandHandler : IRequestHandler<UpdateMeCommand, UpdateMeR
             user.Email,
             user.IsActive,
             user.GetRoles(),
-            profileDto);
+            profileDto
+        );
 
         return new UpdateMeResult(true, null, meDto);
     }

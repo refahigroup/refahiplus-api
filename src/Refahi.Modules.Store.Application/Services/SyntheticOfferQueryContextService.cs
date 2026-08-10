@@ -15,7 +15,8 @@ public interface ISyntheticOfferQueryContextService
         Guid? shopId,
         string? shopSlug,
         string? salesModel,
-        CancellationToken ct);
+        CancellationToken ct
+    );
 }
 
 internal sealed class SyntheticOfferQueryContextService : ISyntheticOfferQueryContextService
@@ -27,7 +28,8 @@ internal sealed class SyntheticOfferQueryContextService : ISyntheticOfferQueryCo
     public SyntheticOfferQueryContextService(
         IStoreModuleCatalogService catalog,
         IShopRepository shopRepository,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _catalog = catalog;
         _shopRepository = shopRepository;
@@ -40,7 +42,8 @@ internal sealed class SyntheticOfferQueryContextService : ISyntheticOfferQueryCo
         Guid? shopId,
         string? shopSlug,
         string? salesModel,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var resolvedShop = await ResolveShopAsync(shopId, shopSlug, ct);
         if (!resolvedShop.IsValid)
@@ -50,15 +53,23 @@ internal sealed class SyntheticOfferQueryContextService : ISyntheticOfferQueryCo
         if (allowedIds.Count == 0)
             return SyntheticOfferQueryContext.Empty(resolvedShop.ShopId);
 
-        var agreementProducts = await _mediator.Send(new GetAgreementProductsByIdsQuery(allowedIds), ct);
+        var agreementProducts = await _mediator.Send(
+            new GetAgreementProductsByIdsQuery(allowedIds),
+            ct
+        );
         var moduleAgreementProducts = agreementProducts.Values.Where(x => !x.IsDeleted).ToList();
         IEnumerable<AgreementProductDto> filtered = moduleAgreementProducts;
 
         if (categoryId.HasValue)
         {
-            var categoryIds = await _mediator.Send(new GetCategorySubtreeIdsQuery(categoryId.Value), ct);
+            var categoryIds = await _mediator.Send(
+                new GetCategorySubtreeIdsQuery(categoryId.Value),
+                ct
+            );
             var categorySet = categoryIds.ToHashSet();
-            filtered = filtered.Where(x => x.CategoryId.HasValue && categorySet.Contains(x.CategoryId.Value));
+            filtered = filtered.Where(x =>
+                x.CategoryId.HasValue && categorySet.Contains(x.CategoryId.Value)
+            );
         }
 
         if (!string.IsNullOrWhiteSpace(salesModel))
@@ -73,15 +84,21 @@ internal sealed class SyntheticOfferQueryContextService : ISyntheticOfferQueryCo
             resolvedShop.ShopId,
             moduleAgreementProducts.Select(x => x.Id).ToHashSet(),
             map,
-            map.Values.Where(x => x.SalesModel == (short)SalesModel.StockBased).Select(x => x.Id).ToArray(),
-            map.Values.Where(x => x.SalesModel == (short)SalesModel.SessionBased).Select(x => x.Id).ToArray(),
-            map.Values.Where(x => x.PricingMode == 2).Select(x => x.Id).ToArray());
+            map.Values.Where(x => x.SalesModel == (short)SalesModel.StockBased)
+                .Select(x => x.Id)
+                .ToArray(),
+            map.Values.Where(x => x.SalesModel == (short)SalesModel.SessionBased)
+                .Select(x => x.Id)
+                .ToArray(),
+            map.Values.Where(x => x.PricingMode == 2).Select(x => x.Id).ToArray()
+        );
     }
 
     private async Task<(bool IsValid, Guid? ShopId)> ResolveShopAsync(
         Guid? shopId,
         string? shopSlug,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         shopId = shopId == Guid.Empty ? null : shopId;
         var normalizedSlug = string.IsNullOrWhiteSpace(shopSlug)
@@ -104,9 +121,7 @@ internal sealed class SyntheticOfferQueryContextService : ISyntheticOfferQueryCo
             return (true, null);
 
         var byId = await _shopRepository.GetByIdAsync(shopId.Value, ct);
-        return byId is { Status: ShopStatus.Active }
-            ? (true, byId.Id)
-            : (false, null);
+        return byId is { Status: ShopStatus.Active } ? (true, byId.Id) : (false, null);
     }
 }
 
@@ -117,11 +132,28 @@ public sealed record SyntheticOfferQueryContext(
     IReadOnlyDictionary<Guid, AgreementProductDto> AgreementProducts,
     IReadOnlyList<Guid> StockBasedAgreementProductIds,
     IReadOnlyList<Guid> SessionBasedAgreementProductIds,
-    IReadOnlyList<Guid>? ManualAgreementProductIds = null)
+    IReadOnlyList<Guid>? ManualAgreementProductIds = null
+)
 {
     public static SyntheticOfferQueryContext InvalidShop { get; } =
-        new(false, null, new HashSet<Guid>(), new Dictionary<Guid, AgreementProductDto>(), [], [], []);
+        new(
+            false,
+            null,
+            new HashSet<Guid>(),
+            new Dictionary<Guid, AgreementProductDto>(),
+            [],
+            [],
+            []
+        );
 
     public static SyntheticOfferQueryContext Empty(Guid? shopId) =>
-        new(true, shopId, new HashSet<Guid>(), new Dictionary<Guid, AgreementProductDto>(), [], [], []);
+        new(
+            true,
+            shopId,
+            new HashSet<Guid>(),
+            new Dictionary<Guid, AgreementProductDto>(),
+            [],
+            [],
+            []
+        );
 }

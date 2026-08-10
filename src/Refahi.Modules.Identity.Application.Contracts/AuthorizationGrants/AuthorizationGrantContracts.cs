@@ -1,17 +1,29 @@
-using MediatR;
 using System;
 using System.Collections.Generic;
+using MediatR;
 
 namespace Refahi.Modules.Identity.Application.Contracts.AuthorizationGrants;
 
 public sealed record AuthorizationGrantDto(
-    Guid Id, Guid UserId, string Issuer, string Value, string? EmittedRole,
-    bool IsActive, DateTimeOffset CreatedAt, Guid? CreatedBy,
-    DateTimeOffset? RevokedAt, Guid? RevokedBy);
+    Guid Id,
+    Guid UserId,
+    string Issuer,
+    string Value,
+    string? EmittedRole,
+    bool IsActive,
+    DateTimeOffset CreatedAt,
+    Guid? CreatedBy,
+    DateTimeOffset? RevokedAt,
+    Guid? RevokedBy
+);
 
 public sealed record UpsertAuthorizationGrantCommand(
-    Guid UserId, string Issuer, string Value, string? EmittedRole, Guid? ActorId)
-    : IRequest<AuthorizationGrantDto>;
+    Guid UserId,
+    string Issuer,
+    string Value,
+    string? EmittedRole,
+    Guid? ActorId
+) : IRequest<AuthorizationGrantDto>;
 
 public sealed record RevokeAuthorizationGrantCommand(Guid GrantId, Guid? ActorId) : IRequest<bool>;
 

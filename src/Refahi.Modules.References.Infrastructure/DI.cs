@@ -12,16 +12,23 @@ namespace Refahi.Modules.References.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration, bool isDevelopment = false)
+    public static IServiceCollection RegisterInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool isDevelopment = false
+    )
     {
         services.AddDbContext<ReferencesDbContext>(options =>
         {
             string connectionString = configuration.GetConnectionString();
 
-            options.UseNpgsql(connectionString, npgsqlOptions =>
-            {
-                npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "references");
-            });
+            options.UseNpgsql(
+                connectionString,
+                npgsqlOptions =>
+                {
+                    npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "references");
+                }
+            );
         });
 
         services.AddScoped<IProvinceRepository, ProvinceRepository>();

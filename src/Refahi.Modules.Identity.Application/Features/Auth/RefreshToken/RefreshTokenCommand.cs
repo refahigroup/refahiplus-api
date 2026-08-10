@@ -17,4 +17,5 @@ public record RefreshTokenResult(
     DateTime? RefreshTokenExpiresAt = null,
     Guid? UserId = null,
     string? Username = null,
-    string? Roles = null);
+    string? Roles = null
+);

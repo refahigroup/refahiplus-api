@@ -3,7 +3,7 @@ using Refahi.Modules.Hotels.Application.Contracts.Providers.Queries;
 
 namespace Refahi.Modules.Hotels.Application.Hotels.GetDetails
 {
-    public sealed class GetHotelDetailsQueryValidator: AbstractValidator<GetHotelDetailsQuery>
+    public sealed class GetHotelDetailsQueryValidator : AbstractValidator<GetHotelDetailsQuery>
     {
         public GetHotelDetailsQueryValidator()
         {

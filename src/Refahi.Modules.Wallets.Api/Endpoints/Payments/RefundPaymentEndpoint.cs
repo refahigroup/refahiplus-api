@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -9,7 +10,6 @@ using Refahi.Modules.Wallets.Application.Contracts;
 using Refahi.Modules.Wallets.Application.Contracts.Exceptions;
 using Refahi.Modules.Wallets.Application.Contracts.Features.RefundPayment;
 using Refahi.Shared.Presentation;
-using System.Text.Json;
 
 namespace Refahi.Modules.Wallets.Api.Endpoints.Payments;
 
@@ -25,6 +25,4 @@ public class RefundPaymentEndpoint : IEndpoint
 /// <summary>
 /// Request body for refund endpoint.
 /// </summary>
-public sealed record RefundPaymentRequestBody(
-    string? Reason,
-    string? MetadataJson);
+public sealed record RefundPaymentRequestBody(string? Reason, string? MetadataJson);

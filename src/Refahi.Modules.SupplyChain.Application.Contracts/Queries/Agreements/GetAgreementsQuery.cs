@@ -17,4 +17,5 @@ public sealed record AgreementsPagedResponse(
     int PageNumber,
     int PageSize,
     int TotalCount,
-    int TotalPages);
+    int TotalPages
+);

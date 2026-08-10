@@ -14,8 +14,14 @@ public sealed class GetMarkupRulesEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("admin/markup-rules", async (ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetMarkupRulesQuery(), ct))))
+        routes
+            .MapGet(
+                "admin/markup-rules",
+                async (ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(await sender.Send(new GetMarkupRulesQuery(), ct))
+                    )
+            )
             .RequireAuthorization("AdminOnly")
             .WithName("Charge.Admin.MarkupRules.Get")
             .WithTags("Charge.Admin")

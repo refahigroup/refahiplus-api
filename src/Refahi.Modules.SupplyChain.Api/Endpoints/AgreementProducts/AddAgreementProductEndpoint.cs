@@ -8,44 +8,58 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.SupplyChain.Api.Endpoints.AgreementProducts;
 
-[Obsolete("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations.")]
+[Obsolete(
+    "Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations."
+)]
 public class AddAgreementProductEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPost("/admin/agreements/{id:guid}/products", async (
-            Guid id,
-            [FromBody] AddAgreementProductRequest body,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var command = new AddAgreementProductCommand(
-                id,
-                body.Name,
-                body.Description,
-                body.CategoryId,
-                body.ProductType,
-                body.DeliveryType,
-                body.SalesModel,
-                body.CommissionPercent,
-                body.VatApplicable);
+        routes
+            .MapPost(
+                "/admin/agreements/{id:guid}/products",
+                async (
+                    Guid id,
+                    [FromBody] AddAgreementProductRequest body,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var command = new AddAgreementProductCommand(
+                        id,
+                        body.Name,
+                        body.Description,
+                        body.CategoryId,
+                        body.ProductType,
+                        body.DeliveryType,
+                        body.SalesModel,
+                        body.CommissionPercent,
+                        body.VatApplicable
+                    );
 
-            var result = await mediator.Send(command, ct);
-            return Results.Created(
-                $"/api/supply-chain/admin/agreements/{id}/products/{result.ProductId}",
-                ApiResponseHelper.Success(result, "محصول با موفقیت افزوده شد", 201));
-        })
-        .WithName("SupplyChain.AddAgreementProduct")
-        .WithTags("SupplyChain.AgreementProducts")
-        .WithMetadata(new ObsoleteAttribute("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."))
-        .RequireAuthorization("AdminOnly")
-        .Produces<ApiResponse<AddAgreementProductResponse>>(StatusCodes.Status201Created)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status403Forbidden)
-        .Produces(StatusCodes.Status404NotFound);
+                    var result = await mediator.Send(command, ct);
+                    return Results.Created(
+                        $"/api/supply-chain/admin/agreements/{id}/products/{result.ProductId}",
+                        ApiResponseHelper.Success(result, "محصول با موفقیت افزوده شد", 201)
+                    );
+                }
+            )
+            .WithName("SupplyChain.AddAgreementProduct")
+            .WithTags("SupplyChain.AgreementProducts")
+            .WithMetadata(
+                new ObsoleteAttribute(
+                    "Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."
+                )
+            )
+            .RequireAuthorization("AdminOnly")
+            .Produces<ApiResponse<AddAgreementProductResponse>>(StatusCodes.Status201Created)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
 
@@ -57,4 +71,5 @@ public sealed record AddAgreementProductRequest(
     short DeliveryType,
     short SalesModel,
     decimal CommissionPercent,
-    bool VatApplicable);
+    bool VatApplicable
+);

@@ -7,30 +7,37 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.SupplyChain.Api.Endpoints.AgreementProducts;
 
-[Obsolete("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations.")]
+[Obsolete(
+    "Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations."
+)]
 public class RemoveAgreementProductEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapDelete("/admin/agreements/{id:guid}/products/{productId:guid}", async (
-            Guid id,
-            Guid productId,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            await mediator.Send(new RemoveAgreementProductCommand(id, productId), ct);
-            return Results.NoContent();
-        })
-        .WithName("SupplyChain.RemoveAgreementProduct")
-        .WithTags("SupplyChain.AgreementProducts")
-        .WithMetadata(new ObsoleteAttribute("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."))
-        .RequireAuthorization("AdminOnly")
-        .Produces(StatusCodes.Status204NoContent)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status403Forbidden)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapDelete(
+                "/admin/agreements/{id:guid}/products/{productId:guid}",
+                async (Guid id, Guid productId, IMediator mediator, CancellationToken ct) =>
+                {
+                    await mediator.Send(new RemoveAgreementProductCommand(id, productId), ct);
+                    return Results.NoContent();
+                }
+            )
+            .WithName("SupplyChain.RemoveAgreementProduct")
+            .WithTags("SupplyChain.AgreementProducts")
+            .WithMetadata(
+                new ObsoleteAttribute(
+                    "Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."
+                )
+            )
+            .RequireAuthorization("AdminOnly")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

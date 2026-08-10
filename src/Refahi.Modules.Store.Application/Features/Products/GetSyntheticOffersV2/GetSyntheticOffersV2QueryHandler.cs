@@ -24,7 +24,8 @@ public sealed class GetSyntheticOffersV2QueryHandler
         IProductRepository productRepository,
         IStoreBusinessClock clock,
         IPathService pathService,
-        ILogger<GetSyntheticOffersV2QueryHandler> logger)
+        ILogger<GetSyntheticOffersV2QueryHandler> logger
+    )
     {
         _contextService = contextService;
         _repository = repository;
@@ -34,11 +35,20 @@ public sealed class GetSyntheticOffersV2QueryHandler
         _logger = logger;
     }
 
-    public async Task<SyntheticOffersV2PagedResponse?> Handle(GetSyntheticOffersV2Query request, CancellationToken ct)
+    public async Task<SyntheticOffersV2PagedResponse?> Handle(
+        GetSyntheticOffersV2Query request,
+        CancellationToken ct
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         var context = await _contextService.ResolveAsync(
-            request.ModuleId, request.CategoryId, request.ShopId, request.ShopSlug, request.SalesModel, ct);
+            request.ModuleId,
+            request.CategoryId,
+            request.ShopId,
+            request.ShopSlug,
+            request.SalesModel,
+            ct
+        );
         if (!context.IsShopValid)
             return null;
 
@@ -48,7 +58,8 @@ public sealed class GetSyntheticOffersV2QueryHandler
             var product = await _productRepository.GetDisplayableBySlugAsync(
                 request.ProductSlug.Trim().ToLowerInvariant(),
                 context.ModuleAgreementProductIds.ToArray(),
-                ct);
+                ct
+            );
             if (product is null)
                 return null;
 
@@ -57,10 +68,12 @@ public sealed class GetSyntheticOffersV2QueryHandler
         else if (productId.HasValue)
         {
             var product = await _productRepository.GetByIdAsync(productId.Value, ct);
-            if (product is null
+            if (
+                product is null
                 || product.IsDeleted
                 || !product.IsAvailable
-                || !context.ModuleAgreementProductIds.Contains(product.AgreementProductId))
+                || !context.ModuleAgreementProductIds.Contains(product.AgreementProductId)
+            )
             {
                 return null;
             }
@@ -84,37 +97,54 @@ public sealed class GetSyntheticOffersV2QueryHandler
             request.PageNumber,
             request.PageSize,
             now.Time,
-            context.ManualAgreementProductIds);
+            context.ManualAgreementProductIds
+        );
 
         var (rows, total) = await _repository.GetOffersAsync(spec, ct);
-        var items = rows
-            .Where(x => context.AgreementProducts.ContainsKey(x.AgreementProductId))
-            .Select(x => SyntheticOfferDtoMapper.MapOffer(
-                x, context.AgreementProducts[x.AgreementProductId], _pathService))
+        var items = rows.Where(x => context.AgreementProducts.ContainsKey(x.AgreementProductId))
+            .Select(x =>
+                SyntheticOfferDtoMapper.MapOffer(
+                    x,
+                    context.AgreementProducts[x.AgreementProductId],
+                    _pathService
+                )
+            )
             .ToList();
 
         stopwatch.Stop();
         _logger.LogInformation(
             "Store synthetic offers query completed. ModuleId={ModuleId} Page={Page} PageSize={PageSize} Total={Total} Returned={Returned} HasSearch={HasSearch} DurationMs={DurationMs}",
-            request.ModuleId, request.PageNumber, request.PageSize, total, items.Count,
-            !string.IsNullOrWhiteSpace(request.SearchQuery), stopwatch.ElapsedMilliseconds);
+            request.ModuleId,
+            request.PageNumber,
+            request.PageSize,
+            total,
+            items.Count,
+            !string.IsNullOrWhiteSpace(request.SearchQuery),
+            stopwatch.ElapsedMilliseconds
+        );
 
         return new SyntheticOffersV2PagedResponse(
             items,
             request.PageNumber,
             request.PageSize,
             total,
-            (int)Math.Ceiling(total / (double)request.PageSize));
+            (int)Math.Ceiling(total / (double)request.PageSize)
+        );
     }
 
-    private static string? NormalizeOfferKind(string? value)
-        => value?.Trim() switch
+    private static string? NormalizeOfferKind(string? value) =>
+        value?.Trim() switch
         {
-            { } x when x.Equals("StockProduct", StringComparison.OrdinalIgnoreCase) => "StockProduct",
-            { } x when x.Equals("StockVariant", StringComparison.OrdinalIgnoreCase) => "StockVariant",
-            { } x when x.Equals("ProductSession", StringComparison.OrdinalIgnoreCase) => "ProductSession",
-            { } x when x.Equals("SessionVariant", StringComparison.OrdinalIgnoreCase) => "SessionVariant",
-            { } x when x.Equals("ManualProduct", StringComparison.OrdinalIgnoreCase) => "ManualProduct",
-            _ => null
+            { } x when x.Equals("StockProduct", StringComparison.OrdinalIgnoreCase) =>
+                "StockProduct",
+            { } x when x.Equals("StockVariant", StringComparison.OrdinalIgnoreCase) =>
+                "StockVariant",
+            { } x when x.Equals("ProductSession", StringComparison.OrdinalIgnoreCase) =>
+                "ProductSession",
+            { } x when x.Equals("SessionVariant", StringComparison.OrdinalIgnoreCase) =>
+                "SessionVariant",
+            { } x when x.Equals("ManualProduct", StringComparison.OrdinalIgnoreCase) =>
+                "ManualProduct",
+            _ => null,
         };
 }

@@ -5,9 +5,7 @@ namespace Refahi.Modules.Hotels.Domain.Aggregates.ProviderBookingCacheAgg;
 
 public sealed class HotelProviderBookingCacheEntry
 {
-    private HotelProviderBookingCacheEntry()
-    {
-    }
+    private HotelProviderBookingCacheEntry() { }
 
     public Guid Id { get; private set; }
     public string ProviderName { get; private set; } = string.Empty;
@@ -36,7 +34,8 @@ public sealed class HotelProviderBookingCacheEntry
         string requestHash,
         Guid sagaId,
         Guid hotelRequestId,
-        DateTime nowUtc)
+        DateTime nowUtc
+    )
     {
         if (string.IsNullOrWhiteSpace(providerName))
             throw new DomainException("ProviderName is required.");
@@ -60,14 +59,16 @@ public sealed class HotelProviderBookingCacheEntry
             Status = ProviderBookingCacheStatus.InProgress,
             AttemptCount = 0,
             CreatedAt = nowUtc,
-            UpdatedAt = nowUtc
+            UpdatedAt = nowUtc,
         };
     }
 
     public void EnsureSameRequest(string requestHash)
     {
         if (!RequestHash.Equals(requestHash, StringComparison.Ordinal))
-            throw new DomainException("Provider idempotency key was reused with a different request payload.");
+            throw new DomainException(
+                "Provider idempotency key was reused with a different request payload."
+            );
     }
 
     public void MarkAttemptStarted(DateTime nowUtc)
@@ -109,7 +110,11 @@ public sealed class HotelProviderBookingCacheEntry
 
     public void MarkCancellationPending(string idempotencyKey, string reason, DateTime nowUtc)
     {
-        if (Status is ProviderBookingCacheStatus.Cancelled or ProviderBookingCacheStatus.ExternallyUnresolved)
+        if (
+            Status
+            is ProviderBookingCacheStatus.Cancelled
+                or ProviderBookingCacheStatus.ExternallyUnresolved
+        )
             return;
 
         if (string.IsNullOrWhiteSpace(idempotencyKey))

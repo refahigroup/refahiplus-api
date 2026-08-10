@@ -1,5 +1,5 @@
-﻿using Refahi.Shared.Extensions;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using Refahi.Shared.Extensions;
 
 namespace Refahi.Modules.Identity.Api.Services.Auth;
 
@@ -9,14 +9,11 @@ public sealed class JwtOptions
     private string _key = string.Empty; // Symmetric secret (>= 32 chars)
 
     [Required, MinLength(32)]
-    public string Key 
+    public string Key
     {
         get => _key;
-        init
-        {
-            _key = value.ReplaceWithEnvironmentVariables();
-        }
-    } 
+        init { _key = value.ReplaceWithEnvironmentVariables(); }
+    }
 
     [Required]
     public string Issuer { get; init; } = default!;
@@ -33,6 +30,5 @@ public sealed class JwtOptions
     // Optional hardening
     public int ClockSkewSeconds { get; init; } = 30;
 
-    public bool IsValid() =>
-        !string.IsNullOrWhiteSpace(Key) && Key.Length >= 32;
+    public bool IsValid() => !string.IsNullOrWhiteSpace(Key) && Key.Length >= 32;
 }

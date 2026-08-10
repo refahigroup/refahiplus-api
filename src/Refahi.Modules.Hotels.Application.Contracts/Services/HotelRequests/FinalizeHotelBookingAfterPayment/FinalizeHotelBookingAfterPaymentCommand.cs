@@ -6,4 +6,5 @@ public sealed record FinalizeHotelBookingAfterPaymentCommand(
     Guid OrderId,
     Guid UserId,
     Guid PaymentId,
-    Guid? SagaId = null) : IRequest;
+    Guid? SagaId = null
+) : IRequest;

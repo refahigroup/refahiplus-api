@@ -36,7 +36,8 @@ public class UserProfile
         string? nationalCode = null,
         Gender? gender = null,
         DateOnly? birthday = null,
-        string? profileImageUrl = null)
+        string? profileImageUrl = null
+    )
     {
         if (string.IsNullOrWhiteSpace(firstName))
             throw new DomainException("First name is required", "FIRSTNAME_REQUIRED");
@@ -58,7 +59,7 @@ public class UserProfile
             NationalCode = nationalCode?.Trim(),
             Gender = gender,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
         };
     }
 
@@ -71,7 +72,8 @@ public class UserProfile
         string? nationalCode = null,
         Gender? gender = null,
         DateOnly? birthday = null,
-        string? profileImageUrl = null)
+        string? profileImageUrl = null
+    )
     {
         if (string.IsNullOrWhiteSpace(firstName))
             throw new DomainException("First name is required", "FIRSTNAME_REQUIRED");
@@ -98,6 +100,7 @@ public class UserProfile
     {
         return $"{FirstName} {LastName}";
     }
+
     public void SetProfileImage(string? imageUrl)
     {
         ProfileImageUrl = imageUrl?.Trim();

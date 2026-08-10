@@ -8,18 +8,27 @@ using Refahi.Modules.Identity.Domain.Repositories;
 
 namespace Refahi.Modules.Identity.Application.Features.Admin.ListUsers;
 
-public class AdminListUsersQueryHandler : IRequestHandler<AdminListUsersQuery, AdminUsersPagedResponse>
+public class AdminListUsersQueryHandler
+    : IRequestHandler<AdminListUsersQuery, AdminUsersPagedResponse>
 {
     private readonly IUserRepository _userRepository;
 
-    public AdminListUsersQueryHandler(IUserRepository userRepository)
-        => _userRepository = userRepository;
+    public AdminListUsersQueryHandler(IUserRepository userRepository) =>
+        _userRepository = userRepository;
 
-    public async Task<AdminUsersPagedResponse> Handle(AdminListUsersQuery request, CancellationToken cancellationToken)
+    public async Task<AdminUsersPagedResponse> Handle(
+        AdminListUsersQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var (items, total) = await _userRepository.GetPagedAsync(
-            request.Search, request.Role, request.IsActive,
-            request.PageNumber, request.PageSize, cancellationToken);
+            request.Search,
+            request.Role,
+            request.IsActive,
+            request.PageNumber,
+            request.PageSize,
+            cancellationToken
+        );
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
 
@@ -35,8 +44,15 @@ public class AdminListUsersQueryHandler : IRequestHandler<AdminListUsersQuery, A
             u.CreatedAt,
             u.Profile?.FirstName,
             u.Profile?.LastName,
-            u.Roles.Select(r => r.Role)));
+            u.Roles.Select(r => r.Role)
+        ));
 
-        return new AdminUsersPagedResponse(dtos, request.PageNumber, request.PageSize, total, totalPages);
+        return new AdminUsersPagedResponse(
+            dtos,
+            request.PageNumber,
+            request.PageSize,
+            total,
+            totalPages
+        );
     }
 }

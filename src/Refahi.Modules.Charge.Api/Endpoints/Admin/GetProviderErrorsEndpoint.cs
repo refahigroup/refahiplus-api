@@ -15,8 +15,16 @@ public sealed class GetProviderErrorsEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("admin/provider/errors", async (ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetProviderErrorsQuery(), ct))))
+        routes
+            .MapGet(
+                "admin/provider/errors",
+                async (ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(new GetProviderErrorsQuery(), ct)
+                        )
+                    )
+            )
             .RequireAuthorization("AdminOnly")
             .WithName("Charge.Admin.ProviderErrors")
             .WithTags("Charge.Admin")

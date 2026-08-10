@@ -5,5 +5,5 @@ public enum SalesChannel : short
 {
     None = 0,
     Online = 1,
-    InPerson = 2
+    InPerson = 2,
 }

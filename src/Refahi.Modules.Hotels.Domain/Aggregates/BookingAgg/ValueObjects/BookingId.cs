@@ -1,5 +1,4 @@
-﻿
-using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
+﻿using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
 
 namespace Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.ValueObjects;
 

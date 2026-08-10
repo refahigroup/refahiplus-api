@@ -7,13 +7,12 @@ public class UpdateSessionCommandValidator : AbstractValidator<UpdateSessionComm
 {
     public UpdateSessionCommandValidator()
     {
-        RuleFor(x => x.SessionId)
-            .NotEmpty().WithMessage("شناسه سانس الزامی است");
+        RuleFor(x => x.SessionId).NotEmpty().WithMessage("شناسه سانس الزامی است");
 
-        RuleFor(x => x.Capacity)
-            .GreaterThan(0).WithMessage("ظرفیت سانس باید بیشتر از صفر باشد");
+        RuleFor(x => x.Capacity).GreaterThan(0).WithMessage("ظرفیت سانس باید بیشتر از صفر باشد");
 
         RuleFor(x => x.PriceAdjustment)
-            .GreaterThanOrEqualTo(0).WithMessage("تفاوت قیمت نمی‌تواند منفی باشد");
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("تفاوت قیمت نمی‌تواند منفی باشد");
     }
 }

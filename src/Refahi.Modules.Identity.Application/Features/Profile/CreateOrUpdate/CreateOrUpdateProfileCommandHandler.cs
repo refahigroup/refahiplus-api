@@ -9,20 +9,25 @@ using Refahi.Modules.Identity.Domain.Repositories;
 
 namespace Refahi.Modules.Identity.Application.Features.Profile.CreateOrUpdate;
 
-public class CreateOrUpdateProfileCommandHandler : IRequestHandler<CreateOrUpdateProfileCommand, CreateOrUpdateProfileResult>
+public class CreateOrUpdateProfileCommandHandler
+    : IRequestHandler<CreateOrUpdateProfileCommand, CreateOrUpdateProfileResult>
 {
     private readonly IUserProfileRepository _profileRepository;
     private readonly IUserRepository _userRepository;
 
     public CreateOrUpdateProfileCommandHandler(
         IUserProfileRepository profileRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository
+    )
     {
         _profileRepository = profileRepository;
         _userRepository = userRepository;
     }
 
-    public async Task<CreateOrUpdateProfileResult> Handle(CreateOrUpdateProfileCommand request, CancellationToken cancellationToken)
+    public async Task<CreateOrUpdateProfileResult> Handle(
+        CreateOrUpdateProfileCommand request,
+        CancellationToken cancellationToken
+    )
     {
         // Validation
         if (string.IsNullOrWhiteSpace(request.FirstName))
@@ -43,7 +48,10 @@ public class CreateOrUpdateProfileCommandHandler : IRequestHandler<CreateOrUpdat
         }
 
         // Check if profile already exists
-        var existingProfile = await _profileRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+        var existingProfile = await _profileRepository.GetByUserIdAsync(
+            request.UserId,
+            cancellationToken
+        );
 
         UserProfile profile;
 
@@ -58,7 +66,8 @@ public class CreateOrUpdateProfileCommandHandler : IRequestHandler<CreateOrUpdat
                     lastName: request.LastName,
                     nationalCode: request.NationalCode,
                     gender: request.Gender,
-                    birthday: request.Birthday);
+                    birthday: request.Birthday
+                );
 
                 await _profileRepository.AddAsync(profile, cancellationToken);
             }
@@ -77,7 +86,8 @@ public class CreateOrUpdateProfileCommandHandler : IRequestHandler<CreateOrUpdat
                     lastName: request.LastName,
                     nationalCode: request.NationalCode,
                     gender: request.Gender,
-                    birthday: request.Birthday);
+                    birthday: request.Birthday
+                );
 
                 await _profileRepository.UpdateAsync(existingProfile, cancellationToken);
                 profile = existingProfile;
@@ -95,7 +105,8 @@ public class CreateOrUpdateProfileCommandHandler : IRequestHandler<CreateOrUpdat
             profile.FirstName,
             profile.LastName,
             profile.NationalCode,
-            profile.Gender);
+            profile.Gender
+        );
 
         return new CreateOrUpdateProfileResult(true, null, profileDto);
     }

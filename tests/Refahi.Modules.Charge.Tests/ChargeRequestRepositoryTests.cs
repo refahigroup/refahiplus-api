@@ -12,7 +12,9 @@ public sealed class ChargeRequestRepositoryTests
     public async Task AddPinToTrackedRequest_TracksPinAsAdded()
     {
         var options = new DbContextOptionsBuilder<ChargeDbContext>()
-            .UseNpgsql("Host=localhost;Database=refahi_charge_state_test;Username=test;Password=test")
+            .UseNpgsql(
+                "Host=localhost;Database=refahi_charge_state_test;Username=test;Password=test"
+            )
             .Options;
         await using var context = new ChargeDbContext(options);
         var now = DateTime.UtcNow;
@@ -38,7 +40,8 @@ public sealed class ChargeRequestRepositoryTests
             50_000,
             Guid.NewGuid().ToString("N"),
             now,
-            now.AddMinutes(20));
+            now.AddMinutes(20)
+        );
         context.Attach(request);
 
         request.AddPin("encrypted-serial", "encrypted-code", 50_000);
@@ -52,7 +55,9 @@ public sealed class ChargeRequestRepositoryTests
     public async Task AddFulfillmentAttemptAsync_TracksNewAttemptAsAdded()
     {
         var options = new DbContextOptionsBuilder<ChargeDbContext>()
-            .UseNpgsql("Host=localhost;Database=refahi_charge_state_test;Username=test;Password=test")
+            .UseNpgsql(
+                "Host=localhost;Database=refahi_charge_state_test;Username=test;Password=test"
+            )
             .Options;
         await using var context = new ChargeDbContext(options);
         var repository = new ChargeRequestRepository(context);
@@ -69,7 +74,8 @@ public sealed class ChargeRequestRepositoryTests
             "{}",
             "{}",
             100,
-            DateTime.UtcNow);
+            DateTime.UtcNow
+        );
 
         await repository.AddFulfillmentAttemptAsync(attempt);
 

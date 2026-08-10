@@ -12,22 +12,24 @@ public class GetShopBySlugEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/shops/{slug}", async (
-            string slug,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new GetShopBySlugQuery(slug), ct);
-            return result is null
-                ? Results.NotFound()
-                : Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Store.GetShopBySlug")
-        .WithTags("Store.Shops")
-        .Produces<ApiResponse<ShopDto>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapGet(
+                "/shops/{slug}",
+                async (string slug, IMediator mediator, CancellationToken ct) =>
+                {
+                    var result = await mediator.Send(new GetShopBySlugQuery(slug), ct);
+                    return result is null
+                        ? Results.NotFound()
+                        : Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Store.GetShopBySlug")
+            .WithTags("Store.Shops")
+            .Produces<ApiResponse<ShopDto>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
         // No RequireAuthorization — public endpoint
     }
 }

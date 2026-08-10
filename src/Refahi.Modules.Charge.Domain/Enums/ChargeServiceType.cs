@@ -6,5 +6,5 @@ public enum ChargeServiceType : short
     InternetPackage = 2,
     PostpaidBill = 3,
     CreditLimit = 4,
-    PinCharge = 5
+    PinCharge = 5,
 }

@@ -25,14 +25,20 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                     CreatedByUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     Role = table.Column<short>(type: "smallint", nullable: false),
                     SupplierId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                     UpdatedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -43,21 +49,25 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                         principalSchema: "supplychain",
                         principalTable: "suppliers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+                        onDelete: ReferentialAction.Restrict
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_supplier_memberships_SupplierId_UserId",
                 schema: "supplychain",
                 table: "supplier_memberships",
                 columns: new[] { "SupplierId", "UserId" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_supplier_memberships_UserId_IsActive",
                 schema: "supplychain",
                 table: "supplier_memberships",
-                columns: new[] { "UserId", "IsActive" });
+                columns: new[] { "UserId", "IsActive" }
+            );
         }
     }
 }

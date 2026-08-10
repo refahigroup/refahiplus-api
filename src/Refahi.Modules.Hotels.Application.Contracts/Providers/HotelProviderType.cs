@@ -13,5 +13,5 @@ public enum HotelProviderType
     /// <summary>
     /// پروایدر Alibaba Travels
     /// </summary>
-    AlibabaTravels = 2
+    AlibabaTravels = 2,
 }

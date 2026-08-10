@@ -22,8 +22,8 @@ internal static class FlightBookingDtoMapper
             booking.ProviderBooking?.ProviderBookingCaption,
             booking.ExpiresAtUtc,
             booking.IssueFailureReason,
-            booking.Passengers
-                .Select(passenger => new FlightBookingPassengerDto(
+            booking
+                .Passengers.Select(passenger => new FlightBookingPassengerDto(
                     passenger.Id,
                     passenger.FirstName,
                     passenger.LastName,
@@ -31,10 +31,11 @@ internal static class FlightBookingDtoMapper
                     passenger.BirthDate,
                     passenger.NationalCode,
                     passenger.PassportNumber,
-                    passenger.NationalityCode))
+                    passenger.NationalityCode
+                ))
                 .ToList(),
-            booking.Segments
-                .OrderBy(segment => segment.Sequence)
+            booking
+                .Segments.OrderBy(segment => segment.Sequence)
                 .Select(segment => new FlightBookingSegmentDto(
                     segment.Sequence,
                     segment.FlightNumber,
@@ -45,21 +46,24 @@ internal static class FlightBookingDtoMapper
                     segment.DestinationAirportCode,
                     segment.DestinationCaption,
                     segment.DepartureAtUtc,
-                    segment.ArrivalAtUtc))
+                    segment.ArrivalAtUtc
+                ))
                 .ToList(),
-            ToTicketDtos(booking));
+            ToTicketDtos(booking)
+        );
     }
 
     public static IReadOnlyCollection<FlightIssuedTicketDto> ToTicketDtos(FlightBooking booking)
     {
-        return booking.IssuedTickets
-            .Select(ticket => new FlightIssuedTicketDto(
+        return booking
+            .IssuedTickets.Select(ticket => new FlightIssuedTicketDto(
                 ticket.Id,
                 ticket.PassengerId,
                 ticket.TicketNumber,
                 ticket.PassengerNameSnapshot,
                 ticket.ProviderTicketId,
-                ticket.IssuedAtUtc))
+                ticket.IssuedAtUtc
+            ))
             .ToList();
     }
 }

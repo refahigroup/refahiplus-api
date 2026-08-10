@@ -11,7 +11,10 @@ public class HotelProviderFactory : IHotelProviderFactory
     private readonly IServiceProvider _serviceProvider;
     private readonly HotelProviderType _defaultProvider;
 
-    public HotelProviderFactory(IServiceProvider serviceProvider, HotelProviderType defaultProvider = HotelProviderType.SnappTrip)
+    public HotelProviderFactory(
+        IServiceProvider serviceProvider,
+        HotelProviderType defaultProvider = HotelProviderType.SnappTrip
+    )
     {
         _serviceProvider = serviceProvider;
         _defaultProvider = defaultProvider;
@@ -24,13 +27,14 @@ public class HotelProviderFactory : IHotelProviderFactory
     {
         return providerType switch
         {
-            HotelProviderType.SnappTrip => 
+            HotelProviderType.SnappTrip =>
                 _serviceProvider.GetRequiredService<SnappTrip.SnappTripHotelProvider>(),
 
-            HotelProviderType.AlibabaTravels => 
-                throw new NotImplementedException("AlibabaTravels provider hasn't been implemented yet"),
+            HotelProviderType.AlibabaTravels => throw new NotImplementedException(
+                "AlibabaTravels provider hasn't been implemented yet"
+            ),
 
-            _ => throw new ArgumentException($"Unknown provider type: {providerType}")
+            _ => throw new ArgumentException($"Unknown provider type: {providerType}"),
         };
     }
 

@@ -5,16 +5,21 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Products.DeleteVariantAttributeValue;
 
-public class DeleteVariantAttributeValueCommandHandler : IRequestHandler<DeleteVariantAttributeValueCommand, Unit>
+public class DeleteVariantAttributeValueCommandHandler
+    : IRequestHandler<DeleteVariantAttributeValueCommand, Unit>
 {
     private readonly IProductRepository _productRepo;
 
-    public DeleteVariantAttributeValueCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public DeleteVariantAttributeValueCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
-    public async Task<Unit> Handle(DeleteVariantAttributeValueCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DeleteVariantAttributeValueCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         product.RemoveVariantAttributeValue(request.AttributeId, request.ValueId);

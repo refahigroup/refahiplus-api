@@ -32,33 +32,81 @@ public sealed class ShopProductRepositoryPostgresTests
         var firstShop = CreateActiveShop("فروشگاه اول", "first-shop");
         var secondShop = CreateActiveShop("فروشگاه دوم", "second-shop");
 
-        var firstProduct = Product.Create(Guid.NewGuid(), "محصول مشترک", "shared-product", stockCount: 10);
+        var firstProduct = Product.Create(
+            Guid.NewGuid(),
+            "محصول مشترک",
+            "shared-product",
+            stockCount: 10
+        );
         var firstVariant = firstProduct.AddVariant([], 10, 6_000, 6_000, sku: "first");
         var secondVariant = firstProduct.AddVariant([], 10, 4_000, 4_000, sku: "second");
 
-        var secondProduct = Product.Create(Guid.NewGuid(), "محصول مستقل", "other-product", stockCount: 10);
+        var secondProduct = Product.Create(
+            Guid.NewGuid(),
+            "محصول مستقل",
+            "other-product",
+            stockCount: 10
+        );
         var otherVariant = secondProduct.AddVariant([], 10, 5_000, 5_000);
 
-        var unavailableProduct = Product.Create(Guid.NewGuid(), "ناموجود", "unavailable", stockCount: 1);
+        var unavailableProduct = Product.Create(
+            Guid.NewGuid(),
+            "ناموجود",
+            "unavailable",
+            stockCount: 1
+        );
         var unavailableVariant = unavailableProduct.AddVariant([], 0, 1_000, 1_000);
 
-        var sessionProduct = Product.Create(Guid.NewGuid(), "خدمت ظرفیت‌محور", "capacity-session", stockCount: 1);
+        var sessionProduct = Product.Create(
+            Guid.NewGuid(),
+            "خدمت ظرفیت‌محور",
+            "capacity-session",
+            stockCount: 1
+        );
         var sessionVariant = sessionProduct.AddVariant(
-            [], 0, 2_000, 2_000, capacityType: VariantCapacityType.Unlimited, salesModel: SalesModel.SessionBased);
+            [],
+            0,
+            2_000,
+            2_000,
+            capacityType: VariantCapacityType.Unlimited,
+            salesModel: SalesModel.SessionBased
+        );
         var today = new DateOnly(2026, 7, 13);
         sessionProduct.AddSession(today.AddDays(-1), new TimeOnly(10, 0), new TimeOnly(11, 0), 5);
 
-        context.AddRange(firstShop, secondShop, firstProduct, secondProduct, unavailableProduct, sessionProduct);
+        context.AddRange(
+            firstShop,
+            secondShop,
+            firstProduct,
+            secondProduct,
+            unavailableProduct,
+            sessionProduct
+        );
         await context.SaveChangesAsync();
 
         var firstShopProduct = ShopProduct.Create(firstShop.Id, firstProduct.Id, 6_000, 6_000);
         firstShopProduct.AddVariantOffering(firstVariant.Id, 6_000, 5_000, isActive: true);
         var cheaperShopProduct = ShopProduct.Create(secondShop.Id, firstProduct.Id, 4_000, 4_000);
-        var cheapestOffering = cheaperShopProduct.AddVariantOffering(secondVariant.Id, 4_000, 2_500, isActive: true);
+        var cheapestOffering = cheaperShopProduct.AddVariantOffering(
+            secondVariant.Id,
+            4_000,
+            2_500,
+            isActive: true
+        );
         var otherShopProduct = ShopProduct.Create(secondShop.Id, secondProduct.Id, 5_000, 5_000);
         otherShopProduct.AddVariantOffering(otherVariant.Id, 5_000, 4_000, isActive: true);
-        var unavailableShopProduct = ShopProduct.Create(firstShop.Id, unavailableProduct.Id, 1_000, 1_000);
-        unavailableShopProduct.AddVariantOffering(unavailableVariant.Id, 1_000, 1_000, isActive: true);
+        var unavailableShopProduct = ShopProduct.Create(
+            firstShop.Id,
+            unavailableProduct.Id,
+            1_000,
+            1_000
+        );
+        unavailableShopProduct.AddVariantOffering(
+            unavailableVariant.Id,
+            1_000,
+            1_000,
+            isActive: true
+        );
         var sessionShopProduct = ShopProduct.Create(secondShop.Id, sessionProduct.Id, 2_000, 2_000);
         sessionShopProduct.AddVariantOffering(sessionVariant.Id, 2_000, 2_000, isActive: true);
 
@@ -67,7 +115,8 @@ public sealed class ShopProductRepositoryPostgresTests
             cheaperShopProduct,
             otherShopProduct,
             unavailableShopProduct,
-            sessionShopProduct);
+            sessionShopProduct
+        );
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
@@ -76,12 +125,19 @@ public sealed class ShopProductRepositoryPostgresTests
         {
             firstProduct.AgreementProductId,
             secondProduct.AgreementProductId,
-            unavailableProduct.AgreementProductId
+            unavailableProduct.AgreementProductId,
         };
         var sessionIds = new[] { sessionProduct.AgreementProductId };
 
         var (items, total) = await repository.GetDisplayableProductsAsync(
-            stockIds, sessionIds, today, null, "newest", 1, 10);
+            stockIds,
+            sessionIds,
+            today,
+            null,
+            "newest",
+            1,
+            10
+        );
 
         Assert.Equal(3, total);
         Assert.Equal(3, items.Count);
@@ -93,13 +149,27 @@ public sealed class ShopProductRepositoryPostgresTests
         Assert.Contains(items, x => x.ProductId == sessionProduct.Id);
 
         var (shopSearch, shopSearchTotal) = await repository.GetDisplayableProductsAsync(
-            stockIds, sessionIds, today, "فروشگاه اول", "price-asc", 1, 10);
+            stockIds,
+            sessionIds,
+            today,
+            "فروشگاه اول",
+            "price-asc",
+            1,
+            10
+        );
         var searched = Assert.Single(shopSearch);
         Assert.Equal(1, shopSearchTotal);
         Assert.Equal(firstShop.Id, searched.ShopId);
 
         var (pricePage, priceTotal) = await repository.GetDisplayableProductsAsync(
-            stockIds, sessionIds, today, null, "price-asc", 1, 1);
+            stockIds,
+            sessionIds,
+            today,
+            null,
+            "price-asc",
+            1,
+            1
+        );
         Assert.Equal(3, priceTotal);
         Assert.Equal(sessionProduct.Id, Assert.Single(pricePage).ProductId);
     }
@@ -121,19 +191,55 @@ public sealed class ShopProductRepositoryPostgresTests
         await using var context = new StoreDbContext(options);
 
         var activeShop = CreateActiveShop("فروشگاه فعال", "active-shop");
-        var pendingShop = Shop.Create("فروشگاه غیرفعال", "pending-shop", ShopType.Online, Guid.NewGuid());
+        var pendingShop = Shop.Create(
+            "فروشگاه غیرفعال",
+            "pending-shop",
+            ShopType.Online,
+            Guid.NewGuid()
+        );
         var stockProduct = Product.Create(Guid.NewGuid(), "کالای موجود", "stock", stockCount: 3);
-        var unavailableProduct = Product.Create(Guid.NewGuid(), "کالای ناموجود", "unavailable-stock", stockCount: 0);
-        var inactiveShopProduct = Product.Create(Guid.NewGuid(), "کالای فروشگاه غیرفعال", "inactive-shop", stockCount: 3);
-        var sessionProduct = Product.Create(Guid.NewGuid(), "سانس آینده", "future-session", stockCount: 0);
-        var expiredSessionProduct = Product.Create(Guid.NewGuid(), "سانس گذشته", "expired-session", stockCount: 0);
+        var unavailableProduct = Product.Create(
+            Guid.NewGuid(),
+            "کالای ناموجود",
+            "unavailable-stock",
+            stockCount: 0
+        );
+        var inactiveShopProduct = Product.Create(
+            Guid.NewGuid(),
+            "کالای فروشگاه غیرفعال",
+            "inactive-shop",
+            stockCount: 3
+        );
+        var sessionProduct = Product.Create(
+            Guid.NewGuid(),
+            "سانس آینده",
+            "future-session",
+            stockCount: 0
+        );
+        var expiredSessionProduct = Product.Create(
+            Guid.NewGuid(),
+            "سانس گذشته",
+            "expired-session",
+            stockCount: 0
+        );
         var today = new DateOnly(2026, 7, 22);
         sessionProduct.AddSession(today.AddDays(1), new TimeOnly(9, 0), new TimeOnly(10, 0), 5);
-        expiredSessionProduct.AddSession(today.AddDays(-1), new TimeOnly(9, 0), new TimeOnly(10, 0), 5);
+        expiredSessionProduct.AddSession(
+            today.AddDays(-1),
+            new TimeOnly(9, 0),
+            new TimeOnly(10, 0),
+            5
+        );
 
         context.AddRange(
-            activeShop, pendingShop, stockProduct, unavailableProduct,
-            inactiveShopProduct, sessionProduct, expiredSessionProduct);
+            activeShop,
+            pendingShop,
+            stockProduct,
+            unavailableProduct,
+            inactiveShopProduct,
+            sessionProduct,
+            expiredSessionProduct
+        );
         await context.SaveChangesAsync();
 
         context.AddRange(
@@ -141,26 +247,28 @@ public sealed class ShopProductRepositoryPostgresTests
             ShopProduct.Create(activeShop.Id, unavailableProduct.Id, 10_000, 10_000),
             ShopProduct.Create(pendingShop.Id, inactiveShopProduct.Id, 10_000, 10_000),
             ShopProduct.Create(activeShop.Id, sessionProduct.Id, 20_000, 20_000),
-            ShopProduct.Create(activeShop.Id, expiredSessionProduct.Id, 20_000, 20_000));
+            ShopProduct.Create(activeShop.Id, expiredSessionProduct.Id, 20_000, 20_000)
+        );
         await context.SaveChangesAsync();
 
         var stockIds = new[]
         {
             stockProduct.AgreementProductId,
             unavailableProduct.AgreementProductId,
-            inactiveShopProduct.AgreementProductId
+            inactiveShopProduct.AgreementProductId,
         };
         var sessionIds = new[]
         {
             sessionProduct.AgreementProductId,
-            expiredSessionProduct.AgreementProductId
+            expiredSessionProduct.AgreementProductId,
         };
         var spec = new SyntheticOfferQuerySpec(
             stockIds,
             sessionIds,
             today,
             PageSize: 30,
-            CurrentTime: new TimeOnly(12, 0));
+            CurrentTime: new TimeOnly(12, 0)
+        );
         var repository = new SyntheticOfferReadRepository(connectionString);
 
         var eligibleIds = await repository.GetEligibleAgreementProductIdsAsync(spec);
@@ -168,7 +276,8 @@ public sealed class ShopProductRepositoryPostgresTests
 
         Assert.Equal(
             catalog.Select(item => item.AgreementProductId).Distinct().Order(),
-            eligibleIds.Order());
+            eligibleIds.Order()
+        );
         Assert.Contains(stockProduct.AgreementProductId, eligibleIds);
         Assert.Contains(sessionProduct.AgreementProductId, eligibleIds);
         Assert.DoesNotContain(unavailableProduct.AgreementProductId, eligibleIds);
@@ -189,7 +298,8 @@ public sealed class ShopProductRepositoryPostgresTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "drop schema if exists store cascade; drop table if exists public.\"__EFMigrationsHistory\";";
+            command.CommandText =
+                "drop schema if exists store cascade; drop table if exists public.\"__EFMigrationsHistory\";";
             await command.ExecuteNonQueryAsync();
         }
 

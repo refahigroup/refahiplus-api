@@ -15,17 +15,28 @@ public sealed class CreateMarkupRuleEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("admin/markup-rules", async ([FromBody] MarkupRuleBody body, ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(
-                await sender.Send(new UpsertMarkupRuleCommand(
-                    null,
-                    body.Operator,
-                    body.ServiceType,
-                    body.Percent,
-                    body.FixedAmountMinor,
-                    body.EffectiveFrom,
-                    body.EffectiveTo), ct),
-                "قانون افزایش قیمت ثبت شد")))
+        routes
+            .MapPost(
+                "admin/markup-rules",
+                async ([FromBody] MarkupRuleBody body, ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(
+                                new UpsertMarkupRuleCommand(
+                                    null,
+                                    body.Operator,
+                                    body.ServiceType,
+                                    body.Percent,
+                                    body.FixedAmountMinor,
+                                    body.EffectiveFrom,
+                                    body.EffectiveTo
+                                ),
+                                ct
+                            ),
+                            "قانون افزایش قیمت ثبت شد"
+                        )
+                    )
+            )
             .RequireAuthorization("AdminOnly")
             .WithName("Charge.Admin.MarkupRules.Create")
             .WithTags("Charge.Admin")

@@ -23,39 +23,44 @@ public sealed class GetPaymentIntentEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("/payments/intents/{intentId:guid}", async (
-            [FromRoute] Guid intentId,
-            [FromServices] ISender mediator,
-            CancellationToken ct) =>
-        {
-            try
-            {
-                var query = new GetPaymentIntentQuery(intentId);
-                var result = await mediator.Send(query, ct);
+        routes
+            .MapGet(
+                "/payments/intents/{intentId:guid}",
+                async (
+                    [FromRoute] Guid intentId,
+                    [FromServices] ISender mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    try
+                    {
+                        var query = new GetPaymentIntentQuery(intentId);
+                        var result = await mediator.Send(query, ct);
 
-                return result.Status == CommandStatus.Completed
-                    ? Results.Ok(result.Data)
-                    : Results.StatusCode(StatusCodes.Status500InternalServerError);
-            }
-            catch (PaymentIntentNotFoundException ex)
-            {
-                return Results.NotFound(new ErrorResponse(ex.Code, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    title: "Internal server error",
-                    detail: ex.Message,
-                    statusCode: StatusCodes.Status500InternalServerError
-                );
-            }
-        })
-        .RequireAuthorization()
-        .WithName("Payments.GetPaymentIntent")
-        .WithTags("Payments")
-        .Produces<GetPaymentIntentResponse>(StatusCodes.Status200OK)
-        .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status500InternalServerError);
+                        return result.Status == CommandStatus.Completed
+                            ? Results.Ok(result.Data)
+                            : Results.StatusCode(StatusCodes.Status500InternalServerError);
+                    }
+                    catch (PaymentIntentNotFoundException ex)
+                    {
+                        return Results.NotFound(new ErrorResponse(ex.Code, ex.Message));
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Problem(
+                            title: "Internal server error",
+                            detail: ex.Message,
+                            statusCode: StatusCodes.Status500InternalServerError
+                        );
+                    }
+                }
+            )
+            .RequireAuthorization()
+            .WithName("Payments.GetPaymentIntent")
+            .WithTags("Payments")
+            .Produces<GetPaymentIntentResponse>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status500InternalServerError);
     }
 }

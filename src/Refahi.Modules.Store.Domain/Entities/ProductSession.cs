@@ -26,17 +26,32 @@ public sealed class ProductSession
     public bool IsAvailable => IsActive && !IsCancelled && SoldCount < Capacity;
 
     internal static ProductSession Create(
-        Guid productId, DateOnly date, TimeOnly startTime, TimeOnly endTime,
-        int capacity, string? title, long priceAdjustment)
+        Guid productId,
+        DateOnly date,
+        TimeOnly startTime,
+        TimeOnly endTime,
+        int capacity,
+        string? title,
+        long priceAdjustment
+    )
     {
         if (endTime <= startTime)
-            throw new StoreDomainException("زمان پایان باید بعد از زمان شروع باشد", "INVALID_SESSION_TIME_RANGE");
+            throw new StoreDomainException(
+                "زمان پایان باید بعد از زمان شروع باشد",
+                "INVALID_SESSION_TIME_RANGE"
+            );
 
         if (capacity <= 0)
-            throw new StoreDomainException("ظرفیت سانس باید بیشتر از صفر باشد", "INVALID_SESSION_CAPACITY");
+            throw new StoreDomainException(
+                "ظرفیت سانس باید بیشتر از صفر باشد",
+                "INVALID_SESSION_CAPACITY"
+            );
 
         if (priceAdjustment < 0)
-            throw new StoreDomainException("تفاوت قیمت نمی‌تواند منفی باشد", "INVALID_SESSION_PRICE_ADJUSTMENT");
+            throw new StoreDomainException(
+                "تفاوت قیمت نمی‌تواند منفی باشد",
+                "INVALID_SESSION_PRICE_ADJUSTMENT"
+            );
 
         return new ProductSession
         {
@@ -50,7 +65,7 @@ public sealed class ProductSession
             SoldCount = 0,
             PriceAdjustment = priceAdjustment,
             IsActive = true,
-            IsCancelled = false
+            IsCancelled = false,
         };
     }
 
@@ -70,20 +85,40 @@ public sealed class ProductSession
         SoldCount -= quantity;
     }
 
-    public void Cancel() { IsCancelled = true; }
-    public void Deactivate() { IsActive = false; }
-    public void Activate() { IsActive = true; }
+    public void Cancel()
+    {
+        IsCancelled = true;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
+    }
+
+    public void Activate()
+    {
+        IsActive = true;
+    }
 
     public void UpdateInfo(int capacity, string? title, long priceAdjustment)
     {
         if (capacity <= 0)
-            throw new StoreDomainException("ظرفیت سانس باید بیشتر از صفر باشد", "INVALID_SESSION_CAPACITY");
+            throw new StoreDomainException(
+                "ظرفیت سانس باید بیشتر از صفر باشد",
+                "INVALID_SESSION_CAPACITY"
+            );
 
         if (capacity < SoldCount)
-            throw new StoreDomainException("ظرفیت سانس نمی‌تواند کمتر از تعداد فروخته‌شده باشد", "SESSION_CAPACITY_BELOW_SOLD_COUNT");
+            throw new StoreDomainException(
+                "ظرفیت سانس نمی‌تواند کمتر از تعداد فروخته‌شده باشد",
+                "SESSION_CAPACITY_BELOW_SOLD_COUNT"
+            );
 
         if (priceAdjustment < 0)
-            throw new StoreDomainException("تفاوت قیمت نمی‌تواند منفی باشد", "INVALID_SESSION_PRICE_ADJUSTMENT");
+            throw new StoreDomainException(
+                "تفاوت قیمت نمی‌تواند منفی باشد",
+                "INVALID_SESSION_PRICE_ADJUSTMENT"
+            );
 
         Capacity = capacity;
         Title = title;

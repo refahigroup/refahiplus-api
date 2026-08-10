@@ -1,32 +1,32 @@
-using Dapper;
-using Npgsql;
-using Refahi.Modules.Wallets.Application.Contracts.Exceptions;
-using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
-using Refahi.Modules.Wallets.Domain.Enums;
 using System;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
+using Npgsql;
+using Refahi.Modules.Wallets.Application.Contracts.Exceptions;
+using Refahi.Modules.Wallets.Application.Contracts.Infrastructure;
+using Refahi.Modules.Wallets.Domain.Enums;
 
 namespace Refahi.Modules.Wallets.Infrastructure.Persistence.Atomic;
 
 /// <summary>
 /// Infrastructure: Atomic execution of wallet write operations.
-/// 
+///
 /// Responsibilities:
 /// - DB connection & transaction management
 /// - Advisory locks
 /// - SQL execution (idempotency, ledger, balance)
 /// - Constraint validation (throws domain exceptions)
 /// - Returns structured outcome (NO business interpretation)
-/// 
+///
 /// Does NOT:
 /// - Make business decisions about what to return to user
 /// - Build API responses
 /// - Normalize inputs (receives pre-normalized data)
-/// 
+///
 /// This is pure infrastructure execution.
 /// </summary>
 public sealed class WalletAtomicWriter : IWalletAtomicWriter
@@ -45,9 +45,16 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
         string currency,
         string? externalReference,
         string? metadataJson,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        var requestHash = ComputeRequestHash(walletId, amountMinor, currency, metadataJson, externalReference);
+        var requestHash = ComputeRequestHash(
+            walletId,
+            amountMinor,
+            currency,
+            metadataJson,
+            externalReference
+        );
 
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
@@ -58,21 +65,24 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
         var idempotencyId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
 
-        var insertedOperationId = await conn.ExecuteScalarAsync<Guid?>(new CommandDefinition(
-            Sql.IdempotencyInsertPendingReturningOperationId,
-            new
-            {
-                IdempotencyId = idempotencyId,
-                WalletId = walletId,
-                IdempotencyKey = idempotencyKey,
-                OperationId = operationId,
-                OperationType = (short)OperationType.TopUp,
-                RequestHash = requestHash,
-                StatusPending = (short)IdempotencyStatus.Pending,
-                CreatedAt = now
-            },
-            tx,
-            cancellationToken: ct));
+        var insertedOperationId = await conn.ExecuteScalarAsync<Guid?>(
+            new CommandDefinition(
+                Sql.IdempotencyInsertPendingReturningOperationId,
+                new
+                {
+                    IdempotencyId = idempotencyId,
+                    WalletId = walletId,
+                    IdempotencyKey = idempotencyKey,
+                    OperationId = operationId,
+                    OperationType = (short)OperationType.TopUp,
+                    RequestHash = requestHash,
+                    StatusPending = (short)IdempotencyStatus.Pending,
+                    CreatedAt = now,
+                },
+                tx,
+                cancellationToken: ct
+            )
+        );
 
         var isNewIdempotency = insertedOperationId.HasValue;
 
@@ -84,10 +94,12 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
                 {
                     WalletId = walletId,
                     IdempotencyKey = idempotencyKey,
-                    OperationType = (short)OperationType.TopUp
+                    OperationType = (short)OperationType.TopUp,
                 },
                 tx,
-                cancellationToken: ct));
+                cancellationToken: ct
+            )
+        );
 
         if (idem is null)
             throw new InvalidOperationException("Idempotency row could not be loaded.");
@@ -109,18 +121,21 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
                 OperationId: idem.OperationId,
                 LedgerEntryId: ledgerId,
                 AvailableBalanceMinor: balance,
-                CompletedAt: completedAt);
+                CompletedAt: completedAt
+            );
         }
 
         // 2B) PENDING (new or existing) - attempt try-lock to determine leader
         if ((IdempotencyStatus)idem.Status == IdempotencyStatus.Pending)
         {
-            var lockAcquired = await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
-                Sql.AdvisoryLock,
-                new { WalletId = walletId },
-                tx,
-                cancellationToken: ct
-            ));
+            var lockAcquired = await conn.ExecuteScalarAsync<bool>(
+                new CommandDefinition(
+                    Sql.AdvisoryLock,
+                    new { WalletId = walletId },
+                    tx,
+                    cancellationToken: ct
+                )
+            );
 
             if (!lockAcquired)
             {
@@ -132,7 +147,8 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
                     OperationId: idem.OperationId,
                     LedgerEntryId: null,
                     AvailableBalanceMinor: 0,
-                    CompletedAt: now);
+                    CompletedAt: now
+                );
             }
 
             // Leader: acquired lock, re-check idempotency (may have been completed by another tx)
@@ -143,13 +159,17 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
                     {
                         WalletId = walletId,
                         IdempotencyKey = idempotencyKey,
-                        OperationType = (short)OperationType.TopUp
+                        OperationType = (short)OperationType.TopUp,
                     },
                     tx,
-                    cancellationToken: ct));
+                    cancellationToken: ct
+                )
+            );
 
             if (idem is null)
-                throw new InvalidOperationException("Idempotency row disappeared after lock acquisition.");
+                throw new InvalidOperationException(
+                    "Idempotency row disappeared after lock acquisition."
+                );
 
             if ((IdempotencyStatus)idem.Status == IdempotencyStatus.Completed)
             {
@@ -165,18 +185,22 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
                     OperationId: idem.OperationId,
                     LedgerEntryId: ledgerId,
                     AvailableBalanceMinor: balance,
-                    CompletedAt: completedAt);
+                    CompletedAt: completedAt
+                );
             }
 
             // Still PENDING under lock - this request is the leader, continue to business logic
         }
 
         // 4) Validate wallet constraints (throws domain exceptions)
-        var wallet = await conn.QuerySingleOrDefaultAsync<WalletRow>(new CommandDefinition(
-            Sql.WalletSelectForValidation,
-            new { WalletId = walletId },
-            tx,
-            cancellationToken: ct));
+        var wallet = await conn.QuerySingleOrDefaultAsync<WalletRow>(
+            new CommandDefinition(
+                Sql.WalletSelectForValidation,
+                new { WalletId = walletId },
+                tx,
+                cancellationToken: ct
+            )
+        );
 
         if (wallet is null)
             throw new WalletNotFoundException(walletId);
@@ -195,64 +219,76 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
         var ledgerEntryId = Guid.NewGuid();
         var effectiveAt = now;
 
-        await conn.ExecuteAsync(new CommandDefinition(
-            Sql.LedgerInsert,
-            new
-            {
-                LedgerEntryId = ledgerEntryId,
-                WalletId = walletId,
-                OperationId = effectiveOperationId,
-                OperationType = (short)OperationType.TopUp,
-                EntryType = (short)EntryType.Credit,
-                AmountMinor = amountMinor,
-                Currency = currency,
-                EffectiveAt = effectiveAt,
-                CreatedAt = now,
-                ExternalReference = externalReference,
-                MetadataJson = metadataJson
-            },
-            tx,
-            cancellationToken: ct));
+        await conn.ExecuteAsync(
+            new CommandDefinition(
+                Sql.LedgerInsert,
+                new
+                {
+                    LedgerEntryId = ledgerEntryId,
+                    WalletId = walletId,
+                    OperationId = effectiveOperationId,
+                    OperationType = (short)OperationType.TopUp,
+                    EntryType = (short)EntryType.Credit,
+                    AmountMinor = amountMinor,
+                    Currency = currency,
+                    EffectiveAt = effectiveAt,
+                    CreatedAt = now,
+                    ExternalReference = externalReference,
+                    MetadataJson = metadataJson,
+                },
+                tx,
+                cancellationToken: ct
+            )
+        );
 
         // 6) Balance projection UPSERT (version++)
-        var upserted = await conn.ExecuteAsync(new CommandDefinition(
-            Sql.BalanceUpsert,
-            new
-            {
-                WalletId = walletId,
-                DeltaAvailableMinor = amountMinor,
-                Currency = currency,
-                LastLedgerEntryId = ledgerEntryId,
-                UpdatedAt = now
-            },
-            tx,
-            cancellationToken: ct));
+        var upserted = await conn.ExecuteAsync(
+            new CommandDefinition(
+                Sql.BalanceUpsert,
+                new
+                {
+                    WalletId = walletId,
+                    DeltaAvailableMinor = amountMinor,
+                    Currency = currency,
+                    LastLedgerEntryId = ledgerEntryId,
+                    UpdatedAt = now,
+                },
+                tx,
+                cancellationToken: ct
+            )
+        );
 
         if (upserted == 0)
             throw new WalletCurrencyMismatchException(wallet.Currency, currency);
 
-        var available = await conn.ExecuteScalarAsync<long>(new CommandDefinition(
-            Sql.BalanceSelect,
-            new { WalletId = walletId },
-            tx,
-            cancellationToken: ct));
+        var available = await conn.ExecuteScalarAsync<long>(
+            new CommandDefinition(
+                Sql.BalanceSelect,
+                new { WalletId = walletId },
+                tx,
+                cancellationToken: ct
+            )
+        );
 
         // 7) Mark idempotency as COMPLETED + record result
-        var completed = await conn.ExecuteAsync(new CommandDefinition(
-            Sql.IdempotencyComplete,
-            new
-            {
-                StatusCompleted = (short)IdempotencyStatus.Completed,
-                StatusPending = (short)IdempotencyStatus.Pending,
-                WalletId = walletId,
-                IdempotencyKey = idempotencyKey,
-                OperationType = (short)OperationType.TopUp,
-                LedgerEntryId = ledgerEntryId,
-                AvailableBalanceMinor = available,
-                CompletedAt = now
-            },
-            tx,
-            cancellationToken: ct));
+        var completed = await conn.ExecuteAsync(
+            new CommandDefinition(
+                Sql.IdempotencyComplete,
+                new
+                {
+                    StatusCompleted = (short)IdempotencyStatus.Completed,
+                    StatusPending = (short)IdempotencyStatus.Pending,
+                    WalletId = walletId,
+                    IdempotencyKey = idempotencyKey,
+                    OperationType = (short)OperationType.TopUp,
+                    LedgerEntryId = ledgerEntryId,
+                    AvailableBalanceMinor = available,
+                    CompletedAt = now,
+                },
+                tx,
+                cancellationToken: ct
+            )
+        );
 
         if (completed != 1)
             throw new InvalidOperationException("Idempotency completion update failed.");
@@ -265,20 +301,30 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
             OperationId: effectiveOperationId,
             LedgerEntryId: ledgerEntryId,
             AvailableBalanceMinor: available,
-            CompletedAt: now);
+            CompletedAt: now
+        );
     }
 
-    private static byte[] ComputeRequestHash(Guid walletId, long amountMinor, string currency, string? metadataJson, string? externalReference)
+    private static byte[] ComputeRequestHash(
+        Guid walletId,
+        long amountMinor,
+        string currency,
+        string? metadataJson,
+        string? externalReference
+    )
     {
         // Canonical payload. Must be stable and ordering-independent.
-        var canonical = string.Join("|", new[]
-        {
-            walletId.ToString("D"),
-            amountMinor.ToString(),
-            currency,
-            metadataJson ?? string.Empty,
-            externalReference ?? string.Empty
-        });
+        var canonical = string.Join(
+            "|",
+            new[]
+            {
+                walletId.ToString("D"),
+                amountMinor.ToString(),
+                currency,
+                metadataJson ?? string.Empty,
+                externalReference ?? string.Empty,
+            }
+        );
 
         return SHA256.HashData(Encoding.UTF8.GetBytes(canonical));
     }
@@ -294,7 +340,9 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
 
     private static Guid ReadFirstLedgerEntryId(IdempotencyRow idem)
     {
-        return idem.ResultLedgerEntryIds is { Length: > 0 } && idem.ResultLedgerEntryIds.GetValue(0) is Guid ledgerEntryId
+        return
+            idem.ResultLedgerEntryIds is { Length: > 0 }
+            && idem.ResultLedgerEntryIds.GetValue(0) is Guid ledgerEntryId
             ? ledgerEntryId
             : Guid.Empty;
     }
@@ -302,14 +350,12 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
     private enum IdempotencyStatus : short
     {
         Pending = 1,
-        Completed = 2
+        Completed = 2,
     }
 
     private sealed class IdempotencyRow
     {
-        public IdempotencyRow()
-        {
-        }
+        public IdempotencyRow() { }
 
         public Guid IdempotencyId { get; set; }
         public Guid WalletId { get; set; }
@@ -329,9 +375,11 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
     {
         // REQUIRED EVIDENCE: Exact SQL strings (unchanged from previous implementation)
 
-        public const string AdvisoryLock = @"select pg_try_advisory_xact_lock(hashtext(@WalletId::text));";
+        public const string AdvisoryLock =
+            @"select pg_try_advisory_xact_lock(hashtext(@WalletId::text));";
 
-        public const string IdempotencyInsertPendingReturningOperationId = @"
+        public const string IdempotencyInsertPendingReturningOperationId =
+            @"
 insert into wallets.idempotency_keys (
   idempotency_id,
   wallet_id,
@@ -366,7 +414,8 @@ on conflict (wallet_id, idempotency_key, operation_type) do nothing
 returning operation_id;
 ";
 
-        public const string IdempotencySelectForWalletKey = @"
+        public const string IdempotencySelectForWalletKey =
+            @"
 select
   idempotency_id as IdempotencyId,
   wallet_id as WalletId,
@@ -382,13 +431,15 @@ from wallets.idempotency_keys
 where wallet_id = @WalletId and idempotency_key = @IdempotencyKey and operation_type = @OperationType;
 ";
 
-        public const string WalletSelectForValidation = @"
+        public const string WalletSelectForValidation =
+            @"
 select wallet_id as WalletId, currency as Currency, status as Status
 from wallets.wallets
 where wallet_id = @WalletId;
 ";
 
-        public const string LedgerInsert = @"
+        public const string LedgerInsert =
+            @"
 insert into wallets.ledger_entries (
   ledger_entry_id,
   wallet_id,
@@ -421,7 +472,8 @@ values (
 );
 ";
 
-        public const string BalanceUpsert = @"
+        public const string BalanceUpsert =
+            @"
 insert into wallets.wallet_balances (
   wallet_id,
   available_minor,
@@ -450,13 +502,15 @@ set
 where wallets.wallet_balances.currency = excluded.currency;
 ";
 
-        public const string BalanceSelect = @"
+        public const string BalanceSelect =
+            @"
 select available_minor as AvailableMinor
 from wallets.wallet_balances
 where wallet_id = @WalletId;
 ";
 
-        public const string IdempotencyComplete = @"
+        public const string IdempotencyComplete =
+            @"
 update wallets.idempotency_keys
 set
   status = @StatusCompleted,

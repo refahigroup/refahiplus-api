@@ -7,7 +7,8 @@ using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts
 
 namespace Refahi.Modules.Store.Application.Features.Products.UpdateProductVariant;
 
-public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateProductVariantCommand, Unit>
+public sealed class UpdateProductVariantCommandHandler
+    : IRequestHandler<UpdateProductVariantCommand, Unit>
 {
     private readonly IProductRepository _productRepo;
     private readonly IMediator _mediator;
@@ -18,9 +19,13 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
         _mediator = mediator;
     }
 
-    public async Task<Unit> Handle(UpdateProductVariantCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        UpdateProductVariantCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
         SalesModel salesModel;
         if (product.AgreementProductId == Guid.Empty)
@@ -29,11 +34,20 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
         }
         else
         {
-            var agreementProduct = await _mediator.Send(
-                    new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
-                ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+            var agreementProduct =
+                await _mediator.Send(
+                    new GetAgreementProductByIdQuery(product.AgreementProductId),
+                    cancellationToken
+                )
+                ?? throw new StoreDomainException(
+                    "اطلاعات محصول یافت نشد",
+                    "AGREEMENT_PRODUCT_NOT_FOUND"
+                );
             if (agreementProduct.PricingMode == 2)
-                throw new StoreDomainException("برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست", "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED");
+                throw new StoreDomainException(
+                    "برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست",
+                    "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED"
+                );
             salesModel = (SalesModel)agreementProduct.SalesModel;
         }
 
@@ -49,7 +63,8 @@ public sealed class UpdateProductVariantCommandHandler : IRequestHandler<UpdateP
             request.ToDate,
             request.CapacityType,
             request.Capacity,
-            salesModel);
+            salesModel
+        );
         await _productRepo.UpdateAsync(product, cancellationToken);
 
         return Unit.Value;

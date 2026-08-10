@@ -15,7 +15,8 @@ public class LinkMediaToEntityCommandHandler : IRequestHandler<LinkMediaToEntity
 
     public async Task<Unit> Handle(LinkMediaToEntityCommand request, CancellationToken ct)
     {
-        var asset = await _repository.GetByIdAsync(request.MediaId, ct)
+        var asset =
+            await _repository.GetByIdAsync(request.MediaId, ct)
             ?? throw new KeyNotFoundException("فایل مدیا یافت نشد");
 
         if (asset.IsDeleted)

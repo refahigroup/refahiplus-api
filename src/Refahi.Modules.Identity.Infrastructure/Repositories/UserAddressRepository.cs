@@ -19,16 +19,28 @@ public class UserAddressRepository : IUserAddressRepository
         _db = db;
     }
 
-    public Task<UserAddress?> GetByIdAsync(Guid addressId, CancellationToken cancellationToken = default)
-        => _db.UserAddresses.FirstOrDefaultAsync(a => a.Id == addressId, cancellationToken);
+    public Task<UserAddress?> GetByIdAsync(
+        Guid addressId,
+        CancellationToken cancellationToken = default
+    ) => _db.UserAddresses.FirstOrDefaultAsync(a => a.Id == addressId, cancellationToken);
 
-    public Task<UserAddress?> GetByIdForUserAsync(Guid addressId, Guid userId, CancellationToken cancellationToken = default)
-        => _db.UserAddresses.FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == userId, cancellationToken);
+    public Task<UserAddress?> GetByIdForUserAsync(
+        Guid addressId,
+        Guid userId,
+        CancellationToken cancellationToken = default
+    ) =>
+        _db.UserAddresses.FirstOrDefaultAsync(
+            a => a.Id == addressId && a.UserId == userId,
+            cancellationToken
+        );
 
-    public async Task<IReadOnlyList<UserAddress>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<UserAddress>> GetByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default
+    )
     {
-        var list = await _db.UserAddresses
-            .Where(a => a.UserId == userId)
+        var list = await _db
+            .UserAddresses.Where(a => a.UserId == userId)
             .OrderByDescending(a => a.IsDefault)
             .ThenByDescending(a => a.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -36,8 +48,14 @@ public class UserAddressRepository : IUserAddressRepository
         return list;
     }
 
-    public Task<UserAddress?> GetDefaultForUserAsync(Guid userId, CancellationToken cancellationToken = default)
-        => _db.UserAddresses.FirstOrDefaultAsync(a => a.UserId == userId && a.IsDefault, cancellationToken);
+    public Task<UserAddress?> GetDefaultForUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default
+    ) =>
+        _db.UserAddresses.FirstOrDefaultAsync(
+            a => a.UserId == userId && a.IsDefault,
+            cancellationToken
+        );
 
     public async Task AddAsync(UserAddress address, CancellationToken cancellationToken = default)
     {
@@ -45,26 +63,40 @@ public class UserAddressRepository : IUserAddressRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(UserAddress address, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(
+        UserAddress address,
+        CancellationToken cancellationToken = default
+    )
     {
         _db.UserAddresses.Update(address);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task DeleteAsync(UserAddress address, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(
+        UserAddress address,
+        CancellationToken cancellationToken = default
+    )
     {
         _db.UserAddresses.Remove(address);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UnsetDefaultForUserAsync(Guid userId, Guid? exceptAddressId = null, CancellationToken cancellationToken = default)
+    public async Task UnsetDefaultForUserAsync(
+        Guid userId,
+        Guid? exceptAddressId = null,
+        CancellationToken cancellationToken = default
+    )
     {
-        var defaults = await _db.UserAddresses
-            .Where(a => a.UserId == userId && a.IsDefault &&
-                        (exceptAddressId == null || a.Id != exceptAddressId.Value))
+        var defaults = await _db
+            .UserAddresses.Where(a =>
+                a.UserId == userId
+                && a.IsDefault
+                && (exceptAddressId == null || a.Id != exceptAddressId.Value)
+            )
             .ToListAsync(cancellationToken);
 
-        if (defaults.Count == 0) return;
+        if (defaults.Count == 0)
+            return;
 
         foreach (var addr in defaults)
             addr.UnmarkAsDefault();

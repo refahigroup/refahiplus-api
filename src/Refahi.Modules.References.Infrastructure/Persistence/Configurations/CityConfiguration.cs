@@ -25,7 +25,8 @@ public class CityConfiguration : IEntityTypeConfiguration<City>
         builder.HasIndex(c => c.SortOrder);
 
         // Province navigation
-        builder.HasOne(c => c.Province)
+        builder
+            .HasOne(c => c.Province)
             .WithMany()
             .HasForeignKey(c => c.ProvinceId)
             .OnDelete(DeleteBehavior.Restrict);

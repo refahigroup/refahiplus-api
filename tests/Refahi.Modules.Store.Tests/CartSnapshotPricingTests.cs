@@ -14,8 +14,24 @@ public sealed class CartSnapshotPricingTests
         var variantId = Guid.Parse("40000000-0000-0000-0000-000000000001");
         var cart = Cart.Create(userId, moduleId: 1);
 
-        cart.AddItem(shopId, productId, variantId, sessionId: null, usageDate: null, quantity: 1, unitPriceMinor: 1700);
-        cart.AddItem(shopId, productId, variantId, sessionId: null, usageDate: null, quantity: 2, unitPriceMinor: 1900);
+        cart.AddItem(
+            shopId,
+            productId,
+            variantId,
+            sessionId: null,
+            usageDate: null,
+            quantity: 1,
+            unitPriceMinor: 1700
+        );
+        cart.AddItem(
+            shopId,
+            productId,
+            variantId,
+            sessionId: null,
+            usageDate: null,
+            quantity: 2,
+            unitPriceMinor: 1900
+        );
 
         var item = Assert.Single(cart.Items);
         Assert.Equal(3, item.Quantity);
@@ -30,7 +46,15 @@ public sealed class CartSnapshotPricingTests
         var shopId = Guid.Parse("20000000-0000-0000-0000-000000000002");
         var productId = Guid.Parse("30000000-0000-0000-0000-000000000002");
         var cart = Cart.Create(userId, moduleId: 1);
-        cart.AddItem(shopId, productId, variantId: null, sessionId: null, usageDate: null, quantity: 1, unitPriceMinor: 2500);
+        cart.AddItem(
+            shopId,
+            productId,
+            variantId: null,
+            sessionId: null,
+            usageDate: null,
+            quantity: 1,
+            unitPriceMinor: 2500
+        );
         var itemId = cart.Items.Single().Id;
 
         cart.UpdateItemQuantity(itemId, newQuantity: 4);

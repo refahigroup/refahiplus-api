@@ -9,12 +9,16 @@ public class RemoveProductImageCommandHandler : IRequestHandler<RemoveProductIma
 {
     private readonly IProductRepository _productRepo;
 
-    public RemoveProductImageCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public RemoveProductImageCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
-    public async Task<Unit> Handle(RemoveProductImageCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        RemoveProductImageCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         product.RemoveImage(request.ImageId);

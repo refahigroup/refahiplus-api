@@ -1,5 +1,4 @@
-﻿
-namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
+﻿namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
 public sealed class SnappTripHotelGalleriesResponse
 {
@@ -12,5 +11,4 @@ public sealed class SnappTripHotelGalleriesResponseItem
     public string url { get; set; }
     public string title { get; set; } = default!;
     public string description { get; set; } = default!;
-
 }

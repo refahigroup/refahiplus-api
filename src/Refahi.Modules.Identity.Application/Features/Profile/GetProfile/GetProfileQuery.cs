@@ -12,4 +12,5 @@ public record GetProfileQuery(Guid UserId) : IRequest<GetProfileResult>;
 public record GetProfileResult(
     bool Success,
     string? ErrorMessage = null,
-    UserProfileDto? Profile = null);
+    UserProfileDto? Profile = null
+);

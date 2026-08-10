@@ -18,4 +18,5 @@ public sealed record UpdateAddressCommand(
     string? Plate,
     string? Unit,
     double? Latitude,
-    double? Longitude) : IRequest<UserAddressDto>, IAddressInput;
+    double? Longitude
+) : IRequest<UserAddressDto>, IAddressInput;

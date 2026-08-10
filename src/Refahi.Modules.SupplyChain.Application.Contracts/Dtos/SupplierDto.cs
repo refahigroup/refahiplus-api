@@ -26,4 +26,5 @@ public sealed record SupplierDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     IReadOnlyList<SupplierLinkDto> Links,
-    IReadOnlyList<SupplierAttachmentDto> Attachments);
+    IReadOnlyList<SupplierAttachmentDto> Attachments
+);

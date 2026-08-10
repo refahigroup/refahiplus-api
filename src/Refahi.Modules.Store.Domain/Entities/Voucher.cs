@@ -33,28 +33,63 @@ public sealed class Voucher
     public DateTimeOffset? ExpiresAtUtc { get; private set; }
     public uint Version { get; private set; }
 
-    public static Voucher Issue(Guid storeOrderId, Guid storeOrderItemId, Guid orderId,
-        string orderNumber, int sequenceNumber, Guid userId, Guid supplierId, string supplierName,
-        Guid shopId, string shopName, Guid productId, string productTitle,
-        string codeHash, string codeCiphertext,
-        DateTimeOffset issuedAtUtc, DateTimeOffset? expiresAtUtc = null)
+    public static Voucher Issue(
+        Guid storeOrderId,
+        Guid storeOrderItemId,
+        Guid orderId,
+        string orderNumber,
+        int sequenceNumber,
+        Guid userId,
+        Guid supplierId,
+        string supplierName,
+        Guid shopId,
+        string shopName,
+        Guid productId,
+        string productTitle,
+        string codeHash,
+        string codeCiphertext,
+        DateTimeOffset issuedAtUtc,
+        DateTimeOffset? expiresAtUtc = null
+    )
     {
-        if (storeOrderId == Guid.Empty || storeOrderItemId == Guid.Empty || orderId == Guid.Empty ||
-            sequenceNumber <= 0 || userId == Guid.Empty || supplierId == Guid.Empty ||
-            shopId == Guid.Empty || productId == Guid.Empty || string.IsNullOrWhiteSpace(orderNumber) ||
-            string.IsNullOrWhiteSpace(supplierName) || string.IsNullOrWhiteSpace(shopName) ||
-            string.IsNullOrWhiteSpace(productTitle) || string.IsNullOrWhiteSpace(codeHash) ||
-            string.IsNullOrWhiteSpace(codeCiphertext))
+        if (
+            storeOrderId == Guid.Empty
+            || storeOrderItemId == Guid.Empty
+            || orderId == Guid.Empty
+            || sequenceNumber <= 0
+            || userId == Guid.Empty
+            || supplierId == Guid.Empty
+            || shopId == Guid.Empty
+            || productId == Guid.Empty
+            || string.IsNullOrWhiteSpace(orderNumber)
+            || string.IsNullOrWhiteSpace(supplierName)
+            || string.IsNullOrWhiteSpace(shopName)
+            || string.IsNullOrWhiteSpace(productTitle)
+            || string.IsNullOrWhiteSpace(codeHash)
+            || string.IsNullOrWhiteSpace(codeCiphertext)
+        )
             throw new StoreDomainException("اطلاعات صدور ووچر معتبر نیست", "INVALID_VOUCHER_ISSUE");
 
         return new Voucher
         {
-            Id = Guid.NewGuid(), StoreOrderId = storeOrderId, StoreOrderItemId = storeOrderItemId,
-            OrderId = orderId, OrderNumber = orderNumber.Trim(), SequenceNumber = sequenceNumber,
-            UserId = userId, SupplierId = supplierId, SupplierName = supplierName.Trim(),
-            ShopId = shopId, ShopName = shopName.Trim(), ProductId = productId,
-            ProductTitle = productTitle.Trim(), CodeHash = codeHash, CodeCiphertext = codeCiphertext,
-            Status = VoucherStatus.Issued, IssuedAtUtc = issuedAtUtc, ExpiresAtUtc = expiresAtUtc
+            Id = Guid.NewGuid(),
+            StoreOrderId = storeOrderId,
+            StoreOrderItemId = storeOrderItemId,
+            OrderId = orderId,
+            OrderNumber = orderNumber.Trim(),
+            SequenceNumber = sequenceNumber,
+            UserId = userId,
+            SupplierId = supplierId,
+            SupplierName = supplierName.Trim(),
+            ShopId = shopId,
+            ShopName = shopName.Trim(),
+            ProductId = productId,
+            ProductTitle = productTitle.Trim(),
+            CodeHash = codeHash,
+            CodeCiphertext = codeCiphertext,
+            Status = VoucherStatus.Issued,
+            IssuedAtUtc = issuedAtUtc,
+            ExpiresAtUtc = expiresAtUtc,
         };
     }
 
@@ -63,8 +98,15 @@ public sealed class Voucher
         ExpireIfNeeded(nowUtc);
         if (Status != VoucherStatus.Issued)
             throw new StoreDomainException("این ووچر قابل استفاده نیست", "VOUCHER_NOT_REDEEMABLE");
-        if (vendorUserId == Guid.Empty || shopId == Guid.Empty || string.IsNullOrWhiteSpace(shopName))
-            throw new StoreDomainException("اطلاعات ابطال ووچر معتبر نیست", "INVALID_VOUCHER_REDEMPTION");
+        if (
+            vendorUserId == Guid.Empty
+            || shopId == Guid.Empty
+            || string.IsNullOrWhiteSpace(shopName)
+        )
+            throw new StoreDomainException(
+                "اطلاعات ابطال ووچر معتبر نیست",
+                "INVALID_VOUCHER_REDEMPTION"
+            );
         Status = VoucherStatus.Redeemed;
         RedeemedAtUtc = nowUtc;
         RedeemedByUserId = vendorUserId;
@@ -74,14 +116,20 @@ public sealed class Voucher
 
     public bool RevokeForRefund(string reason, DateTimeOffset nowUtc)
     {
-        if (Status == VoucherStatus.Revoked) return false;
+        if (Status == VoucherStatus.Revoked)
+            return false;
         if (Status == VoucherStatus.Redeemed)
             throw new StoreDomainException(
                 "به دلیل استفاده شدن ووچر، بازگشت وجه خودکار امکان‌پذیر نیست",
-                "REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE");
-        if (Status == VoucherStatus.Expired) return false;
+                "REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE"
+            );
+        if (Status == VoucherStatus.Expired)
+            return false;
         if (Status != VoucherStatus.Issued)
-            throw new StoreDomainException("وضعیت ووچر برای ابطال معتبر نیست", "VOUCHER_REFUND_CONFLICT");
+            throw new StoreDomainException(
+                "وضعیت ووچر برای ابطال معتبر نیست",
+                "VOUCHER_REFUND_CONFLICT"
+            );
         Status = VoucherStatus.Revoked;
         RevokedAtUtc = nowUtc;
         RevocationReason = string.IsNullOrWhiteSpace(reason)

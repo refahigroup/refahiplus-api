@@ -7,23 +7,35 @@ using Refahi.Modules.SupplyChain.Domain.Enums;
 
 namespace Refahi.Modules.SupplyChain.Application.Features.Agreements.GetAgreements;
 
-public class GetAgreementsQueryHandler : IRequestHandler<GetAgreementsQuery, AgreementsPagedResponse>
+public class GetAgreementsQueryHandler
+    : IRequestHandler<GetAgreementsQuery, AgreementsPagedResponse>
 {
     private readonly IAgreementRepository _repository;
 
-    public GetAgreementsQueryHandler(IAgreementRepository repository)
-        => _repository = repository;
+    public GetAgreementsQueryHandler(IAgreementRepository repository) => _repository = repository;
 
-    public async Task<AgreementsPagedResponse> Handle(GetAgreementsQuery request, CancellationToken cancellationToken)
+    public async Task<AgreementsPagedResponse> Handle(
+        GetAgreementsQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        AgreementStatus? status = request.Status.HasValue ? (AgreementStatus)request.Status.Value : null;
+        AgreementStatus? status = request.Status.HasValue
+            ? (AgreementStatus)request.Status.Value
+            : null;
         AgreementType? type = request.Type.HasValue ? (AgreementType)request.Type.Value : null;
 
         int page = request.Page > 0 ? request.Page : 1;
         int size = request.Size > 0 ? request.Size : 20;
 
         var (items, total) = await _repository.GetPagedAsync(
-            request.SupplierId, status, type, request.Search, page, size, cancellationToken);
+            request.SupplierId,
+            status,
+            type,
+            request.Search,
+            page,
+            size,
+            cancellationToken
+        );
 
         int totalPages = (int)Math.Ceiling(total / (double)size);
 
@@ -32,7 +44,8 @@ public class GetAgreementsQueryHandler : IRequestHandler<GetAgreementsQuery, Agr
             page,
             size,
             total,
-            totalPages);
+            totalPages
+        );
     }
 
     private static AgreementListItemDto MapToListItem(Agreement a)
@@ -52,6 +65,7 @@ public class GetAgreementsQueryHandler : IRequestHandler<GetAgreementsQuery, Agr
             a.Status.ToString(),
             a.FromDate,
             a.ToDate,
-            a.CreatedAt);
+            a.CreatedAt
+        );
     }
 }

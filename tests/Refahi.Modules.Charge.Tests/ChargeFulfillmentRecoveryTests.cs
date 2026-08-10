@@ -24,7 +24,8 @@ public sealed class ChargeFulfillmentRecoveryTests
         var refunds = new ChargeRefundProcessor(
             repository,
             services.GetRequiredService<ISender>(),
-            NullLogger<ChargeRefundProcessor>.Instance);
+            NullLogger<ChargeRefundProcessor>.Instance
+        );
         var processor = new ChargeFulfillmentProcessor(
             repository,
             new ThrowingProviderResolver(),
@@ -32,10 +33,12 @@ public sealed class ChargeFulfillmentRecoveryTests
             services.GetRequiredService<IMediator>(),
             new ConfigurationBuilder().Build(),
             NullLogger<ChargeFulfillmentProcessor>.Instance,
-            refunds);
+            refunds
+        );
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            processor.ProcessAsync(request.Id, CancellationToken.None));
+            processor.ProcessAsync(request.Id, CancellationToken.None)
+        );
 
         Assert.Equal(ChargeRequestStatus.ReconciliationPending, request.Status);
         Assert.Null(request.ProcessingLeaseUntil);
@@ -58,7 +61,8 @@ public sealed class ChargeFulfillmentRecoveryTests
         var refunds = new ChargeRefundProcessor(
             repository,
             services.GetRequiredService<ISender>(),
-            NullLogger<ChargeRefundProcessor>.Instance);
+            NullLogger<ChargeRefundProcessor>.Instance
+        );
         var processor = new ChargeFulfillmentProcessor(
             repository,
             new CancellingProviderResolver(cancellation),
@@ -66,10 +70,12 @@ public sealed class ChargeFulfillmentRecoveryTests
             services.GetRequiredService<IMediator>(),
             new ConfigurationBuilder().Build(),
             NullLogger<ChargeFulfillmentProcessor>.Instance,
-            refunds);
+            refunds
+        );
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            processor.ProcessAsync(request.Id, cancellation.Token));
+            processor.ProcessAsync(request.Id, cancellation.Token)
+        );
 
         Assert.Equal(ChargeRequestStatus.ReconciliationPending, request.Status);
         Assert.Null(request.ProcessingLeaseUntil);
@@ -79,37 +85,98 @@ public sealed class ChargeFulfillmentRecoveryTests
     private static ChargeRequest CreatePaidRequest()
     {
         var now = DateTime.UtcNow;
-        var request = ChargeRequest.Create(Guid.NewGuid(), "Eniac", ChargeOperator.Irancell,
-            ChargeServiceType.PinCharge, "09350000000", "09000000000", "IrancellCharge_50000",
-            "شارژ ایرانسل", 1003, 0, 1005, 1, "{}", 50_000,
-            null, 0, 0, 0, 50_000, Guid.NewGuid().ToString("N"), now, now.AddMinutes(20));
+        var request = ChargeRequest.Create(
+            Guid.NewGuid(),
+            "Eniac",
+            ChargeOperator.Irancell,
+            ChargeServiceType.PinCharge,
+            "09350000000",
+            "09000000000",
+            "IrancellCharge_50000",
+            "شارژ ایرانسل",
+            1003,
+            0,
+            1005,
+            1,
+            "{}",
+            50_000,
+            null,
+            0,
+            0,
+            0,
+            50_000,
+            Guid.NewGuid().ToString("N"),
+            now,
+            now.AddMinutes(20)
+        );
         var orderId = Guid.NewGuid();
         request.ConvertToOrder(orderId, now);
         request.MarkPaid(orderId, Guid.NewGuid(), now);
         return request;
     }
 
-    private sealed class FakeChargeRequestRepository(ChargeRequest request) : IChargeRequestRepository
+    private sealed class FakeChargeRequestRepository(ChargeRequest request)
+        : IChargeRequestRepository
     {
         public int SaveCount { get; private set; }
-        public Task<ChargeRequest?> GetAsync(Guid id, CancellationToken ct = default) => Task.FromResult<ChargeRequest?>(request);
-        public Task<ChargeRequest?> GetForUserAsync(Guid id, Guid userId, CancellationToken ct = default) => Task.FromResult<ChargeRequest?>(request);
-        public Task<ChargeRequest?> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default) => Task.FromResult<ChargeRequest?>(request);
-        public Task<ChargeRequest?> GetByIdempotencyKeyAsync(Guid userId, string key, CancellationToken ct = default) => Task.FromResult<ChargeRequest?>(request);
-        public Task<IReadOnlyList<ChargeRequest>> GetWorkItemsAsync(DateTime nowUtc, int take, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ChargeRequest>>([request]);
-        public Task<IReadOnlyList<ChargeRequest>> GetExpiredCandidatesAsync(DateTime nowUtc, int take, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ChargeRequest>>([]);
-        public Task AddAsync(ChargeRequest value, CancellationToken ct = default) => Task.CompletedTask;
-        public Task AddFulfillmentAttemptAsync(ChargeFulfillmentAttempt attempt, CancellationToken ct = default) => Task.CompletedTask;
-        public Task SaveChangesAsync(CancellationToken ct = default) { SaveCount++; return Task.CompletedTask; }
+
+        public Task<ChargeRequest?> GetAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult<ChargeRequest?>(request);
+
+        public Task<ChargeRequest?> GetForUserAsync(
+            Guid id,
+            Guid userId,
+            CancellationToken ct = default
+        ) => Task.FromResult<ChargeRequest?>(request);
+
+        public Task<ChargeRequest?> GetByOrderIdAsync(
+            Guid orderId,
+            CancellationToken ct = default
+        ) => Task.FromResult<ChargeRequest?>(request);
+
+        public Task<ChargeRequest?> GetByIdempotencyKeyAsync(
+            Guid userId,
+            string key,
+            CancellationToken ct = default
+        ) => Task.FromResult<ChargeRequest?>(request);
+
+        public Task<IReadOnlyList<ChargeRequest>> GetWorkItemsAsync(
+            DateTime nowUtc,
+            int take,
+            CancellationToken ct = default
+        ) => Task.FromResult<IReadOnlyList<ChargeRequest>>([request]);
+
+        public Task<IReadOnlyList<ChargeRequest>> GetExpiredCandidatesAsync(
+            DateTime nowUtc,
+            int take,
+            CancellationToken ct = default
+        ) => Task.FromResult<IReadOnlyList<ChargeRequest>>([]);
+
+        public Task AddAsync(ChargeRequest value, CancellationToken ct = default) =>
+            Task.CompletedTask;
+
+        public Task AddFulfillmentAttemptAsync(
+            ChargeFulfillmentAttempt attempt,
+            CancellationToken ct = default
+        ) => Task.CompletedTask;
+
+        public Task SaveChangesAsync(CancellationToken ct = default)
+        {
+            SaveCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class ThrowingProviderResolver : IChargeProviderResolver
     {
-        public IChargeProvider Get(string providerName) => throw new InvalidOperationException("provider resolution failed");
+        public IChargeProvider Get(string providerName) =>
+            throw new InvalidOperationException("provider resolution failed");
+
         public IChargeProvider GetDefault() => Get("Eniac");
     }
 
-    private sealed class CancellingProviderResolver(CancellationTokenSource cancellation) : IChargeProviderResolver
+    private sealed class CancellingProviderResolver(CancellationTokenSource cancellation)
+        : IChargeProviderResolver
     {
         public IChargeProvider Get(string providerName)
         {
@@ -123,6 +190,7 @@ public sealed class ChargeFulfillmentRecoveryTests
     private sealed class PassthroughProtector : IChargeSecretProtector
     {
         public string Protect(string value) => value;
+
         public string Unprotect(string value) => value;
     }
 }

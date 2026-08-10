@@ -16,7 +16,8 @@ public sealed class WalletsSeedStoreSystemWallets : Migration
 
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.Sql($$"""
+        migrationBuilder.Sql(
+            $$"""
             INSERT INTO wallets.wallets
                 (wallet_id, "OwnerId", wallet_type, status, currency, created_at)
             VALUES
@@ -29,12 +30,14 @@ public sealed class WalletsSeedStoreSystemWallets : Migration
             SELECT wallet_id, 0, 0, currency, NULL, 0, NOW()
             FROM wallets.wallets
             ON CONFLICT (wallet_id) DO NOTHING;
-            """);
+            """
+        );
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.Sql($$"""
+        migrationBuilder.Sql(
+            $$"""
             DELETE FROM wallets.wallet_balances wb
             WHERE wb.wallet_id IN ('{{RevenueWalletId}}', '{{VatWalletId}}')
               AND NOT EXISTS (
@@ -44,6 +47,7 @@ public sealed class WalletsSeedStoreSystemWallets : Migration
             WHERE w.wallet_id IN ('{{RevenueWalletId}}', '{{VatWalletId}}')
               AND NOT EXISTS (
                   SELECT 1 FROM wallets.ledger_entries le WHERE le.wallet_id = w.wallet_id);
-            """);
+            """
+        );
     }
 }

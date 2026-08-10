@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using Refahi.Modules.References.Application.Contracts.Dtos;
 using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.SupplyChain.Application.Abstractions;
@@ -19,20 +19,29 @@ public sealed class ResolveAgreementCategoryTermQueryHandler
 
     public async Task<ResolvedAgreementCategoryTermDto?> Handle(
         ResolveAgreementCategoryTermQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var batch = await _mediator.Send(
             new ResolveAgreementCategoryTermsBatchQuery([
                 new AgreementCategoryTermResolutionRequest(
-                    request.SupplierId, request.CategoryId, request.SalesChannel, request.AtUtc)
+                    request.SupplierId,
+                    request.CategoryId,
+                    request.SalesChannel,
+                    request.AtUtc
+                ),
             ]),
-            cancellationToken);
+            cancellationToken
+        );
         return batch[0].Term;
     }
 }
 
 public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
-    : IRequestHandler<ResolveAgreementCategoryTermsBatchQuery, IReadOnlyList<AgreementCategoryTermBatchResult>>
+    : IRequestHandler<
+        ResolveAgreementCategoryTermsBatchQuery,
+        IReadOnlyList<AgreementCategoryTermBatchResult>
+    >
 {
     private readonly IAgreementRepository _repository;
     private readonly IMediator _mediator;
@@ -41,12 +50,13 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
     public ResolveAgreementCategoryTermsBatchQueryHandler(
         IAgreementRepository repository,
         IMediator mediator,
-        ILogger<ResolveAgreementCategoryTermsBatchQueryHandler> logger)
-        => (_repository, _mediator, _logger) = (repository, mediator, logger);
+        ILogger<ResolveAgreementCategoryTermsBatchQueryHandler> logger
+    ) => (_repository, _mediator, _logger) = (repository, mediator, logger);
 
     public async Task<IReadOnlyList<AgreementCategoryTermBatchResult>> Handle(
         ResolveAgreementCategoryTermsBatchQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (request.Requests.Count == 0)
             return [];
@@ -56,13 +66,18 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
         IReadOnlyList<CategoryDto> tree;
         try
         {
-            tree = await _mediator.Send(new GetCategoriesQuery(IncludeInactive: false), cancellationToken);
+            tree = await _mediator.Send(
+                new GetCategoriesQuery(IncludeInactive: false),
+                cancellationToken
+            );
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            _logger.LogError(exception,
+            _logger.LogError(
+                exception,
                 "Agreement category term hierarchy resolution failed for {RequestCount} requests",
-                request.Requests.Count);
+                request.Requests.Count
+            );
             throw;
         }
         var hierarchy = CategoryHierarchy.Create(tree);
@@ -76,7 +91,8 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
         var candidates = await _repository.GetCategoryTermCandidatesAsync(
             request.Requests.Select(x => x.SupplierId).Distinct().ToArray(),
             ancestorIds,
-            cancellationToken);
+            cancellationToken
+        );
 
         var results = new List<AgreementCategoryTermBatchResult>(request.Requests.Count);
         foreach (var item in request.Requests)
@@ -87,14 +103,16 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
             var atUtc = item.AtUtc.ToUniversalTime();
 
             var winner = candidates
-                .Where(x => x.SupplierId == item.SupplierId
-                            && ancestors.Contains(x.CategoryId)
-                            && !x.TermIsDeleted
-                            && !x.AgreementIsDeleted
-                            && x.AgreementStatus == AgreementStatus.Approved
-                            && x.AgreementFromDate <= atUtc
-                            && atUtc < x.AgreementToDate
-                            && (x.AllowedSalesChannels & requestedChannel) == requestedChannel)
+                .Where(x =>
+                    x.SupplierId == item.SupplierId
+                    && ancestors.Contains(x.CategoryId)
+                    && !x.TermIsDeleted
+                    && !x.AgreementIsDeleted
+                    && x.AgreementStatus == AgreementStatus.Approved
+                    && x.AgreementFromDate <= atUtc
+                    && atUtc < x.AgreementToDate
+                    && (x.AllowedSalesChannels & requestedChannel) == requestedChannel
+                )
                 .OrderByDescending(x => hierarchy.GetDepth(x.CategoryId))
                 .ThenByDescending(x => x.AgreementFromDate)
                 .ThenByDescending(x => x.TermCreatedAt)
@@ -112,7 +130,8 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
                     (short)winner.AllowedSalesChannels,
                     winner.CommissionPercent,
                     winner.AgreementFromDate,
-                    winner.AgreementToDate);
+                    winner.AgreementToDate
+                );
             results.Add(new AgreementCategoryTermBatchResult(item, resolved));
         }
 
@@ -122,7 +141,8 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
             results.Count,
             results.Count(x => x.Term is not null),
             results.Count(x => x.Term is null),
-            stopwatch.Elapsed.TotalMilliseconds);
+            stopwatch.Elapsed.TotalMilliseconds
+        );
         return results;
     }
 
@@ -131,8 +151,8 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
         private readonly Dictionary<int, int?> _parents;
         private readonly Dictionary<int, int> _depths;
 
-        private CategoryHierarchy(Dictionary<int, int?> parents, Dictionary<int, int> depths)
-            => (_parents, _depths) = (parents, depths);
+        private CategoryHierarchy(Dictionary<int, int?> parents, Dictionary<int, int> depths) =>
+            (_parents, _depths) = (parents, depths);
 
         public static CategoryHierarchy Create(IReadOnlyList<CategoryDto> roots)
         {
@@ -143,7 +163,8 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
             {
                 parents[category.Id] = category.ParentId;
                 depths[category.Id] = depth;
-                if (category.Children is null) return;
+                if (category.Children is null)
+                    return;
                 foreach (var child in category.Children)
                     Visit(child, depth + 1);
             }
@@ -155,7 +176,8 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
 
         public IReadOnlyList<int> GetAncestorIds(int categoryId)
         {
-            if (!_parents.ContainsKey(categoryId)) return [];
+            if (!_parents.ContainsKey(categoryId))
+                return [];
             var result = new List<int>();
             int? current = categoryId;
             while (current.HasValue && _parents.TryGetValue(current.Value, out var parent))
@@ -166,6 +188,7 @@ public sealed class ResolveAgreementCategoryTermsBatchQueryHandler
             return result;
         }
 
-        public int GetDepth(int categoryId) => _depths.TryGetValue(categoryId, out var depth) ? depth : -1;
+        public int GetDepth(int categoryId) =>
+            _depths.TryGetValue(categoryId, out var depth) ? depth : -1;
     }
 }

@@ -11,7 +11,7 @@ public class IdentityDbContextFactory : IDesignTimeDbContextFactory<IdentityDbCo
     public IdentityDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<IdentityDbContext>();
-        
+
         // Use a default connection string for design-time operations
         // This will be overridden at runtime by DI configuration
         optionsBuilder.UseNpgsql("Host=localhost;Database=refahi;Username=refahi;Password=refahi");

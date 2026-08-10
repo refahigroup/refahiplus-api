@@ -5,9 +5,7 @@ namespace Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg;
 
 public sealed class HotelBookingSagaState
 {
-    private HotelBookingSagaState()
-    {
-    }
+    private HotelBookingSagaState() { }
 
     public Guid SagaId { get; private set; }
     public Guid UserId { get; private set; }
@@ -42,7 +40,7 @@ public sealed class HotelBookingSagaState
             ProviderBookingStatus = HotelProviderBookingStatus.None,
             Status = HotelBookingSagaStatus.RequestCreated,
             CreatedAt = nowUtc,
-            UpdatedAt = nowUtc
+            UpdatedAt = nowUtc,
         };
     }
 
@@ -51,13 +49,17 @@ public sealed class HotelBookingSagaState
         if (orderId == Guid.Empty)
             throw new DomainException("OrderId is required.");
 
-        if (OrderId == orderId &&
-            (Status == HotelBookingSagaStatus.OrderCreated ||
-             Status == HotelBookingSagaStatus.PaymentPending ||
-             Status == HotelBookingSagaStatus.Paid ||
-             Status == HotelBookingSagaStatus.ProviderBookingStarted ||
-             Status == HotelBookingSagaStatus.ProviderBookingConfirmed ||
-             Status == HotelBookingSagaStatus.Completed))
+        if (
+            OrderId == orderId
+            && (
+                Status == HotelBookingSagaStatus.OrderCreated
+                || Status == HotelBookingSagaStatus.PaymentPending
+                || Status == HotelBookingSagaStatus.Paid
+                || Status == HotelBookingSagaStatus.ProviderBookingStarted
+                || Status == HotelBookingSagaStatus.ProviderBookingConfirmed
+                || Status == HotelBookingSagaStatus.Completed
+            )
+        )
         {
             return;
         }
@@ -94,10 +96,13 @@ public sealed class HotelBookingSagaState
         if (OrderId.HasValue && OrderId.Value != orderId)
             throw new DomainException("Paid order does not match saga order.");
 
-        if (Status is HotelBookingSagaStatus.Paid or
-            HotelBookingSagaStatus.ProviderBookingStarted or
-            HotelBookingSagaStatus.ProviderBookingConfirmed or
-            HotelBookingSagaStatus.Completed)
+        if (
+            Status
+            is HotelBookingSagaStatus.Paid
+                or HotelBookingSagaStatus.ProviderBookingStarted
+                or HotelBookingSagaStatus.ProviderBookingConfirmed
+                or HotelBookingSagaStatus.Completed
+        )
         {
             return;
         }
@@ -128,7 +133,11 @@ public sealed class HotelBookingSagaState
 
     public void MarkProviderBookingConfirmed(DateTime nowUtc)
     {
-        if (Status is HotelBookingSagaStatus.ProviderBookingConfirmed or HotelBookingSagaStatus.Completed)
+        if (
+            Status
+            is HotelBookingSagaStatus.ProviderBookingConfirmed
+                or HotelBookingSagaStatus.Completed
+        )
             return;
 
         if (ProviderBookingStatus != HotelProviderBookingStatus.Started)
@@ -188,13 +197,17 @@ public sealed class HotelBookingSagaState
     public void MarkProviderCancellationPending(
         string idempotencyKey,
         string reason,
-        DateTime nowUtc)
+        DateTime nowUtc
+    )
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
             throw new DomainException("Provider cancellation idempotency key is required.");
 
-        if (ProviderBookingStatus is HotelProviderBookingStatus.Cancelled or
-            HotelProviderBookingStatus.ExternallyUnresolved)
+        if (
+            ProviderBookingStatus
+            is HotelProviderBookingStatus.Cancelled
+                or HotelProviderBookingStatus.ExternallyUnresolved
+        )
         {
             return;
         }
@@ -230,16 +243,19 @@ public sealed class HotelBookingSagaState
 
     private void EnsureNotTerminal()
     {
-        if (Status is HotelBookingSagaStatus.Failed or
-            HotelBookingSagaStatus.Compensated or
-            HotelBookingSagaStatus.Completed)
+        if (
+            Status
+            is HotelBookingSagaStatus.Failed
+                or HotelBookingSagaStatus.Compensated
+                or HotelBookingSagaStatus.Completed
+        )
         {
             throw new DomainException($"Cannot transition saga from {Status} state.");
         }
     }
 
-    private static string NormalizeReason(string reason)
-        => string.IsNullOrWhiteSpace(reason)
+    private static string NormalizeReason(string reason) =>
+        string.IsNullOrWhiteSpace(reason)
             ? "Unknown failure"
             : reason.Trim()[..Math.Min(reason.Trim().Length, 1000)];
 }

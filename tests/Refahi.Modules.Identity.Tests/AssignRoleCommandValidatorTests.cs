@@ -13,7 +13,10 @@ public sealed class AssignRoleCommandValidatorTests
         var result = _validator.Validate(new AssignRoleCommand(Guid.NewGuid(), "Vendor"));
 
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(AssignRoleCommand.Role));
+        Assert.Contains(
+            result.Errors,
+            error => error.PropertyName == nameof(AssignRoleCommand.Role)
+        );
     }
 
     [Theory]

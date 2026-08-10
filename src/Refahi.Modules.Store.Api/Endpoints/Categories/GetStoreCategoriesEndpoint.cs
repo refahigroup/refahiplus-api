@@ -13,24 +13,33 @@ public sealed class GetStoreCategoriesEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/{moduleSlug}/categories", async (
-            string moduleSlug,
-            IModuleResolver moduleResolver,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
-            if (!moduleId.HasValue)
-                return Results.NotFound();
+        routes
+            .MapGet(
+                "/{moduleSlug}/categories",
+                async (
+                    string moduleSlug,
+                    IModuleResolver moduleResolver,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+                    if (!moduleId.HasValue)
+                        return Results.NotFound();
 
-            var categories = await mediator.Send(new GetStoreCategoriesQuery(moduleId.Value), ct);
-            return Results.Ok(ApiResponseHelper.Success(categories));
-        })
-        .WithName("Store.GetStoreCategories")
-        .WithTags("Store.Categories")
-        .Produces<ApiResponse<IReadOnlyList<StoreCategoryDto>>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+                    var categories = await mediator.Send(
+                        new GetStoreCategoriesQuery(moduleId.Value),
+                        ct
+                    );
+                    return Results.Ok(ApiResponseHelper.Success(categories));
+                }
+            )
+            .WithName("Store.GetStoreCategories")
+            .WithTags("Store.Categories")
+            .Produces<ApiResponse<IReadOnlyList<StoreCategoryDto>>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

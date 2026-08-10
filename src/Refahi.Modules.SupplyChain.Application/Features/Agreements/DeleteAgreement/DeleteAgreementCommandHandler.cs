@@ -9,12 +9,16 @@ public class DeleteAgreementCommandHandler : IRequestHandler<DeleteAgreementComm
 {
     private readonly IAgreementRepository _repository;
 
-    public DeleteAgreementCommandHandler(IAgreementRepository repository)
-        => _repository = repository;
+    public DeleteAgreementCommandHandler(IAgreementRepository repository) =>
+        _repository = repository;
 
-    public async Task<Unit> Handle(DeleteAgreementCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DeleteAgreementCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var agreement = await _repository.GetByIdAsync(request.Id, false, cancellationToken)
+        var agreement =
+            await _repository.GetByIdAsync(request.Id, false, cancellationToken)
             ?? throw new SupplyChainDomainException("قرارداد یافت نشد", "AGREEMENT_NOT_FOUND");
 
         agreement.MarkDeleted();

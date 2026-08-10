@@ -18,56 +18,73 @@ public class RefreshTokenEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/refresh", async (
-                [FromBody] RefreshTokenRequest request,
-                IMediator mediator,
-                ITokenService tokenService,
-                IRefreshTokenRepository refreshTokenRepository) =>
-        {
-            if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
-                return Results.BadRequest(new { error = "Refresh token is required" });
+        routes
+            .MapPost(
+                "/refresh",
+                async (
+                    [FromBody] RefreshTokenRequest request,
+                    IMediator mediator,
+                    ITokenService tokenService,
+                    IRefreshTokenRepository refreshTokenRepository
+                ) =>
+                {
+                    if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+                        return Results.BadRequest(new { error = "Refresh token is required" });
 
-            var command = new RefreshTokenCommand(request.RefreshToken);
-            var result = await mediator.Send(command);
+                    var command = new RefreshTokenCommand(request.RefreshToken);
+                    var result = await mediator.Send(command);
 
-            if (!result.Success)
-            {
-                return Results.Json(new { error = result.ErrorMessage }, statusCode: StatusCodes.Status401Unauthorized);
-            }
+                    if (!result.Success)
+                    {
+                        return Results.Json(
+                            new { error = result.ErrorMessage },
+                            statusCode: StatusCodes.Status401Unauthorized
+                        );
+                    }
 
-            // Generate new tokens using token service
-            var userIdentity = new UserIdentity(
-                Id: result.UserId.ToString()!,
-                Username: result.Username!,
-                Role: result.Roles ?? "User"
-            );
+                    // Generate new tokens using token service
+                    var userIdentity = new UserIdentity(
+                        Id: result.UserId.ToString()!,
+                        Username: result.Username!,
+                        Role: result.Roles ?? "User"
+                    );
 
-            var tokenResult = await tokenService.CreateTokensAsync(userIdentity);
+                    var tokenResult = await tokenService.CreateTokensAsync(userIdentity);
 
-            // Store new refresh token in database
-            var newRefreshToken = Domain.Entities.RefreshToken.Create(
-                userId: result.UserId!.Value,
-                token: tokenResult.RefreshToken,
-                expiresAt: tokenResult.RefreshTokenExpiresAtUtc.HasValue ? tokenResult.RefreshTokenExpiresAtUtc.Value.UtcDateTime : DateTime.UtcNow.AddDays(7)
-            );
+                    // Store new refresh token in database
+                    var newRefreshToken = Domain.Entities.RefreshToken.Create(
+                        userId: result.UserId!.Value,
+                        token: tokenResult.RefreshToken,
+                        expiresAt: tokenResult.RefreshTokenExpiresAtUtc.HasValue
+                            ? tokenResult.RefreshTokenExpiresAtUtc.Value.UtcDateTime
+                            : DateTime.UtcNow.AddDays(7)
+                    );
 
-            await refreshTokenRepository.AddAsync(newRefreshToken, default);
+                    await refreshTokenRepository.AddAsync(newRefreshToken, default);
 
-            return Results.Ok(new
-            {
-                access_token = tokenResult.AccessToken,
-                token_type = "Bearer",
-                expires_in = (int)(tokenResult.AccessTokenExpiresAtUtc - DateTimeOffset.UtcNow).TotalSeconds,
-                expires_at_utc = tokenResult.AccessTokenExpiresAtUtc.UtcDateTime,
-                refresh_token = tokenResult.RefreshToken,
-                refresh_expires_at_utc = tokenResult.RefreshTokenExpiresAtUtc.HasValue ? tokenResult.RefreshTokenExpiresAtUtc.Value.UtcDateTime : (DateTime?)null
-            });
-        })
-        .WithName("Identity.RefreshToken")
-        .WithTags("Identity")
-        .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized);
+                    return Results.Ok(
+                        new
+                        {
+                            access_token = tokenResult.AccessToken,
+                            token_type = "Bearer",
+                            expires_in = (int)
+                                (
+                                    tokenResult.AccessTokenExpiresAtUtc - DateTimeOffset.UtcNow
+                                ).TotalSeconds,
+                            expires_at_utc = tokenResult.AccessTokenExpiresAtUtc.UtcDateTime,
+                            refresh_token = tokenResult.RefreshToken,
+                            refresh_expires_at_utc = tokenResult.RefreshTokenExpiresAtUtc.HasValue
+                                ? tokenResult.RefreshTokenExpiresAtUtc.Value.UtcDateTime
+                                : (DateTime?)null,
+                        }
+                    );
+                }
+            )
+            .WithName("Identity.RefreshToken")
+            .WithTags("Identity")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
     }
 }
 

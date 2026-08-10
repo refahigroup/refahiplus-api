@@ -12,18 +12,20 @@ public class GetModulesEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/modules", async (
-            IMediator mediator,
-            CancellationToken ct,
-            bool includeInactive = false) =>
-        {
-            var result = await mediator.Send(new GetModulesQuery(includeInactive), ct);
-            return Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Store.GetModules")
-        .WithTags("Store.Modules")
-        .Produces<ApiResponse<List<ModuleDto>>>(StatusCodes.Status200OK);
+        routes
+            .MapGet(
+                "/modules",
+                async (IMediator mediator, CancellationToken ct, bool includeInactive = false) =>
+                {
+                    var result = await mediator.Send(new GetModulesQuery(includeInactive), ct);
+                    return Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Store.GetModules")
+            .WithTags("Store.Modules")
+            .Produces<ApiResponse<List<ModuleDto>>>(StatusCodes.Status200OK);
     }
 }

@@ -17,10 +17,27 @@ public sealed class GetCatalogPostpaidBalanceEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("catalog/operators/{operator}/postpaid-balance", async (string @operator, [FromBody] MobileBody body, ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetPostpaidBalanceQuery(
-                ChargeEndpointHelpers.ParseOperator(@operator),
-                body.MobileNumber), ct))))
+        routes
+            .MapPost(
+                "catalog/operators/{operator}/postpaid-balance",
+                async (
+                    string @operator,
+                    [FromBody] MobileBody body,
+                    ISender sender,
+                    CancellationToken ct
+                ) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(
+                                new GetPostpaidBalanceQuery(
+                                    ChargeEndpointHelpers.ParseOperator(@operator),
+                                    body.MobileNumber
+                                ),
+                                ct
+                            )
+                        )
+                    )
+            )
             .RequireRateLimiting(ChargeRateLimiting.PublicCatalogPolicy)
             .WithName("Charge.Catalog.PostpaidBalance")
             .WithTags("Charge.Catalog")

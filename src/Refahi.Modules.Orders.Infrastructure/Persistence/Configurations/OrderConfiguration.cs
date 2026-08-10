@@ -13,183 +13,194 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasKey(o => o.Id);
 
-        builder.Property(o => o.Id)
-            .HasColumnName("id");
+        builder.Property(o => o.Id).HasColumnName("id");
 
-        builder.Property(o => o.OrderNumber)
+        builder
+            .Property(o => o.OrderNumber)
             .IsRequired()
             .HasMaxLength(30)
             .HasColumnName("order_number");
 
-        builder.HasIndex(o => o.OrderNumber)
-            .IsUnique()
-            .HasDatabaseName("ix_orders_order_number");
+        builder.HasIndex(o => o.OrderNumber).IsUnique().HasDatabaseName("ix_orders_order_number");
 
-        builder.Property(o => o.UserId)
-            .IsRequired()
-            .HasColumnName("user_id");
+        builder.Property(o => o.UserId).IsRequired().HasColumnName("user_id");
 
-        builder.Property(o => o.TotalAmountMinor)
-            .IsRequired()
-            .HasColumnName("total_amount_minor");
+        builder.Property(o => o.TotalAmountMinor).IsRequired().HasColumnName("total_amount_minor");
 
-        builder.Property(o => o.DiscountAmountMinor)
+        builder
+            .Property(o => o.DiscountAmountMinor)
             .IsRequired()
             .HasDefaultValue(0L)
             .HasColumnName("discount_amount_minor");
 
-        builder.Property(o => o.ShippingFeeMinor)
+        builder
+            .Property(o => o.ShippingFeeMinor)
             .IsRequired()
             .HasDefaultValue(0L)
             .HasColumnName("shipping_fee_minor");
 
-        builder.Property(o => o.DiscountCode)
-            .HasMaxLength(50)
-            .HasColumnName("discount_code");
+        builder.Property(o => o.DiscountCode).HasMaxLength(50).HasColumnName("discount_code");
 
-        builder.Property(o => o.DiscountCodeAmountMinor)
+        builder
+            .Property(o => o.DiscountCodeAmountMinor)
             .IsRequired()
             .HasDefaultValue(0L)
             .HasColumnName("discount_code_amount_minor");
 
-        builder.Property(o => o.FinalAmountMinor)
-            .IsRequired()
-            .HasColumnName("final_amount_minor");
+        builder.Property(o => o.FinalAmountMinor).IsRequired().HasColumnName("final_amount_minor");
 
-        builder.Property(o => o.ShippingAddressId)
-            .HasColumnName("shipping_address_id");
+        builder.Property(o => o.ShippingAddressId).HasColumnName("shipping_address_id");
 
-        builder.Property(o => o.ShippingAddressSnapshotJson)
+        builder
+            .Property(o => o.ShippingAddressSnapshotJson)
             .HasColumnType("jsonb")
             .HasColumnName("shipping_address_snapshot");
 
-        builder.Property(o => o.DeliveryDate)
-            .HasColumnType("date")
-            .HasColumnName("delivery_date");
+        builder.Property(o => o.DeliveryDate).HasColumnType("date").HasColumnName("delivery_date");
 
-        builder.Property(o => o.DeliveryTimeSlot)
+        builder
+            .Property(o => o.DeliveryTimeSlot)
             .IsRequired()
             .HasConversion<short>()
             .HasDefaultValue(Refahi.Modules.Orders.Domain.Enums.DeliveryTimeSlot.None)
             .HasColumnName("delivery_time_slot");
 
-        builder.Property(o => o.Currency)
+        builder
+            .Property(o => o.Currency)
             .IsRequired()
             .HasMaxLength(3)
             .HasDefaultValue("IRR")
             .HasColumnName("currency");
 
-        builder.Property(o => o.Status)
+        builder
+            .Property(o => o.Status)
             .IsRequired()
             .HasColumnType("smallint")
             .HasColumnName("status");
 
-        builder.Property(o => o.PaymentState)
+        builder
+            .Property(o => o.PaymentState)
             .IsRequired()
             .HasColumnType("smallint")
             .HasColumnName("payment_state");
 
-        builder.Property(o => o.PaymentIntentId)
-            .HasColumnName("payment_intent_id");
+        builder.Property(o => o.PaymentIntentId).HasColumnName("payment_intent_id");
 
-        builder.Property(o => o.PaymentId)
-            .HasColumnName("payment_id");
+        builder.Property(o => o.PaymentId).HasColumnName("payment_id");
 
-        builder.Property(o => o.SourceModule)
+        builder
+            .Property(o => o.SourceModule)
             .IsRequired()
             .HasMaxLength(50)
             .HasColumnName("source_module");
 
-        builder.Property(o => o.SourceReferenceId)
-            .HasColumnName("source_reference_id");
+        builder.Property(o => o.SourceReferenceId).HasColumnName("source_reference_id");
 
-        builder.Property(o => o.SourceOwnerId)
-            .HasColumnName("source_owner_id");
+        builder.Property(o => o.SourceOwnerId).HasColumnName("source_owner_id");
 
-        builder.Property(o => o.SourceShopId)
-            .HasColumnName("source_shop_id");
+        builder.Property(o => o.SourceShopId).HasColumnName("source_shop_id");
 
-        builder.Property(o => o.CreatedByUserId)
-            .HasColumnName("created_by_user_id");
+        builder.Property(o => o.CreatedByUserId).HasColumnName("created_by_user_id");
 
         builder.Property(o => o.GrossAmountMinor).HasColumnName("gross_amount_minor");
-        builder.Property(o => o.CommissionPercent).HasColumnName("commission_percent").HasColumnType("numeric(7,4)");
+        builder
+            .Property(o => o.CommissionPercent)
+            .HasColumnName("commission_percent")
+            .HasColumnType("numeric(7,4)");
         builder.Property(o => o.CommissionAmountMinor).HasColumnName("commission_amount_minor");
-        builder.Property(o => o.VatPercent).HasColumnName("vat_percent").HasColumnType("numeric(7,4)");
+        builder
+            .Property(o => o.VatPercent)
+            .HasColumnName("vat_percent")
+            .HasColumnType("numeric(7,4)");
         builder.Property(o => o.VatAmountMinor).HasColumnName("vat_amount_minor");
-        builder.Property(o => o.RecipientNetAmountMinor).HasColumnName("recipient_net_amount_minor");
+        builder
+            .Property(o => o.RecipientNetAmountMinor)
+            .HasColumnName("recipient_net_amount_minor");
 
-        builder.Property(o => o.ReferenceType)
+        builder
+            .Property(o => o.ReferenceType)
             .IsRequired()
             .HasMaxLength(80)
             .HasDefaultValue("Unknown")
             .HasColumnName("reference_type");
 
-        builder.Property(o => o.SagaId)
-            .HasColumnName("saga_id");
+        builder.Property(o => o.SagaId).HasColumnName("saga_id");
 
-        builder.Property(o => o.IdempotencyKey)
+        builder
+            .Property(o => o.IdempotencyKey)
             .IsRequired()
             .HasMaxLength(200)
             .HasColumnName("idempotency_key");
 
-        builder.HasIndex(o => o.IdempotencyKey)
+        builder
+            .HasIndex(o => o.IdempotencyKey)
             .IsUnique()
             .HasDatabaseName("ix_orders_idempotency_key");
 
-        builder.Property(o => o.CreatedAt)
-            .IsRequired()
-            .HasColumnName("created_at");
+        builder.Property(o => o.CreatedAt).IsRequired().HasColumnName("created_at");
 
-        builder.Property(o => o.UpdatedAt)
-            .IsRequired()
-            .HasColumnName("updated_at");
+        builder.Property(o => o.UpdatedAt).IsRequired().HasColumnName("updated_at");
 
-        builder.Property(o => o.PayableUntil)
-            .HasColumnName("payable_until");
+        builder.Property(o => o.PayableUntil).HasColumnName("payable_until");
 
         // Optimistic Concurrency via PostgreSQL system column xmin (no migration needed — system column)
-        builder.Property(o => o.RowVersion)
+        builder
+            .Property(o => o.RowVersion)
             .HasColumnName("xmin")
             .HasColumnType("xid")
             .IsRowVersion();
 
         // Indexes
-        builder.HasIndex(o => o.UserId)
-            .HasDatabaseName("ix_orders_user_id");
+        builder.HasIndex(o => o.UserId).HasDatabaseName("ix_orders_user_id");
 
-        builder.HasIndex(o => new { o.SourceModule, o.SourceReferenceId })
+        builder
+            .HasIndex(o => new { o.SourceModule, o.SourceReferenceId })
             .HasDatabaseName("ix_orders_source");
 
-        builder.HasIndex(o => new { o.SourceModule, o.SourceOwnerId, o.CreatedAt })
+        builder
+            .HasIndex(o => new
+            {
+                o.SourceModule,
+                o.SourceOwnerId,
+                o.CreatedAt,
+            })
             .HasDatabaseName("ix_orders_source_owner_created_at");
 
-        builder.HasIndex(o => new { o.SourceModule, o.SourceShopId, o.CreatedAt })
+        builder
+            .HasIndex(o => new
+            {
+                o.SourceModule,
+                o.SourceShopId,
+                o.CreatedAt,
+            })
             .HasDatabaseName("ix_orders_source_shop_created_at");
 
-        builder.HasIndex(o => new { o.CreatedByUserId, o.CreatedAt })
+        builder
+            .HasIndex(o => new { o.CreatedByUserId, o.CreatedAt })
             .HasDatabaseName("ix_orders_created_by_created_at");
 
-        builder.HasIndex(o => new { o.ReferenceType, o.SourceReferenceId })
+        builder
+            .HasIndex(o => new { o.ReferenceType, o.SourceReferenceId })
             .IsUnique()
             .HasDatabaseName("ux_orders_reference_type_source_reference_id");
 
-        builder.HasIndex(o => o.Status)
-            .HasDatabaseName("ix_orders_status");
+        builder.HasIndex(o => o.Status).HasDatabaseName("ix_orders_status");
 
-        builder.HasIndex(o => new { o.Status, o.PayableUntil })
+        builder
+            .HasIndex(o => new { o.Status, o.PayableUntil })
             .HasDatabaseName("ix_orders_status_payable_until");
 
         // Navigation — use backing field "_items" via property access mode
-        builder.HasMany(o => o.Items)
+        builder
+            .HasMany(o => o.Items)
             .WithOne()
             .HasForeignKey(i => i.OrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Navigation(o => o.Items)
-            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(o => o.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany(o => o.PaymentPostings)
+        builder
+            .HasMany(o => o.PaymentPostings)
             .WithOne()
             .HasForeignKey(x => x.OrderId)
             .OnDelete(DeleteBehavior.Cascade);

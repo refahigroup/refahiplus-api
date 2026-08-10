@@ -11,13 +11,23 @@ public class CityRepository : ICityRepository
 
     public CityRepository(ReferencesDbContext db) => _db = db;
 
-    public Task<City?> GetByIdAsync(int id, CancellationToken ct = default)
-        => _db.Cities.Include(c => c.Province).FirstOrDefaultAsync(c => c.Id == id, ct);
+    public Task<City?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        _db.Cities.Include(c => c.Province).FirstOrDefaultAsync(c => c.Id == id, ct);
 
-    public Task<City?> GetBySlugAsync(int provinceId, string slug, CancellationToken ct = default)
-        => _db.Cities.Include(c => c.Province).FirstOrDefaultAsync(c => c.ProvinceId == provinceId && c.Slug == slug, ct);
+    public Task<City?> GetBySlugAsync(
+        int provinceId,
+        string slug,
+        CancellationToken ct = default
+    ) =>
+        _db
+            .Cities.Include(c => c.Province)
+            .FirstOrDefaultAsync(c => c.ProvinceId == provinceId && c.Slug == slug, ct);
 
-    public async Task<List<City>> GetAllAsync(int? provinceId = null, bool activeOnly = false, CancellationToken ct = default)
+    public async Task<List<City>> GetAllAsync(
+        int? provinceId = null,
+        bool activeOnly = false,
+        CancellationToken ct = default
+    )
     {
         var query = _db.Cities.Include(c => c.Province).AsQueryable();
 
@@ -30,7 +40,12 @@ public class CityRepository : ICityRepository
         return await query.OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToListAsync(ct);
     }
 
-    public async Task<bool> SlugExistsAsync(string slug, int provinceId, int? excludeId = null, CancellationToken ct = default)
+    public async Task<bool> SlugExistsAsync(
+        string slug,
+        int provinceId,
+        int? excludeId = null,
+        CancellationToken ct = default
+    )
     {
         var query = _db.Cities.Where(c => c.Slug == slug && c.ProvinceId == provinceId);
 

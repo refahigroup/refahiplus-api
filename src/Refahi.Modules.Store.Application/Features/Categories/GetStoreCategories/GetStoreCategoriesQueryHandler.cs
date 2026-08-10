@@ -22,7 +22,8 @@ public sealed class GetStoreCategoriesQueryHandler
         ISyntheticOfferQueryContextService contextService,
         ISyntheticOfferReadRepository offerRepository,
         IStoreBusinessClock clock,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _moduleRepository = moduleRepository;
         _contextService = contextService;
@@ -33,26 +34,36 @@ public sealed class GetStoreCategoriesQueryHandler
 
     public async Task<IReadOnlyList<StoreCategoryDto>> Handle(
         GetStoreCategoriesQuery request,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var module = await _moduleRepository.GetByIdAsync(request.ModuleId, ct);
         if (module is null || !module.IsActive || !module.CategoryId.HasValue)
             return [];
 
         var context = await _contextService.ResolveAsync(
-            request.ModuleId, null, null, null, null, ct);
+            request.ModuleId,
+            null,
+            null,
+            null,
+            null,
+            ct
+        );
         if (!context.IsShopValid || context.AgreementProducts.Count == 0)
             return [];
 
         var now = _clock.Current;
-        var eligibleAgreementProductIds = await _offerRepository.GetEligibleAgreementProductIdsAsync(
-            new SyntheticOfferQuerySpec(
-                context.StockBasedAgreementProductIds,
-                context.SessionBasedAgreementProductIds,
-                now.Date,
-                CurrentTime: now.Time,
-                ManualAgreementProductIds: context.ManualAgreementProductIds),
-            ct);
+        var eligibleAgreementProductIds =
+            await _offerRepository.GetEligibleAgreementProductIdsAsync(
+                new SyntheticOfferQuerySpec(
+                    context.StockBasedAgreementProductIds,
+                    context.SessionBasedAgreementProductIds,
+                    now.Date,
+                    CurrentTime: now.Time,
+                    ManualAgreementProductIds: context.ManualAgreementProductIds
+                ),
+                ct
+            );
 
         if (eligibleAgreementProductIds.Count == 0)
             return [];
@@ -71,11 +82,8 @@ public sealed class GetStoreCategoriesQueryHandler
         if (root is null || !root.IsActive)
             return [];
 
-        var descendants = await _mediator.Send(
-            new GetCategoriesQuery(ParentId: root.Id), ct);
-        var categoryById = Flatten(descendants)
-            .Append(root)
-            .ToDictionary(category => category.Id);
+        var descendants = await _mediator.Send(new GetCategoriesQuery(ParentId: root.Id), ct);
+        var categoryById = Flatten(descendants).Append(root).ToDictionary(category => category.Id);
 
         var includedIds = CollectIncludedIds(root.Id, directlyUsedCategoryIds, categoryById);
         if (!includedIds.Contains(root.Id))
@@ -102,7 +110,8 @@ public sealed class GetStoreCategoriesQueryHandler
     private static HashSet<int> CollectIncludedIds(
         int rootId,
         IEnumerable<int> directlyUsedCategoryIds,
-        IReadOnlyDictionary<int, CategoryDto> categoryById)
+        IReadOnlyDictionary<int, CategoryDto> categoryById
+    )
     {
         var included = new HashSet<int>();
 
@@ -136,26 +145,31 @@ public sealed class GetStoreCategoriesQueryHandler
         int rootId,
         IReadOnlyDictionary<int, CategoryDto> categoryById,
         IReadOnlySet<int> includedIds,
-        ICollection<StoreCategoryDto> result)
+        ICollection<StoreCategoryDto> result
+    )
     {
         var category = categoryById[categoryId];
-        var parent = categoryId == rootId || !category.ParentId.HasValue
-            ? null
-            : categoryById.GetValueOrDefault(category.ParentId.Value);
+        var parent =
+            categoryId == rootId || !category.ParentId.HasValue
+                ? null
+                : categoryById.GetValueOrDefault(category.ParentId.Value);
 
-        result.Add(new StoreCategoryDto(
-            category.Id,
-            category.Name,
-            category.Slug,
-            category.CategoryCode,
-            category.ImageUrl,
-            parent?.Id,
-            parent?.Name,
-            category.SortOrder,
-            category.IsActive));
+        result.Add(
+            new StoreCategoryDto(
+                category.Id,
+                category.Name,
+                category.Slug,
+                category.CategoryCode,
+                category.ImageUrl,
+                parent?.Id,
+                parent?.Name,
+                category.SortOrder,
+                category.IsActive
+            )
+        );
 
-        var children = categoryById.Values
-            .Where(child => child.ParentId == categoryId && includedIds.Contains(child.Id))
+        var children = categoryById
+            .Values.Where(child => child.ParentId == categoryId && includedIds.Contains(child.Id))
             .OrderBy(child => child.SortOrder)
             .ThenBy(child => child.Name, StringComparer.Ordinal)
             .ThenBy(child => child.Id);

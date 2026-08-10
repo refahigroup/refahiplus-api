@@ -14,14 +14,15 @@ public sealed class DeactivateMarkupRuleHandler : IRequestHandler<DeactivateMark
     }
 
     public async Task<Unit> Handle(DeactivateMarkupRuleCommand c, CancellationToken ct)
-    { 
-        var rule = await _rules.GetAsync(c.RuleId, ct) ??
-            throw new ArgumentException("قانون افزایش قیمت یافت نشد"); 
-        
-        rule.Deactivate(DateTime.UtcNow); 
+    {
+        var rule =
+            await _rules.GetAsync(c.RuleId, ct)
+            ?? throw new ArgumentException("قانون افزایش قیمت یافت نشد");
 
-        await _rules.SaveChangesAsync(ct); 
-        
-        return Unit.Value; 
+        rule.Deactivate(DateTime.UtcNow);
+
+        await _rules.SaveChangesAsync(ct);
+
+        return Unit.Value;
     }
 }

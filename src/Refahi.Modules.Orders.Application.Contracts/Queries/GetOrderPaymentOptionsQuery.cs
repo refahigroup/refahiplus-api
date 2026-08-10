@@ -2,11 +2,8 @@ using MediatR;
 
 namespace Refahi.Modules.Orders.Application.Contracts.Queries;
 
-public sealed record GetOrderPaymentOptionsQuery(
-    Guid OrderId,
-    Guid CallerUserId,
-    string CallerRole
-) : IRequest<OrderPaymentOptionsDto?>;
+public sealed record GetOrderPaymentOptionsQuery(Guid OrderId, Guid CallerUserId, string CallerRole)
+    : IRequest<OrderPaymentOptionsDto?>;
 
 public sealed record OrderPaymentOptionsDto(
     Guid OrderId,
@@ -18,7 +15,8 @@ public sealed record OrderPaymentOptionsDto(
     List<OrderWalletAllocationSuggestionDto> Allocations,
     long TotalSuggestedMinor,
     bool IsCovered,
-    long DeficitMinor);
+    long DeficitMinor
+);
 
 public sealed record OrderWalletOptionDto(
     Guid WalletId,
@@ -30,10 +28,12 @@ public sealed record OrderWalletOptionDto(
     string? AllowedCategoryCode,
     DateTimeOffset? ContractExpiresAt,
     bool IsAllowed,
-    string? NotAllowedReason);
+    string? NotAllowedReason
+);
 
 public sealed record OrderWalletAllocationSuggestionDto(
     Guid WalletId,
     string WalletType,
     long AmountMinor,
-    long AvailableBalanceMinor);
+    long AvailableBalanceMinor
+);

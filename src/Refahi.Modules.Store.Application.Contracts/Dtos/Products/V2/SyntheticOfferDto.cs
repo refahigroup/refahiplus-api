@@ -33,12 +33,13 @@ public sealed record SyntheticOfferDto(
     string? CategoryName,
     string? MainImageUrl,
     SyntheticOfferPurchaseSelectionDto PurchaseSelection,
-    string PriceDisplayMode = "Fixed");
+    string PriceDisplayMode = "Fixed"
+);
 
 public sealed record SyntheticOfferPurchaseSelectionDto(
     Guid ShopId,
     Guid ProductId,
     Guid? VariantId,
     Guid? SessionId,
-    DateOnly? UsageDate);
-
+    DateOnly? UsageDate
+);

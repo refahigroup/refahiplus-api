@@ -22,7 +22,10 @@ public class ProcessCallbackCommandHandlerTests
         var mediator = new FakeMediator(CommandStatus.Completed);
         var handler = CreateHandler(session, provider, mediator);
 
-        var response = await handler.Handle(CreateCommand(session.Id, amount: 1000), CancellationToken.None);
+        var response = await handler.Handle(
+            CreateCommand(session.Id, amount: 1000),
+            CancellationToken.None
+        );
 
         Assert.True(response.IsSuccess);
         Assert.Equal(PaymentSessionStatus.Succeeded, session.Status);
@@ -38,7 +41,10 @@ public class ProcessCallbackCommandHandlerTests
         var mediator = new FakeMediator(CommandStatus.Completed);
         var handler = CreateHandler(session, provider, mediator);
 
-        var response = await handler.Handle(CreateCommand(session.Id, refNum: null, amount: 1000), CancellationToken.None);
+        var response = await handler.Handle(
+            CreateCommand(session.Id, refNum: null, amount: 1000),
+            CancellationToken.None
+        );
 
         Assert.False(response.IsSuccess);
         Assert.Equal(PaymentSessionStatus.Failed, session.Status);
@@ -56,7 +62,8 @@ public class ProcessCallbackCommandHandlerTests
             repository,
             new FakeProviderFactory(provider),
             mediator,
-            new TestLogger<ProcessCallbackCommandHandler>());
+            new TestLogger<ProcessCallbackCommandHandler>()
+        );
 
         var response = await handler.Handle(
             new ProcessCallbackCommand(
@@ -66,8 +73,10 @@ public class ProcessCallbackCommandHandlerTests
                 ResNum: "not-a-guid",
                 TraceNo: null,
                 SecurePan: null,
-                RawCallbackJson: "{}"),
-            CancellationToken.None);
+                RawCallbackJson: "{}"
+            ),
+            CancellationToken.None
+        );
 
         Assert.False(response.IsSuccess);
         Assert.Equal(Guid.Empty, response.SessionId);
@@ -83,7 +92,10 @@ public class ProcessCallbackCommandHandlerTests
         var mediator = new FakeMediator(CommandStatus.Completed);
         var handler = CreateHandler(session, provider, mediator);
 
-        var response = await handler.Handle(CreateCommand(session.Id, state: "CanceledByUser", amount: 1000), CancellationToken.None);
+        var response = await handler.Handle(
+            CreateCommand(session.Id, state: "CanceledByUser", amount: 1000),
+            CancellationToken.None
+        );
 
         Assert.False(response.IsSuccess);
         Assert.Equal(PaymentSessionStatus.Failed, session.Status);
@@ -101,7 +113,8 @@ public class ProcessCallbackCommandHandlerTests
 
         var response = await handler.Handle(
             CreateCommand(session.Id, amount: null, amountParseFailed: true),
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         Assert.False(response.IsSuccess);
         Assert.Equal(PaymentSessionStatus.Failed, session.Status);
@@ -118,7 +131,10 @@ public class ProcessCallbackCommandHandlerTests
         var mediator = new FakeMediator(CommandStatus.Completed);
         var handler = CreateHandler(session, provider, mediator);
 
-        var response = await handler.Handle(CreateCommand(session.Id, amount: 1000), CancellationToken.None);
+        var response = await handler.Handle(
+            CreateCommand(session.Id, amount: 1000),
+            CancellationToken.None
+        );
 
         Assert.True(response.IsSuccess);
         Assert.Equal(PaymentSessionStatus.Succeeded, session.Status);
@@ -134,7 +150,10 @@ public class ProcessCallbackCommandHandlerTests
         var mediator = new FakeMediator(CommandStatus.Completed);
         var handler = CreateHandler(session, provider, mediator);
 
-        var response = await handler.Handle(CreateCommand(session.Id, amount: 1000), CancellationToken.None);
+        var response = await handler.Handle(
+            CreateCommand(session.Id, amount: 1000),
+            CancellationToken.None
+        );
 
         Assert.False(response.IsSuccess);
         Assert.Equal(PaymentSessionStatus.Failed, session.Status);
@@ -148,10 +167,16 @@ public class ProcessCallbackCommandHandlerTests
     {
         var session = CreateSession(amount: 1000);
         var provider = new FakeProvider(new VerifyResult(true, 1000, 0));
-        var mediator = new FakeMediator(CommandStatus.Completed, new InvalidOperationException(new string('x', 1000)));
+        var mediator = new FakeMediator(
+            CommandStatus.Completed,
+            new InvalidOperationException(new string('x', 1000))
+        );
         var handler = CreateHandler(session, provider, mediator);
 
-        var response = await handler.Handle(CreateCommand(session.Id, amount: 1000), CancellationToken.None);
+        var response = await handler.Handle(
+            CreateCommand(session.Id, amount: 1000),
+            CancellationToken.None
+        );
 
         Assert.False(response.IsSuccess);
         Assert.Equal(PaymentSessionStatus.Failed, session.Status);
@@ -175,13 +200,15 @@ public class ProcessCallbackCommandHandlerTests
     private static ProcessCallbackCommandHandler CreateHandler(
         PaymentGatewaySession session,
         FakeProvider provider,
-        FakeMediator mediator)
+        FakeMediator mediator
+    )
     {
         return new ProcessCallbackCommandHandler(
             new FakeSessionRepository(session),
             new FakeProviderFactory(provider),
             mediator,
-            new TestLogger<ProcessCallbackCommandHandler>());
+            new TestLogger<ProcessCallbackCommandHandler>()
+        );
     }
 
     private static PaymentGatewaySession CreateSession(long amount)
@@ -193,7 +220,8 @@ public class ProcessCallbackCommandHandlerTests
             amountMinor: amount,
             currency: "IRR",
             provider: PaymentGatewayProviderType.Sep,
-            returnBaseUrl: "/charge/wallet/topup/result");
+            returnBaseUrl: "/charge/wallet/topup/result"
+        );
     }
 
     private static ProcessCallbackCommand CreateCommand(
@@ -201,7 +229,8 @@ public class ProcessCallbackCommandHandlerTests
         string state = "OK",
         string? refNum = "ref-1",
         long? amount = null,
-        bool amountParseFailed = false)
+        bool amountParseFailed = false
+    )
     {
         return new ProcessCallbackCommand(
             Provider: PaymentGatewayProviderType.Sep,
@@ -212,7 +241,8 @@ public class ProcessCallbackCommandHandlerTests
             SecurePan: "621986****8080",
             RawCallbackJson: "{}",
             AmountMinor: amount,
-            AmountParseFailed: amountParseFailed);
+            AmountParseFailed: amountParseFailed
+        );
     }
 
     private sealed class FakeSessionRepository : IPaymentGatewaySessionRepository
@@ -225,7 +255,10 @@ public class ProcessCallbackCommandHandlerTests
             _session = session;
         }
 
-        public Task<PaymentGatewaySession?> GetByIdAsync(Guid sessionId, CancellationToken ct = default)
+        public Task<PaymentGatewaySession?> GetByIdAsync(
+            Guid sessionId,
+            CancellationToken ct = default
+        )
         {
             GetByIdCalls++;
             return Task.FromResult(_session?.Id == sessionId ? _session : null);
@@ -235,7 +268,8 @@ public class ProcessCallbackCommandHandlerTests
             Guid userId,
             int take,
             PaymentSessionStatus? status = null,
-            CancellationToken ct = default)
+            CancellationToken ct = default
+        )
         {
             IReadOnlyList<PaymentGatewaySession> sessions =
                 _session is not null
@@ -247,9 +281,11 @@ public class ProcessCallbackCommandHandlerTests
             return Task.FromResult(sessions);
         }
 
-        public Task AddAsync(PaymentGatewaySession session, CancellationToken ct = default) => Task.CompletedTask;
+        public Task AddAsync(PaymentGatewaySession session, CancellationToken ct = default) =>
+            Task.CompletedTask;
 
-        public Task UpdateAsync(PaymentGatewaySession session, CancellationToken ct = default) => Task.CompletedTask;
+        public Task UpdateAsync(PaymentGatewaySession session, CancellationToken ct = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class FakeProviderFactory : IPaymentGatewayProviderFactory
@@ -261,7 +297,8 @@ public class ProcessCallbackCommandHandlerTests
             _provider = provider;
         }
 
-        public IPaymentGatewayProvider GetProvider(PaymentGatewayProviderType providerType) => _provider;
+        public IPaymentGatewayProvider GetProvider(PaymentGatewayProviderType providerType) =>
+            _provider;
     }
 
     private sealed class FakeProvider : IReversiblePaymentGatewayProvider
@@ -277,7 +314,10 @@ public class ProcessCallbackCommandHandlerTests
             _verifyResult = verifyResult;
         }
 
-        public Task<GetTokenResult> GetTokenAsync(GetTokenRequest request, CancellationToken ct = default)
+        public Task<GetTokenResult> GetTokenAsync(
+            GetTokenRequest request,
+            CancellationToken ct = default
+        )
         {
             return Task.FromResult(new GetTokenResult(true, "token"));
         }
@@ -290,7 +330,10 @@ public class ProcessCallbackCommandHandlerTests
             return Task.FromResult(_verifyResult);
         }
 
-        public Task<ReverseResult> ReverseAsync(ReverseRequest request, CancellationToken ct = default)
+        public Task<ReverseResult> ReverseAsync(
+            ReverseRequest request,
+            CancellationToken ct = default
+        )
         {
             ReverseCalls++;
             return Task.FromResult(new ReverseResult(true, 0));
@@ -309,7 +352,10 @@ public class ProcessCallbackCommandHandlerTests
             _exception = exception;
         }
 
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        public Task<TResponse> Send<TResponse>(
+            IRequest<TResponse> request,
+            CancellationToken cancellationToken = default
+        )
         {
             if (request is TopUpWalletCommand topUpCommand)
             {
@@ -328,13 +374,17 @@ public class ProcessCallbackCommandHandlerTests
                             topUpCommand.AmountMinor,
                             topUpCommand.Currency,
                             topUpCommand.AmountMinor,
-                            DateTimeOffset.UtcNow)
-                        : null);
+                            DateTimeOffset.UtcNow
+                        )
+                        : null
+                );
 
                 return Task.FromResult((TResponse)(object)response);
             }
 
-            throw new InvalidOperationException($"Unexpected mediator request: {request.GetType().Name}");
+            throw new InvalidOperationException(
+                $"Unexpected mediator request: {request.GetType().Name}"
+            );
         }
 
         public Task<object?> Send(object request, CancellationToken cancellationToken = default)
@@ -344,12 +394,16 @@ public class ProcessCallbackCommandHandlerTests
 
         public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
             IStreamRequest<TResponse> request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default
+        )
         {
             throw new NotSupportedException();
         }
 
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<object?> CreateStream(
+            object request,
+            CancellationToken cancellationToken = default
+        )
         {
             throw new NotSupportedException();
         }
@@ -359,7 +413,10 @@ public class ProcessCallbackCommandHandlerTests
             return Task.CompletedTask;
         }
 
-        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+        public Task Publish<TNotification>(
+            TNotification notification,
+            CancellationToken cancellationToken = default
+        )
             where TNotification : INotification
         {
             return Task.CompletedTask;
@@ -368,23 +425,24 @@ public class ProcessCallbackCommandHandlerTests
 
     private sealed class TestLogger<T> : ILogger<T>
     {
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NoopDisposable.Instance;
+        public IDisposable BeginScope<TState>(TState state)
+            where TState : notnull => NoopDisposable.Instance;
+
         public bool IsEnabled(LogLevel logLevel) => false;
+
         public void Log<TState>(
             LogLevel logLevel,
             EventId eventId,
             TState state,
             Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-        }
+            Func<TState, Exception?, string> formatter
+        ) { }
     }
 
     private sealed class NoopDisposable : IDisposable
     {
         public static readonly NoopDisposable Instance = new();
-        public void Dispose()
-        {
-        }
+
+        public void Dispose() { }
     }
 }

@@ -11,7 +11,6 @@ using Refahi.Modules.Hotels.Application.Contracts.Services.Statics.Cities;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Api;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
-
 namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 {
     public class SnappTripHotelProvider : IHotelProvider
@@ -21,7 +20,8 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
         public SnappTripHotelProvider(
             SnappTripApiClient apiClient,
-            ILogger<SnappTripHotelProvider> logger)
+            ILogger<SnappTripHotelProvider> logger
+        )
         {
             _apiClient = apiClient;
             _logger = logger;
@@ -30,7 +30,9 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
         // ---------------------------------------------------------
         // SEARCH BY CITY  (در حال حاضر تست شده و کار می‌کند)
         // ---------------------------------------------------------
-        public async Task<IEnumerable<HotelSearchResultDto>> SearchHotelsAsync(SearchHotelsQuery query)
+        public async Task<IEnumerable<HotelSearchResultDto>> SearchHotelsAsync(
+            SearchHotelsQuery query
+        )
         {
             var request = new SnappTripCityAvailabilityRequest
             {
@@ -43,56 +45,87 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 min_price = 0,
                 max_price = 0,
                 stars = new List<int>(),
-                accommodations = new List<string>()
+                accommodations = new List<string>(),
             };
 
             var response = await _apiClient.SearchCityAvailabilityAsync(request);
 
             // Map از SnappTripCityAvailabilityResponse به HotelSearchResultDto
-            return response.items.Select(x => new HotelSearchResultDto
-            (
+            return response.items.Select(x => new HotelSearchResultDto(
                 x.hotel.id,
                 x.hotel.title,
                 x.city_id,
                 x.hotel.stars,
                 x.room.price_off > 0 ? x.room.price_off : x.room.price
-                //Currency = "IRR",
-                //ThumbnailUrl = null // برای thumbnail بعداً می‌توانیم از galleries استفاده کنیم
+            //Currency = "IRR",
+            //ThumbnailUrl = null // برای thumbnail بعداً می‌توانیم از galleries استفاده کنیم
             ));
         }
 
         // ---------------------------------------------------------
         // Hotel details (full)
         // ---------------------------------------------------------
-        public async Task<IEnumerable<HotelDetailsDto>> GetHotelDetailsAsync(GetHotelDetailsQuery query)
+        public async Task<IEnumerable<HotelDetailsDto>> GetHotelDetailsAsync(
+            GetHotelDetailsQuery query
+        )
         {
             _logger.LogInformation("SnappTrip: GetHotelDetails - HotelId={HotelId}", query.HotelId);
 
             // Get real-time availability and static details/galleries/rooms
-            var checkIn = query.CheckIn?.ToString("yyyy-MM-dd") ?? DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
-            var checkOut = query.CheckOut?.ToString("yyyy-MM-dd") ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)).ToString("yyyy-MM-dd");
+            var checkIn =
+                query.CheckIn?.ToString("yyyy-MM-dd")
+                ?? DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+            var checkOut =
+                query.CheckOut?.ToString("yyyy-MM-dd")
+                ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)).ToString("yyyy-MM-dd");
 
-            var availability = await _apiClient.GetHotelAvailabilityByIdAsync(query.HotelId, checkIn, checkOut);
+            var availability = await _apiClient.GetHotelAvailabilityByIdAsync(
+                query.HotelId,
+                checkIn,
+                checkOut
+            );
             var detailsList = await _apiClient.GetHotelsDetailsAsync(new[] { query.HotelId });
             var galleriesList = await _apiClient.GetHotelsGalleriesAsync(new[] { query.HotelId });
             var roomsStatic = await _apiClient.GetHotelsRoomsAsync(new[] { query.HotelId });
-            var facilitiesStatic = await _apiClient.GetHotelsFacilitiesAsync(new[] { query.HotelId });
+            var facilitiesStatic = await _apiClient.GetHotelsFacilitiesAsync(
+                new[] { query.HotelId }
+            );
 
             var detail = detailsList?.FirstOrDefault()?.hotel;
             if (detail == null)
                 return Enumerable.Empty<HotelDetailsDto>();
 
             // Map images
-            var images = galleriesList?.FirstOrDefault()?.gallery?.Select(g => g.url).Where(u => !string.IsNullOrEmpty(u)).ToList() ?? new List<string>();
+            var images =
+                galleriesList
+                    ?.FirstOrDefault()
+                    ?.gallery?.Select(g => g.url)
+                    .Where(u => !string.IsNullOrEmpty(u))
+                    .ToList()
+                ?? new List<string>();
 
             // Map hotel facilities
-            var facilities = detail.facilities?.Select(f => f.title).Where(s => !string.IsNullOrEmpty(s)).ToList() ?? new List<string>();
+            var facilities =
+                detail
+                    .facilities?.Select(f => f.title)
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList()
+                ?? new List<string>();
 
             // Build room lookup from static rooms
-            var staticRooms = roomsStatic?.FirstOrDefault()?.rooms?.ToDictionary(r => (long)r.id) ?? new Dictionary<long, Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripRoomItem>();
+            var staticRooms =
+                roomsStatic?.FirstOrDefault()?.rooms?.ToDictionary(r => (long)r.id)
+                ?? new Dictionary<
+                    long,
+                    Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripRoomItem
+                >();
 
             // Build pricing lookup from availability (pricing in availability.availability items)
-            var pricingLookup = new Dictionary<long, Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripRoomPricing>();
+            var pricingLookup =
+                new Dictionary<
+                    long,
+                    Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripRoomPricing
+                >();
             if (availability?.availability != null)
             {
                 foreach (var r in availability.availability)
@@ -131,7 +164,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                     //    .Where(s => !string.IsNullOrEmpty(s))
                     //    .Distinct()
                     //    .ToList() ?? new List<string>()
-                    Facilities = MapRoomFacilities(roomItem)
+                    Facilities = MapRoomFacilities(roomItem),
                 };
 
                 rooms.Add(roomDto);
@@ -150,7 +183,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 Rooms = rooms,
                 CheckInTime = detail.policies?.check_in_time,
                 CheckOutTime = detail.policies?.check_out_time,
-                Policies = detail.policies?.cancellation
+                Policies = detail.policies?.cancellation,
             };
 
             return new[] { hotelDto };
@@ -162,8 +195,11 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
         public async Task<BookingCreateResultDto> CreateBookingAsync(BookingDraftDto request)
         {
-            _logger.LogInformation("SnappTrip CreateBooking: HotelId={HotelId}, RoomId={RoomId}", 
-                request.HotelId, request.RoomId);
+            _logger.LogInformation(
+                "SnappTrip CreateBooking: HotelId={HotelId}, RoomId={RoomId}",
+                request.HotelId,
+                request.RoomId
+            );
 
             // Map BookingDraftDto به SnappTripCreateBookingRequest
             var snappTripRequest = new SnappTripCreateBookingRequest
@@ -176,11 +212,14 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 note = string.IsNullOrWhiteSpace(request.IdempotencyKey)
                     ? null
                     : $"RefahiIdempotencyKey:{request.IdempotencyKey}",
-                rooms = MapRooms(request)
+                rooms = MapRooms(request),
             };
 
             // Call API
-            var response = await _apiClient.CreateBookingAsync(snappTripRequest, request.IdempotencyKey);
+            var response = await _apiClient.CreateBookingAsync(
+                snappTripRequest,
+                request.IdempotencyKey
+            );
 
             // Map response to DTO
             return SnappTripMapper.MapCreateBooking(response);
@@ -194,14 +233,20 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
         public async Task ConfirmBookingAsync(string bookingCode)
         {
-            _logger.LogInformation("SnappTrip ConfirmBooking: BookingCode={BookingCode}", bookingCode);
+            _logger.LogInformation(
+                "SnappTrip ConfirmBooking: BookingCode={BookingCode}",
+                bookingCode
+            );
             await _apiClient.ConfirmBookingAsync(bookingCode);
         }
 
         public async Task<BookingStatusDto> GetBookingStatusAsync(string bookingCode)
         {
-            _logger.LogInformation("SnappTrip GetBookingStatus: BookingCode={BookingCode}", bookingCode);
-            
+            _logger.LogInformation(
+                "SnappTrip GetBookingStatus: BookingCode={BookingCode}",
+                bookingCode
+            );
+
             var response = await _apiClient.GetBookingStatusAsync(bookingCode);
             return SnappTripMapper.MapStatus(response);
         }
@@ -209,18 +254,23 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
         public Task<CancelProviderBookingResultDto> CancelBookingAsync(
             string bookingCode,
             string idempotencyKey,
-            string reason)
+            string reason
+        )
         {
             _logger.LogWarning(
                 "SnappTrip cancellation is not supported by the current provider contract. BookingCode={BookingCode}, IdempotencyKey={IdempotencyKey}",
                 bookingCode,
-                idempotencyKey);
+                idempotencyKey
+            );
 
-            return Task.FromResult(new CancelProviderBookingResultDto
-            {
-                Status = "Unsupported",
-                ProviderMessage = "Current SnappTrip adapter has no documented cancellation endpoint."
-            });
+            return Task.FromResult(
+                new CancelProviderBookingResultDto
+                {
+                    Status = "Unsupported",
+                    ProviderMessage =
+                        "Current SnappTrip adapter has no documented cancellation endpoint.",
+                }
+            );
         }
 
         // ---------------------------------------------------------
@@ -235,9 +285,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 children = 0,
                 infants = 0,
                 extra_beds = 0,
-                guests = request.Guests
-                    .Select(g => MapGuest(g))
-                    .ToList()
+                guests = request.Guests.Select(g => MapGuest(g)).ToList(),
             };
 
             return new List<SnappTripBookRoom> { room };
@@ -253,7 +301,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             {
                 first_name = firstName,
                 last_name = lastName,
-                foreigner = false
+                foreigner = false,
             };
         }
 
@@ -273,16 +321,25 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             if (!string.IsNullOrEmpty(name))
             {
                 var lowered = name.ToLowerInvariant();
-                mapped = mapped.Where(x => x.Name.ToLowerInvariant().Contains(lowered) || x.NameEn.ToLowerInvariant().Contains(lowered));
+                mapped = mapped.Where(x =>
+                    x.Name.ToLowerInvariant().Contains(lowered)
+                    || x.NameEn.ToLowerInvariant().Contains(lowered)
+                );
             }
 
             return mapped;
         }
 
-        public async Task<GetAvailabilityByCityDto> GetAvailabilityByCity(GetAvailabilityByCityQuery query)
+        public async Task<GetAvailabilityByCityDto> GetAvailabilityByCity(
+            GetAvailabilityByCityQuery query
+        )
         {
-            _logger.LogInformation("SnappTrip GetAvailabilityByCity: CityId={CityId}, CheckIn={CheckIn}, CheckOut={CheckOut}",
-                query.CityId, query.CheckIn, query.CheckOut);
+            _logger.LogInformation(
+                "SnappTrip GetAvailabilityByCity: CityId={CityId}, CheckIn={CheckIn}, CheckOut={CheckOut}",
+                query.CityId,
+                query.CheckIn,
+                query.CheckOut
+            );
 
             // 1. ایجاد request برای SnappTrip API
             var request = new SnappTripCityAvailabilityRequest
@@ -296,36 +353,44 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 min_price = query.MinPrice ?? 0,
                 max_price = query.MaxPrice ?? 0,
                 stars = query.Stars?.ToList() ?? new List<int>(),
-                accommodations = query.Accommodations?.ToList() ?? new List<string>()
+                accommodations = query.Accommodations?.ToList() ?? new List<string>(),
             };
 
             // 2. صدا زدن API
             var response = await _apiClient.SearchCityAvailabilityAsync(request);
-            var hotelImages = await GetSearchResultImagesAsync(response.items.Select(x => (long)x.hotel.id));
+            var hotelImages = await GetSearchResultImagesAsync(
+                response.items.Select(x => (long)x.hotel.id)
+            );
 
             // 3. Mapping response به Application DTO
-            var availabilityItems = response.items
-                .Select(item => new AvailabilityByCitiesItem(
+            var availabilityItems = response
+                .items.Select(item => new AvailabilityByCitiesItem(
                     CityId: item.city_id,
-                    Hotel: item.hotel != null ? new AvailabilityByCitiesHotel(
-                        Id: item.hotel.id,
-                        Title: item.hotel.title,
-                        AccommodationType: item.hotel.accommodation_type,
-                        AccommodationTitle: item.hotel.accommodation_title,
-                        Address: item.hotel.address,
-                        Stars: item.hotel.stars,
-                        Images: hotelImages.TryGetValue(item.hotel.id, out var images) ? images : []
-                    ) : null,
-                    Room: item.room != null ? new AvailabilityByCitiesRoom(
-                        Id: item.room.id,
-                        Title: item.room.title,
-                        Price: (int)item.room.price,
-                        PriceOff: (int?)item.room.price_off,
-                        DiscountPercent: item.room.discount_percent,
-                        ChildPrice: (int?)item.room.child_price,
-                        ExtraBedPrice: (int?)item.room.extra_bed_price,
-                        Children: item.room.children
-                    ) : null
+                    Hotel: item.hotel != null
+                        ? new AvailabilityByCitiesHotel(
+                            Id: item.hotel.id,
+                            Title: item.hotel.title,
+                            AccommodationType: item.hotel.accommodation_type,
+                            AccommodationTitle: item.hotel.accommodation_title,
+                            Address: item.hotel.address,
+                            Stars: item.hotel.stars,
+                            Images: hotelImages.TryGetValue(item.hotel.id, out var images)
+                                ? images
+                                : []
+                        )
+                        : null,
+                    Room: item.room != null
+                        ? new AvailabilityByCitiesRoom(
+                            Id: item.room.id,
+                            Title: item.room.title,
+                            Price: (int)item.room.price,
+                            PriceOff: (int?)item.room.price_off,
+                            DiscountPercent: item.room.discount_percent,
+                            ChildPrice: (int?)item.room.child_price,
+                            ExtraBedPrice: (int?)item.room.extra_bed_price,
+                            Children: item.room.children
+                        )
+                        : null
                 ))
                 .ToList();
 
@@ -344,7 +409,9 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             return new GetAvailabilityByCityDto(filterDto, availabilityItems);
         }
 
-        private async Task<Dictionary<long, IReadOnlyList<string>>> GetSearchResultImagesAsync(IEnumerable<long> hotelIds)
+        private async Task<Dictionary<long, IReadOnlyList<string>>> GetSearchResultImagesAsync(
+            IEnumerable<long> hotelIds
+        )
         {
             var result = new Dictionary<long, IReadOnlyList<string>>();
             var ids = hotelIds.Where(id => id > 0).Distinct().ToArray();
@@ -356,30 +423,53 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                     var galleries = await _apiClient.GetHotelsGalleriesAsync(batch);
                     foreach (var gallery in galleries)
                     {
-                        var images = gallery.gallery?
-                            .Select(item => item.url)
-                            .Where(url => !string.IsNullOrWhiteSpace(url))
-                            .Distinct()
-                            .ToList() ?? [];
+                        var images =
+                            gallery
+                                .gallery?.Select(item => item.url)
+                                .Where(url => !string.IsNullOrWhiteSpace(url))
+                                .Distinct()
+                                .ToList()
+                            ?? [];
 
                         result[gallery.hotel_id] = images;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "SnappTrip search gallery lookup failed for HotelIds={HotelIds}", string.Join(',', batch));
+                    _logger.LogWarning(
+                        ex,
+                        "SnappTrip search gallery lookup failed for HotelIds={HotelIds}",
+                        string.Join(',', batch)
+                    );
                 }
             }
 
             return result;
         }
 
-        public async Task<AvailabilityCalendarDto> GetHotelAvailabilityCalendarAsync(long hotelId, DateOnly from, DateOnly to)
+        public async Task<AvailabilityCalendarDto> GetHotelAvailabilityCalendarAsync(
+            long hotelId,
+            DateOnly from,
+            DateOnly to
+        )
         {
-            _logger.LogInformation("SnappTrip GetHotelAvailabilityCalendar: HotelId={HotelId}, From={From}, To={To}", hotelId, from, to);
+            _logger.LogInformation(
+                "SnappTrip GetHotelAvailabilityCalendar: HotelId={HotelId}, From={From}, To={To}",
+                hotelId,
+                from,
+                to
+            );
 
-            var cal = await _apiClient.GetHotelCalendarAsync(hotelId, from.ToString("yyyy-MM-dd"), to.ToString("yyyy-MM-dd"));
-            var name = (await _apiClient.GetHotelsDetailsAsync(new[] { hotelId }))?.FirstOrDefault()?.hotel?.title ?? string.Empty;
+            var cal = await _apiClient.GetHotelCalendarAsync(
+                hotelId,
+                from.ToString("yyyy-MM-dd"),
+                to.ToString("yyyy-MM-dd")
+            );
+            var name =
+                (await _apiClient.GetHotelsDetailsAsync(new[] { hotelId }))
+                    ?.FirstOrDefault()
+                    ?.hotel?.title
+                ?? string.Empty;
 
             var result = new AvailabilityCalendarDto
             {
@@ -387,7 +477,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 HotelName = name,
                 FromDate = from,
                 ToDate = to,
-                RoomCalendars = new Dictionary<long, List<DailyAvailabilityDto>>()
+                RoomCalendars = new Dictionary<long, List<DailyAvailabilityDto>>(),
             };
 
             if (cal?.rooms == null)
@@ -399,9 +489,24 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 foreach (var kv in room.daily)
                 {
                     // Try parse using invariant culture and explicit yyyy-MM-dd format
-                    if (!DateOnly.TryParse(kv.Key, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dt))
+                    if (
+                        !DateOnly.TryParse(
+                            kv.Key,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.None,
+                            out var dt
+                        )
+                    )
                     {
-                        if (!DateOnly.TryParseExact(kv.Key, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
+                        if (
+                            !DateOnly.TryParseExact(
+                                kv.Key,
+                                "yyyy-MM-dd",
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                System.Globalization.DateTimeStyles.None,
+                                out dt
+                            )
+                        )
                             continue;
                     }
 
@@ -412,7 +517,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                         IsAvailable = d.availability > 0,
                         PricePerNight = d.price,
                         RemainingRooms = d.availability,
-                        UnavailabilityReason = d.availability > 0 ? null : "ناموجود"
+                        UnavailabilityReason = d.availability > 0 ? null : "ناموجود",
                     };
                     list.Add(item);
                 }
@@ -423,12 +528,23 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             return result;
         }
 
-        public async Task<HotelReviewsDto> GetHotelReviewsAsync(long hotelId, int page = 1, int pageSize = 10)
+        public async Task<HotelReviewsDto> GetHotelReviewsAsync(
+            long hotelId,
+            int page = 1,
+            int pageSize = 10
+        )
         {
-            _logger.LogInformation("SnappTrip GetHotelReviews: HotelId={HotelId}, Page={Page}, PageSize={PageSize}", hotelId, page, pageSize);
+            _logger.LogInformation(
+                "SnappTrip GetHotelReviews: HotelId={HotelId}, Page={Page}, PageSize={PageSize}",
+                hotelId,
+                page,
+                pageSize
+            );
 
             var resp = await _apiClient.GetHotelsReviewsAsync(new[] { hotelId });
-            var reviews = resp?.FirstOrDefault()?.reviews ?? new List<Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripHotelReview>();
+            var reviews =
+                resp?.FirstOrDefault()?.reviews
+                ?? new List<Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripHotelReview>();
 
             var total = reviews.Count;
             var totalPages = (int)Math.Ceiling(total / (double)pageSize);
@@ -436,23 +552,25 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             // paging in-memory (API does not provide pagination here)
             var pageItems = reviews.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
-            var mappedReviews = pageItems.Select(r => new ReviewDto
-            {
-                GuestName = r.fullname,
-                ReviewDate = ConvertUnixTimeToDateTime(r.registered_date),
-                Comment = r.comment ?? string.Empty,
-                Rating = (decimal)r.rate_overall,
-                StayDate = ConvertUnixTimeToDateOnly(r.registered_date),
-                NightsStayed = 1,
-                DetailedRatings = new DetailedRatingsDto
+            var mappedReviews = pageItems
+                .Select(r => new ReviewDto
                 {
-                    Cleanliness = (decimal?)r.rate_clean,
-                    Comfort = (decimal?)r.rate_sleep_quality,
-                    Service = (decimal?)r.rate_staff,
-                    ValueForMoney = (decimal?)r.rate_value_for_money,
-                    Location = (decimal?)r.rate_location
-                }
-            }).ToList();
+                    GuestName = r.fullname,
+                    ReviewDate = ConvertUnixTimeToDateTime(r.registered_date),
+                    Comment = r.comment ?? string.Empty,
+                    Rating = (decimal)r.rate_overall,
+                    StayDate = ConvertUnixTimeToDateOnly(r.registered_date),
+                    NightsStayed = 1,
+                    DetailedRatings = new DetailedRatingsDto
+                    {
+                        Cleanliness = (decimal?)r.rate_clean,
+                        Comfort = (decimal?)r.rate_sleep_quality,
+                        Service = (decimal?)r.rate_staff,
+                        ValueForMoney = (decimal?)r.rate_value_for_money,
+                        Location = (decimal?)r.rate_location,
+                    },
+                })
+                .ToList();
 
             var overall = reviews.Any() ? (decimal)reviews.Average(x => x.rate_overall) : 0m;
 
@@ -471,8 +589,8 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                     Comfort = mappedReviews.Average(r => r.DetailedRatings?.Comfort ?? 0),
                     Service = mappedReviews.Average(r => r.DetailedRatings?.Service ?? 0),
                     Value = mappedReviews.Average(r => r.DetailedRatings?.ValueForMoney ?? 0),
-                    Location = mappedReviews.Average(r => r.DetailedRatings?.Location ?? 0)
-                }
+                    Location = mappedReviews.Average(r => r.DetailedRatings?.Location ?? 0),
+                },
             };
         }
 
@@ -488,7 +606,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 AvailableBalance = balance,
                 LockedBalance = 0,
                 LastUpdated = DateTime.UtcNow,
-                Currency = "IRR"
+                Currency = "IRR",
             };
         }
 
@@ -513,16 +631,19 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             return DateOnly.FromDateTime(dt);
         }
 
-        private static List<string> MapRoomFacilities(Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripRoomItem roomItem)
+        private static List<string> MapRoomFacilities(
+            Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract.SnappTripRoomItem roomItem
+        )
         {
-            return roomItem.facilities_tags?
-                .Where(tag => tag?.facilities != null)
-                .SelectMany(tag => tag!.facilities!)
-                .Select(facility => facility?.title)
-                .Where(title => !string.IsNullOrWhiteSpace(title))
-                .Select(title => title!)
-                .Distinct()
-                .ToList() ?? new List<string>();
+            return roomItem
+                    .facilities_tags?.Where(tag => tag?.facilities != null)
+                    .SelectMany(tag => tag!.facilities!)
+                    .Select(facility => facility?.title)
+                    .Where(title => !string.IsNullOrWhiteSpace(title))
+                    .Select(title => title!)
+                    .Distinct()
+                    .ToList()
+                ?? new List<string>();
         }
     }
 }

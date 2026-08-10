@@ -20,7 +20,8 @@ internal sealed class StoreBusinessClock : IStoreBusinessClock
             var local = TimeZoneInfo.ConvertTime(_timeProvider.GetUtcNow(), _timeZone).DateTime;
             return new StoreBusinessMoment(
                 DateOnly.FromDateTime(local),
-                TimeOnly.FromDateTime(local));
+                TimeOnly.FromDateTime(local)
+            );
         }
     }
 
@@ -36,15 +37,16 @@ internal sealed class StoreBusinessClock : IStoreBusinessClock
             {
                 return TimeZoneInfo.FindSystemTimeZoneById(candidate!);
             }
-            catch (TimeZoneNotFoundException)
-            {
-            }
-            catch (InvalidTimeZoneException)
-            {
-            }
+            catch (TimeZoneNotFoundException) { }
+            catch (InvalidTimeZoneException) { }
         }
 
         // Iran has used UTC+03:30 without daylight-saving changes since 2022.
-        return TimeZoneInfo.CreateCustomTimeZone("Refahi-Iran", TimeSpan.FromMinutes(210), "Iran", "Iran");
+        return TimeZoneInfo.CreateCustomTimeZone(
+            "Refahi-Iran",
+            TimeSpan.FromMinutes(210),
+            "Iran",
+            "Iran"
+        );
     }
 }

@@ -11,21 +11,29 @@ public class StoreModuleRepository : IStoreModuleRepository
 
     public StoreModuleRepository(StoreDbContext db) => _db = db;
 
-    public Task<StoreModule?> GetByIdAsync(int id, CancellationToken ct = default)
-        => _db.Modules.FirstOrDefaultAsync(m => m.Id == id, ct);
+    public Task<StoreModule?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        _db.Modules.FirstOrDefaultAsync(m => m.Id == id, ct);
 
-    public Task<StoreModule?> GetBySlugAsync(string slug, CancellationToken ct = default)
-        => _db.Modules.FirstOrDefaultAsync(m => m.Slug == slug.ToLower(), ct);
+    public Task<StoreModule?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+        _db.Modules.FirstOrDefaultAsync(m => m.Slug == slug.ToLower(), ct);
 
-    public Task<List<StoreModule>> GetAllAsync(bool includeInactive = false, CancellationToken ct = default)
-        => includeInactive
+    public Task<List<StoreModule>> GetAllAsync(
+        bool includeInactive = false,
+        CancellationToken ct = default
+    ) =>
+        includeInactive
             ? _db.Modules.OrderBy(m => m.SortOrder).ToListAsync(ct)
             : _db.Modules.Where(m => m.IsActive).OrderBy(m => m.SortOrder).ToListAsync(ct);
 
-    public Task<bool> SlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default)
-        => _db.Modules.AnyAsync(m =>
-            m.Slug == slug.ToLower() &&
-            (!excludeId.HasValue || m.Id != excludeId.Value), ct);
+    public Task<bool> SlugExistsAsync(
+        string slug,
+        int? excludeId = null,
+        CancellationToken ct = default
+    ) =>
+        _db.Modules.AnyAsync(
+            m => m.Slug == slug.ToLower() && (!excludeId.HasValue || m.Id != excludeId.Value),
+            ct
+        );
 
     public async Task AddAsync(StoreModule module, CancellationToken ct = default)
     {

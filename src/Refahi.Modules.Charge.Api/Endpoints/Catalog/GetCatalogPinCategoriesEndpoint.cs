@@ -18,8 +18,20 @@ public sealed class GetCatalogPinCategoriesEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("catalog/pin-categories", async ([FromQuery] ChargeOperator? @operator, ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetPinCategoriesQuery(@operator), ct))))
+        routes
+            .MapGet(
+                "catalog/pin-categories",
+                async (
+                    [FromQuery] ChargeOperator? @operator,
+                    ISender sender,
+                    CancellationToken ct
+                ) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(new GetPinCategoriesQuery(@operator), ct)
+                        )
+                    )
+            )
             .RequireRateLimiting(ChargeRateLimiting.PublicCatalogPolicy)
             .WithName("Charge.Catalog.PinCategories")
             .WithTags("Charge.Catalog")

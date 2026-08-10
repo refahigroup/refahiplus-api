@@ -18,7 +18,8 @@ public sealed class SelectedFareSnapshot : ValueObject
         string cabinClass,
         string? bookingClass = null,
         string? fareRulesSnapshotJson = null,
-        string? providerTraceId = null)
+        string? providerTraceId = null
+    )
     {
         if (string.IsNullOrWhiteSpace(providerFareId))
         {
@@ -39,8 +40,12 @@ public sealed class SelectedFareSnapshot : ValueObject
         FareCaption = fareCaption.Trim();
         CabinClass = cabinClass.Trim();
         BookingClass = string.IsNullOrWhiteSpace(bookingClass) ? null : bookingClass.Trim();
-        FareRulesSnapshotJson = string.IsNullOrWhiteSpace(fareRulesSnapshotJson) ? null : fareRulesSnapshotJson.Trim();
-        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId) ? null : providerTraceId.Trim();
+        FareRulesSnapshotJson = string.IsNullOrWhiteSpace(fareRulesSnapshotJson)
+            ? null
+            : fareRulesSnapshotJson.Trim();
+        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId)
+            ? null
+            : providerTraceId.Trim();
     }
 
     public string ProviderFareId { get; private set; }

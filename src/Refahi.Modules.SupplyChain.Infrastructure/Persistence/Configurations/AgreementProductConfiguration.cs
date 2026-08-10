@@ -14,9 +14,7 @@ public class AgreementProductConfiguration : IEntityTypeConfiguration<AgreementP
 
         builder.Property(p => p.AgreementId).IsRequired();
 
-        builder.Property(p => p.Name)
-            .IsRequired()
-            .HasMaxLength(200);
+        builder.Property(p => p.Name).IsRequired().HasMaxLength(200);
 
         builder.Property(p => p.Description).HasMaxLength(1000);
 
@@ -25,12 +23,14 @@ public class AgreementProductConfiguration : IEntityTypeConfiguration<AgreementP
         builder.Property(p => p.ProductType).IsRequired();
         builder.Property(p => p.DeliveryType).IsRequired();
         builder.Property(p => p.SalesModel).IsRequired();
-        builder.Property(p => p.PricingMode)
+        builder
+            .Property(p => p.PricingMode)
             .IsRequired()
             .HasDefaultValue(Refahi.Modules.SupplyChain.Domain.Enums.PricingMode.Fixed);
         builder.Property(p => p.VatApplicable).IsRequired().HasDefaultValue(false);
 
-        builder.Property(p => p.CommissionPercent)
+        builder
+            .Property(p => p.CommissionPercent)
             .IsRequired()
             .HasColumnType("numeric(5,2)")
             .HasDefaultValue(0m);

@@ -24,5 +24,6 @@ public class CreatePaymentIntentEndpoint : IEndpoint
         long AmountMinor,
         string Currency,
         List<AllocationRequest> Allocations,
-        string? MetadataJson);
+        string? MetadataJson
+    );
 }

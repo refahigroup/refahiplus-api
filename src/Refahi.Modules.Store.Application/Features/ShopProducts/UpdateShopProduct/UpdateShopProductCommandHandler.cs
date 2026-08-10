@@ -16,35 +16,59 @@ public class UpdateShopProductCommandHandler : IRequestHandler<UpdateShopProduct
     public UpdateShopProductCommandHandler(
         IShopProductRepository shopProductRepo,
         IProductRepository productRepo,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _shopProductRepo = shopProductRepo;
         _productRepo = productRepo;
         _mediator = mediator;
     }
 
-    public async Task<Unit> Handle(UpdateShopProductCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        UpdateShopProductCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var shopProduct = await _shopProductRepo.GetAsync(request.ShopId, request.ProductId, cancellationToken)
-            ?? throw new StoreDomainException("محصول در این فروشگاه یافت نشد", "SHOP_PRODUCT_NOT_FOUND");
+        var shopProduct =
+            await _shopProductRepo.GetAsync(request.ShopId, request.ProductId, cancellationToken)
+            ?? throw new StoreDomainException(
+                "محصول در این فروشگاه یافت نشد",
+                "SHOP_PRODUCT_NOT_FOUND"
+            );
 
         if (shopProduct.IsDeleted)
-            throw new StoreDomainException("محصول در این فروشگاه حذف شده است", "SHOP_PRODUCT_DELETED");
+            throw new StoreDomainException(
+                "محصول در این فروشگاه حذف شده است",
+                "SHOP_PRODUCT_DELETED"
+            );
 
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
-        var agreementProduct = await _mediator.Send(
-            new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
-            ?? throw new StoreDomainException("محصول قرارداد یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+        var agreementProduct =
+            await _mediator.Send(
+                new GetAgreementProductByIdQuery(product.AgreementProductId),
+                cancellationToken
+            )
+            ?? throw new StoreDomainException(
+                "محصول قرارداد یافت نشد",
+                "AGREEMENT_PRODUCT_NOT_FOUND"
+            );
         var isManual = agreementProduct.PricingMode == (short)PricingMode.Manual;
         if (isManual)
         {
             if (request.Price != 0 || request.DiscountedPrice != 0)
-                throw new StoreDomainException("قیمت محصول حضوری باید صفر ذخیره شود", "INVALID_MANUAL_PRICE");
+                throw new StoreDomainException(
+                    "قیمت محصول حضوری باید صفر ذخیره شود",
+                    "INVALID_MANUAL_PRICE"
+                );
         }
         else if (request.Price <= 0 || request.DiscountedPrice <= 0)
         {
-            throw new StoreDomainException("قیمت محصول باید بزرگ‌تر از صفر باشد", "INVALID_FIXED_PRICE");
+            throw new StoreDomainException(
+                "قیمت محصول باید بزرگ‌تر از صفر باشد",
+                "INVALID_FIXED_PRICE"
+            );
         }
 
         if (isManual)

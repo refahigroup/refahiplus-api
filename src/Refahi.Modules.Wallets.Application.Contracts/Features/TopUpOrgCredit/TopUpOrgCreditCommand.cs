@@ -15,5 +15,5 @@ public sealed record TopUpOrgCreditCommand(
     string Currency,
     string IdempotencyKey,
     string? MetadataJson = null,
-    string? ExternalReference = null)
-    : IRequest<CommandResponse<TopUpWalletResponse>>;
+    string? ExternalReference = null
+) : IRequest<CommandResponse<TopUpWalletResponse>>;

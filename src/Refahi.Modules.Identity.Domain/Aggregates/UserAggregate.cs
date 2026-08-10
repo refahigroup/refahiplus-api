@@ -9,7 +9,7 @@ namespace Refahi.Modules.Identity.Domain.Aggregates;
 public class User
 {
     // Private constructor for EF
-    private User() 
+    private User()
     {
         Roles = new List<UserRole>();
     }
@@ -26,7 +26,7 @@ public class User
     public int FailedLoginAttempts { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
-    
+
     // Navigation properties
     public UserProfile? Profile { get; private set; }
     public ICollection<UserRole> Roles { get; private set; }
@@ -38,7 +38,10 @@ public class User
     {
         if (string.IsNullOrWhiteSpace(mobileNumber) && string.IsNullOrWhiteSpace(email))
         {
-            throw new DomainException("Either mobile number or email must be provided", "MOBILE_OR_EMAIL_REQUIRED");
+            throw new DomainException(
+                "Either mobile number or email must be provided",
+                "MOBILE_OR_EMAIL_REQUIRED"
+            );
         }
 
         return new User
@@ -52,7 +55,7 @@ public class User
             FailedLoginAttempts = 0,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            Roles = new List<UserRole>()
+            Roles = new List<UserRole>(),
         };
     }
 
@@ -150,13 +153,19 @@ public class User
 
         if (username.Length < 3 || username.Length > 30)
         {
-            throw new DomainException("Username must be between 3 and 30 characters", "INVALID_USERNAME_LENGTH");
+            throw new DomainException(
+                "Username must be between 3 and 30 characters",
+                "INVALID_USERNAME_LENGTH"
+            );
         }
 
         // Username can only contain letters, numbers, underscore, and dash
         if (!System.Text.RegularExpressions.Regex.IsMatch(username, @"^[a-zA-Z0-9_-]+$"))
         {
-            throw new DomainException("Username can only contain letters, numbers, underscore, and dash", "INVALID_USERNAME_FORMAT");
+            throw new DomainException(
+                "Username can only contain letters, numbers, underscore, and dash",
+                "INVALID_USERNAME_FORMAT"
+            );
         }
 
         Username = username.Trim().ToLower();

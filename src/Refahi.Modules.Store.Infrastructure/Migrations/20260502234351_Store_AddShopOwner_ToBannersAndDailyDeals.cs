@@ -14,12 +14,14 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_daily_deals_ModuleId",
                 schema: "store",
-                table: "daily_deals");
+                table: "daily_deals"
+            );
 
             migrationBuilder.DropIndex(
                 name: "IX_banners_ModuleId",
                 schema: "store",
-                table: "banners");
+                table: "banners"
+            );
 
             migrationBuilder.AlterColumn<int>(
                 name: "ModuleId",
@@ -28,14 +30,16 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 type: "integer",
                 nullable: true,
                 oldClrType: typeof(int),
-                oldType: "integer");
+                oldType: "integer"
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "ShopId",
                 schema: "store",
                 table: "daily_deals",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AlterColumn<int>(
                 name: "ModuleId",
@@ -44,54 +48,62 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 type: "integer",
                 nullable: true,
                 oldClrType: typeof(int),
-                oldType: "integer");
+                oldType: "integer"
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "ShopId",
                 schema: "store",
                 table: "banners",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_daily_deals_ModuleId",
                 schema: "store",
                 table: "daily_deals",
                 column: "ModuleId",
-                filter: "\"ModuleId\" IS NOT NULL");
+                filter: "\"ModuleId\" IS NOT NULL"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_daily_deals_ShopId",
                 schema: "store",
                 table: "daily_deals",
                 column: "ShopId",
-                filter: "\"ShopId\" IS NOT NULL");
+                filter: "\"ShopId\" IS NOT NULL"
+            );
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_daily_deals_owner_xor",
                 schema: "store",
                 table: "daily_deals",
-                sql: "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)");
+                sql: "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_banners_ModuleId",
                 schema: "store",
                 table: "banners",
                 column: "ModuleId",
-                filter: "\"ModuleId\" IS NOT NULL");
+                filter: "\"ModuleId\" IS NOT NULL"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_banners_ShopId",
                 schema: "store",
                 table: "banners",
                 column: "ShopId",
-                filter: "\"ShopId\" IS NOT NULL");
+                filter: "\"ShopId\" IS NOT NULL"
+            );
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_banners_owner_xor",
                 schema: "store",
                 table: "banners",
-                sql: "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)");
+                sql: "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)"
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_banners_modules_ModuleId",
@@ -101,7 +113,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 principalSchema: "store",
                 principalTable: "modules",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                onDelete: ReferentialAction.Restrict
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_banners_shops_ShopId",
@@ -111,7 +124,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 principalSchema: "store",
                 principalTable: "shops",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                onDelete: ReferentialAction.Restrict
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_daily_deals_modules_ModuleId",
@@ -121,7 +135,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 principalSchema: "store",
                 principalTable: "modules",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                onDelete: ReferentialAction.Restrict
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_daily_deals_shops_ShopId",
@@ -131,7 +146,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 principalSchema: "store",
                 principalTable: "shops",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                onDelete: ReferentialAction.Restrict
+            );
         }
 
         /// <inheritdoc />
@@ -140,62 +156,66 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_banners_modules_ModuleId",
                 schema: "store",
-                table: "banners");
+                table: "banners"
+            );
 
             migrationBuilder.DropForeignKey(
                 name: "FK_banners_shops_ShopId",
                 schema: "store",
-                table: "banners");
+                table: "banners"
+            );
 
             migrationBuilder.DropForeignKey(
                 name: "FK_daily_deals_modules_ModuleId",
                 schema: "store",
-                table: "daily_deals");
+                table: "daily_deals"
+            );
 
             migrationBuilder.DropForeignKey(
                 name: "FK_daily_deals_shops_ShopId",
                 schema: "store",
-                table: "daily_deals");
+                table: "daily_deals"
+            );
 
             migrationBuilder.DropIndex(
                 name: "IX_daily_deals_ModuleId",
                 schema: "store",
-                table: "daily_deals");
+                table: "daily_deals"
+            );
 
             migrationBuilder.DropIndex(
                 name: "IX_daily_deals_ShopId",
                 schema: "store",
-                table: "daily_deals");
+                table: "daily_deals"
+            );
 
             migrationBuilder.DropCheckConstraint(
                 name: "CK_daily_deals_owner_xor",
                 schema: "store",
-                table: "daily_deals");
+                table: "daily_deals"
+            );
 
             migrationBuilder.DropIndex(
                 name: "IX_banners_ModuleId",
                 schema: "store",
-                table: "banners");
+                table: "banners"
+            );
 
             migrationBuilder.DropIndex(
                 name: "IX_banners_ShopId",
                 schema: "store",
-                table: "banners");
+                table: "banners"
+            );
 
             migrationBuilder.DropCheckConstraint(
                 name: "CK_banners_owner_xor",
                 schema: "store",
-                table: "banners");
+                table: "banners"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "ShopId",
-                schema: "store",
-                table: "daily_deals");
+            migrationBuilder.DropColumn(name: "ShopId", schema: "store", table: "daily_deals");
 
-            migrationBuilder.DropColumn(
-                name: "ShopId",
-                schema: "store",
-                table: "banners");
+            migrationBuilder.DropColumn(name: "ShopId", schema: "store", table: "banners");
 
             migrationBuilder.AlterColumn<int>(
                 name: "ModuleId",
@@ -206,7 +226,8 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 defaultValue: 0,
                 oldClrType: typeof(int),
                 oldType: "integer",
-                oldNullable: true);
+                oldNullable: true
+            );
 
             migrationBuilder.AlterColumn<int>(
                 name: "ModuleId",
@@ -217,19 +238,22 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 defaultValue: 0,
                 oldClrType: typeof(int),
                 oldType: "integer",
-                oldNullable: true);
+                oldNullable: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_daily_deals_ModuleId",
                 schema: "store",
                 table: "daily_deals",
-                column: "ModuleId");
+                column: "ModuleId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_banners_ModuleId",
                 schema: "store",
                 table: "banners",
-                column: "ModuleId");
+                column: "ModuleId"
+            );
         }
     }
 }

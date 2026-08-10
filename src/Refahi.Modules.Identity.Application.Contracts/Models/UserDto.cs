@@ -8,5 +8,5 @@ public record UserDto(
     string? MobileNumber,
     string? Email,
     bool IsActive,
-    IReadOnlyList<string> Roles);
-
+    IReadOnlyList<string> Roles
+);

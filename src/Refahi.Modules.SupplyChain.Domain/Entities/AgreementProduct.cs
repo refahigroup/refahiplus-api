@@ -30,8 +30,9 @@ public sealed class AgreementProduct
         DeliveryType deliveryType,
         SalesModel salesModel,
         decimal commissionPercent,
-        bool vatApplicable)
-        => new()
+        bool vatApplicable
+    ) =>
+        new()
         {
             Id = Guid.NewGuid(),
             AgreementId = agreementId,
@@ -46,7 +47,7 @@ public sealed class AgreementProduct
             VatApplicable = vatApplicable,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
 
     internal void Update(
@@ -57,7 +58,8 @@ public sealed class AgreementProduct
         DeliveryType deliveryType,
         SalesModel salesModel,
         decimal commissionPercent,
-        bool vatApplicable)
+        bool vatApplicable
+    )
     {
         Name = name.Trim();
         Description = description?.Trim();
@@ -86,6 +88,6 @@ public sealed class AgreementProduct
         return salesModel;
     }
 
-    private static PricingMode ResolvePricingMode(DeliveryType deliveryType)
-        => deliveryType == DeliveryType.InPerson ? PricingMode.Manual : PricingMode.Fixed;
+    private static PricingMode ResolvePricingMode(DeliveryType deliveryType) =>
+        deliveryType == DeliveryType.InPerson ? PricingMode.Manual : PricingMode.Fixed;
 }

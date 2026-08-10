@@ -6,5 +6,5 @@ namespace Refahi.Api.Services.Notification.Dtos;
 public enum SmsGateway
 {
     MedianaSMS = 1,
-    KavehNegar = 2
+    KavehNegar = 2,
 }

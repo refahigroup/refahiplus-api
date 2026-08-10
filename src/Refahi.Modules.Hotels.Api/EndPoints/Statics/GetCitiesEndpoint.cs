@@ -15,17 +15,20 @@ public sealed class GetCitiesEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("statics/cities", async ([FromQuery] string? name, ISender sender) =>
-        {
-            var request = new GetCitiesRequest(name);
+        routes
+            .MapGet(
+                "statics/cities",
+                async ([FromQuery] string? name, ISender sender) =>
+                {
+                    var request = new GetCitiesRequest(name);
 
-            var result = await sender.Send(request);
+                    var result = await sender.Send(request);
 
-            return Results.Ok(result);
-
-        })
-        .Produces<IEnumerable<GetCitiesResponse>>()
-        .WithName("Hotels.Statics.Cities")
-        .WithTags("Hotels");
+                    return Results.Ok(result);
+                }
+            )
+            .Produces<IEnumerable<GetCitiesResponse>>()
+            .WithName("Hotels.Statics.Cities")
+            .WithTags("Hotels");
     }
 }

@@ -9,12 +9,16 @@ public class BannerConfiguration : IEntityTypeConfiguration<Banner>
 {
     public void Configure(EntityTypeBuilder<Banner> builder)
     {
-        builder.ToTable("banners", t =>
-        {
-            t.HasCheckConstraint(
-                "CK_banners_owner_xor",
-                "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)");
-        });
+        builder.ToTable(
+            "banners",
+            t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_banners_owner_xor",
+                    "(\"ModuleId\" IS NULL) <> (\"ShopId\" IS NULL)"
+                );
+            }
+        );
 
         builder.HasKey(b => b.Id);
         builder.Property(b => b.Id).ValueGeneratedOnAdd();
@@ -31,22 +35,22 @@ public class BannerConfiguration : IEntityTypeConfiguration<Banner>
         builder.Property(b => b.StartDate);
         builder.Property(b => b.EndDate);
 
-        builder.HasOne<StoreModule>()
+        builder
+            .HasOne<StoreModule>()
             .WithMany()
             .HasForeignKey(b => b.ModuleId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
-        builder.HasOne<Shop>()
+        builder
+            .HasOne<Shop>()
             .WithMany()
             .HasForeignKey(b => b.ShopId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
-        builder.HasIndex(b => b.ModuleId)
-            .HasFilter("\"ModuleId\" IS NOT NULL");
-        builder.HasIndex(b => b.ShopId)
-            .HasFilter("\"ShopId\" IS NOT NULL");
+        builder.HasIndex(b => b.ModuleId).HasFilter("\"ModuleId\" IS NOT NULL");
+        builder.HasIndex(b => b.ShopId).HasFilter("\"ShopId\" IS NOT NULL");
         builder.HasIndex(b => b.IsActive);
         builder.HasIndex(b => b.IsDeleted);
     }

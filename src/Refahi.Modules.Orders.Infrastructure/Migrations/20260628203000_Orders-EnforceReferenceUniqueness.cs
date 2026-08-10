@@ -15,7 +15,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 schema: "orders",
                 table: "orders",
                 columns: new[] { "reference_type", "source_reference_id" },
-                unique: true);
+                unique: true
+            );
         }
 
         /// <inheritdoc />
@@ -24,7 +25,8 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "ux_orders_reference_type_source_reference_id",
                 schema: "orders",
-                table: "orders");
+                table: "orders"
+            );
         }
     }
 }

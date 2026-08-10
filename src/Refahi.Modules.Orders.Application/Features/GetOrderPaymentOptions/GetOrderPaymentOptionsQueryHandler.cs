@@ -1,7 +1,7 @@
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
-using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Orders.Domain.Exceptions;
+using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
 
 namespace Refahi.Modules.Orders.Application.Features.GetOrderPaymentOptions;
@@ -20,9 +20,13 @@ public sealed class GetOrderPaymentOptionsQueryHandler
 
     public async Task<OrderPaymentOptionsDto?> Handle(
         GetOrderPaymentOptionsQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var order = await _orderRepository.GetByIdWithItemsAsync(request.OrderId, cancellationToken);
+        var order = await _orderRepository.GetByIdWithItemsAsync(
+            request.OrderId,
+            cancellationToken
+        );
         if (order is null)
             return null;
 
@@ -32,11 +36,12 @@ public sealed class GetOrderPaymentOptionsQueryHandler
         var eligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
         if (!eligibility.CanPay)
             throw new OrderStateConflictException(
-                eligibility.UnavailableReason ?? "سفارش در وضعیت قابل پرداخت نیست");
+                eligibility.UnavailableReason ?? "سفارش در وضعیت قابل پرداخت نیست"
+            );
 
         var wallets = await _mediator.Send(new GetMyWalletsQuery(order.UserId), cancellationToken);
-        var categoryCodes = order.Items
-            .Select(i => i.CategoryCode)
+        var categoryCodes = order
+            .Items.Select(i => i.CategoryCode)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -49,7 +54,11 @@ public sealed class GetOrderPaymentOptionsQueryHandler
         var priorityWallets = options
             .Where(w => w.IsAllowed && w.AvailableBalanceMinor > 0)
             .OrderBy(w => IsOrgCredit(w.WalletType) ? 0 : 1)
-            .ThenBy(w => IsOrgCredit(w.WalletType) ? w.ContractExpiresAt ?? DateTimeOffset.MaxValue : DateTimeOffset.MaxValue)
+            .ThenBy(w =>
+                IsOrgCredit(w.WalletType)
+                    ? w.ContractExpiresAt ?? DateTimeOffset.MaxValue
+                    : DateTimeOffset.MaxValue
+            )
             .ToList();
 
         var remaining = order.FinalAmountMinor;
@@ -64,11 +73,14 @@ public sealed class GetOrderPaymentOptionsQueryHandler
             if (take <= 0)
                 continue;
 
-            allocations.Add(new OrderWalletAllocationSuggestionDto(
-                wallet.WalletId,
-                wallet.WalletType,
-                take,
-                wallet.AvailableBalanceMinor));
+            allocations.Add(
+                new OrderWalletAllocationSuggestionDto(
+                    wallet.WalletId,
+                    wallet.WalletType,
+                    take,
+                    wallet.AvailableBalanceMinor
+                )
+            );
 
             remaining -= take;
         }
@@ -85,14 +97,16 @@ public sealed class GetOrderPaymentOptionsQueryHandler
             allocations,
             totalSuggested,
             remaining <= 0,
-            Math.Max(0, remaining));
+            Math.Max(0, remaining)
+        );
     }
 
     private static OrderWalletOptionDto BuildWalletOption(
         WalletSummaryDto wallet,
         string orderCurrency,
         IReadOnlyList<string> orderCategoryCodes,
-        DateTimeOffset now)
+        DateTimeOffset now
+    )
     {
         var isAllowed = true;
         string? reason = null;
@@ -127,10 +141,14 @@ public sealed class GetOrderPaymentOptionsQueryHandler
             wallet.AllowedCategoryCode,
             wallet.ContractExpiresAt,
             isAllowed,
-            reason);
+            reason
+        );
     }
 
-    private static bool IsAllowedForCategories(string? allowedCategoryCode, IReadOnlyList<string> orderCategoryCodes)
+    private static bool IsAllowedForCategories(
+        string? allowedCategoryCode,
+        IReadOnlyList<string> orderCategoryCodes
+    )
     {
         if (string.IsNullOrWhiteSpace(allowedCategoryCode))
             return true;
@@ -139,7 +157,8 @@ public sealed class GetOrderPaymentOptionsQueryHandler
 
         return orderCategoryCodes.All(code =>
             code.StartsWith(allowedCategoryCode, StringComparison.OrdinalIgnoreCase)
-            || allowedCategoryCode.StartsWith(code, StringComparison.OrdinalIgnoreCase));
+            || allowedCategoryCode.StartsWith(code, StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     private static bool IsOrgCredit(string walletType) =>

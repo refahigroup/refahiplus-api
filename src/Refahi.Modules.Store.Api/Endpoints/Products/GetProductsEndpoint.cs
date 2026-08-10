@@ -13,40 +13,50 @@ public class GetProductsEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/{moduleSlug}/products", async (
-            string moduleSlug,
-            string? q,
-            string? sort,
-            int? pageNumber,
-            int? pageSize,
-            IModuleResolver moduleResolver,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
-            if (moduleId is null)
-                return Results.NotFound();
+        routes
+            .MapGet(
+                "/{moduleSlug}/products",
+                async (
+                    string moduleSlug,
+                    string? q,
+                    string? sort,
+                    int? pageNumber,
+                    int? pageSize,
+                    IModuleResolver moduleResolver,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+                    if (moduleId is null)
+                        return Results.NotFound();
 
-            var query = new GetProductsQuery(
-                ModuleId: moduleId.Value,
-                SearchQuery: q,
-                Sort: string.IsNullOrWhiteSpace(sort) ? "newest" : sort,
-                PageNumber: pageNumber ?? 1,
-                PageSize: pageSize ?? 30);
+                    var query = new GetProductsQuery(
+                        ModuleId: moduleId.Value,
+                        SearchQuery: q,
+                        Sort: string.IsNullOrWhiteSpace(sort) ? "newest" : sort,
+                        PageNumber: pageNumber ?? 1,
+                        PageSize: pageSize ?? 30
+                    );
 
-            var result = await mediator.Send(query, ct);
-            return Results.Ok(ApiResponseHelper.SuccessPaginated(
-                result.Data,
-                result.PageNumber,
-                result.PageSize,
-                result.TotalCount));
-        })
-        .WithName("Store.GetProducts")
-        .WithTags("Store.Products")
-        .Produces<PaginatedResponse<ProductOfferingSummaryDto>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+                    var result = await mediator.Send(query, ct);
+                    return Results.Ok(
+                        ApiResponseHelper.SuccessPaginated(
+                            result.Data,
+                            result.PageNumber,
+                            result.PageSize,
+                            result.TotalCount
+                        )
+                    );
+                }
+            )
+            .WithName("Store.GetProducts")
+            .WithTags("Store.Products")
+            .Produces<PaginatedResponse<ProductOfferingSummaryDto>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
         // Public endpoint
     }
 }

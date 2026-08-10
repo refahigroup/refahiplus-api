@@ -17,8 +17,11 @@ internal static class StoreGrantCodec
     {
         grant = null;
         var parts = value.Split(':', StringSplitOptions.TrimEntries);
-        if (parts.Length != 4 || parts[0] != "v1" ||
-            !Guid.TryParseExact(parts[2], "N", out var resourceId))
+        if (
+            parts.Length != 4
+            || parts[0] != "v1"
+            || !Guid.TryParseExact(parts[2], "N", out var resourceId)
+        )
             return false;
         try
         {
@@ -38,8 +41,9 @@ internal static class StoreGrantCodec
         {
             "vendor" => role is "VendorOwner" or "VendorSupervisor",
             "shop" => role is "ShopSupervisor" or "ShopCashier",
-            _ => false
+            _ => false,
         };
-        if (!valid) throw new ArgumentException("ترکیب منبع و نقش نامعتبر است");
+        if (!valid)
+            throw new ArgumentException("ترکیب منبع و نقش نامعتبر است");
     }
 }

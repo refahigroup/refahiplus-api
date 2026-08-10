@@ -12,43 +12,52 @@ public class AdminUpdateShopEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPut("/admin/shops/{id:guid}", async (
-            Guid id,
-            [FromBody] AdminUpdateShopRequest request,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var command = new UpdateShopCommand(
-                id,
-                request.Name,
-                request.Description,
-                request.ProvinceId,
-                request.CityId,
-                request.Address,
-                request.Latitude,
-                request.Longitude,
-                request.ManagerName,
-                request.ManagerPhone,
-                request.RepresentativeName,
-                request.RepresentativePhone,
-                request.ContactPhone,
-                request.LogoUrl,
-                request.CoverImageUrl,
-                request.ShopType);
+        routes
+            .MapPut(
+                "/admin/shops/{id:guid}",
+                async (
+                    Guid id,
+                    [FromBody] AdminUpdateShopRequest request,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var command = new UpdateShopCommand(
+                        id,
+                        request.Name,
+                        request.Description,
+                        request.ProvinceId,
+                        request.CityId,
+                        request.Address,
+                        request.Latitude,
+                        request.Longitude,
+                        request.ManagerName,
+                        request.ManagerPhone,
+                        request.RepresentativeName,
+                        request.RepresentativePhone,
+                        request.ContactPhone,
+                        request.LogoUrl,
+                        request.CoverImageUrl,
+                        request.ShopType
+                    );
 
-            var result = await mediator.Send(command, ct);
-            return Results.Ok(ApiResponseHelper.Success(result, "اطلاعات فروشگاه با موفقیت بروزرسانی شد"));
-        })
-        .WithName("Store.Admin.UpdateShop")
-        .WithTags("Store.Shops")
-        .RequireAuthorization("AdminOnly")
-        .Produces<ApiResponse<UpdateShopResponse>>(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status403Forbidden)
-        .Produces(StatusCodes.Status404NotFound);
+                    var result = await mediator.Send(command, ct);
+                    return Results.Ok(
+                        ApiResponseHelper.Success(result, "اطلاعات فروشگاه با موفقیت بروزرسانی شد")
+                    );
+                }
+            )
+            .WithName("Store.Admin.UpdateShop")
+            .WithTags("Store.Shops")
+            .RequireAuthorization("AdminOnly")
+            .Produces<ApiResponse<UpdateShopResponse>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
 
@@ -67,4 +76,5 @@ public sealed record AdminUpdateShopRequest(
     string? ContactPhone,
     string? LogoUrl,
     string? CoverImageUrl,
-    short? ShopType = null);
+    short? ShopType = null
+);

@@ -17,4 +17,5 @@ public sealed record ProductOfferingSummaryDto(
     string DeliveryType,
     string SalesModel,
     string? MainImageUrl,
-    bool IsAvailable);
+    bool IsAvailable
+);

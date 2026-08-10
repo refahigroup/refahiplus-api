@@ -21,4 +21,5 @@ public sealed record UserAddressDto(
     double? Longitude,
     bool IsDefault,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt
+);

@@ -1,13 +1,14 @@
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CreateOrgCreditWallet;
 using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using Refahi.Shared.Monetary;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Refahi.Modules.Wallets.Application.Features.CreateOrgCreditWallet;
 
-public sealed class CreateOrgCreditWalletCommandHandler : IRequestHandler<CreateOrgCreditWalletCommand, CreateOrgCreditWalletResponse>
+public sealed class CreateOrgCreditWalletCommandHandler
+    : IRequestHandler<CreateOrgCreditWalletCommand, CreateOrgCreditWalletResponse>
 {
     private readonly IWalletWriteRepository _writeRepo;
 
@@ -17,7 +18,9 @@ public sealed class CreateOrgCreditWalletCommandHandler : IRequestHandler<Create
     }
 
     public async Task<CreateOrgCreditWalletResponse> Handle(
-        CreateOrgCreditWalletCommand request, CancellationToken cancellationToken)
+        CreateOrgCreditWalletCommand request,
+        CancellationToken cancellationToken
+    )
     {
         var currency = CurrencyCode.Parse(request.Currency).Value;
         var walletId = await _writeRepo.CreateOrgCreditAsync(
@@ -25,13 +28,15 @@ public sealed class CreateOrgCreditWalletCommandHandler : IRequestHandler<Create
             currency: currency,
             allowedCategoryCode: request.AllowedCategoryCode,
             contractExpiresAt: request.ContractExpiresAt,
-            ct: cancellationToken);
+            ct: cancellationToken
+        );
 
         return new CreateOrgCreditWalletResponse(
             WalletId: walletId,
             WalletType: "ORG_CREDIT",
             Currency: currency,
             AllowedCategoryCode: request.AllowedCategoryCode,
-            ContractExpiresAt: request.ContractExpiresAt);
+            ContractExpiresAt: request.ContractExpiresAt
+        );
     }
 }

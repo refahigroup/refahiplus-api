@@ -9,4 +9,5 @@ public sealed record UpsertShopProductVariantCommand(
     Guid ProductVariantId,
     long PriceMinor,
     long? DiscountedPriceMinor,
-    bool IsActive) : IRequest<ShopProductVariantDto>;
+    bool IsActive
+) : IRequest<ShopProductVariantDto>;

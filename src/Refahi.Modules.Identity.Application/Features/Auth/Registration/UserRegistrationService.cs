@@ -23,7 +23,8 @@ public sealed class UserRegistrationService : IUserRegistrationService
         IUserRepository userRepository,
         INotificationService notificationService,
         ILogger<UserRegistrationService> logger,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _userRepository = userRepository;
         _notificationService = notificationService;
@@ -34,19 +35,24 @@ public sealed class UserRegistrationService : IUserRegistrationService
     public async Task<RegistrationResult> RegisterAsync(
         string? mobileNumber,
         string? email,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (string.IsNullOrWhiteSpace(mobileNumber) && string.IsNullOrWhiteSpace(email))
             return new RegistrationResult(false, "Either mobile number or email is required");
 
-        if (!string.IsNullOrWhiteSpace(mobileNumber) &&
-            await _userRepository.ExistsByMobileNumberAsync(mobileNumber, cancellationToken))
+        if (
+            !string.IsNullOrWhiteSpace(mobileNumber)
+            && await _userRepository.ExistsByMobileNumberAsync(mobileNumber, cancellationToken)
+        )
         {
             return new RegistrationResult(false, "User with this mobile number already exists");
         }
 
-        if (!string.IsNullOrWhiteSpace(email) &&
-            await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+        if (
+            !string.IsNullOrWhiteSpace(email)
+            && await _userRepository.ExistsByEmailAsync(email, cancellationToken)
+        )
         {
             return new RegistrationResult(false, "User with this email already exists");
         }
@@ -58,7 +64,10 @@ public sealed class UserRegistrationService : IUserRegistrationService
 
         try
         {
-            await _mediator.Send(new CreateWalletCommand(user.Id, WalletTypeCodes.Refahi, "IRR"), cancellationToken);
+            await _mediator.Send(
+                new CreateWalletCommand(user.Id, WalletTypeCodes.Refahi, "IRR"),
+                cancellationToken
+            );
         }
         catch (Exception ex)
         {
@@ -73,7 +82,8 @@ public sealed class UserRegistrationService : IUserRegistrationService
                     phoneNumbers: new[] { mobileNumber },
                     body: "به رفاهی پلاس خوش آمدید! ثبت‌نام شما با موفقیت انجام شد. زمان: {{time}}",
                     sender: "10008580",
-                    cancellationToken: cancellationToken);
+                    cancellationToken: cancellationToken
+                );
 
                 _logger.LogInformation("Welcome SMS sent to user {UserId}", user.Id);
             }
@@ -88,7 +98,8 @@ public sealed class UserRegistrationService : IUserRegistrationService
             user.MobileNumber,
             user.Email,
             user.IsActive,
-            user.GetRoles());
+            user.GetRoles()
+        );
 
         return new RegistrationResult(true, null, userDto, mobileNumber, email);
     }

@@ -1,5 +1,9 @@
-using MediatR;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Exceptions;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
@@ -8,14 +12,11 @@ using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
 using Refahi.Modules.PaymentGateway.Domain.Aggregates;
 using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using Refahi.Shared.Monetary;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Refahi.Modules.PaymentGateway.Application.Features.InitiatePayment;
 
-public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentCommand, InitiatePaymentResponse>
+public class InitiatePaymentCommandHandler
+    : IRequestHandler<InitiatePaymentCommand, InitiatePaymentResponse>
 {
     private readonly IPaymentGatewaySessionRepository _sessionRepository;
     private readonly IPaymentGatewayProviderFactory _providerFactory;
@@ -26,7 +27,8 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
         IPaymentGatewaySessionRepository sessionRepository,
         IPaymentGatewayProviderFactory providerFactory,
         IWalletReadRepository walletReadRepository,
-        ILogger<InitiatePaymentCommandHandler> logger)
+        ILogger<InitiatePaymentCommandHandler> logger
+    )
     {
         _sessionRepository = sessionRepository;
         _providerFactory = providerFactory;
@@ -34,7 +36,10 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
         _logger = logger;
     }
 
-    public async Task<InitiatePaymentResponse> Handle(InitiatePaymentCommand command, CancellationToken ct)
+    public async Task<InitiatePaymentResponse> Handle(
+        InitiatePaymentCommand command,
+        CancellationToken ct
+    )
     {
         var ownerWallets = await _walletReadRepository.GetByOwnerIdAsync(command.UserId, ct);
         var wallet = ownerWallets.SingleOrDefault(w => w.WalletId == command.WalletId);
@@ -43,7 +48,8 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
             throw new ValidationException([
                 new FluentValidation.Results.ValidationFailure(
                     nameof(command.WalletId),
-                    "کیف‌پول انتخاب‌شده متعلق به کاربر جاری نیست.")
+                    "کیف‌پول انتخاب‌شده متعلق به کاربر جاری نیست."
+                ),
             ]);
         }
 
@@ -52,11 +58,16 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
         {
             _logger.LogWarning(
                 "Payment gateway currency mismatch. Operation={Operation} WalletId={WalletId} ExpectedCurrency={ExpectedCurrency} ProvidedCurrency={ProvidedCurrency}",
-                "InitiatePayment", command.WalletId, wallet.Currency, currency);
+                "InitiatePayment",
+                command.WalletId,
+                wallet.Currency,
+                currency
+            );
             throw new ValidationException([
                 new FluentValidation.Results.ValidationFailure(
                     nameof(command.Currency),
-                    "ارز عملیات با ارز کیف‌پول مطابقت ندارد.")
+                    "ارز عملیات با ارز کیف‌پول مطابقت ندارد."
+                ),
             ]);
         }
 
@@ -64,7 +75,12 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
 
         _logger.LogInformation(
             "PaymentGateway: Initiating session {SessionId} for User={UserId} Wallet={WalletId} Amount={Amount} Provider={Provider}",
-            sessionId, command.UserId, command.WalletId, command.AmountMinor, command.Provider);
+            sessionId,
+            command.UserId,
+            command.WalletId,
+            command.AmountMinor,
+            command.Provider
+        );
 
         var session = PaymentGatewaySession.Create(
             sessionId: sessionId,
@@ -75,7 +91,8 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
             provider: command.Provider,
             returnBaseUrl: command.ReturnBaseUrl,
             succeededCallbackUrl: command.SucceededCallbackUrl,
-            failedCallbackUrl: command.FailedCallbackUrl);
+            failedCallbackUrl: command.FailedCallbackUrl
+        );
 
         await _sessionRepository.AddAsync(session, ct);
 
@@ -85,20 +102,28 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
             new GetTokenRequest(
                 ResNum: sessionId.ToString(),
                 AmountMinor: command.AmountMinor,
-                CallbackUrl: command.ProviderCallbackUrl),
-            ct);
+                CallbackUrl: command.ProviderCallbackUrl
+            ),
+            ct
+        );
 
         if (!tokenResult.IsSuccess || string.IsNullOrEmpty(tokenResult.Token))
         {
             _logger.LogWarning(
                 "PaymentGateway: Token request failed for Session={SessionId}. Error={Error}",
-                sessionId, tokenResult.ErrorMessage);
+                sessionId,
+                tokenResult.ErrorMessage
+            );
 
-            session.MarkAsFailed(null, tokenResult.ErrorMessage ?? "خطا در دریافت توکن از درگاه پرداخت");
+            session.MarkAsFailed(
+                null,
+                tokenResult.ErrorMessage ?? "خطا در دریافت توکن از درگاه پرداخت"
+            );
             await _sessionRepository.UpdateAsync(session, ct);
 
             throw new PaymentTokenRequestFailedException(
-                tokenResult.ErrorMessage ?? "خطا در دریافت توکن از درگاه پرداخت");
+                tokenResult.ErrorMessage ?? "خطا در دریافت توکن از درگاه پرداخت"
+            );
         }
 
         session.MarkAsTokenReceived(tokenResult.Token);
@@ -108,9 +133,10 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
 
         _logger.LogInformation(
             "PaymentGateway: Session {SessionId} ready. Redirecting to {Url}",
-            sessionId, gatewayRedirectUrl);
+            sessionId,
+            gatewayRedirectUrl
+        );
 
         return new InitiatePaymentResponse(sessionId, gatewayRedirectUrl);
     }
-
 }

@@ -9,12 +9,16 @@ public class RemoveSupplierLinkCommandHandler : IRequestHandler<RemoveSupplierLi
 {
     private readonly ISupplierRepository _repository;
 
-    public RemoveSupplierLinkCommandHandler(ISupplierRepository repository)
-        => _repository = repository;
+    public RemoveSupplierLinkCommandHandler(ISupplierRepository repository) =>
+        _repository = repository;
 
-    public async Task<Unit> Handle(RemoveSupplierLinkCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        RemoveSupplierLinkCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var supplier = await _repository.GetByIdAsync(request.SupplierId, true, cancellationToken)
+        var supplier =
+            await _repository.GetByIdAsync(request.SupplierId, true, cancellationToken)
             ?? throw new SupplyChainDomainException("تامین‌کننده یافت نشد", "SUPPLIER_NOT_FOUND");
 
         supplier.RemoveLink(request.LinkId);

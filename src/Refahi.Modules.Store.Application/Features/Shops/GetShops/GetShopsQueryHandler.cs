@@ -20,16 +20,21 @@ public class GetShopsQueryHandler : IRequestHandler<GetShopsQuery, ShopsPagedRes
     }
 
     public async Task<ShopsPagedResponse> Handle(
-        GetShopsQuery request, CancellationToken cancellationToken)
+        GetShopsQuery request,
+        CancellationToken cancellationToken
+    )
     {
         ShopType? shopType = request.ShopType.HasValue ? (ShopType)request.ShopType.Value : null;
 
-        ShopStatus? status = request.Status.HasValue
-            ? (ShopStatus)request.Status.Value
-            : null;
+        ShopStatus? status = request.Status.HasValue ? (ShopStatus)request.Status.Value : null;
 
         var (items, total) = await _shopRepository.GetPagedAsync(
-            shopType, status, request.PageNumber, request.PageSize, cancellationToken);
+            shopType,
+            status,
+            request.PageNumber,
+            request.PageSize,
+            cancellationToken
+        );
 
         var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
 
@@ -38,18 +43,21 @@ public class GetShopsQueryHandler : IRequestHandler<GetShopsQuery, ShopsPagedRes
             request.PageNumber,
             request.PageSize,
             total,
-            totalPages);
+            totalPages
+        );
     }
 
-    private ShopSummaryDto MapToSummaryDto(Shop s) => new(
-        s.Id,
-        s.Name,
-        s.Slug,
-        s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
-        s.ShopType.ToString(),
-        s.Status.ToString(),
-        s.ProvinceId,
-        s.CityId,
-        s.IsPopular,
-        s.SupplierId);
+    private ShopSummaryDto MapToSummaryDto(Shop s) =>
+        new(
+            s.Id,
+            s.Name,
+            s.Slug,
+            s.LogoUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(s.LogoUrl),
+            s.ShopType.ToString(),
+            s.Status.ToString(),
+            s.ProvinceId,
+            s.CityId,
+            s.IsPopular,
+            s.SupplierId
+        );
 }

@@ -13,7 +13,11 @@ public sealed class OrderPaymentPostingConfiguration : IEntityTypeConfiguration<
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.OrderId).HasColumnName("order_id").IsRequired();
         builder.Property(x => x.WalletId).HasColumnName("wallet_id").IsRequired();
-        builder.Property(x => x.Direction).HasColumnName("direction").HasColumnType("smallint").IsRequired();
+        builder
+            .Property(x => x.Direction)
+            .HasColumnName("direction")
+            .HasColumnType("smallint")
+            .IsRequired();
         builder.Property(x => x.AmountMinor).HasColumnName("amount_minor").IsRequired();
         builder.Property(x => x.Purpose).HasColumnName("purpose").HasMaxLength(80).IsRequired();
         builder.Property(x => x.SortOrder).HasColumnName("sort_order").IsRequired();

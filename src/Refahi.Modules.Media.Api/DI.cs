@@ -15,11 +15,11 @@ namespace Refahi.Modules.Media.Api;
 public static class DI
 {
     public static IServiceCollection RegisterMediaModule(
-        this IServiceCollection services, IConfiguration configuration)
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
-        services
-            .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration);
+        services.RegisterApplication(configuration).RegisterInfrastructure(configuration);
 
         // محدودیت‌های Multipart برای پشتیبانی از batch upload
         services.Configure<FormOptions>(o =>
@@ -42,20 +42,22 @@ public static class DI
         {
             Directory.CreateDirectory(basePath);
 
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new PhysicalFileProvider(basePath),
-                RequestPath = "/media-files",
-                ServeUnknownFileTypes = false,
-                ContentTypeProvider = new FileExtensionContentTypeProvider(),
-                OnPrepareResponse = ctx =>
+            app.UseStaticFiles(
+                new StaticFileOptions
                 {
-                    // یک سال cache برای فایل‌های public (نام Guid → immutable)
-                    ctx.Context.Response.Headers.CacheControl =
-                        "public,max-age=31536000,immutable";
-                    ctx.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                    FileProvider = new PhysicalFileProvider(basePath),
+                    RequestPath = "/media-files",
+                    ServeUnknownFileTypes = false,
+                    ContentTypeProvider = new FileExtensionContentTypeProvider(),
+                    OnPrepareResponse = ctx =>
+                    {
+                        // یک سال cache برای فایل‌های public (نام Guid → immutable)
+                        ctx.Context.Response.Headers.CacheControl =
+                            "public,max-age=31536000,immutable";
+                        ctx.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                    },
                 }
-            });
+            );
         }
 
         // ۲. ثبت Endpoints (الگوی استاندارد reflection-based)
@@ -68,7 +70,8 @@ public static class DI
     {
         var assembly = typeof(DI).Assembly;
 
-        var endpointTypes = assembly.GetTypes()
+        var endpointTypes = assembly
+            .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);

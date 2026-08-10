@@ -16,7 +16,11 @@ public sealed class VariantAttributeUpdateValidatorTests
     public void Attribute_name_length_is_validated(int length, bool expectedValidity)
     {
         var command = new UpdateVariantAttributeCommand(
-            Guid.NewGuid(), Guid.NewGuid(), new string('a', length), 0);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            new string('a', length),
+            0
+        );
 
         Assert.Equal(expectedValidity, _attributeValidator.Validate(command).IsValid);
     }
@@ -25,7 +29,11 @@ public sealed class VariantAttributeUpdateValidatorTests
     public void Empty_attribute_name_and_negative_sort_order_are_rejected()
     {
         var command = new UpdateVariantAttributeCommand(
-            Guid.NewGuid(), Guid.NewGuid(), string.Empty, -1);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            string.Empty,
+            -1
+        );
 
         var result = _attributeValidator.Validate(command);
 
@@ -39,7 +47,12 @@ public sealed class VariantAttributeUpdateValidatorTests
     public void Attribute_value_length_is_validated(int length, bool expectedValidity)
     {
         var command = new UpdateVariantAttributeValueCommand(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), new string('a', length), 0);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            new string('a', length),
+            0
+        );
 
         Assert.Equal(expectedValidity, _valueValidator.Validate(command).IsValid);
     }
@@ -48,7 +61,12 @@ public sealed class VariantAttributeUpdateValidatorTests
     public void Empty_attribute_value_and_negative_sort_order_are_rejected()
     {
         var command = new UpdateVariantAttributeValueCommand(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), string.Empty, -1);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            string.Empty,
+            -1
+        );
 
         var result = _valueValidator.Validate(command);
 

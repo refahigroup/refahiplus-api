@@ -4,7 +4,8 @@ using Refahi.Modules.SupplyChain.Domain.Entities;
 
 namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Configurations;
 
-public sealed class AgreementCategoryTermConfiguration : IEntityTypeConfiguration<AgreementCategoryTerm>
+public sealed class AgreementCategoryTermConfiguration
+    : IEntityTypeConfiguration<AgreementCategoryTerm>
 {
     public void Configure(EntityTypeBuilder<AgreementCategoryTerm> builder)
     {
@@ -21,7 +22,14 @@ public sealed class AgreementCategoryTermConfiguration : IEntityTypeConfiguratio
         builder.HasIndex(x => x.AgreementId);
         builder.HasIndex(x => x.CategoryId);
         builder.HasIndex(x => x.IsDeleted);
-        builder.HasIndex(x => new { x.CategoryId, x.AllowedSalesChannels, x.IsDeleted, x.AgreementId })
+        builder
+            .HasIndex(x => new
+            {
+                x.CategoryId,
+                x.AllowedSalesChannels,
+                x.IsDeleted,
+                x.AgreementId,
+            })
             .HasDatabaseName("IX_agreement_category_terms_effective_lookup");
     }
 }

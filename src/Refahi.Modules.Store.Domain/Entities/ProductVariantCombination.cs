@@ -14,12 +14,15 @@ public sealed class ProductVariantCombination
     public Guid VariantAttributeValueId { get; private set; }
 
     internal static ProductVariantCombination Create(
-        Guid variantId, Guid attributeId, Guid valueId)
-        => new()
+        Guid variantId,
+        Guid attributeId,
+        Guid valueId
+    ) =>
+        new()
         {
             Id = Guid.NewGuid(),
             ProductVariantId = variantId,
             VariantAttributeId = attributeId,
-            VariantAttributeValueId = valueId
+            VariantAttributeValueId = valueId,
         };
 }

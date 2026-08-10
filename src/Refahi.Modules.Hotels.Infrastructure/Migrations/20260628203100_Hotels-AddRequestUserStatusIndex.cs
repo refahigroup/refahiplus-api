@@ -14,7 +14,8 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
                 name: "ix_hotel_requests_user_id_status",
                 schema: "hotels",
                 table: "hotel_requests",
-                columns: new[] { "user_id", "status" });
+                columns: new[] { "user_id", "status" }
+            );
         }
 
         /// <inheritdoc />
@@ -23,7 +24,8 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "ix_hotel_requests_user_id_status",
                 schema: "hotels",
-                table: "hotel_requests");
+                table: "hotel_requests"
+            );
         }
     }
 }

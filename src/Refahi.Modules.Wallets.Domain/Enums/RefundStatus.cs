@@ -9,5 +9,5 @@ public enum RefundStatus : short
     /// <summary>
     /// Refund completed successfully.
     /// </summary>
-    Completed = 1
+    Completed = 1,
 }

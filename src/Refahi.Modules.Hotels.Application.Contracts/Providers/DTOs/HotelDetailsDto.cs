@@ -16,4 +16,3 @@ public sealed class HotelDetailsDto
     public string? CheckOutTime { get; set; }
     public string? Policies { get; set; }
 }
-

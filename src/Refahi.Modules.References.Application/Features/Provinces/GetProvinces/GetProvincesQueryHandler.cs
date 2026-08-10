@@ -9,22 +9,22 @@ public class GetProvincesQueryHandler : IRequestHandler<GetProvincesQuery, GetPr
 {
     private readonly IProvinceRepository _provinceRepository;
 
-    public GetProvincesQueryHandler(IProvinceRepository provinceRepository)
-        => _provinceRepository = provinceRepository;
+    public GetProvincesQueryHandler(IProvinceRepository provinceRepository) =>
+        _provinceRepository = provinceRepository;
 
     public async Task<GetProvincesResponse> Handle(
-        GetProvincesQuery request, CancellationToken cancellationToken)
+        GetProvincesQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var provinces = await _provinceRepository.GetAllAsync(request.ActiveOnly, cancellationToken);
+        var provinces = await _provinceRepository.GetAllAsync(
+            request.ActiveOnly,
+            cancellationToken
+        );
 
-        var dtos = provinces.Select(p => new ProvinceDto(
-            p.Id,
-            p.Name,
-            p.NameEn,
-            p.Slug,
-            p.SortOrder,
-            p.IsActive
-        )).ToList();
+        var dtos = provinces
+            .Select(p => new ProvinceDto(p.Id, p.Name, p.NameEn, p.Slug, p.SortOrder, p.IsActive))
+            .ToList();
 
         return new GetProvincesResponse(dtos);
     }

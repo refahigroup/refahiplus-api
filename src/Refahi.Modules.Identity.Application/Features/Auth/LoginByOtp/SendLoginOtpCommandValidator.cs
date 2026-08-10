@@ -15,8 +15,9 @@ public class SendLoginOtpCommandValidator : AbstractValidator<SendLoginOtpComman
 
     private static bool BeValidMobileOrEmail(string? contact)
     {
-        if (string.IsNullOrWhiteSpace(contact)) return false;
-        return System.Text.RegularExpressions.Regex.IsMatch(contact, @"^09\d{9}$") ||
-               new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(contact);
+        if (string.IsNullOrWhiteSpace(contact))
+            return false;
+        return System.Text.RegularExpressions.Regex.IsMatch(contact, @"^09\d{9}$")
+            || new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(contact);
     }
 }

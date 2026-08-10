@@ -5,17 +5,21 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Modules.ActivateModule;
 
-public class ActivateModuleCommandHandler : IRequestHandler<ActivateModuleCommand, ActivateModuleResponse>
+public class ActivateModuleCommandHandler
+    : IRequestHandler<ActivateModuleCommand, ActivateModuleResponse>
 {
     private readonly IStoreModuleRepository _moduleRepo;
 
-    public ActivateModuleCommandHandler(IStoreModuleRepository moduleRepo)
-        => _moduleRepo = moduleRepo;
+    public ActivateModuleCommandHandler(IStoreModuleRepository moduleRepo) =>
+        _moduleRepo = moduleRepo;
 
     public async Task<ActivateModuleResponse> Handle(
-        ActivateModuleCommand request, CancellationToken cancellationToken)
+        ActivateModuleCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var module = await _moduleRepo.GetByIdAsync(request.Id, cancellationToken)
+        var module =
+            await _moduleRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("ماژول یافت نشد", "MODULE_NOT_FOUND");
 
         module.Activate();

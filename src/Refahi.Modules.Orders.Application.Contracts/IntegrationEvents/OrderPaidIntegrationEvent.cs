@@ -12,4 +12,5 @@ public sealed record OrderPaidIntegrationEvent(
     Guid? SagaId,
     Guid PaymentId,
     long AmountMinor,
-    DateTimeOffset OccurredAt) : INotification;
+    DateTimeOffset OccurredAt
+) : INotification;

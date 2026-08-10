@@ -6,12 +6,14 @@ public sealed record FlightMoneyDto(
     long TotalTax,
     long TotalCommission,
     long ServiceTax,
-    string Currency);
+    string Currency
+);
 
 public sealed record FlightPassengerFareDto(
     string? PassengerType,
     int Quantity,
-    FlightMoneyDto Fare);
+    FlightMoneyDto Fare
+);
 
 public sealed record FlightSegmentDto(
     string DepartureAirportCode,
@@ -33,7 +35,8 @@ public sealed record FlightSegmentDto(
     int? StopQuantity,
     string? Baggage,
     bool? IsCharter,
-    bool? IsReturn);
+    bool? IsReturn
+);
 
 public sealed record FlightOfferDto(
     string OfferToken,
@@ -57,4 +60,5 @@ public sealed record FlightOfferDto(
     string? Baggage,
     FlightMoneyDto TotalFare,
     IReadOnlyCollection<FlightSegmentDto> Segments,
-    IReadOnlyCollection<FlightPassengerFareDto> PassengerFares);
+    IReadOnlyCollection<FlightPassengerFareDto> PassengerFares
+);

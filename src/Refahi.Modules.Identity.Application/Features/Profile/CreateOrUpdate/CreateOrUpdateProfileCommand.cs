@@ -14,9 +14,11 @@ public record CreateOrUpdateProfileCommand(
     string LastName,
     string? NationalCode = null,
     Gender? Gender = null,
-    DateOnly? Birthday = null) : IRequest<CreateOrUpdateProfileResult>;
+    DateOnly? Birthday = null
+) : IRequest<CreateOrUpdateProfileResult>;
 
 public record CreateOrUpdateProfileResult(
     bool Success,
     string? ErrorMessage = null,
-    UserProfileDto? Profile = null);
+    UserProfileDto? Profile = null
+);

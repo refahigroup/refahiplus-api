@@ -8,9 +8,8 @@ namespace Refahi.Modules.Wallets.Infrastructure.Persistence.Context;
 
 public class WalletsDbContext : DbContext
 {
-    public WalletsDbContext(DbContextOptions<WalletsDbContext> options) : base(options)
-    {
-    }
+    public WalletsDbContext(DbContextOptions<WalletsDbContext> options)
+        : base(options) { }
 
     public DbSet<Wallet> Wallets { get; set; } = null!;
     public DbSet<LedgerEntry> LedgerEntries { get; set; } = null!;
@@ -21,13 +20,13 @@ public class WalletsDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-
         modelBuilder.HasDefaultSchema("wallets");
 
         // Value Object Converters
         var currencyConverter = new ValueConverter<Currency, string>(
             v => v.Code,
-            v => Currency.Of(v));
+            v => Currency.Of(v)
+        );
 
         modelBuilder.Entity<Wallet>(b =>
         {
@@ -35,8 +34,14 @@ public class WalletsDbContext : DbContext
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("wallet_id");
 
-            b.Property(x => x.WalletType).HasColumnName("wallet_type").HasColumnType("smallint").IsRequired();
-            b.Property(x => x.Status).HasColumnName("status").HasColumnType("smallint").IsRequired();
+            b.Property(x => x.WalletType)
+                .HasColumnName("wallet_type")
+                .HasColumnType("smallint")
+                .IsRequired();
+            b.Property(x => x.Status)
+                .HasColumnName("status")
+                .HasColumnType("smallint")
+                .IsRequired();
 
             // Value Object: Currency
             b.Property(x => x.Currency)
@@ -73,31 +78,45 @@ public class WalletsDbContext : DbContext
             b.Property(x => x.WalletId).HasColumnName("wallet_id").IsRequired();
             b.Property(x => x.OperationId).HasColumnName("operation_id").IsRequired();
 
-            b.Property(x => x.OperationType).HasColumnName("operation_type").HasColumnType("smallint").IsRequired();
-            b.Property(x => x.EntryType).HasColumnName("entry_type").HasColumnType("smallint").IsRequired();
+            b.Property(x => x.OperationType)
+                .HasColumnName("operation_type")
+                .HasColumnType("smallint")
+                .IsRequired();
+            b.Property(x => x.EntryType)
+                .HasColumnName("entry_type")
+                .HasColumnType("smallint")
+                .IsRequired();
 
             // Value Object: Money (owned entity approach)
-            b.OwnsOne(x => x.Money, money =>
-            {
-                money.Property(m => m.AmountMinor).HasColumnName("amount_minor").IsRequired();
-                money.Property(m => m.Currency)
-                    .HasColumnName("currency")
-                    .HasMaxLength(3)
-                    .IsRequired()
-                    .HasConversion(currencyConverter);
-            });
+            b.OwnsOne(
+                x => x.Money,
+                money =>
+                {
+                    money.Property(m => m.AmountMinor).HasColumnName("amount_minor").IsRequired();
+                    money
+                        .Property(m => m.Currency)
+                        .HasColumnName("currency")
+                        .HasMaxLength(3)
+                        .IsRequired()
+                        .HasConversion(currencyConverter);
+                }
+            );
 
             b.Property(x => x.EffectiveAt).HasColumnName("effective_at").IsRequired();
             b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
             b.Property(x => x.RelatedEntryId).HasColumnName("related_entry_id");
-            b.Property(x => x.RelationType).HasColumnName("relation_type").HasColumnType("smallint").IsRequired();
+            b.Property(x => x.RelationType)
+                .HasColumnName("relation_type")
+                .HasColumnType("smallint")
+                .IsRequired();
 
             b.Property(x => x.ExternalReference).HasColumnName("external_reference");
             b.Property(x => x.MetadataJson).HasColumnName("metadata").HasColumnType("jsonb");
 
             b.HasIndex(x => x.WalletId).HasDatabaseName("idx_ledger_wallet");
-            b.HasIndex(x => new { x.WalletId, x.CreatedAt }).HasDatabaseName("idx_ledger_wallet_created_at");
+            b.HasIndex(x => new { x.WalletId, x.CreatedAt })
+                .HasDatabaseName("idx_ledger_wallet_created_at");
             b.HasIndex(x => x.OperationId).HasDatabaseName("idx_ledger_operation");
         });
 
@@ -118,19 +137,33 @@ public class WalletsDbContext : DbContext
         {
             b.ToTable("idempotency_keys");
             b.HasKey(x => x.IdempotencyId);
-            b.HasIndex(x => new { x.WalletId, x.IdempotencyKey, x.OperationType }).IsUnique().HasDatabaseName("ux_idempotency_wallet_key_optype");
+            b.HasIndex(x => new
+                {
+                    x.WalletId,
+                    x.IdempotencyKey,
+                    x.OperationType,
+                })
+                .IsUnique()
+                .HasDatabaseName("ux_idempotency_wallet_key_optype");
 
             b.Property(x => x.IdempotencyId).HasColumnName("idempotency_id");
             b.Property(x => x.WalletId).HasColumnName("wallet_id");
             b.Property(x => x.IdempotencyKey).HasColumnName("idempotency_key");
             b.Property(x => x.OperationId).HasColumnName("operation_id").IsRequired();
-            b.Property(x => x.OperationType).HasColumnName("operation_type").HasColumnType("smallint").IsRequired();
+            b.Property(x => x.OperationType)
+                .HasColumnName("operation_type")
+                .HasColumnType("smallint")
+                .IsRequired();
 
             b.Property(x => x.RequestHash).HasColumnName("request_hash").IsRequired();
-            b.Property(x => x.Status).HasColumnName("status").HasColumnType("smallint").IsRequired();
+            b.Property(x => x.Status)
+                .HasColumnName("status")
+                .HasColumnType("smallint")
+                .IsRequired();
 
             b.Property(x => x.ResultLedgerEntryIds).HasColumnName("result_ledger_entry_ids");
-            b.Property(x => x.ResultBalanceAvailableMinor).HasColumnName("result_balance_available_minor");
+            b.Property(x => x.ResultBalanceAvailableMinor)
+                .HasColumnName("result_balance_available_minor");
 
             b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
             b.Property(x => x.CompletedAt).HasColumnName("completed_at");
@@ -139,7 +172,8 @@ public class WalletsDbContext : DbContext
         });
 
         // Ledger self relation
-        modelBuilder.Entity<LedgerEntry>()
+        modelBuilder
+            .Entity<LedgerEntry>()
             .HasOne<LedgerEntry>()
             .WithMany()
             .HasForeignKey(x => x.RelatedEntryId)

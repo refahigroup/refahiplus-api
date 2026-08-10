@@ -4,5 +4,6 @@ namespace Refahi.Modules.PaymentGateway.Domain.Exceptions;
 
 public class InvalidPaymentSessionStateException : Exception
 {
-    public InvalidPaymentSessionStateException(string message) : base(message) { }
+    public InvalidPaymentSessionStateException(string message)
+        : base(message) { }
 }

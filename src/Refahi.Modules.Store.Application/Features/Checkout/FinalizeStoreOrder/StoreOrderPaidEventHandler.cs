@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
@@ -5,7 +6,6 @@ using Refahi.Modules.Store.Application.Services;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
-using System.Text.Json;
 
 namespace Refahi.Modules.Store.Application.Features.Checkout.FinalizeStoreOrder;
 
@@ -20,7 +20,8 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
         ICartRepository cartRepository,
         IProductRepository productRepository,
         IProductSessionRepository sessionRepository,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -28,7 +29,10 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
         _mediator = mediator;
     }
 
-    public async Task Handle(OrderPaidIntegrationEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(
+        OrderPaidIntegrationEvent notification,
+        CancellationToken cancellationToken
+    )
     {
         if (!notification.SourceModule.Equals("Store", StringComparison.OrdinalIgnoreCase))
             return;
@@ -39,9 +43,13 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
 
         var order = await _mediator.Send(
             new GetOrderByIdQuery(notification.OrderId, notification.UserId, "Admin"),
-            cancellationToken);
+            cancellationToken
+        );
 
-        if (order is null || !order.SourceModule.Equals("Store", StringComparison.OrdinalIgnoreCase))
+        if (
+            order is null
+            || !order.SourceModule.Equals("Store", StringComparison.OrdinalIgnoreCase)
+        )
             return;
 
         foreach (var item in order.Items)
@@ -54,7 +62,10 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
 
             if (sessionId.HasValue)
             {
-                var session = await _sessionRepository.GetByIdAsync(sessionId.Value, cancellationToken);
+                var session = await _sessionRepository.GetByIdAsync(
+                    sessionId.Value,
+                    cancellationToken
+                );
                 if (session is not null)
                 {
                     session.Sell(item.Quantity);
@@ -67,22 +78,37 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
             if (salesModel == SalesModel.SessionBased)
             {
                 if (!variantId.HasValue)
-                    throw new StoreDomainException("خرید این خدمت با تنظیمات فعلی امکان‌پذیر نیست.", "INVALID_SESSION_VARIANT");
+                    throw new StoreDomainException(
+                        "خرید این خدمت با تنظیمات فعلی امکان‌پذیر نیست.",
+                        "INVALID_SESSION_VARIANT"
+                    );
 
                 await EnsureSessionVariantCapacityAfterPaymentAsync(
-                    item.SourceItemId ?? throw new StoreDomainException("شناسه محصول سفارش فروشگاه موجود نیست", "SOURCE_ITEM_REQUIRED"),
+                    item.SourceItemId
+                        ?? throw new StoreDomainException(
+                            "شناسه محصول سفارش فروشگاه موجود نیست",
+                            "SOURCE_ITEM_REQUIRED"
+                        ),
                     variantId.Value,
                     usageDate,
                     item.Quantity,
                     notification.OrderId,
-                    cancellationToken);
+                    cancellationToken
+                );
 
                 continue;
             }
 
             await DecreaseStockAsync(
-                item.SourceItemId ?? throw new StoreDomainException("شناسه محصول سفارش فروشگاه موجود نیست", "SOURCE_ITEM_REQUIRED"),
-                variantId, item.Quantity, cancellationToken);
+                item.SourceItemId
+                    ?? throw new StoreDomainException(
+                        "شناسه محصول سفارش فروشگاه موجود نیست",
+                        "SOURCE_ITEM_REQUIRED"
+                    ),
+                variantId,
+                item.Quantity,
+                cancellationToken
+            );
         }
 
         var cart = await _cartRepository.GetByUserIdAsync(order.UserId, cancellationToken);
@@ -97,7 +123,8 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
         Guid productId,
         Guid? variantId,
         int quantity,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var product = await _productRepository.GetByIdAsync(productId, cancellationToken);
         if (product is null)
@@ -117,8 +144,12 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
             }
             catch (StoreConcurrencyException) when (attempt < 3)
             {
-                product = await _productRepository.GetByIdAsync(productId, cancellationToken)
-                    ?? throw new StoreDomainException("Product was not found.", "PRODUCT_NOT_FOUND");
+                product =
+                    await _productRepository.GetByIdAsync(productId, cancellationToken)
+                    ?? throw new StoreDomainException(
+                        "Product was not found.",
+                        "PRODUCT_NOT_FOUND"
+                    );
 
                 await Task.Delay(50 * attempt, cancellationToken);
             }
@@ -143,10 +174,12 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
 
     private static Guid? ReadGuid(JsonElement? metadata, string propertyName)
     {
-        if (metadata is null ||
-            metadata.Value.ValueKind != JsonValueKind.Object ||
-            !metadata.Value.TryGetProperty(propertyName, out var value) ||
-            value.ValueKind != JsonValueKind.String)
+        if (
+            metadata is null
+            || metadata.Value.ValueKind != JsonValueKind.Object
+            || !metadata.Value.TryGetProperty(propertyName, out var value)
+            || value.ValueKind != JsonValueKind.String
+        )
         {
             return null;
         }
@@ -160,15 +193,21 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
         DateOnly? usageDate,
         int quantity,
         Guid currentOrderId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepository.GetByIdAsync(productId, cancellationToken)
+        var product =
+            await _productRepository.GetByIdAsync(productId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        var variant = product.Variants.FirstOrDefault(v => v.Id == variantId)
+        var variant =
+            product.Variants.FirstOrDefault(v => v.Id == variantId)
             ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
 
-        var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(variant, usageDate);
+        var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(
+            variant,
+            usageDate
+        );
 
         // TODO: Replace sold-count recheck with atomic reservation/ledger before high-volume capacity sales.
         await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
@@ -177,21 +216,26 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
             quantity,
             _mediator,
             excludeOrderId: currentOrderId,
-            cancellationToken);
+            cancellationToken
+        );
     }
 
     private static SalesModel? ReadSalesModel(JsonElement? metadata)
     {
-        if (metadata is null ||
-            metadata.Value.ValueKind != JsonValueKind.Object ||
-            !metadata.Value.TryGetProperty("sales_model", out var value))
+        if (
+            metadata is null
+            || metadata.Value.ValueKind != JsonValueKind.Object
+            || !metadata.Value.TryGetProperty("sales_model", out var value)
+        )
         {
             return null;
         }
 
-        if (value.ValueKind == JsonValueKind.Number &&
-            value.TryGetInt16(out var numericSalesModel) &&
-            Enum.IsDefined(typeof(SalesModel), numericSalesModel))
+        if (
+            value.ValueKind == JsonValueKind.Number
+            && value.TryGetInt16(out var numericSalesModel)
+            && Enum.IsDefined(typeof(SalesModel), numericSalesModel)
+        )
         {
             return (SalesModel)numericSalesModel;
         }
@@ -200,8 +244,10 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
             return null;
 
         var rawValue = value.GetString();
-        if (short.TryParse(rawValue, out numericSalesModel) &&
-            Enum.IsDefined(typeof(SalesModel), numericSalesModel))
+        if (
+            short.TryParse(rawValue, out numericSalesModel)
+            && Enum.IsDefined(typeof(SalesModel), numericSalesModel)
+        )
         {
             return (SalesModel)numericSalesModel;
         }
@@ -213,10 +259,12 @@ public sealed class StoreOrderPaidEventHandler : INotificationHandler<OrderPaidI
 
     private static DateOnly? ReadDateOnly(JsonElement? metadata, string propertyName)
     {
-        if (metadata is null ||
-            metadata.Value.ValueKind != JsonValueKind.Object ||
-            !metadata.Value.TryGetProperty(propertyName, out var value) ||
-            value.ValueKind != JsonValueKind.String)
+        if (
+            metadata is null
+            || metadata.Value.ValueKind != JsonValueKind.Object
+            || !metadata.Value.TryGetProperty(propertyName, out var value)
+            || value.ValueKind != JsonValueKind.String
+        )
         {
             return null;
         }

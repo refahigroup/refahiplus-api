@@ -20,7 +20,7 @@ public sealed class LedgerEntryInsertCommandTests
         "related_entry_id",
         "relation_type",
         "external_reference",
-        "metadata"
+        "metadata",
     ];
 
     [Fact]
@@ -42,7 +42,8 @@ public sealed class LedgerEntryInsertCommandTests
     [InlineData(OperationType.Refund, EntryType.Credit)]
     public void CreateParameters_AlwaysCarriesExplicitRelationType(
         OperationType operationType,
-        EntryType entryType)
+        EntryType entryType
+    )
     {
         var parameters = LedgerEntryInsertCommand.CreateParameters(
             Guid.NewGuid(),
@@ -57,7 +58,8 @@ public sealed class LedgerEntryInsertCommandTests
             relatedEntryId: null,
             RelationType.None,
             externalReference: null,
-            metadataJson: null);
+            metadataJson: null
+        );
 
         Assert.Equal((short)RelationType.None, parameters.RelationType);
         Assert.Null(parameters.RelatedEntryId);

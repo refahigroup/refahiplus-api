@@ -8,9 +8,11 @@ public sealed class ProviderPayloadSanitizerTests
     [Fact]
     public void Recursively_redacts_secrets_and_masks_mobile_numbers()
     {
-        var result = ProviderPayloadSanitizer.SanitizeJson("""
+        var result = ProviderPayloadSanitizer.SanitizeJson(
+            """
             {"authorization":"Bearer secret","nested":{"token":"abc","password":"p","pin":"1234","serial":"s","mobile":"09121234567"}}
-            """);
+            """
+        );
 
         Assert.DoesNotContain("secret", result);
         Assert.DoesNotContain("abc", result);

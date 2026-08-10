@@ -14,14 +14,20 @@ public class HasUserPurchasedQueryHandler : IRequestHandler<HasUserPurchasedQuer
         _orderRepository = orderRepository;
     }
 
-    public async Task<bool> Handle(HasUserPurchasedQuery request, CancellationToken cancellationToken)
+    public async Task<bool> Handle(
+        HasUserPurchasedQuery request,
+        CancellationToken cancellationToken
+    )
     {
         // Use a generous page size — review check doesn't need full pagination
         var orders = await _orderRepository.GetBySourceAsync(
-            request.SourceModule, request.SourceReferenceId, 1, 500, cancellationToken);
+            request.SourceModule,
+            request.SourceReferenceId,
+            1,
+            500,
+            cancellationToken
+        );
 
-        return orders.Any(o =>
-            o.UserId == request.UserId &&
-            o.Status == OrderStatus.Delivered);
+        return orders.Any(o => o.UserId == request.UserId && o.Status == OrderStatus.Delivered);
     }
 }

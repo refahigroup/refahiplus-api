@@ -14,7 +14,8 @@ public class UpsertShopProductVariantCommandHandler
 
     public UpsertShopProductVariantCommandHandler(
         IShopProductRepository shopProductRepo,
-        IProductRepository productRepo)
+        IProductRepository productRepo
+    )
     {
         _shopProductRepo = shopProductRepo;
         _productRepo = productRepo;
@@ -22,33 +23,43 @@ public class UpsertShopProductVariantCommandHandler
 
     public async Task<ShopProductVariantDto> Handle(
         UpsertShopProductVariantCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var shopProduct = await _shopProductRepo.GetWithVariantOfferingsAsync(
-            request.ShopId,
-            request.ProductId,
-            cancellationToken)
-            ?? throw new StoreDomainException("محصول در این فروشگاه یافت نشد", "SHOP_PRODUCT_NOT_FOUND");
+        var shopProduct =
+            await _shopProductRepo.GetWithVariantOfferingsAsync(
+                request.ShopId,
+                request.ProductId,
+                cancellationToken
+            )
+            ?? throw new StoreDomainException(
+                "محصول در این فروشگاه یافت نشد",
+                "SHOP_PRODUCT_NOT_FOUND"
+            );
 
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         ShopProductVariantValidation.EnsureVariantCanBeOffered(product, request.ProductVariantId);
 
-        var existing = shopProduct.VariantOfferings
-            .FirstOrDefault(v => v.ProductVariantId == request.ProductVariantId && !v.IsDeleted);
+        var existing = shopProduct.VariantOfferings.FirstOrDefault(v =>
+            v.ProductVariantId == request.ProductVariantId && !v.IsDeleted
+        );
 
         var offering = existing is null
             ? shopProduct.AddVariantOffering(
                 request.ProductVariantId,
                 request.PriceMinor,
                 request.DiscountedPriceMinor,
-                request.IsActive)
+                request.IsActive
+            )
             : shopProduct.UpdateVariantOffering(
                 request.ProductVariantId,
                 request.PriceMinor,
                 request.DiscountedPriceMinor,
-                request.IsActive);
+                request.IsActive
+            );
 
         await _shopProductRepo.UpsertVariantOfferingAsync(shopProduct, offering, cancellationToken);
 

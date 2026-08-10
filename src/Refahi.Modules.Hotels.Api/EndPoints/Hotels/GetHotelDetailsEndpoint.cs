@@ -16,21 +16,25 @@ public sealed class GetHotelDetailsEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("{hotelId:long}", async (
-            long hotelId,
-            [FromQuery] DateOnly? checkIn,
-            [FromQuery] DateOnly? checkOut,
-            ISender sender) =>
-        {
-            var query = new GetHotelDetailsQuery(hotelId, checkIn, checkOut);
+        routes
+            .MapGet(
+                "{hotelId:long}",
+                async (
+                    long hotelId,
+                    [FromQuery] DateOnly? checkIn,
+                    [FromQuery] DateOnly? checkOut,
+                    ISender sender
+                ) =>
+                {
+                    var query = new GetHotelDetailsQuery(hotelId, checkIn, checkOut);
 
-            var details = await sender.Send(query);
+                    var details = await sender.Send(query);
 
-            return Results.Ok(details);
-
-        })
-        .Produces<IEnumerable<HotelDetailsDto>>()
-        .WithName("Hotels.Details")
-        .WithTags("Hotels");
+                    return Results.Ok(details);
+                }
+            )
+            .Produces<IEnumerable<HotelDetailsDto>>()
+            .WithName("Hotels.Details")
+            .WithTags("Hotels");
     }
 }

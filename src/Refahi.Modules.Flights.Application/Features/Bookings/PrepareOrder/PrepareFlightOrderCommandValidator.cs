@@ -2,7 +2,8 @@ using FluentValidation;
 
 namespace Refahi.Modules.Flights.Application.Features.Bookings.PrepareOrder;
 
-public sealed class PrepareFlightOrderCommandValidator : AbstractValidator<PrepareFlightOrderCommand>
+public sealed class PrepareFlightOrderCommandValidator
+    : AbstractValidator<PrepareFlightOrderCommand>
 {
     public PrepareFlightOrderCommandValidator()
     {
@@ -10,13 +11,9 @@ public sealed class PrepareFlightOrderCommandValidator : AbstractValidator<Prepa
             .NotEmpty()
             .WithMessage("شناسه رزرو پرواز الزامی است.");
 
-        RuleFor(command => command.UserId)
-            .NotEmpty()
-            .WithMessage("شناسه کاربر الزامی است.");
+        RuleFor(command => command.UserId).NotEmpty().WithMessage("شناسه کاربر الزامی است.");
 
-        RuleFor(command => command.CallerRole)
-            .NotEmpty()
-            .WithMessage("نقش کاربر الزامی است.");
+        RuleFor(command => command.CallerRole).NotEmpty().WithMessage("نقش کاربر الزامی است.");
 
         RuleFor(command => command.IdempotencyKey)
             .NotEmpty()

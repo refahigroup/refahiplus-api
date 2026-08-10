@@ -21,10 +21,12 @@ public sealed record ProductVariantDto(
     long? ShopDiscountedPriceMinor = null,
     string? PriceSource = null,
     bool IsActiveInShop = true,
-    bool UsesShopSpecificPrice = false);
+    bool UsesShopSpecificPrice = false
+);
 
 public sealed record VariantCombinationDto(
     Guid AttributeId,
     string AttributeName,
     Guid ValueId,
-    string Value);
+    string Value
+);

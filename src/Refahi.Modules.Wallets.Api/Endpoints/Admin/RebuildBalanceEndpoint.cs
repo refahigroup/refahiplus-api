@@ -23,42 +23,55 @@ public class RebuildBalanceEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("/admin/{walletId:guid}/rebuild-balance", async (
-            [FromRoute] Guid walletId,
-            [FromServices] ISender mediator,
-            CancellationToken ct) =>
-        {
-            var command = new RebuildBalanceCommand(walletId);
+        routes
+            .MapPost(
+                "/admin/{walletId:guid}/rebuild-balance",
+                async (
+                    [FromRoute] Guid walletId,
+                    [FromServices] ISender mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var command = new RebuildBalanceCommand(walletId);
 
-            try
-            {
-                var result = await mediator.Send(command, ct);
+                    try
+                    {
+                        var result = await mediator.Send(command, ct);
 
-                return result.Status == CommandStatus.Completed
-                    ? Results.Ok(result.Data)
-                    : Results.BadRequest(new ErrorResponse("REBUILD_ERROR", "Rebuild operation did not complete"));
-            }
-            catch (ValidationException ex)
-            {
-                return Results.BadRequest(new ErrorResponse("VALIDATION_ERROR", ex.Message));
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
-            {
-                return Results.NotFound(new ErrorResponse("WALLET_NOT_FOUND", ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    title: "Internal server error",
-                    detail: ex.Message,
-                    statusCode: StatusCodes.Status500InternalServerError);
-            }
-        })
-        .WithName("RebuildBalance")
-        .WithTags("Admin", "Wallets")
-        .Produces<RebuildBalanceResponse>(StatusCodes.Status200OK)
-        .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status500InternalServerError);
+                        return result.Status == CommandStatus.Completed
+                            ? Results.Ok(result.Data)
+                            : Results.BadRequest(
+                                new ErrorResponse(
+                                    "REBUILD_ERROR",
+                                    "Rebuild operation did not complete"
+                                )
+                            );
+                    }
+                    catch (ValidationException ex)
+                    {
+                        return Results.BadRequest(
+                            new ErrorResponse("VALIDATION_ERROR", ex.Message)
+                        );
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+                    {
+                        return Results.NotFound(new ErrorResponse("WALLET_NOT_FOUND", ex.Message));
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Problem(
+                            title: "Internal server error",
+                            detail: ex.Message,
+                            statusCode: StatusCodes.Status500InternalServerError
+                        );
+                    }
+                }
+            )
+            .WithName("RebuildBalance")
+            .WithTags("Admin", "Wallets")
+            .Produces<RebuildBalanceResponse>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status500InternalServerError);
     }
 }

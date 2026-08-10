@@ -9,9 +9,10 @@ public class WalletsDbContextFactory : IDesignTimeDbContextFactory<WalletsDbCont
     {
         var optionsBuilder = new DbContextOptionsBuilder<WalletsDbContext>();
 
-        optionsBuilder.UseNpgsql("Host=localhost;Database=refahi-db;Username=refahi;Password=refahi");
+        optionsBuilder.UseNpgsql(
+            "Host=localhost;Database=refahi-db;Username=refahi;Password=refahi"
+        );
 
         return new WalletsDbContext(optionsBuilder.Options);
     }
 }
-

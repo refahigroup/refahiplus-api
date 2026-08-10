@@ -9,12 +9,16 @@ public class SetMainProductImageCommandHandler : IRequestHandler<SetMainProductI
 {
     private readonly IProductRepository _productRepo;
 
-    public SetMainProductImageCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public SetMainProductImageCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
-    public async Task<Unit> Handle(SetMainProductImageCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        SetMainProductImageCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         product.SetMainImage(request.ImageId);

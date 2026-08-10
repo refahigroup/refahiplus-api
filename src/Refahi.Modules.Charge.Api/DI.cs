@@ -1,26 +1,31 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Refahi.Modules.Charge.Infrastructure;
-using Refahi.Shared.Presentation;
-using Refahi.Modules.Charge.Application;
-using Microsoft.Extensions.Hosting;
+﻿using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Refahi.Modules.Charge.Application;
+using Refahi.Modules.Charge.Infrastructure;
+using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Charge.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterChargeModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterChargeModule(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var permitLimit = Math.Max(
             1,
-            configuration.GetValue("Charge:PublicCatalogRateLimit:PermitLimit", 30));
+            configuration.GetValue("Charge:PublicCatalogRateLimit:PermitLimit", 30)
+        );
         var windowSeconds = Math.Max(
             1,
-            configuration.GetValue("Charge:PublicCatalogRateLimit:WindowSeconds", 60));
+            configuration.GetValue("Charge:PublicCatalogRateLimit:WindowSeconds", 60)
+        );
 
         services.AddRateLimiter(options =>
         {
@@ -31,24 +36,28 @@ public static class DI
                 await context.HttpContext.Response.WriteAsJsonAsync(
                     ApiResponseHelper.Error(
                         "تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید",
-                        statusCode: StatusCodes.Status429TooManyRequests),
-                    ct);
+                        statusCode: StatusCodes.Status429TooManyRequests
+                    ),
+                    ct
+                );
             };
-            options.AddPolicy(ChargeRateLimiting.PublicCatalogPolicy, context =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = permitLimit,
-                        Window = TimeSpan.FromSeconds(windowSeconds),
-                        QueueLimit = 0,
-                        AutoReplenishment = true
-                    }));
+            options.AddPolicy(
+                ChargeRateLimiting.PublicCatalogPolicy,
+                context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = permitLimit,
+                            Window = TimeSpan.FromSeconds(windowSeconds),
+                            QueueLimit = 0,
+                            AutoReplenishment = true,
+                        }
+                    )
+            );
         });
 
-        services
-            .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration);
+        services.RegisterApplication(configuration).RegisterInfrastructure(configuration);
 
         return services;
     }
@@ -66,7 +75,8 @@ public static class DI
     {
         var assembly = typeof(DI).Assembly;
 
-        var endpointTypes = assembly.GetTypes()
+        var endpointTypes = assembly
+            .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);
@@ -78,7 +88,6 @@ public static class DI
                 endpoint.Map(group);
             }
         }
-
     }
 }
 

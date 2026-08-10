@@ -1,6 +1,6 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Refahi.Modules.Store.Application.Contracts.Vendor;
-using System.Text.Json;
 
 namespace Refahi.Modules.Store.Api.Security;
 
@@ -19,11 +19,13 @@ internal sealed class InPersonOtpReferenceProtector : IInPersonOtpReferenceProte
     public bool TryUnprotect(string protectedReference, out InPersonOtpReference? reference)
     {
         reference = null;
-        if (string.IsNullOrWhiteSpace(protectedReference)) return false;
+        if (string.IsNullOrWhiteSpace(protectedReference))
+            return false;
         try
         {
             reference = JsonSerializer.Deserialize<InPersonOtpReference>(
-                _protector.Unprotect(protectedReference));
+                _protector.Unprotect(protectedReference)
+            );
             return reference is not null;
         }
         catch (Exception)

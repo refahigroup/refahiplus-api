@@ -10,13 +10,16 @@ public class UpdateShopCommandHandler : IRequestHandler<UpdateShopCommand, Updat
 {
     private readonly IShopRepository _shopRepository;
 
-    public UpdateShopCommandHandler(IShopRepository shopRepository)
-        => _shopRepository = shopRepository;
+    public UpdateShopCommandHandler(IShopRepository shopRepository) =>
+        _shopRepository = shopRepository;
 
     public async Task<UpdateShopResponse> Handle(
-        UpdateShopCommand request, CancellationToken cancellationToken)
+        UpdateShopCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var shop = await _shopRepository.GetByIdAsync(request.Id, cancellationToken)
+        var shop =
+            await _shopRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("فروشگاه یافت نشد", "SHOP_NOT_FOUND");
 
         shop.UpdateInfo(
@@ -34,7 +37,8 @@ public class UpdateShopCommandHandler : IRequestHandler<UpdateShopCommand, Updat
             request.ContactPhone,
             request.LogoUrl,
             request.CoverImageUrl,
-            request.ShopType.HasValue ? (ShopType)request.ShopType.Value : null);
+            request.ShopType.HasValue ? (ShopType)request.ShopType.Value : null
+        );
 
         await _shopRepository.UpdateAsync(shop, cancellationToken);
 

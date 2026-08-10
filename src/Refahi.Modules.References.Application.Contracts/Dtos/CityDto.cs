@@ -8,4 +8,5 @@ public sealed record CityDto(
     int ProvinceId,
     string ProvinceName,
     int SortOrder,
-    bool IsActive);
+    bool IsActive
+);

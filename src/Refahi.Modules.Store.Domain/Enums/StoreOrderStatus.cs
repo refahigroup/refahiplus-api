@@ -7,5 +7,5 @@ public enum StoreOrderStatus : short
     Paid = 3,
     Cancelled = 4,
     Refunded = 5,
-    Failed = 6
+    Failed = 6,
 }

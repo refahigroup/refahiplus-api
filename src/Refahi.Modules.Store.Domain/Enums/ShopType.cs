@@ -6,5 +6,5 @@ public enum ShopType : short
     InPerson = 2,
 
     [Obsolete("نام legacy است؛ از InPerson استفاده کنید.")]
-    Physical = InPerson
+    Physical = InPerson,
 }

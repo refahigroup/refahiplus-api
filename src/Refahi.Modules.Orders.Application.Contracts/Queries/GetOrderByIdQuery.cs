@@ -3,8 +3,5 @@ using Refahi.Modules.Orders.Application.Contracts.Dtos;
 
 namespace Refahi.Modules.Orders.Application.Contracts.Queries;
 
-public sealed record GetOrderByIdQuery(
-    Guid OrderId,
-    Guid CallerUserId,
-    string CallerRole
-) : IRequest<OrderDto?>;
+public sealed record GetOrderByIdQuery(Guid OrderId, Guid CallerUserId, string CallerRole)
+    : IRequest<OrderDto?>;

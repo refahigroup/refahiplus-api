@@ -16,7 +16,8 @@ public sealed class FlightBookingRepository : IFlightBookingRepository
 
     public async Task<FlightBooking?> GetAsync(
         FlightBookingId id,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         return await WithDetails()
             .FirstOrDefaultAsync(booking => booking.Id.Equals(id), cancellationToken);
@@ -24,7 +25,8 @@ public sealed class FlightBookingRepository : IFlightBookingRepository
 
     public async Task<FlightBooking?> GetByOrderIdAsync(
         Guid orderId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         return await WithDetails()
             .FirstOrDefaultAsync(booking => booking.OrderId == orderId, cancellationToken);
@@ -32,16 +34,21 @@ public sealed class FlightBookingRepository : IFlightBookingRepository
 
     public async Task<FlightBooking?> GetByIdempotencyKeyAsync(
         string idempotencyKey,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         return await WithDetails()
-            .FirstOrDefaultAsync(booking => booking.IdempotencyKey == idempotencyKey, cancellationToken);
+            .FirstOrDefaultAsync(
+                booking => booking.IdempotencyKey == idempotencyKey,
+                cancellationToken
+            );
     }
 
     public async Task<FlightBooking?> GetByProviderBookingIdAsync(
         string providerName,
         string providerBookingId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         return await WithDetails()
             .FirstOrDefaultAsync(
@@ -49,7 +56,8 @@ public sealed class FlightBookingRepository : IFlightBookingRepository
                     booking.Provider.ProviderName == providerName
                     && booking.ProviderBooking != null
                     && booking.ProviderBooking.ProviderBookingId == providerBookingId,
-                cancellationToken);
+                cancellationToken
+            );
     }
 
     public async Task AddAsync(FlightBooking booking, CancellationToken cancellationToken = default)
@@ -64,8 +72,8 @@ public sealed class FlightBookingRepository : IFlightBookingRepository
 
     private IQueryable<FlightBooking> WithDetails()
     {
-        return _dbContext.FlightBookings
-            .Include(booking => booking.Passengers)
+        return _dbContext
+            .FlightBookings.Include(booking => booking.Passengers)
             .Include(booking => booking.Segments)
             .Include(booking => booking.IssuedTickets)
             .Include(booking => booking.CancellationRequests);

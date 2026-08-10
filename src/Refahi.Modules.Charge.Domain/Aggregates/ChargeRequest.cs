@@ -8,6 +8,7 @@ public sealed class ChargeRequest
     private const string ProviderInvoiceNumberPrefix = "CHG";
     private readonly List<ChargeFulfillmentAttempt> _attempts = [];
     private readonly List<ChargePin> _pins = [];
+
     private ChargeRequest() { }
 
     public Guid Id { get; private set; }
@@ -61,12 +62,30 @@ public sealed class ChargeRequest
     public IReadOnlyCollection<ChargeFulfillmentAttempt> Attempts => _attempts.AsReadOnly();
     public IReadOnlyCollection<ChargePin> Pins => _pins.AsReadOnly();
 
-    public static ChargeRequest Create(Guid userId, string providerName, ChargeOperator @operator,
-        ChargeServiceType serviceType, string destinationMobileNumber, string? originMobileNumber,
-        string providerProductId, string productCaption, int productCategory, int payBill,
-        int? pinCategoryId, int pinCount, string productSnapshotJson, long providerCostMinor,
-        Guid? markupRuleId, decimal markupPercent, long markupFixedMinor, long markupAmountMinor,
-        long finalAmountMinor, string idempotencyKey, DateTime nowUtc, DateTime expireAtUtc)
+    public static ChargeRequest Create(
+        Guid userId,
+        string providerName,
+        ChargeOperator @operator,
+        ChargeServiceType serviceType,
+        string destinationMobileNumber,
+        string? originMobileNumber,
+        string providerProductId,
+        string productCaption,
+        int productCategory,
+        int payBill,
+        int? pinCategoryId,
+        int pinCount,
+        string productSnapshotJson,
+        long providerCostMinor,
+        Guid? markupRuleId,
+        decimal markupPercent,
+        long markupFixedMinor,
+        long markupAmountMinor,
+        long finalAmountMinor,
+        string idempotencyKey,
+        DateTime nowUtc,
+        DateTime expireAtUtc
+    )
     {
         if (userId == Guid.Empty)
             throw new InvalidOperationException("شناسه کاربر الزامی است");
@@ -105,14 +124,18 @@ public sealed class ChargeRequest
             Operator = @operator,
             ServiceType = serviceType,
             DestinationMobileNumber = destinationMobileNumber.Trim(),
-            OriginMobileNumber = string.IsNullOrWhiteSpace(originMobileNumber) ? null : originMobileNumber.Trim(),
+            OriginMobileNumber = string.IsNullOrWhiteSpace(originMobileNumber)
+                ? null
+                : originMobileNumber.Trim(),
             ProviderProductId = providerProductId.Trim(),
             ProductCaption = productCaption.Trim(),
             ProductCategory = productCategory,
             PayBill = payBill,
             PinCategoryId = pinCategoryId,
             PinCount = pinCount,
-            ProductSnapshotJson = string.IsNullOrWhiteSpace(productSnapshotJson) ? "{}" : productSnapshotJson,
+            ProductSnapshotJson = string.IsNullOrWhiteSpace(productSnapshotJson)
+                ? "{}"
+                : productSnapshotJson,
             ProviderCostMinor = providerCostMinor,
             MarkupRuleId = markupRuleId,
             MarkupPercent = markupPercent,
@@ -124,7 +147,7 @@ public sealed class ChargeRequest
             Status = ChargeRequestStatus.Created,
             CreatedAt = nowUtc,
             UpdatedAt = nowUtc,
-            ExpireAt = expireAtUtc
+            ExpireAt = expireAtUtc,
         };
     }
 
@@ -145,7 +168,8 @@ public sealed class ChargeRequest
 
         if (ExpireAt <= nowUtc)
         {
-            Status = ChargeRequestStatus.Expired; UpdatedAt = nowUtc;
+            Status = ChargeRequestStatus.Expired;
+            UpdatedAt = nowUtc;
             throw new InvalidOperationException("مهلت درخواست شارژ به پایان رسیده است");
         }
 
@@ -159,11 +183,12 @@ public sealed class ChargeRequest
         if (OrderId.HasValue && OrderId != orderId)
             throw new InvalidOperationException("سفارش با درخواست شارژ مطابقت ندارد");
 
-        bool isInValid = Status is
-            ChargeRequestStatus.Paid or
-            ChargeRequestStatus.Processing or
-            ChargeRequestStatus.ReconciliationPending or
-            ChargeRequestStatus.Fulfilled;
+        bool isInValid =
+            Status
+            is ChargeRequestStatus.Paid
+                or ChargeRequestStatus.Processing
+                or ChargeRequestStatus.ReconciliationPending
+                or ChargeRequestStatus.Fulfilled;
 
         if (isInValid)
             return;
@@ -183,17 +208,21 @@ public sealed class ChargeRequest
         if (Status == ChargeRequestStatus.Processing && ProcessingLeaseUntil > nowUtc)
             throw new InvalidOperationException("درخواست شارژ در حال پردازش است");
 
-        bool isInValid = Status is
-            not ChargeRequestStatus.Paid and
-            not ChargeRequestStatus.ReconciliationPending and
-            not ChargeRequestStatus.Processing;
+        bool isInValid =
+            Status
+            is not ChargeRequestStatus.Paid
+                and not ChargeRequestStatus.ReconciliationPending
+                and not ChargeRequestStatus.Processing;
 
         if (isInValid)
             throw new InvalidOperationException("درخواست شارژ قابل پردازش نیست");
 
         // Requests created before the Eniac 25-character contract fix are normalized
         // only before their first provider call. Reconciliation must keep the original value.
-        if (Status == ChargeRequestStatus.Paid && CustomerInvoiceNumber.Length > ProviderInvoiceNumberMaxLength)
+        if (
+            Status == ChargeRequestStatus.Paid
+            && CustomerInvoiceNumber.Length > ProviderInvoiceNumberMaxLength
+        )
             CustomerInvoiceNumber = CreateProviderInvoiceNumber(Id);
 
         Status = ChargeRequestStatus.Processing;
@@ -204,7 +233,13 @@ public sealed class ChargeRequest
 
     public void RecordAttempt(ChargeFulfillmentAttempt attempt) => _attempts.Add(attempt);
 
-    public void MarkReconciliationPending(int? eniacCode, string? operatorCode, string? message, DateTime nextAttemptUtc, DateTime nowUtc)
+    public void MarkReconciliationPending(
+        int? eniacCode,
+        string? operatorCode,
+        string? message,
+        DateTime nextAttemptUtc,
+        DateTime nowUtc
+    )
     {
         Status = ChargeRequestStatus.ReconciliationPending;
         EniacResultCode = eniacCode;
@@ -215,7 +250,14 @@ public sealed class ChargeRequest
         ReleaseLease(nowUtc);
     }
 
-    public void MarkFulfilled(string? rrn, string? traceId, int? eniacCode, string? operatorCode, string? message, DateTime nowUtc)
+    public void MarkFulfilled(
+        string? rrn,
+        string? traceId,
+        int? eniacCode,
+        string? operatorCode,
+        string? message,
+        DateTime nowUtc
+    )
     {
         ProviderRrn = rrn;
         ProviderTraceId = traceId;
@@ -228,8 +270,10 @@ public sealed class ChargeRequest
         ReleaseLease(nowUtc);
     }
 
-    public void AddPin(string encryptedSerial, string encryptedCode, long amountMinor)
-        => _pins.Add(ChargePin.Create(Id, encryptedSerial, encryptedCode, amountMinor, DateTime.UtcNow));
+    public void AddPin(string encryptedSerial, string encryptedCode, long amountMinor) =>
+        _pins.Add(
+            ChargePin.Create(Id, encryptedSerial, encryptedCode, amountMinor, DateTime.UtcNow)
+        );
 
     public void MarkFailed(int? eniacCode, string? operatorCode, string? message, DateTime nowUtc)
     {
@@ -261,11 +305,14 @@ public sealed class ChargeRequest
             return;
         }
 
-        if (Status is not ChargeRequestStatus.Paid
-            and not ChargeRequestStatus.Processing
-            and not ChargeRequestStatus.ReconciliationPending
-            and not ChargeRequestStatus.Failed
-            and not ChargeRequestStatus.ManualReview)
+        if (
+            Status
+            is not ChargeRequestStatus.Paid
+                and not ChargeRequestStatus.Processing
+                and not ChargeRequestStatus.ReconciliationPending
+                and not ChargeRequestStatus.Failed
+                and not ChargeRequestStatus.ManualReview
+        )
             throw new InvalidOperationException("درخواست شارژ در وضعیت قابل بازگشت وجه نیست");
 
         Status = ChargeRequestStatus.Refunding;
@@ -285,7 +332,10 @@ public sealed class ChargeRequest
         if (ProcessingLeaseUntil > nowUtc)
             throw new InvalidOperationException("بازگشت وجه درخواست شارژ در حال پردازش است");
 
-        if (string.IsNullOrWhiteSpace(RefundIdempotencyKey) || string.IsNullOrWhiteSpace(RefundReason))
+        if (
+            string.IsNullOrWhiteSpace(RefundIdempotencyKey)
+            || string.IsNullOrWhiteSpace(RefundReason)
+        )
             throw new InvalidOperationException("اطلاعات بازیابی بازگشت وجه کامل نیست");
 
         ProcessingLeaseOwner = leaseOwner;
@@ -324,14 +374,33 @@ public sealed class ChargeRequest
         ReleaseLease(nowUtc);
     }
 
-    public void ConfirmFulfilledByAdmin(string rrn, string traceId, string evidence, DateTime nowUtc)
+    public void ConfirmFulfilledByAdmin(
+        string rrn,
+        string traceId,
+        string evidence,
+        DateTime nowUtc
+    )
     {
-        if (Status is not ChargeRequestStatus.ManualReview and not ChargeRequestStatus.ReconciliationPending)
+        if (
+            Status
+            is not ChargeRequestStatus.ManualReview
+                and not ChargeRequestStatus.ReconciliationPending
+        )
             throw new InvalidOperationException("درخواست شارژ در وضعیت قابل تایید دستی نیست");
-        if (string.IsNullOrWhiteSpace(rrn) || string.IsNullOrWhiteSpace(traceId) || string.IsNullOrWhiteSpace(evidence))
+        if (
+            string.IsNullOrWhiteSpace(rrn)
+            || string.IsNullOrWhiteSpace(traceId)
+            || string.IsNullOrWhiteSpace(evidence)
+        )
             throw new InvalidOperationException("شناسه‌های تامین‌کننده و مستند تایید الزامی است");
-        MarkFulfilled(rrn.Trim(), traceId.Trim(), EniacResultCode, OperatorResultCode,
-            $"تایید دستی: {evidence.Trim()}", nowUtc);
+        MarkFulfilled(
+            rrn.Trim(),
+            traceId.Trim(),
+            EniacResultCode,
+            OperatorResultCode,
+            $"تایید دستی: {evidence.Trim()}",
+            nowUtc
+        );
     }
 
     public void MarkExpired(DateTime nowUtc)

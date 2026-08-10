@@ -10,7 +10,8 @@ public class ReferencesDbContextFactory : IDesignTimeDbContextFactory<References
         var optionsBuilder = new DbContextOptionsBuilder<ReferencesDbContext>();
         optionsBuilder.UseNpgsql(
             "Host=localhost;Database=refahi;Username=refahi;Password=refahi",
-            o => o.MigrationsHistoryTable("__EFMigrationsHistory", "references"));
+            o => o.MigrationsHistoryTable("__EFMigrationsHistory", "references")
+        );
 
         return new ReferencesDbContext(optionsBuilder.Options);
     }

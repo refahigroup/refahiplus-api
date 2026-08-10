@@ -16,11 +16,16 @@ public class MediaAssetRepository : IMediaAssetRepository
         await _db.MediaAssets.AddAsync(asset, ct);
     }
 
-    public Task<MediaAsset?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _db.MediaAssets.FirstOrDefaultAsync(x => x.Id == id, ct);
+    public Task<MediaAsset?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.MediaAssets.FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task<(IReadOnlyList<MediaAsset> Items, int Total)> ListAsync(
-        int page, int size, string? entityType, Guid? uploadedBy, CancellationToken ct = default)
+        int page,
+        int size,
+        string? entityType,
+        Guid? uploadedBy,
+        CancellationToken ct = default
+    )
     {
         var query = _db.MediaAssets.AsNoTracking().Where(x => !x.IsDeleted);
 
@@ -41,6 +46,5 @@ public class MediaAssetRepository : IMediaAssetRepository
         return (items, total);
     }
 
-    public Task SaveChangesAsync(CancellationToken ct = default)
-        => _db.SaveChangesAsync(ct);
+    public Task SaveChangesAsync(CancellationToken ct = default) => _db.SaveChangesAsync(ct);
 }

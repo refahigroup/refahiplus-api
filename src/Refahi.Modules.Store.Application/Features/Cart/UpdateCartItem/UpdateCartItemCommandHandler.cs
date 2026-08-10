@@ -9,7 +9,8 @@ using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts
 
 namespace Refahi.Modules.Store.Application.Features.Cart.UpdateCartItem;
 
-public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemCommand, UpdateCartItemResponse>
+public class UpdateCartItemCommandHandler
+    : IRequestHandler<UpdateCartItemCommand, UpdateCartItemResponse>
 {
     private readonly ICartRepository _cartRepo;
     private readonly IProductRepository _productRepo;
@@ -18,19 +19,28 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
     public UpdateCartItemCommandHandler(
         ICartRepository cartRepo,
         IProductRepository productRepo,
-        IMediator mediator)
+        IMediator mediator
+    )
     {
         _cartRepo = cartRepo;
         _productRepo = productRepo;
         _mediator = mediator;
     }
 
-    public async Task<UpdateCartItemResponse> Handle(UpdateCartItemCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateCartItemResponse> Handle(
+        UpdateCartItemCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var cart = await _cartRepo.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, cancellationToken)
-            ?? throw new StoreDomainException("سبد خرید یافت نشد", "CART_NOT_FOUND");
+        var cart =
+            await _cartRepo.GetByUserAndModuleIdAsync(
+                request.UserId,
+                request.ModuleId,
+                cancellationToken
+            ) ?? throw new StoreDomainException("سبد خرید یافت نشد", "CART_NOT_FOUND");
 
-        var item = cart.Items.FirstOrDefault(i => i.Id == request.CartItemId)
+        var item =
+            cart.Items.FirstOrDefault(i => i.Id == request.CartItemId)
             ?? throw new StoreDomainException("آیتم سبد خرید یافت نشد", "CART_ITEM_NOT_FOUND");
 
         await ValidateRequestedQuantityAsync(item, request.Quantity, cancellationToken);
@@ -45,25 +55,33 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
     private async Task<(Product Product, SalesModel SalesModel)> ValidateRequestedQuantityAsync(
         Refahi.Modules.Store.Domain.Entities.CartItem item,
         int quantity,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(item.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(item.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         if (product.IsDeleted)
             throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        var agreementProduct = await _mediator.Send(
-            new GetAgreementProductByIdQuery(product.AgreementProductId),
-            cancellationToken)
-            ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+        var agreementProduct =
+            await _mediator.Send(
+                new GetAgreementProductByIdQuery(product.AgreementProductId),
+                cancellationToken
+            )
+            ?? throw new StoreDomainException(
+                "اطلاعات محصول یافت نشد",
+                "AGREEMENT_PRODUCT_NOT_FOUND"
+            );
 
         var salesModel = (SalesModel)agreementProduct.SalesModel;
         if (salesModel == SalesModel.StockBased)
         {
             if (item.VariantId.HasValue)
             {
-                var variant = product.Variants.FirstOrDefault(v => v.Id == item.VariantId.Value)
+                var variant =
+                    product.Variants.FirstOrDefault(v => v.Id == item.VariantId.Value)
                     ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
 
                 if (!variant.HasLegacyStockAvailable(quantity))
@@ -79,7 +97,8 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
 
         if (item.SessionId.HasValue)
         {
-            var session = product.Sessions.FirstOrDefault(s => s.Id == item.SessionId.Value)
+            var session =
+                product.Sessions.FirstOrDefault(s => s.Id == item.SessionId.Value)
                 ?? throw new StoreDomainException("سانس یافت نشد", "SESSION_NOT_FOUND");
 
             if (!session.IsAvailable || session.RemainingCapacity < quantity)
@@ -89,21 +108,28 @@ public class UpdateCartItemCommandHandler : IRequestHandler<UpdateCartItemComman
         }
 
         if (!item.VariantId.HasValue)
-            throw new StoreDomainException("برای محصولات سانسی، انتخاب سانس یا خدمت الزامی است", "SESSION_REQUIRED");
+            throw new StoreDomainException(
+                "برای محصولات سانسی، انتخاب سانس یا خدمت الزامی است",
+                "SESSION_REQUIRED"
+            );
 
-        var accessVariant = product.Variants.FirstOrDefault(v => v.Id == item.VariantId.Value)
+        var accessVariant =
+            product.Variants.FirstOrDefault(v => v.Id == item.VariantId.Value)
             ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
 
-        var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(accessVariant, item.UsageDate);
+        var normalizedUsageDate = StoreVariantCapacityService.NormalizeAndValidateUsageDate(
+            accessVariant,
+            item.UsageDate
+        );
         await StoreVariantCapacityService.EnsureCapacityAvailableAsync(
             accessVariant,
             normalizedUsageDate,
             quantity,
             _mediator,
             excludeOrderId: null,
-            cancellationToken);
+            cancellationToken
+        );
 
         return (product, salesModel);
     }
-
 }

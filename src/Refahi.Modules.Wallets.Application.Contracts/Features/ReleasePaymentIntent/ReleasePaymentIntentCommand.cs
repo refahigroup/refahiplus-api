@@ -7,7 +7,5 @@ namespace Refahi.Modules.Wallets.Application.Contracts.Features.ReleasePaymentIn
 /// <summary>
 /// Command: Release/Cancel Payment Intent.
 /// </summary>
-public sealed record ReleasePaymentIntentCommand(
-    Guid IntentId,
-    string IdempotencyKey)
+public sealed record ReleasePaymentIntentCommand(Guid IntentId, string IdempotencyKey)
     : IRequest<CommandResponse<ReleasePaymentIntentResponse>>;

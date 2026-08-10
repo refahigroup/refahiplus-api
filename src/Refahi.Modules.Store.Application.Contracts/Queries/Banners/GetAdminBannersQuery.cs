@@ -3,7 +3,5 @@ using Refahi.Modules.Store.Application.Contracts.Dtos.Banners;
 
 namespace Refahi.Modules.Store.Application.Contracts.Queries.Banners;
 
-public sealed record GetAdminBannersQuery(
-    int? ModuleId = null,
-    short? BannerType = null
-) : IRequest<List<AdminBannerDto>>;
+public sealed record GetAdminBannersQuery(int? ModuleId = null, short? BannerType = null)
+    : IRequest<List<AdminBannerDto>>;

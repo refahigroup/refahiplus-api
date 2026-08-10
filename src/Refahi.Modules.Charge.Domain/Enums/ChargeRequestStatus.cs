@@ -13,5 +13,5 @@ public enum ChargeRequestStatus : short
     Refunded = 9,
     ManualReview = 10,
     Cancelled = 11,
-    Expired = 12
+    Expired = 12,
 }

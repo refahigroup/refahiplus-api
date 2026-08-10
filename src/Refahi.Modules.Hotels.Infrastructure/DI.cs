@@ -15,7 +15,10 @@ namespace Refahi.Modules.Hotels.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var hotelsConfig = configuration.GetSection("Refahi:Hotels");
 
@@ -31,12 +34,21 @@ public static class DI
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IHotelRequestRepository, HotelRequestRepository>();
         services.AddScoped<IHotelBookingSagaRepository, HotelBookingSagaRepository>();
-        services.AddScoped<IHotelProviderBookingCacheRepository, HotelProviderBookingCacheRepository>();
+        services.AddScoped<
+            IHotelProviderBookingCacheRepository,
+            HotelProviderBookingCacheRepository
+        >();
 
         // Providers
-        services.UseSnappTripProvider(configuration)
-                .AddScoped<IHotelProvider>(sp => sp.GetRequiredService<IHotelProviderFactory>().GetDefaultProvider())
-                .AddScoped<IHotelProviderFactory>(sp => new HotelProviderFactory(sp, HotelProviderType.SnappTrip));
+        services
+            .UseSnappTripProvider(configuration)
+            .AddScoped<IHotelProvider>(sp =>
+                sp.GetRequiredService<IHotelProviderFactory>().GetDefaultProvider()
+            )
+            .AddScoped<IHotelProviderFactory>(sp => new HotelProviderFactory(
+                sp,
+                HotelProviderType.SnappTrip
+            ));
 
         services.AddHostedService<HotelProviderReconciliationWorker>();
         services.AddHostedService<HotelSagaRecoveryWorker>();
@@ -53,6 +65,5 @@ public static class DI
         var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
 
         tools.ApplyMigrations<HotelsDbContext>();
-
     }
 }

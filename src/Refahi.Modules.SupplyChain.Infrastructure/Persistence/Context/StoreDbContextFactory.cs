@@ -8,10 +8,8 @@ public class SupplyChainDbContextFactory : IDesignTimeDbContextFactory<SupplyCha
     public SupplyChainDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<SupplyChainDbContext>();
-        optionsBuilder.UseNpgsql(
-            "Host=localhost;Database=refahi;Username=refahi;Password=refahi");
+        optionsBuilder.UseNpgsql("Host=localhost;Database=refahi;Username=refahi;Password=refahi");
 
         return new SupplyChainDbContext(optionsBuilder.Options);
     }
 }
-

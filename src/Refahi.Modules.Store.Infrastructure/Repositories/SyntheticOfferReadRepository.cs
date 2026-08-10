@@ -1,7 +1,7 @@
+using System.Globalization;
 using Dapper;
 using Npgsql;
 using Refahi.Modules.Store.Domain.Repositories;
-using System.Globalization;
 
 namespace Refahi.Modules.Store.Infrastructure.Repositories;
 
@@ -16,7 +16,8 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
 
     public async Task<(IReadOnlyList<SyntheticOfferReadModel> Items, int Total)> GetOffersAsync(
         SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         if (!HasAgreementProducts(spec))
             return ([], 0);
@@ -37,15 +38,17 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(ct);
         using var grid = await connection.QueryMultipleAsync(
-            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct));
+            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct)
+        );
         var total = await grid.ReadSingleAsync<int>();
         var items = (await grid.ReadAsync<SyntheticOfferReadModel>()).AsList();
         return (items, total);
     }
 
-    public async Task<(IReadOnlyList<SyntheticProductCatalogReadModel> Items, int Total)> GetProductCatalogAsync(
-        SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default)
+    public async Task<(
+        IReadOnlyList<SyntheticProductCatalogReadModel> Items,
+        int Total
+    )> GetProductCatalogAsync(SyntheticOfferQuerySpec spec, CancellationToken ct = default)
     {
         if (!HasAgreementProducts(spec))
             return ([], 0);
@@ -83,7 +86,8 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(ct);
         using var grid = await connection.QueryMultipleAsync(
-            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct));
+            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct)
+        );
         var total = await grid.ReadSingleAsync<int>();
         var items = (await grid.ReadAsync<SyntheticProductCatalogReadModel>()).AsList();
         return (items, total);
@@ -91,7 +95,8 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
 
     public async Task<IReadOnlyList<Guid>> GetEligibleAgreementProductIdsAsync(
         SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         if (!HasAgreementProducts(spec))
             return [];
@@ -106,13 +111,15 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(ct);
         var ids = await connection.QueryAsync<Guid>(
-            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct));
+            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct)
+        );
         return ids.AsList();
     }
 
     public async Task<IReadOnlyList<SyntheticOfferReadModel>> GetProductOffersAsync(
         SyntheticOfferQuerySpec spec,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         if (!HasAgreementProducts(spec))
             return [];
@@ -127,26 +134,31 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(ct);
         var rows = await connection.QueryAsync<SyntheticOfferReadModel>(
-            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct));
+            new CommandDefinition(sql, BuildParameters(spec), cancellationToken: ct)
+        );
         return rows.AsList();
     }
 
-    private static bool HasAgreementProducts(SyntheticOfferQuerySpec spec)
-        => spec.StockBasedAgreementProductIds.Count > 0
-           || spec.SessionBasedAgreementProductIds.Count > 0
-           || spec.ManualAgreementProductIds?.Count > 0;
+    private static bool HasAgreementProducts(SyntheticOfferQuerySpec spec) =>
+        spec.StockBasedAgreementProductIds.Count > 0
+        || spec.SessionBasedAgreementProductIds.Count > 0
+        || spec.ManualAgreementProductIds?.Count > 0;
 
-    private static object BuildParameters(SyntheticOfferQuerySpec spec)
-        => new
+    private static object BuildParameters(SyntheticOfferQuerySpec spec) =>
+        new
         {
             StockAgreementProductIds = spec.StockBasedAgreementProductIds.ToArray(),
             SessionAgreementProductIds = spec.SessionBasedAgreementProductIds.ToArray(),
             ManualAgreementProductIds = spec.ManualAgreementProductIds?.ToArray() ?? [],
             Today = spec.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            CurrentTime = (spec.CurrentTime ?? TimeOnly.MinValue)
-                .ToString("HH:mm:ss.fffffff", CultureInfo.InvariantCulture),
+            CurrentTime = (spec.CurrentTime ?? TimeOnly.MinValue).ToString(
+                "HH:mm:ss.fffffff",
+                CultureInfo.InvariantCulture
+            ),
             HasSearch = !string.IsNullOrWhiteSpace(spec.SearchQuery),
-            SearchPattern = string.IsNullOrWhiteSpace(spec.SearchQuery) ? null : $"%{spec.SearchQuery}%",
+            SearchPattern = string.IsNullOrWhiteSpace(spec.SearchQuery)
+                ? null
+                : $"%{spec.SearchQuery}%",
             spec.ShopId,
             spec.ProductId,
             ProductSlug = string.IsNullOrWhiteSpace(spec.ProductSlug) ? null : spec.ProductSlug,
@@ -156,103 +168,111 @@ public sealed class SyntheticOfferReadRepository : ISyntheticOfferReadRepository
             spec.MinPriceMinor,
             spec.MaxPriceMinor,
             Offset = (spec.PageNumber - 1) * spec.PageSize,
-            spec.PageSize
+            spec.PageSize,
         };
 
-    private static string GetOfferOrderBy(string sort) => sort switch
-    {
-        "price-asc" => "CASE WHEN \"OfferKind\" = 'ManualProduct' THEN 1 ELSE 0 END, \"EffectivePriceMinor\", \"OfferKey\"",
-        "price-desc" => "CASE WHEN \"OfferKind\" = 'ManualProduct' THEN 1 ELSE 0 END, \"EffectivePriceMinor\" DESC, \"OfferKey\"",
-        _ => "\"ProductCreatedAt\" DESC, \"OfferKey\""
-    };
+    private static string GetOfferOrderBy(string sort) =>
+        sort switch
+        {
+            "price-asc" =>
+                "CASE WHEN \"OfferKind\" = 'ManualProduct' THEN 1 ELSE 0 END, \"EffectivePriceMinor\", \"OfferKey\"",
+            "price-desc" =>
+                "CASE WHEN \"OfferKind\" = 'ManualProduct' THEN 1 ELSE 0 END, \"EffectivePriceMinor\" DESC, \"OfferKey\"",
+            _ => "\"ProductCreatedAt\" DESC, \"OfferKey\"",
+        };
 
-    private static string GetCatalogOrderBy(string sort) => sort switch
-    {
-        "price-asc" => "CASE WHEN \"DefaultOfferKey\" LIKE 'manual:%' THEN 1 ELSE 0 END, \"MinEffectivePriceMinor\", \"ProductId\"",
-        "price-desc" => "CASE WHEN \"DefaultOfferKey\" LIKE 'manual:%' THEN 1 ELSE 0 END, \"MaxEffectivePriceMinor\" DESC, \"ProductId\"",
-        _ => "\"ProductCreatedAt\" DESC, \"ProductId\""
-    };
+    private static string GetCatalogOrderBy(string sort) =>
+        sort switch
+        {
+            "price-asc" =>
+                "CASE WHEN \"DefaultOfferKey\" LIKE 'manual:%' THEN 1 ELSE 0 END, \"MinEffectivePriceMinor\", \"ProductId\"",
+            "price-desc" =>
+                "CASE WHEN \"DefaultOfferKey\" LIKE 'manual:%' THEN 1 ELSE 0 END, \"MaxEffectivePriceMinor\" DESC, \"ProductId\"",
+            _ => "\"ProductCreatedAt\" DESC, \"ProductId\"",
+        };
 
-    private static string BuildFilteredOffersCte() => $"""
-        {EligibleOffersCte},
-        filtered_offers AS
-        (
-            SELECT *
-            FROM eligible_offers
-            WHERE (@ShopId IS NULL OR "ShopId" = @ShopId)
-              AND (@ProductId IS NULL OR "ProductId" = @ProductId)
-              AND (@ProductSlug IS NULL OR "ProductSlug" = @ProductSlug)
-              AND (@OfferKind IS NULL OR "OfferKind" = @OfferKind)
-              AND ((@MinPriceMinor IS NULL AND @MaxPriceMinor IS NULL) OR "OfferKind" <> 'ManualProduct')
-              AND (@MinPriceMinor IS NULL OR "EffectivePriceMinor" >= @MinPriceMinor)
-              AND (@MaxPriceMinor IS NULL OR "EffectivePriceMinor" <= @MaxPriceMinor)
-              AND (
-                    @HasSearch = FALSE
-                    OR "ProductTitle" ILIKE @SearchPattern
-                    OR "ShopName" ILIKE @SearchPattern
-                    OR COALESCE("VariantLabel", '') ILIKE @SearchPattern
-                  )
-              AND (
-                    @UsageFrom IS NULL
-                    OR ("OfferKind" = 'ProductSession' AND "SessionDate" >= CAST(@UsageFrom AS date))
-                    OR ("OfferKind" = 'SessionVariant' AND ("ToDate" IS NULL OR "ToDate" >= CAST(@UsageFrom AS date)))
-                  )
-              AND (
-                    @UsageTo IS NULL
-                    OR ("OfferKind" = 'ProductSession' AND "SessionDate" <= CAST(@UsageTo AS date))
-                    OR ("OfferKind" = 'SessionVariant' AND ("FromDate" IS NULL OR "FromDate" <= CAST(@UsageTo AS date)))
-                  )
-        )
-        """;
+    private static string BuildFilteredOffersCte() =>
+        $"""
+            {EligibleOffersCte},
+            filtered_offers AS
+            (
+                SELECT *
+                FROM eligible_offers
+                WHERE (@ShopId IS NULL OR "ShopId" = @ShopId)
+                  AND (@ProductId IS NULL OR "ProductId" = @ProductId)
+                  AND (@ProductSlug IS NULL OR "ProductSlug" = @ProductSlug)
+                  AND (@OfferKind IS NULL OR "OfferKind" = @OfferKind)
+                  AND ((@MinPriceMinor IS NULL AND @MaxPriceMinor IS NULL) OR "OfferKind" <> 'ManualProduct')
+                  AND (@MinPriceMinor IS NULL OR "EffectivePriceMinor" >= @MinPriceMinor)
+                  AND (@MaxPriceMinor IS NULL OR "EffectivePriceMinor" <= @MaxPriceMinor)
+                  AND (
+                        @HasSearch = FALSE
+                        OR "ProductTitle" ILIKE @SearchPattern
+                        OR "ShopName" ILIKE @SearchPattern
+                        OR COALESCE("VariantLabel", '') ILIKE @SearchPattern
+                      )
+                  AND (
+                        @UsageFrom IS NULL
+                        OR ("OfferKind" = 'ProductSession' AND "SessionDate" >= CAST(@UsageFrom AS date))
+                        OR ("OfferKind" = 'SessionVariant' AND ("ToDate" IS NULL OR "ToDate" >= CAST(@UsageFrom AS date)))
+                      )
+                  AND (
+                        @UsageTo IS NULL
+                        OR ("OfferKind" = 'ProductSession' AND "SessionDate" <= CAST(@UsageTo AS date))
+                        OR ("OfferKind" = 'SessionVariant' AND ("FromDate" IS NULL OR "FromDate" <= CAST(@UsageTo AS date)))
+                      )
+            )
+            """;
 
-    private static string BuildCatalogCte() => $"""
-        {BuildFilteredOffersCte()},
-        ranked_offers AS
-        (
-            SELECT
-                f.*,
-                ROW_NUMBER() OVER (
-                    PARTITION BY "ProductId"
-                    ORDER BY "EffectivePriceMinor", "OfferKey") AS offer_rank
-            FROM filtered_offers f
-        ),
-        product_groups AS
-        (
-            SELECT
-                "ProductId",
-                MIN("EffectivePriceMinor") AS "MinEffectivePriceMinor",
-                MAX("EffectivePriceMinor") AS "MaxEffectivePriceMinor",
-                COUNT(*)::int AS "OfferCount",
-                BOOL_OR("VariantId" IS NOT NULL) AS "HasVariants",
-                BOOL_OR("OfferKind" IN ('ProductSession', 'SessionVariant')) AS "HasSessions"
-            FROM filtered_offers
-            GROUP BY "ProductId"
-        ),
-        catalog_rows AS
-        (
-            SELECT
-                d."ProductId",
-                d."AgreementProductId",
-                d."ProductTitle",
-                d."ProductSlug",
-                d."ProductCreatedAt",
-                d."ProductImageUrl" AS "ImageUrl",
-                g."MinEffectivePriceMinor",
-                g."MaxEffectivePriceMinor",
-                d."OriginalPriceMinor" AS "DefaultOriginalPriceMinor",
-                d."DiscountedPriceMinor" AS "DefaultDiscountedPriceMinor",
-                d."EffectivePriceMinor" AS "DefaultEffectivePriceMinor",
-                g."OfferCount",
-                g."HasVariants",
-                g."HasSessions",
-                d."OfferKey" AS "DefaultOfferKey",
-                d."ShopId" AS "DefaultShopId",
-                d."ShopSlug" AS "DefaultShopSlug"
-            FROM ranked_offers d
-            INNER JOIN product_groups g ON g."ProductId" = d."ProductId"
-            WHERE d.offer_rank = 1
-        )
-        """;
+    private static string BuildCatalogCte() =>
+        $"""
+            {BuildFilteredOffersCte()},
+            ranked_offers AS
+            (
+                SELECT
+                    f.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY "ProductId"
+                        ORDER BY "EffectivePriceMinor", "OfferKey") AS offer_rank
+                FROM filtered_offers f
+            ),
+            product_groups AS
+            (
+                SELECT
+                    "ProductId",
+                    MIN("EffectivePriceMinor") AS "MinEffectivePriceMinor",
+                    MAX("EffectivePriceMinor") AS "MaxEffectivePriceMinor",
+                    COUNT(*)::int AS "OfferCount",
+                    BOOL_OR("VariantId" IS NOT NULL) AS "HasVariants",
+                    BOOL_OR("OfferKind" IN ('ProductSession', 'SessionVariant')) AS "HasSessions"
+                FROM filtered_offers
+                GROUP BY "ProductId"
+            ),
+            catalog_rows AS
+            (
+                SELECT
+                    d."ProductId",
+                    d."AgreementProductId",
+                    d."ProductTitle",
+                    d."ProductSlug",
+                    d."ProductCreatedAt",
+                    d."ProductImageUrl" AS "ImageUrl",
+                    g."MinEffectivePriceMinor",
+                    g."MaxEffectivePriceMinor",
+                    d."OriginalPriceMinor" AS "DefaultOriginalPriceMinor",
+                    d."DiscountedPriceMinor" AS "DefaultDiscountedPriceMinor",
+                    d."EffectivePriceMinor" AS "DefaultEffectivePriceMinor",
+                    g."OfferCount",
+                    g."HasVariants",
+                    g."HasSessions",
+                    d."OfferKey" AS "DefaultOfferKey",
+                    d."ShopId" AS "DefaultShopId",
+                    d."ShopSlug" AS "DefaultShopSlug"
+                FROM ranked_offers d
+                INNER JOIN product_groups g ON g."ProductId" = d."ProductId"
+                WHERE d.offer_rank = 1
+            )
+            """;
 
     private const string OfferProjection = """
         "OfferKey",

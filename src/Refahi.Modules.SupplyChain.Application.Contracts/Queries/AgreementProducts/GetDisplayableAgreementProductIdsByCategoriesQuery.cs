@@ -9,5 +9,5 @@ namespace Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProd
 /// Replaces the single-category <see cref="GetAgreementProductIdsByCategoryQuery"/> for multi-category subtree queries.
 /// </summary>
 public sealed record GetDisplayableAgreementProductIdsByCategoriesQuery(
-    IReadOnlyList<int> CategoryIds)
-    : IRequest<IReadOnlyList<Guid>>;
+    IReadOnlyList<int> CategoryIds
+) : IRequest<IReadOnlyList<Guid>>;

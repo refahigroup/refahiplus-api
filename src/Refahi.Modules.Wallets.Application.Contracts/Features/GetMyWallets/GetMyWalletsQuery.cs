@@ -14,4 +14,5 @@ public sealed record WalletSummaryDto(
     long TotalBalanceMinor,
     long HeldAmountMinor,
     string? AllowedCategoryCode = null,
-    DateTimeOffset? ContractExpiresAt = null);
+    DateTimeOffset? ContractExpiresAt = null
+);

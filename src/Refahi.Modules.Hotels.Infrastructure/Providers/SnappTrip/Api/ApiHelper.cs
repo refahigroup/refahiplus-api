@@ -1,5 +1,5 @@
-﻿using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
+using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
 namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Api;
 
@@ -50,10 +50,11 @@ public static class ApiHelper
     {
         var err = await response.Content.ReadFromJsonAsync<SnappTripApiError>();
 
-        var message = $"SnappTrip Error calling {url}. " +
-                      $"Status={(int)response.StatusCode}, " +
-                      $"Code={err?.code}, " +
-                      $"Message={err?.message}, Trace={err?.trace_id}";
+        var message =
+            $"SnappTrip Error calling {url}. "
+            + $"Status={(int)response.StatusCode}, "
+            + $"Code={err?.code}, "
+            + $"Message={err?.message}, Trace={err?.trace_id}";
 
         throw new Exception(message);
     }

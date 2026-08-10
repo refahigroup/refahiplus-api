@@ -5,7 +5,7 @@ namespace Refahi.Modules.Orders.Application.Contracts.Queries;
 public enum StoreVariantCapacityScope : short
 {
     TotalPeriod = 1,
-    PerEligibleDay = 2
+    PerEligibleDay = 2,
 }
 
 public sealed record GetStoreVariantSoldQuantityQuery(

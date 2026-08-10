@@ -8,7 +8,7 @@ using Refahi.Modules.Wallets.Application.Services;
 
 namespace Refahi.Modules.Wallets.Application.Handlers;
 
-public sealed class DetectDriftQueryHandler 
+public sealed class DetectDriftQueryHandler
     : IRequestHandler<DetectDriftQuery, CommandResponse<DriftReportResponse>>
 {
     private readonly BalanceRebuildApplicationService _service;
@@ -20,7 +20,8 @@ public sealed class DetectDriftQueryHandler
 
     public async Task<CommandResponse<DriftReportResponse>> Handle(
         DetectDriftQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         return await _service.DetectDriftAsync(request, cancellationToken);
     }

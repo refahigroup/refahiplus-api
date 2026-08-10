@@ -1,16 +1,17 @@
-using MediatR;
-using Refahi.Modules.Store.Application.Contracts.Queries;
-using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
-using Refahi.Shared.Monetary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
+using Refahi.Modules.Store.Application.Contracts.Queries;
+using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
+using Refahi.Shared.Monetary;
 
 namespace Refahi.Modules.Store.Application.Features.Checkout.SuggestAllocations;
 
-public class SuggestWalletAllocationsQueryHandler : IRequestHandler<SuggestWalletAllocationsQuery, SuggestAllocationsResponse>
+public class SuggestWalletAllocationsQueryHandler
+    : IRequestHandler<SuggestWalletAllocationsQuery, SuggestAllocationsResponse>
 {
     private readonly IMediator _mediator;
 
@@ -20,11 +21,22 @@ public class SuggestWalletAllocationsQueryHandler : IRequestHandler<SuggestWalle
     }
 
     public async Task<SuggestAllocationsResponse> Handle(
-        SuggestWalletAllocationsQuery request, CancellationToken cancellationToken)
+        SuggestWalletAllocationsQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var wallets = await _mediator.Send(new GetMyWalletsQuery(request.UserId), cancellationToken);
+        var wallets = await _mediator.Send(
+            new GetMyWalletsQuery(request.UserId),
+            cancellationToken
+        );
         wallets = wallets
-            .Where(w => string.Equals(w.Currency, SupportedCurrencies.IRR, StringComparison.OrdinalIgnoreCase))
+            .Where(w =>
+                string.Equals(
+                    w.Currency,
+                    SupportedCurrencies.IRR,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             .ToList();
 
         var now = DateTimeOffset.UtcNow;
@@ -56,14 +68,18 @@ public class SuggestWalletAllocationsQueryHandler : IRequestHandler<SuggestWalle
 
         foreach (var wallet in priorityWallets)
         {
-            if (remaining <= 0) break;
+            if (remaining <= 0)
+                break;
 
             var take = Math.Min(wallet.AvailableBalanceMinor, remaining);
-            suggestions.Add(new AllocationSuggestion(
-                WalletId: wallet.WalletId,
-                WalletType: wallet.WalletType,
-                AmountMinor: take,
-                AvailableBalanceMinor: wallet.AvailableBalanceMinor));
+            suggestions.Add(
+                new AllocationSuggestion(
+                    WalletId: wallet.WalletId,
+                    WalletType: wallet.WalletType,
+                    AmountMinor: take,
+                    AvailableBalanceMinor: wallet.AvailableBalanceMinor
+                )
+            );
 
             remaining -= take;
         }
@@ -73,7 +89,8 @@ public class SuggestWalletAllocationsQueryHandler : IRequestHandler<SuggestWalle
         return new SuggestAllocationsResponse(
             Allocations: suggestions,
             TotalSuggestedMinor: totalSuggested,
-            IsCovered: remaining <= 0);
+            IsCovered: remaining <= 0
+        );
     }
 
     /// <summary>
@@ -81,13 +98,19 @@ public class SuggestWalletAllocationsQueryHandler : IRequestHandler<SuggestWalle
     /// for at least one of the cart category codes. Uses prefix matching.
     /// If AllowedCategoryCode is null, the wallet is unrestricted.
     /// </summary>
-    private static bool IsAllowedForCategories(string? allowedCategoryCode, List<string> cartCategoryCodes)
+    private static bool IsAllowedForCategories(
+        string? allowedCategoryCode,
+        List<string> cartCategoryCodes
+    )
     {
-        if (allowedCategoryCode is null) return true;
-        if (cartCategoryCodes.Count == 0) return true;
+        if (allowedCategoryCode is null)
+            return true;
+        if (cartCategoryCodes.Count == 0)
+            return true;
 
         return cartCategoryCodes.Any(code =>
             code.StartsWith(allowedCategoryCode, StringComparison.OrdinalIgnoreCase)
-            || allowedCategoryCode.StartsWith(code, StringComparison.OrdinalIgnoreCase));
+            || allowedCategoryCode.StartsWith(code, StringComparison.OrdinalIgnoreCase)
+        );
     }
 }

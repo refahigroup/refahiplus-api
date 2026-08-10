@@ -12,5 +12,7 @@ public interface IStoreModuleCatalogService
     /// Returns an empty list if the module does not exist, is inactive, or has no CategoryId.
     /// </summary>
     Task<IReadOnlyList<Guid>> GetDisplayableAgreementProductIdsAsync(
-        int moduleId, CancellationToken ct = default);
+        int moduleId,
+        CancellationToken ct = default
+    );
 }

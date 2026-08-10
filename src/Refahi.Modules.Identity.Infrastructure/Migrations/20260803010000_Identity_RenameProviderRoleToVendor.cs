@@ -27,7 +27,8 @@ public sealed class Identity_RenameProviderRoleToVendor : Migration
             UPDATE identity.authorization_grants
             SET emitted_role = 'Vendor'
             WHERE lower(emitted_role) = 'provider';
-            """);
+            """
+        );
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
@@ -47,6 +48,7 @@ public sealed class Identity_RenameProviderRoleToVendor : Migration
             UPDATE identity.authorization_grants
             SET emitted_role = 'Provider'
             WHERE lower(emitted_role) = 'vendor';
-            """);
+            """
+        );
     }
 }

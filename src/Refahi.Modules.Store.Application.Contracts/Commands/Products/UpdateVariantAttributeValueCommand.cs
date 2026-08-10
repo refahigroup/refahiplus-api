@@ -7,4 +7,5 @@ public sealed record UpdateVariantAttributeValueCommand(
     Guid AttributeId,
     Guid ValueId,
     string Value,
-    int SortOrder) : IRequest<Unit>;
+    int SortOrder
+) : IRequest<Unit>;

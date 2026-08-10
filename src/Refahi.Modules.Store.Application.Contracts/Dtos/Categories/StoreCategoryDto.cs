@@ -9,4 +9,5 @@ public sealed record StoreCategoryDto(
     int? ParentId,
     string? ParentTitle,
     int SortOrder,
-    bool IsActive);
+    bool IsActive
+);

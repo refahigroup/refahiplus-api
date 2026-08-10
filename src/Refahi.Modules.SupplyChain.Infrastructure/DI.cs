@@ -11,7 +11,10 @@ namespace Refahi.Modules.SupplyChain.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.AddDbContext<SupplyChainDbContext>(options =>
         {

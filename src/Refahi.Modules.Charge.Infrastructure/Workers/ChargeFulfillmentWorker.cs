@@ -1,7 +1,7 @@
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MediatR;
 using Refahi.Modules.Charge.Application.Contracts.Features;
 using Refahi.Modules.Charge.Domain.Repositories;
 using Refahi.Modules.Charge.Infrastructure.Observability;
@@ -13,7 +13,10 @@ public sealed class ChargeFulfillmentWorker : BackgroundService
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<ChargeFulfillmentWorker> _logger;
 
-    public ChargeFulfillmentWorker(IServiceScopeFactory scopes, ILogger<ChargeFulfillmentWorker> logger)
+    public ChargeFulfillmentWorker(
+        IServiceScopeFactory scopes,
+        ILogger<ChargeFulfillmentWorker> logger
+    )
     {
         _scopes = scopes;
         _logger = logger;
@@ -39,6 +42,7 @@ public sealed class ChargeFulfillmentWorker : BackgroundService
             }
         }
     }
+
     private async Task ProcessBatchAsync(CancellationToken ct)
     {
         using var scope = _scopes.CreateScope();
@@ -62,7 +66,11 @@ public sealed class ChargeFulfillmentWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Charge fulfillment item failed. ChargeRequestId={ChargeRequestId}", item.Id);
+                _logger.LogError(
+                    ex,
+                    "Charge fulfillment item failed. ChargeRequestId={ChargeRequestId}",
+                    item.Id
+                );
             }
         }
     }

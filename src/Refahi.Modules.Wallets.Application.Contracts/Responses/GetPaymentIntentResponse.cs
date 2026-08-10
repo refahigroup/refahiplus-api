@@ -21,8 +21,4 @@ public sealed record GetPaymentIntentResponse(
 /// <summary>
 /// Allocation DTO for query responses.
 /// </summary>
-public sealed record AllocationDto(
-    Guid WalletId,
-    long AmountMinor,
-    Guid? LedgerEntryId
-);
+public sealed record AllocationDto(Guid WalletId, long AmountMinor, Guid? LedgerEntryId);

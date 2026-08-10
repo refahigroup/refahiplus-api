@@ -17,4 +17,5 @@ public sealed record PaginatedOrdersResponse(
     int PageNumber,
     int PageSize,
     int TotalCount,
-    int TotalPages);
+    int TotalPages
+);

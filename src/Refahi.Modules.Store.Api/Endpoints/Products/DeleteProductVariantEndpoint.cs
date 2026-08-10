@@ -11,23 +11,26 @@ public class DeleteProductVariantEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapDelete("/provider/products/{id:guid}/variants/{variantId:guid}", async (
-            Guid id,
-            Guid variantId,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            await mediator.Send(new DeleteProductVariantCommand(id, variantId), ct);
-            return Results.Ok(ApiResponseHelper.Success<object?>(null, "تنوع با موفقیت حذف شد"));
-        })
-        .WithName("Store.DeleteProductVariant")
-        .WithTags("Store.Products")
-        .RequireAuthorization("VendorOrAdmin")
-        .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapDelete(
+                "/provider/products/{id:guid}/variants/{variantId:guid}",
+                async (Guid id, Guid variantId, IMediator mediator, CancellationToken ct) =>
+                {
+                    await mediator.Send(new DeleteProductVariantCommand(id, variantId), ct);
+                    return Results.Ok(
+                        ApiResponseHelper.Success<object?>(null, "تنوع با موفقیت حذف شد")
+                    );
+                }
+            )
+            .WithName("Store.DeleteProductVariant")
+            .WithTags("Store.Products")
+            .RequireAuthorization("VendorOrAdmin")
+            .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

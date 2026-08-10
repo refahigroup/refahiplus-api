@@ -22,19 +22,30 @@ public sealed class ProviderCallLogConfiguration : IEntityTypeConfiguration<Prov
         b.Property(x => x.Endpoint).HasColumnName("endpoint").HasMaxLength(500);
         b.Property(x => x.HttpStatusCode).HasColumnName("http_status_code");
         b.Property(x => x.ProviderResultCode).HasColumnName("provider_result_code");
-        b.Property(x => x.OperatorResultCode).HasColumnName("operator_result_code").HasMaxLength(50);
+        b.Property(x => x.OperatorResultCode)
+            .HasColumnName("operator_result_code")
+            .HasMaxLength(50);
         b.Property(x => x.Retryable).HasColumnName("retryable");
         b.Property(x => x.AttemptNumber).HasColumnName("attempt_number");
         b.Property(x => x.CorrelationId).HasColumnName("correlation_id").HasMaxLength(100);
         b.Property(x => x.ExceptionType).HasColumnName("exception_type").HasMaxLength(300);
         b.Property(x => x.ErrorMessage).HasColumnName("error_message").HasMaxLength(2000);
-        b.Property(x => x.RequestSnapshotJson).HasColumnName("request_snapshot_json").HasColumnType("jsonb");
-        b.Property(x => x.ResponseSnapshotJson).HasColumnName("response_snapshot_json").HasColumnType("jsonb");
+        b.Property(x => x.RequestSnapshotJson)
+            .HasColumnName("request_snapshot_json")
+            .HasColumnType("jsonb");
+        b.Property(x => x.ResponseSnapshotJson)
+            .HasColumnName("response_snapshot_json")
+            .HasColumnType("jsonb");
         b.Property(x => x.LatencyMilliseconds).HasColumnName("latency_ms");
         b.Property(x => x.CreatedAt).HasColumnName("created_at");
         b.HasIndex(x => new { x.ChargeRequestId, x.CreatedAt });
         b.HasIndex(x => new { x.Outcome, x.CreatedAt });
-        b.HasIndex(x => new { x.ProviderName, x.Operation, x.CreatedAt });
+        b.HasIndex(x => new
+        {
+            x.ProviderName,
+            x.Operation,
+            x.CreatedAt,
+        });
         b.HasIndex(x => x.CorrelationId);
     }
 }

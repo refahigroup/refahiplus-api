@@ -2,7 +2,7 @@ namespace Refahi.Modules.SupplyChain.Domain.Enums;
 
 public enum SalesModel : short
 {
-    StockBased = 1,     // موجودی عددی ساده
-    SessionBased = 2,   // سانس/ظرفیت
-    Unlimited = 3       // فروش بدون موجودی/ظرفیت
+    StockBased = 1, // موجودی عددی ساده
+    SessionBased = 2, // سانس/ظرفیت
+    Unlimited = 3, // فروش بدون موجودی/ظرفیت
 }

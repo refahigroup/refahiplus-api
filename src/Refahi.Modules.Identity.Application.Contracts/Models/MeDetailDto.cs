@@ -10,4 +10,5 @@ public record MeDetailDto(
     string? Email,
     bool IsActive,
     IReadOnlyList<string> Roles,
-    UserProfileDto? Profile);
+    UserProfileDto? Profile
+);

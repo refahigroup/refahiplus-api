@@ -16,11 +16,16 @@ public sealed record StoreInPersonFinancialPlan(
     long VatAmountMinor,
     long VendorNetAmountMinor,
     Guid VendorWalletId,
-    IReadOnlyList<Refahi.Modules.Orders.Application.Contracts.Commands.OrderPaymentPostingInput> Postings);
+    IReadOnlyList<Refahi.Modules.Orders.Application.Contracts.Commands.OrderPaymentPostingInput> Postings
+);
 
 public interface IStoreInPersonFinancialPlanner
 {
     Task<StoreInPersonFinancialPlan> BuildAsync(
-        Guid supplierId, long grossAmountMinor, decimal commissionPercent,
-        bool vatApplicable, CancellationToken ct);
+        Guid supplierId,
+        long grossAmountMinor,
+        decimal commissionPercent,
+        bool vatApplicable,
+        CancellationToken ct
+    );
 }

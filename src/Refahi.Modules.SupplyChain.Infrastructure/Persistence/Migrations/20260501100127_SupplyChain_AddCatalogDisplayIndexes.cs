@@ -14,13 +14,15 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
                 name: "IX_agreements_SupplierId_Status_ToDate",
                 schema: "supplychain",
                 table: "agreements",
-                columns: new[] { "SupplierId", "Status", "ToDate" });
+                columns: new[] { "SupplierId", "Status", "ToDate" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_agreement_products_CategoryId_IsDeleted",
                 schema: "supplychain",
                 table: "agreement_products",
-                columns: new[] { "CategoryId", "IsDeleted" });
+                columns: new[] { "CategoryId", "IsDeleted" }
+            );
         }
 
         /// <inheritdoc />
@@ -29,12 +31,14 @@ namespace Refahi.Modules.SupplyChain.Infrastructure.Persistence.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_agreements_SupplierId_Status_ToDate",
                 schema: "supplychain",
-                table: "agreements");
+                table: "agreements"
+            );
 
             migrationBuilder.DropIndex(
                 name: "IX_agreement_products_CategoryId_IsDeleted",
                 schema: "supplychain",
-                table: "agreement_products");
+                table: "agreement_products"
+            );
         }
     }
 }

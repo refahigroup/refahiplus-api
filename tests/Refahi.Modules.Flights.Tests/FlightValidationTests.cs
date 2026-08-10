@@ -22,9 +22,18 @@ public sealed class FlightValidationTests
         var validator = new SearchFlightsQueryValidator();
         var result = validator.Validate(CreateValidQuery(adult: 21, child: 21, infant: 21));
 
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(SearchFlightsQuery.Adult));
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(SearchFlightsQuery.Child));
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(SearchFlightsQuery.Infant));
+        Assert.Contains(
+            result.Errors,
+            error => error.PropertyName == nameof(SearchFlightsQuery.Adult)
+        );
+        Assert.Contains(
+            result.Errors,
+            error => error.PropertyName == nameof(SearchFlightsQuery.Child)
+        );
+        Assert.Contains(
+            result.Errors,
+            error => error.PropertyName == nameof(SearchFlightsQuery.Infant)
+        );
     }
 
     [Fact]
@@ -44,7 +53,8 @@ public sealed class FlightValidationTests
             IsDomestic: true,
             MaxStopsQuantity: -1,
             VendorExcludeCodes: null,
-            VendorPreferenceCodes: null);
+            VendorPreferenceCodes: null
+        );
 
         var result = validator.Validate(query);
         var messages = result.Errors.Select(error => error.ErrorMessage).ToArray();
@@ -59,18 +69,20 @@ public sealed class FlightValidationTests
         Assert.Contains("تعداد توقف معتبر نیست.", messages);
     }
 
-    private static SearchFlightsQuery CreateValidQuery(int adult, int child, int infant) => new(
-        Origin: "THR",
-        Destination: "MHD",
-        DepartureDate: DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(1)),
-        ReturnDate: null,
-        Adult: adult,
-        Child: child,
-        Infant: infant,
-        CabinType: "Economy",
-        AirTripType: "OneWay",
-        IsDomestic: true,
-        MaxStopsQuantity: null,
-        VendorExcludeCodes: null,
-        VendorPreferenceCodes: null);
+    private static SearchFlightsQuery CreateValidQuery(int adult, int child, int infant) =>
+        new(
+            Origin: "THR",
+            Destination: "MHD",
+            DepartureDate: DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(1)),
+            ReturnDate: null,
+            Adult: adult,
+            Child: child,
+            Infant: infant,
+            CabinType: "Economy",
+            AirTripType: "OneWay",
+            IsDomestic: true,
+            MaxStopsQuantity: null,
+            VendorExcludeCodes: null,
+            VendorPreferenceCodes: null
+        );
 }

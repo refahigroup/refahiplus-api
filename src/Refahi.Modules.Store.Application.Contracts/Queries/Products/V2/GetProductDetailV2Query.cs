@@ -9,5 +9,5 @@ public sealed record GetProductDetailV2Query(
     Guid? ShopId = null,
     string? ShopSlug = null,
     string? OfferKey = null,
-    Guid? VariantId = null)
-    : IRequest<ProductDetailV2Dto?>;
+    Guid? VariantId = null
+) : IRequest<ProductDetailV2Dto?>;

@@ -13,30 +13,39 @@ public class GetProductBySlugEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/{moduleSlug}/products/{slug}", async (
-            string moduleSlug,
-            string slug,
-            string? shopSlug,
-            Guid? shopId,
-            IModuleResolver moduleResolver,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
-            if (moduleId is null)
-                return Results.NotFound();
+        routes
+            .MapGet(
+                "/{moduleSlug}/products/{slug}",
+                async (
+                    string moduleSlug,
+                    string slug,
+                    string? shopSlug,
+                    Guid? shopId,
+                    IModuleResolver moduleResolver,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+                    if (moduleId is null)
+                        return Results.NotFound();
 
-            var result = await mediator.Send(new GetProductBySlugQuery(moduleId.Value, slug, shopSlug, shopId), ct);
-            return result is null
-                ? Results.NotFound()
-                : Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Store.GetProductBySlug")
-        .WithTags("Store.Products")
-        .Produces<ApiResponse<ProductDetailDto>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+                    var result = await mediator.Send(
+                        new GetProductBySlugQuery(moduleId.Value, slug, shopSlug, shopId),
+                        ct
+                    );
+                    return result is null
+                        ? Results.NotFound()
+                        : Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Store.GetProductBySlug")
+            .WithTags("Store.Products")
+            .Produces<ApiResponse<ProductDetailDto>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
         // Public endpoint
     }
 }

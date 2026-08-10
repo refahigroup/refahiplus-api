@@ -15,4 +15,5 @@ public sealed record ShopsPagedResponse(
     int PageNumber,
     int PageSize,
     int TotalCount,
-    int TotalPages);
+    int TotalPages
+);

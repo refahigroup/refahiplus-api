@@ -11,21 +11,23 @@ public class DeleteProductEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapDelete("/provider/products/{id:guid}", async (
-            Guid id,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new DeleteProductCommand(id), ct);
-            return Results.Ok(ApiResponseHelper.Success(result, "محصول با موفقیت حذف شد"));
-        })
-        .WithName("Store.DeleteProduct")
-        .WithTags("Store.Products")
-        .RequireAuthorization("VendorOrAdmin")
-        .Produces<ApiResponse<DeleteProductResponse>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapDelete(
+                "/provider/products/{id:guid}",
+                async (Guid id, IMediator mediator, CancellationToken ct) =>
+                {
+                    var result = await mediator.Send(new DeleteProductCommand(id), ct);
+                    return Results.Ok(ApiResponseHelper.Success(result, "محصول با موفقیت حذف شد"));
+                }
+            )
+            .WithName("Store.DeleteProduct")
+            .WithTags("Store.Products")
+            .RequireAuthorization("VendorOrAdmin")
+            .Produces<ApiResponse<DeleteProductResponse>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

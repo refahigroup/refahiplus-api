@@ -9,7 +9,8 @@ public static class DI
 {
     public static IServiceCollection RegisterApplication(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration
+    )
     {
         var assembly = typeof(DI).Assembly;
 

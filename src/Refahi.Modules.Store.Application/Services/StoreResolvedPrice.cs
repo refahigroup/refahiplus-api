@@ -7,10 +7,11 @@ public sealed record StoreResolvedPrice(
     Guid ShopProductId,
     Guid? ShopProductVariantId,
     Guid? VariantId,
-    StorePriceSource Source);
+    StorePriceSource Source
+);
 
 public enum StorePriceSource
 {
     ShopProduct = 0,
-    ShopProductVariant = 1
+    ShopProductVariant = 1,
 }

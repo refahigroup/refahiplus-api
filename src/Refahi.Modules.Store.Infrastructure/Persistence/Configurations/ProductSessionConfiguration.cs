@@ -13,15 +13,9 @@ public class ProductSessionConfiguration : IEntityTypeConfiguration<ProductSessi
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.ProductId).IsRequired();
-        builder.Property(s => s.Date)
-            .HasColumnType("date")
-            .IsRequired();
-        builder.Property(s => s.StartTime)
-            .HasColumnType("time")
-            .IsRequired();
-        builder.Property(s => s.EndTime)
-            .HasColumnType("time")
-            .IsRequired();
+        builder.Property(s => s.Date).HasColumnType("date").IsRequired();
+        builder.Property(s => s.StartTime).HasColumnType("time").IsRequired();
+        builder.Property(s => s.EndTime).HasColumnType("time").IsRequired();
         builder.Property(s => s.Title).HasMaxLength(200);
         builder.Property(s => s.Capacity).IsRequired();
         builder.Property(s => s.SoldCount).IsRequired();

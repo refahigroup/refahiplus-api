@@ -16,13 +16,15 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                 schema: "orders",
                 table: "orders",
                 type: "timestamp with time zone",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_orders_status_payable_until",
                 schema: "orders",
                 table: "orders",
-                columns: new[] { "status", "payable_until" });
+                columns: new[] { "status", "payable_until" }
+            );
         }
 
         /// <inheritdoc />
@@ -31,12 +33,10 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "ix_orders_status_payable_until",
                 schema: "orders",
-                table: "orders");
+                table: "orders"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "payable_until",
-                schema: "orders",
-                table: "orders");
+            migrationBuilder.DropColumn(name: "payable_until", schema: "orders", table: "orders");
         }
     }
 }

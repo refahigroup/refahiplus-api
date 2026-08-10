@@ -15,8 +15,16 @@ public sealed class GetProviderBalanceEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("admin/provider/balance", async (ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetProviderBalanceQuery(), ct))))
+        routes
+            .MapGet(
+                "admin/provider/balance",
+                async (ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(new GetProviderBalanceQuery(), ct)
+                        )
+                    )
+            )
             .RequireAuthorization("AdminOnly")
             .WithName("Charge.Admin.ProviderBalance")
             .WithTags("Charge.Admin")

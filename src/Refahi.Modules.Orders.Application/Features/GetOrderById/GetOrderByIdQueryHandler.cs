@@ -14,27 +14,37 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
         _orderRepository = orderRepository;
     }
 
-    public async Task<OrderDto?> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
+    public async Task<OrderDto?> Handle(
+        GetOrderByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var order = await _orderRepository.GetByIdWithItemsAsync(request.OrderId, cancellationToken);
-        if (order is null) return null;
+        var order = await _orderRepository.GetByIdWithItemsAsync(
+            request.OrderId,
+            cancellationToken
+        );
+        if (order is null)
+            return null;
 
         // Ownership check: User role can only see their own orders
         // Return null (404) instead of Forbidden to prevent GUID enumeration
         if (request.CallerRole == "User" && order.UserId != request.CallerUserId)
             return null;
 
-        var items = order.Items.Select(i => new OrderItemDto(
-            Id: i.Id,
-            Title: i.Title,
-            UnitPriceMinor: i.UnitPriceMinor,
-            Quantity: i.Quantity,
-            FinalPriceMinor: i.FinalPriceMinor,
-            SourceItemId: i.SourceItemId,
-            CategoryCode: i.CategoryCode,
-            Tags: i.Tags,
-            MetadataJson: i.MetadataJson,
-            DeliveryMethod: (short)i.DeliveryMethod)).ToList();
+        var items = order
+            .Items.Select(i => new OrderItemDto(
+                Id: i.Id,
+                Title: i.Title,
+                UnitPriceMinor: i.UnitPriceMinor,
+                Quantity: i.Quantity,
+                FinalPriceMinor: i.FinalPriceMinor,
+                SourceItemId: i.SourceItemId,
+                CategoryCode: i.CategoryCode,
+                Tags: i.Tags,
+                MetadataJson: i.MetadataJson,
+                DeliveryMethod: (short)i.DeliveryMethod
+            ))
+            .ToList();
 
         var paymentEligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
 
@@ -70,6 +80,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             RecipientNetAmountMinor: order.RecipientNetAmountMinor,
             CanPay: paymentEligibility.CanPay,
             PaymentUnavailableReason: paymentEligibility.UnavailableReason,
-            PayableUntil: order.PayableUntil);
+            PayableUntil: order.PayableUntil
+        );
     }
 }

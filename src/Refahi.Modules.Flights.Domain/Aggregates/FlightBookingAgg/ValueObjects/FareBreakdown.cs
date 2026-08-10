@@ -19,7 +19,8 @@ public sealed class FareBreakdown : ValueObject
         Money taxes,
         Money fees,
         Money discount,
-        Money payableAmount)
+        Money payableAmount
+    )
     {
         EnsureSameCurrency(baseFare, taxes, fees, discount, payableAmount);
 
@@ -55,7 +56,11 @@ public sealed class FareBreakdown : ValueObject
         }
 
         var currency = values[0].Currency;
-        if (values.Any(value => !string.Equals(currency, value.Currency, StringComparison.OrdinalIgnoreCase)))
+        if (
+            values.Any(value =>
+                !string.Equals(currency, value.Currency, StringComparison.OrdinalIgnoreCase)
+            )
+        )
         {
             throw new DomainException("Fare breakdown currencies must match.");
         }

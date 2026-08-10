@@ -7,19 +7,18 @@ namespace Refahi.Modules.References.Application;
 
 public static class DI
 {
-    public static IServiceCollection RegisterApplication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterApplication(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var assembly = typeof(DI).Assembly;
 
-        services
-            .AddMediatR(assembly)
-            .AddValidatorsFromAssembly(assembly);
+        services.AddMediatR(assembly).AddValidatorsFromAssembly(assembly);
 
         // Application Services (use case orchestration)
 
-
         //services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BuildingBlocks.ValidationBehavior<,>));
-
 
         return services;
     }

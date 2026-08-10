@@ -23,8 +23,13 @@ public sealed record ShopProductDto(
     bool IsActive,
     bool IsDeleted,
     DateTimeOffset CreatedAt,
-    string PricingMode = "Fixed");
+    string PricingMode = "Fixed"
+);
 
 public sealed record ShopProductsPagedResponse(
     IEnumerable<ShopProductDto> Data,
-    int PageNumber, int PageSize, int TotalCount, int TotalPages);
+    int PageNumber,
+    int PageSize,
+    int TotalCount,
+    int TotalPages
+);

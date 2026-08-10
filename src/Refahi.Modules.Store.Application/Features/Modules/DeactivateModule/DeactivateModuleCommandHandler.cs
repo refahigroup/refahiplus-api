@@ -5,17 +5,21 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Modules.DeactivateModule;
 
-public class DeactivateModuleCommandHandler : IRequestHandler<DeactivateModuleCommand, DeactivateModuleResponse>
+public class DeactivateModuleCommandHandler
+    : IRequestHandler<DeactivateModuleCommand, DeactivateModuleResponse>
 {
     private readonly IStoreModuleRepository _moduleRepo;
 
-    public DeactivateModuleCommandHandler(IStoreModuleRepository moduleRepo)
-        => _moduleRepo = moduleRepo;
+    public DeactivateModuleCommandHandler(IStoreModuleRepository moduleRepo) =>
+        _moduleRepo = moduleRepo;
 
     public async Task<DeactivateModuleResponse> Handle(
-        DeactivateModuleCommand request, CancellationToken cancellationToken)
+        DeactivateModuleCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var module = await _moduleRepo.GetByIdAsync(request.Id, cancellationToken)
+        var module =
+            await _moduleRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("ماژول یافت نشد", "MODULE_NOT_FOUND");
 
         module.Deactivate();

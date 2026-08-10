@@ -7,7 +7,8 @@ using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts
 
 namespace Refahi.Modules.Store.Application.Features.Products.AddProductVariant;
 
-public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariantCommand, AddProductVariantResponse>
+public class AddProductVariantCommandHandler
+    : IRequestHandler<AddProductVariantCommand, AddProductVariantResponse>
 {
     private readonly IProductRepository _productRepo;
     private readonly IMediator _mediator;
@@ -18,9 +19,13 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
         _mediator = mediator;
     }
 
-    public async Task<AddProductVariantResponse> Handle(AddProductVariantCommand request, CancellationToken cancellationToken)
+    public async Task<AddProductVariantResponse> Handle(
+        AddProductVariantCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         SalesModel salesModel;
@@ -30,16 +35,24 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
         }
         else
         {
-            var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken)
-                ?? throw new StoreDomainException("اطلاعات محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+            var ap =
+                await _mediator.Send(
+                    new GetAgreementProductByIdQuery(product.AgreementProductId),
+                    cancellationToken
+                )
+                ?? throw new StoreDomainException(
+                    "اطلاعات محصول یافت نشد",
+                    "AGREEMENT_PRODUCT_NOT_FOUND"
+                );
             if (ap.PricingMode == 2)
-                throw new StoreDomainException("برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست", "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED");
+                throw new StoreDomainException(
+                    "برای محصول حضوری تنوع فروش‌پذیر قابل تعریف نیست",
+                    "MANUAL_PRODUCT_VARIANT_NOT_ALLOWED"
+                );
             salesModel = (SalesModel)ap.SalesModel;
         }
 
-        var combinations = request.Combinations
-            .Select(c => (c.AttributeId, c.ValueId))
-            .ToList();
+        var combinations = request.Combinations.Select(c => (c.AttributeId, c.ValueId)).ToList();
 
         var addedVariant = product.AddVariant(
             combinations,
@@ -52,11 +65,11 @@ public class AddProductVariantCommandHandler : IRequestHandler<AddProductVariant
             request.ToDate,
             request.CapacityType,
             request.Capacity,
-            salesModel);
+            salesModel
+        );
 
         await _productRepo.AddProductVariantAsync(product, addedVariant, cancellationToken);
 
         return new AddProductVariantResponse(addedVariant.Id);
     }
 }
-

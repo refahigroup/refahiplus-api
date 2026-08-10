@@ -4,7 +4,8 @@ using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs.Availability.Av
 
 namespace Refahi.Modules.Hotels.Application.Availability.GetAvailabilityByCity;
 
-public sealed class GetAvailabilityByCityQuryHandler : IRequestHandler<GetAvailabilityByCityQuery, GetAvailabilityByCityDto>
+public sealed class GetAvailabilityByCityQuryHandler
+    : IRequestHandler<GetAvailabilityByCityQuery, GetAvailabilityByCityDto>
 {
     private readonly IHotelProvider _provider;
 
@@ -13,7 +14,10 @@ public sealed class GetAvailabilityByCityQuryHandler : IRequestHandler<GetAvaila
         _provider = provider;
     }
 
-    public async Task<GetAvailabilityByCityDto> Handle(GetAvailabilityByCityQuery request, CancellationToken cancellationToken)
+    public async Task<GetAvailabilityByCityDto> Handle(
+        GetAvailabilityByCityQuery request,
+        CancellationToken cancellationToken
+    )
     {
         return await _provider.GetAvailabilityByCity(request);
     }

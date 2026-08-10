@@ -10,7 +10,8 @@ internal static class FlightEndpointUser
         userId = Guid.Empty;
         callerRole = httpContext.User.IsInRole("Admin") ? "Admin" : "User";
 
-        var userIdClaim = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+        var userIdClaim =
+            httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? httpContext.User.FindFirstValue("sub");
 
         return userIdClaim is not null && Guid.TryParse(userIdClaim, out userId);

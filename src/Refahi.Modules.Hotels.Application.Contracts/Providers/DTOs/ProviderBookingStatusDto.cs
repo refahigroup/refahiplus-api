@@ -7,4 +7,3 @@ public sealed class ProviderBookingStatusDto
     public string? VoucherNumber { get; set; }
     public string? ProviderMessage { get; set; }
 }
-

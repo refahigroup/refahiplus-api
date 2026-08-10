@@ -19,13 +19,13 @@ public sealed record GetSyntheticOffersV2Query(
     long? MaxPriceMinor = null,
     string Sort = "newest",
     int PageNumber = 1,
-    int PageSize = 30)
-    : IRequest<SyntheticOffersV2PagedResponse?>;
+    int PageSize = 30
+) : IRequest<SyntheticOffersV2PagedResponse?>;
 
 public sealed record SyntheticOffersV2PagedResponse(
     IReadOnlyList<SyntheticOfferDto> Data,
     int PageNumber,
     int PageSize,
     int TotalCount,
-    int TotalPages);
-
+    int TotalPages
+);

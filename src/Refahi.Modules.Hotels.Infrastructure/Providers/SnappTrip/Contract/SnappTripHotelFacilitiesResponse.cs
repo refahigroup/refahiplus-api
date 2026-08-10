@@ -1,5 +1,4 @@
-﻿
-namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
+﻿namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
 public sealed class SnappTripHotelFacilitiesResponse
 {

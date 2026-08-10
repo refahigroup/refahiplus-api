@@ -5,4 +5,5 @@ public sealed record ShopCategoryDto(
     string Name,
     string Slug,
     string? ImageUrl,
-    int? ParentId);
+    int? ParentId
+);

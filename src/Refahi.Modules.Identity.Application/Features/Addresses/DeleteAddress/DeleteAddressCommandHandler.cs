@@ -13,9 +13,13 @@ public class DeleteAddressCommandHandler : IRequestHandler<DeleteAddressCommand,
 
     public DeleteAddressCommandHandler(IUserAddressRepository repo) => _repo = repo;
 
-    public async Task<Unit> Handle(DeleteAddressCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DeleteAddressCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var address = await _repo.GetByIdForUserAsync(request.AddressId, request.UserId, cancellationToken)
+        var address =
+            await _repo.GetByIdForUserAsync(request.AddressId, request.UserId, cancellationToken)
             ?? throw new DomainException("آدرس یافت نشد", "ADDRESS_NOT_FOUND");
 
         var wasDefault = address.IsDefault;

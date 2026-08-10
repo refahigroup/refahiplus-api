@@ -4,7 +4,8 @@ using Refahi.Modules.Store.Domain.Entities;
 
 namespace Refahi.Modules.Store.Infrastructure.Persistence.Configurations;
 
-public class ProductVariantCombinationConfiguration : IEntityTypeConfiguration<ProductVariantCombination>
+public class ProductVariantCombinationConfiguration
+    : IEntityTypeConfiguration<ProductVariantCombination>
 {
     public void Configure(EntityTypeBuilder<ProductVariantCombination> builder)
     {

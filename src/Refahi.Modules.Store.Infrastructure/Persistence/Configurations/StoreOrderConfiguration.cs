@@ -8,10 +8,16 @@ public sealed class StoreOrderConfiguration : IEntityTypeConfiguration<StoreOrde
 {
     public void Configure(EntityTypeBuilder<StoreOrder> builder)
     {
-        builder.ToTable("store_orders", t =>
-        {
-            t.HasCheckConstraint("CK_store_orders_amounts", "\"OriginalAmountMinor\" >= \"FinalAmountMinor\" AND \"FinalAmountMinor\" > 0");
-        });
+        builder.ToTable(
+            "store_orders",
+            t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_store_orders_amounts",
+                    "\"OriginalAmountMinor\" >= \"FinalAmountMinor\" AND \"FinalAmountMinor\" > 0"
+                );
+            }
+        );
         builder.HasKey(x => x.Id);
         builder.Property(x => x.SourceModule).HasMaxLength(32).IsRequired();
         builder.Property(x => x.IdempotencyKey).HasMaxLength(128).IsRequired();
@@ -23,8 +29,16 @@ public sealed class StoreOrderConfiguration : IEntityTypeConfiguration<StoreOrde
         builder.Property(x => x.Version).IsRowVersion();
         builder.HasIndex(x => new { x.UserId, x.IdempotencyKey }).IsUnique();
         builder.HasIndex(x => x.OrderId).IsUnique().HasFilter("\"OrderId\" IS NOT NULL");
-        builder.HasIndex(x => new { x.SalesChannel, x.ShopId, x.CreatedAt });
-        builder.HasMany(x => x.Items).WithOne().HasForeignKey(x => x.StoreOrderId)
+        builder.HasIndex(x => new
+        {
+            x.SalesChannel,
+            x.ShopId,
+            x.CreatedAt,
+        });
+        builder
+            .HasMany(x => x.Items)
+            .WithOne()
+            .HasForeignKey(x => x.StoreOrderId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(x => x.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
     }

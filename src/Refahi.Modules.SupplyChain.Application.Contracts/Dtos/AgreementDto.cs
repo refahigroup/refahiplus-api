@@ -16,4 +16,5 @@ public sealed record AgreementDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     IReadOnlyList<AgreementProductDto> Products,
-    IReadOnlyList<AgreementCategoryTermDto> Terms);
+    IReadOnlyList<AgreementCategoryTermDto> Terms
+);

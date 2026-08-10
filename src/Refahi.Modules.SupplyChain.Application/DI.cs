@@ -7,14 +7,14 @@ namespace Refahi.Modules.SupplyChain.Application;
 
 public static class DI
 {
-    public static IServiceCollection RegisterApplication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterApplication(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var assembly = typeof(DI).Assembly;
 
-        services
-            .AddMediatR(assembly)
-            .AddValidatorsFromAssembly(assembly);
-
+        services.AddMediatR(assembly).AddValidatorsFromAssembly(assembly);
 
         return services;
     }

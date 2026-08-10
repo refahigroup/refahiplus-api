@@ -3,7 +3,8 @@ using Refahi.Modules.Wallets.Application.Contracts.Features.CapturePaymentIntent
 
 namespace Refahi.Modules.Wallets.Application.Features.CapturePaymentIntent;
 
-public sealed class CapturePaymentIntentCommandValidator : AbstractValidator<CapturePaymentIntentCommand>
+public sealed class CapturePaymentIntentCommandValidator
+    : AbstractValidator<CapturePaymentIntentCommand>
 {
     public CapturePaymentIntentCommandValidator()
     {

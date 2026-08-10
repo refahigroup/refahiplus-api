@@ -8,18 +8,20 @@ namespace Refahi.Modules.Charge.Application;
 
 public static class DI
 {
-    public static IServiceCollection RegisterApplication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterApplication(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         var assembly = typeof(DI).Assembly;
 
-        services
-            .AddMediatR(assembly)
-            .AddValidatorsFromAssembly(assembly);
+        services.AddMediatR(assembly).AddValidatorsFromAssembly(assembly);
 
-        services.AddScoped<ChargePricingService>()
-                .AddScoped<ChargeRequestQuoteService>()
-                .AddScoped<ChargeRefundProcessor>()
-                .AddScoped<ChargeFulfillmentProcessor>();
+        services
+            .AddScoped<ChargePricingService>()
+            .AddScoped<ChargeRequestQuoteService>()
+            .AddScoped<ChargeRefundProcessor>()
+            .AddScoped<ChargeFulfillmentProcessor>();
 
         return services;
     }

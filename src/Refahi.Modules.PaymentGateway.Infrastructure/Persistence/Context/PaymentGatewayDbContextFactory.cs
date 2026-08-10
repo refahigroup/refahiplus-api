@@ -10,7 +10,9 @@ public class PaymentGatewayDbContextFactory : IDesignTimeDbContextFactory<Paymen
     {
         var optionsBuilder = new DbContextOptionsBuilder<PaymentGatewayDbContext>();
 
-        optionsBuilder.UseNpgsql("Host=localhost;Database=refahi-db;Username=postgres;Password=postgres");
+        optionsBuilder.UseNpgsql(
+            "Host=localhost;Database=refahi-db;Username=postgres;Password=postgres"
+        );
 
         return new PaymentGatewayDbContext(optionsBuilder.Options);
     }

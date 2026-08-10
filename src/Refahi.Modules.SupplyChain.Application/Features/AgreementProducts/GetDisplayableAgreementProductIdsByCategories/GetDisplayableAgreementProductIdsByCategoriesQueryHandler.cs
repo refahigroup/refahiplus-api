@@ -9,10 +9,12 @@ public class GetDisplayableAgreementProductIdsByCategoriesQueryHandler
 {
     private readonly IAgreementRepository _repository;
 
-    public GetDisplayableAgreementProductIdsByCategoriesQueryHandler(IAgreementRepository repository)
-        => _repository = repository;
+    public GetDisplayableAgreementProductIdsByCategoriesQueryHandler(
+        IAgreementRepository repository
+    ) => _repository = repository;
 
     public Task<IReadOnlyList<Guid>> Handle(
-        GetDisplayableAgreementProductIdsByCategoriesQuery request, CancellationToken ct)
-        => _repository.GetDisplayableProductIdsByCategoriesAsync(request.CategoryIds, ct);
+        GetDisplayableAgreementProductIdsByCategoriesQuery request,
+        CancellationToken ct
+    ) => _repository.GetDisplayableProductIdsByCategoriesAsync(request.CategoryIds, ct);
 }

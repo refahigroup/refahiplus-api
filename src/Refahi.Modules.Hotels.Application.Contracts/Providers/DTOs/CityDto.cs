@@ -6,7 +6,6 @@ public sealed class CityDto
     public string Name { get; set; } = default!;
     public string NameEn { get; set; } = default!;
     public ProvinceDto Province { get; set; }
-
 }
 
 public class ProvinceDto

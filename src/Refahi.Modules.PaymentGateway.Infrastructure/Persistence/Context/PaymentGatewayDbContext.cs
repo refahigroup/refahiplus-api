@@ -6,9 +6,8 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Persistence.Context;
 
 public class PaymentGatewayDbContext : DbContext
 {
-    public PaymentGatewayDbContext(DbContextOptions<PaymentGatewayDbContext> options) : base(options)
-    {
-    }
+    public PaymentGatewayDbContext(DbContextOptions<PaymentGatewayDbContext> options)
+        : base(options) { }
 
     public DbSet<PaymentGatewaySession> Sessions { get; set; } = null!;
 
@@ -37,14 +36,23 @@ public class PaymentGatewayDbContext : DbContext
                 .HasColumnType("smallint")
                 .IsRequired();
 
-            b.Property(x => x.ReturnBaseUrl).HasColumnName("return_base_url").HasMaxLength(500).IsRequired();
-            b.Property(x => x.SucceededCallbackUrl).HasColumnName("succeeded_callback_url").HasMaxLength(500);
-            b.Property(x => x.FailedCallbackUrl).HasColumnName("failed_callback_url").HasMaxLength(500);
+            b.Property(x => x.ReturnBaseUrl)
+                .HasColumnName("return_base_url")
+                .HasMaxLength(500)
+                .IsRequired();
+            b.Property(x => x.SucceededCallbackUrl)
+                .HasColumnName("succeeded_callback_url")
+                .HasMaxLength(500);
+            b.Property(x => x.FailedCallbackUrl)
+                .HasColumnName("failed_callback_url")
+                .HasMaxLength(500);
 
             b.Property(x => x.ProviderToken).HasColumnName("provider_token").HasMaxLength(1000);
             b.Property(x => x.ProviderRefNum).HasColumnName("provider_ref_num").HasMaxLength(100);
             b.Property(x => x.ProviderTraceNo).HasColumnName("provider_trace_no").HasMaxLength(100);
-            b.Property(x => x.ProviderSecurePan).HasColumnName("provider_secure_pan").HasMaxLength(50);
+            b.Property(x => x.ProviderSecurePan)
+                .HasColumnName("provider_secure_pan")
+                .HasMaxLength(50);
             b.Property(x => x.ProviderRawCallbackJson)
                 .HasColumnName("provider_raw_callback")
                 .HasColumnType("jsonb");

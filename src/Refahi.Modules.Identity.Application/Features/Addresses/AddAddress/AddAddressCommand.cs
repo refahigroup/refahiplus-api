@@ -22,4 +22,5 @@ public sealed record AddAddressCommand(
     string? Unit,
     double? Latitude,
     double? Longitude,
-    bool IsDefault) : IRequest<UserAddressDto>, IAddressInput;
+    bool IsDefault
+) : IRequest<UserAddressDto>, IAddressInput;

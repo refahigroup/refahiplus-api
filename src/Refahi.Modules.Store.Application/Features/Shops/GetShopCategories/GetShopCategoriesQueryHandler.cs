@@ -8,7 +8,8 @@ using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Shops.GetShopCategories;
 
-public class GetShopCategoriesQueryHandler : IRequestHandler<GetShopCategoriesQuery, List<ShopCategoryDto>>
+public class GetShopCategoriesQueryHandler
+    : IRequestHandler<GetShopCategoriesQuery, List<ShopCategoryDto>>
 {
     private readonly IShopRepository _shopRepo;
     private readonly IShopProductRepository _shopProductRepo;
@@ -21,7 +22,8 @@ public class GetShopCategoriesQueryHandler : IRequestHandler<GetShopCategoriesQu
         IShopProductRepository shopProductRepo,
         IProductRepository productRepo,
         IMediator mediator,
-        IPathService pathService)
+        IPathService pathService
+    )
     {
         _shopRepo = shopRepo;
         _shopProductRepo = shopProductRepo;
@@ -30,10 +32,14 @@ public class GetShopCategoriesQueryHandler : IRequestHandler<GetShopCategoriesQu
         _pathService = pathService;
     }
 
-    public async Task<List<ShopCategoryDto>> Handle(GetShopCategoriesQuery request, CancellationToken ct)
+    public async Task<List<ShopCategoryDto>> Handle(
+        GetShopCategoriesQuery request,
+        CancellationToken ct
+    )
     {
         var shop = await _shopRepo.GetBySlugAsync(request.ShopSlug, ct);
-        if (shop is null) return new();
+        if (shop is null)
+            return new();
 
         const int batchSize = 500;
         var page = 1;
@@ -41,7 +47,13 @@ public class GetShopCategoriesQueryHandler : IRequestHandler<GetShopCategoriesQu
 
         while (true)
         {
-            var (items, total) = await _shopProductRepo.GetByShopAsync(shop.Id, isActive: true, page, batchSize, ct);
+            var (items, total) = await _shopProductRepo.GetByShopAsync(
+                shop.Id,
+                isActive: true,
+                page,
+                batchSize,
+                ct
+            );
             foreach (var sp in items)
                 productIds.Add(sp.ProductId);
 
@@ -50,7 +62,8 @@ public class GetShopCategoriesQueryHandler : IRequestHandler<GetShopCategoriesQu
             page++;
         }
 
-        if (productIds.Count == 0) return new();
+        if (productIds.Count == 0)
+            return new();
 
         var products = await _productRepo.GetByIdsAsync(productIds.ToList(), ct);
         var apIds = products
@@ -59,29 +72,37 @@ public class GetShopCategoriesQueryHandler : IRequestHandler<GetShopCategoriesQu
             .Distinct()
             .ToList();
 
-        if (apIds.Count == 0) return new();
+        if (apIds.Count == 0)
+            return new();
 
         var apMap = await _mediator.Send(new GetAgreementProductsByIdsQuery(apIds), ct);
-        var categoryIds = apMap.Values
-            .Where(ap => ap.CategoryId.HasValue)
+        var categoryIds = apMap
+            .Values.Where(ap => ap.CategoryId.HasValue)
             .Select(ap => ap.CategoryId!.Value)
             .Distinct()
             .ToList();
 
-        if (categoryIds.Count == 0) return new();
+        if (categoryIds.Count == 0)
+            return new();
 
         var result = new List<ShopCategoryDto>();
         foreach (var categoryId in categoryIds)
         {
             var category = await _mediator.Send(new GetCategoryByIdQuery(categoryId), ct);
-            if (category is null || !category.IsActive) continue;
+            if (category is null || !category.IsActive)
+                continue;
 
-            result.Add(new ShopCategoryDto(
-                category.Id,
-                category.Name,
-                category.Slug,
-                category.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(category.ImageUrl),
-                category.ParentId));
+            result.Add(
+                new ShopCategoryDto(
+                    category.Id,
+                    category.Name,
+                    category.Slug,
+                    category.ImageUrl is null
+                        ? null
+                        : _pathService.MakeAbsoluteMediaUrl(category.ImageUrl),
+                    category.ParentId
+                )
+            );
         }
 
         return result.OrderBy(c => c.Name).ToList();

@@ -12,28 +12,43 @@ public sealed class UpdateVariantAttributeValueEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPut("/provider/products/{id:guid}/variant-attributes/{attributeId:guid}/values/{valueId:guid}", async (
-            Guid id,
-            Guid attributeId,
-            Guid valueId,
-            [FromBody] UpdateVariantAttributeValueRequest body,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            await mediator.Send(
-                new UpdateVariantAttributeValueCommand(id, attributeId, valueId, body.Value, body.SortOrder),
-                ct);
-            return Results.Ok(ApiResponseHelper.Success<object?>(null, "مقدار ویژگی با موفقیت ویرایش شد"));
-        })
-        .WithName("Store.UpdateVariantAttributeValue")
-        .WithTags("Store.Products")
-        .RequireAuthorization("VendorOrAdmin")
-        .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapPut(
+                "/provider/products/{id:guid}/variant-attributes/{attributeId:guid}/values/{valueId:guid}",
+                async (
+                    Guid id,
+                    Guid attributeId,
+                    Guid valueId,
+                    [FromBody] UpdateVariantAttributeValueRequest body,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    await mediator.Send(
+                        new UpdateVariantAttributeValueCommand(
+                            id,
+                            attributeId,
+                            valueId,
+                            body.Value,
+                            body.SortOrder
+                        ),
+                        ct
+                    );
+                    return Results.Ok(
+                        ApiResponseHelper.Success<object?>(null, "مقدار ویژگی با موفقیت ویرایش شد")
+                    );
+                }
+            )
+            .WithName("Store.UpdateVariantAttributeValue")
+            .WithTags("Store.Products")
+            .RequireAuthorization("VendorOrAdmin")
+            .Produces<ApiResponse<object>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
 

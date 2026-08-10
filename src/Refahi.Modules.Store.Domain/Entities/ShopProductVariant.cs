@@ -21,7 +21,8 @@ public sealed class ShopProductVariant
         Guid productVariantId,
         long priceMinor,
         long? discountedPriceMinor,
-        bool isActive)
+        bool isActive
+    )
     {
         ValidatePrice(priceMinor, discountedPriceMinor);
 
@@ -35,7 +36,7 @@ public sealed class ShopProductVariant
             IsActive = isActive,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
     }
 
@@ -78,15 +79,24 @@ public sealed class ShopProductVariant
             throw new StoreDomainException("قیمت باید بیشتر از صفر باشد", "INVALID_PRICE");
 
         if (discountedPriceMinor is null or <= 0)
-            throw new StoreDomainException("قیمت تخفیف‌خورده باید بیشتر از صفر باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده باید بیشتر از صفر باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
 
         if (discountedPriceMinor > priceMinor)
-            throw new StoreDomainException("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
     }
 
     private void EnsureNotDeleted()
     {
         if (IsDeleted)
-            throw new StoreDomainException("تنوع محصول فروشگاه حذف شده است", "SHOP_PRODUCT_VARIANT_DELETED");
+            throw new StoreDomainException(
+                "تنوع محصول فروشگاه حذف شده است",
+                "SHOP_PRODUCT_VARIANT_DELETED"
+            );
     }
 }

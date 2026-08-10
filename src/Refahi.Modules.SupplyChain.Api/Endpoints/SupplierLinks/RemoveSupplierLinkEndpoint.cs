@@ -11,24 +11,25 @@ public class RemoveSupplierLinkEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapDelete("/admin/suppliers/{id:guid}/links/{linkId:guid}", async (
-            Guid id,
-            Guid linkId,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            await mediator.Send(new RemoveSupplierLinkCommand(id, linkId), ct);
-            return Results.NoContent();
-        })
-        .WithName("SupplyChain.RemoveSupplierLink")
-        .WithTags("SupplyChain.SupplierLinks")
-        .RequireAuthorization("AdminOnly")
-        .Produces(StatusCodes.Status204NoContent)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status403Forbidden)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapDelete(
+                "/admin/suppliers/{id:guid}/links/{linkId:guid}",
+                async (Guid id, Guid linkId, IMediator mediator, CancellationToken ct) =>
+                {
+                    await mediator.Send(new RemoveSupplierLinkCommand(id, linkId), ct);
+                    return Results.NoContent();
+                }
+            )
+            .WithName("SupplyChain.RemoveSupplierLink")
+            .WithTags("SupplyChain.SupplierLinks")
+            .RequireAuthorization("AdminOnly")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

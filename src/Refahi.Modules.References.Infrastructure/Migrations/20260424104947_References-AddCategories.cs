@@ -16,15 +16,35 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
                 schema: "references",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    CategoryCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    ImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
+                    Name = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    Slug = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    CategoryCode = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
+                    ImageUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     ParentId = table.Column<int>(type: "integer", nullable: true),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -35,36 +55,39 @@ namespace Refahi.Modules.References.Infrastructure.Migrations
                         principalSchema: "references",
                         principalTable: "categories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+                        onDelete: ReferentialAction.Restrict
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_CategoryCode",
                 schema: "references",
                 table: "categories",
                 column: "CategoryCode",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_ParentId",
                 schema: "references",
                 table: "categories",
-                column: "ParentId");
+                column: "ParentId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_Slug",
                 schema: "references",
                 table: "categories",
                 column: "Slug",
-                unique: true);
+                unique: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "categories",
-                schema: "references");
+            migrationBuilder.DropTable(name: "categories", schema: "references");
         }
     }
 }

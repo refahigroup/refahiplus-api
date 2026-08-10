@@ -20,7 +20,8 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
     public OrderCreationGateway(
         IOrderRepository orderRepository,
         IMediator mediator,
-        ILogger<OrderCreationGateway> logger)
+        ILogger<OrderCreationGateway> logger
+    )
     {
         _orderRepository = orderRepository;
         _mediator = mediator;
@@ -29,24 +30,30 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
 
     public async Task<CreateOrderResponse> CreateAsync(
         CreateOrderCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var existing = await _orderRepository.GetByIdempotencyKeyAsync(
             request.IdempotencyKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (existing is not null)
         {
             EnsureExistingOrderMatchesRequest(existing, request);
 
-            using var existingScope = _logger.BeginScope(new Dictionary<string, object?>
-            {
-                ["UserId"] = existing.UserId,
-                ["SagaId"] = existing.SagaId,
-                ["HotelRequestId"] = IsHotelRequestOrder(request) ? (Guid?)existing.SourceReferenceId : null,
-                ["OrderId"] = existing.Id,
-                ["ProviderBookingCode"] = null
-            });
+            using var existingScope = _logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["UserId"] = existing.UserId,
+                    ["SagaId"] = existing.SagaId,
+                    ["HotelRequestId"] = IsHotelRequestOrder(request)
+                        ? (Guid?)existing.SourceReferenceId
+                        : null,
+                    ["OrderId"] = existing.Id,
+                    ["ProviderBookingCode"] = null,
+                }
+            );
 
             _logger.LogInformation(
                 "Order creation idempotency replayed. OrderId={OrderId}, SourceModule={SourceModule}, ReferenceType={ReferenceType}, SourceReferenceId={SourceReferenceId}, SagaId={SagaId}",
@@ -54,9 +61,15 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
                 existing.SourceModule,
                 existing.ReferenceType,
                 existing.SourceReferenceId,
-                existing.SagaId);
+                existing.SagaId
+            );
 
-            return new CreateOrderResponse(existing.Id, existing.OrderNumber, existing.FinalAmountMinor, existing.Currency);
+            return new CreateOrderResponse(
+                existing.Id,
+                existing.OrderNumber,
+                existing.FinalAmountMinor,
+                existing.Currency
+            );
         }
 
         if (IsHotelRequestOrder(request))
@@ -81,29 +94,40 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
             sourceOwnerId: request.SourceOwnerId,
             sourceShopId: request.SourceShopId,
             createdByUserId: request.CreatedByUserId,
-            financialSnapshot: request.FinancialSnapshot is null ? null : new OrderFinancialSnapshotData(
-                request.FinancialSnapshot.GrossAmountMinor,
-                request.FinancialSnapshot.CommissionPercent,
-                request.FinancialSnapshot.CommissionAmountMinor,
-                request.FinancialSnapshot.VatPercent,
-                request.FinancialSnapshot.VatAmountMinor,
-                request.FinancialSnapshot.RecipientNetAmountMinor),
-            paymentPostings: request.PaymentPostings?.Select(x => new OrderPaymentPostingData(
-                x.WalletId,
-                (PaymentPostingDirection)x.Direction,
-                x.AmountMinor,
-                x.Purpose)).ToList());
+            financialSnapshot: request.FinancialSnapshot is null
+                ? null
+                : new OrderFinancialSnapshotData(
+                    request.FinancialSnapshot.GrossAmountMinor,
+                    request.FinancialSnapshot.CommissionPercent,
+                    request.FinancialSnapshot.CommissionAmountMinor,
+                    request.FinancialSnapshot.VatPercent,
+                    request.FinancialSnapshot.VatAmountMinor,
+                    request.FinancialSnapshot.RecipientNetAmountMinor
+                ),
+            paymentPostings: request
+                .PaymentPostings?.Select(x => new OrderPaymentPostingData(
+                    x.WalletId,
+                    (PaymentPostingDirection)x.Direction,
+                    x.AmountMinor,
+                    x.Purpose
+                ))
+                .ToList()
+        );
 
         await _orderRepository.AddAsync(order, cancellationToken);
 
-        using var scope = _logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["UserId"] = order.UserId,
-            ["SagaId"] = order.SagaId,
-            ["HotelRequestId"] = IsHotelRequestOrder(request) ? (Guid?)order.SourceReferenceId : null,
-            ["OrderId"] = order.Id,
-            ["ProviderBookingCode"] = null
-        });
+        using var scope = _logger.BeginScope(
+            new Dictionary<string, object?>
+            {
+                ["UserId"] = order.UserId,
+                ["SagaId"] = order.SagaId,
+                ["HotelRequestId"] = IsHotelRequestOrder(request)
+                    ? (Guid?)order.SourceReferenceId
+                    : null,
+                ["OrderId"] = order.Id,
+                ["ProviderBookingCode"] = null,
+            }
+        );
 
         _logger.LogInformation(
             "Order created. OrderId={OrderId}, SourceModule={SourceModule}, ReferenceType={ReferenceType}, SourceReferenceId={SourceReferenceId}, SagaId={SagaId}",
@@ -111,60 +135,96 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
             order.SourceModule,
             order.ReferenceType,
             order.SourceReferenceId,
-            order.SagaId);
+            order.SagaId
+        );
 
-        return new CreateOrderResponse(order.Id, order.OrderNumber, order.FinalAmountMinor, order.Currency);
+        return new CreateOrderResponse(
+            order.Id,
+            order.OrderNumber,
+            order.FinalAmountMinor,
+            order.Currency
+        );
     }
 
-    private static List<OrderItemData> MapItems(CreateOrderCommand request)
-        => request.Items.Select(i => new OrderItemData(
-            Title: i.Title,
-            UnitPriceMinor: i.UnitPriceMinor,
-            Quantity: i.Quantity,
-            DiscountAmountMinor: i.DiscountAmountMinor,
-            SourceItemId: i.SourceItemId,
-            CategoryCode: i.CategoryCode,
-            Tags: i.Tags,
-            MetadataJson: i.MetadataJson,
-            DeliveryMethod: (DeliveryMethod)i.DeliveryMethod)).ToList();
+    private static List<OrderItemData> MapItems(CreateOrderCommand request) =>
+        request
+            .Items.Select(i => new OrderItemData(
+                Title: i.Title,
+                UnitPriceMinor: i.UnitPriceMinor,
+                Quantity: i.Quantity,
+                DiscountAmountMinor: i.DiscountAmountMinor,
+                SourceItemId: i.SourceItemId,
+                CategoryCode: i.CategoryCode,
+                Tags: i.Tags,
+                MetadataJson: i.MetadataJson,
+                DeliveryMethod: (DeliveryMethod)i.DeliveryMethod
+            ))
+            .ToList();
 
     private async Task ValidateHotelRequestAsync(
         CreateOrderCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        if (!request.SourceModule.Equals(HotelSourceModule, StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(request.ReferenceType, HotelRequestReferenceType, StringComparison.OrdinalIgnoreCase))
+        if (
+            !request.SourceModule.Equals(HotelSourceModule, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(
+                request.ReferenceType,
+                HotelRequestReferenceType,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
         {
-            throw new InvalidOperationException("سفارش هتل فقط با ReferenceType=HotelRequest قابل ایجاد است");
+            throw new InvalidOperationException(
+                "سفارش هتل فقط با ReferenceType=HotelRequest قابل ایجاد است"
+            );
         }
 
         var hotelRequest = await _mediator.Send(
             new ValidateHotelRequestForOrderCommand(
-                request.SourceReferenceId ?? throw new InvalidOperationException("رفرنس درخواست هتل الزامی است"),
-                request.UserId),
-            cancellationToken);
+                request.SourceReferenceId
+                    ?? throw new InvalidOperationException("رفرنس درخواست هتل الزامی است"),
+                request.UserId
+            ),
+            cancellationToken
+        );
 
-        if (hotelRequest.TotalPrice != request.Items.Sum(i => (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor))
+        if (
+            hotelRequest.TotalPrice
+            != request.Items.Sum(i => (i.UnitPriceMinor * i.Quantity) - i.DiscountAmountMinor)
+        )
             throw new InvalidOperationException("مبلغ سفارش با درخواست هتل مطابقت ندارد");
     }
 
-    private static bool IsHotelRequestOrder(CreateOrderCommand request)
-        => request.SourceModule.Equals(HotelSourceModule, StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(request.ReferenceType, HotelRequestReferenceType, StringComparison.OrdinalIgnoreCase);
+    private static bool IsHotelRequestOrder(CreateOrderCommand request) =>
+        request.SourceModule.Equals(HotelSourceModule, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(
+            request.ReferenceType,
+            HotelRequestReferenceType,
+            StringComparison.OrdinalIgnoreCase
+        );
 
-    private static void EnsureExistingOrderMatchesRequest(Order existing, CreateOrderCommand request)
+    private static void EnsureExistingOrderMatchesRequest(
+        Order existing,
+        CreateOrderCommand request
+    )
     {
         var referenceType = string.IsNullOrWhiteSpace(request.ReferenceType)
             ? request.SourceModule
             : request.ReferenceType.Trim();
 
-        if (existing.UserId != request.UserId ||
-            !existing.SourceModule.Equals(request.SourceModule, StringComparison.OrdinalIgnoreCase) ||
-            existing.SourceReferenceId != request.SourceReferenceId ||
-            existing.SourceOwnerId != request.SourceOwnerId ||
-            existing.SourceShopId != request.SourceShopId ||
-            !existing.ReferenceType.Equals(referenceType, StringComparison.OrdinalIgnoreCase) ||
-            existing.SagaId != request.SagaId)
+        if (
+            existing.UserId != request.UserId
+            || !existing.SourceModule.Equals(
+                request.SourceModule,
+                StringComparison.OrdinalIgnoreCase
+            )
+            || existing.SourceReferenceId != request.SourceReferenceId
+            || existing.SourceOwnerId != request.SourceOwnerId
+            || existing.SourceShopId != request.SourceShopId
+            || !existing.ReferenceType.Equals(referenceType, StringComparison.OrdinalIgnoreCase)
+            || existing.SagaId != request.SagaId
+        )
         {
             throw new InvalidOperationException("کلید یکتایی سفارش با درخواست دیگری ثبت شده است");
         }

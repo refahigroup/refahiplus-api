@@ -5,16 +5,26 @@ namespace Refahi.Modules.Flights.Domain.Repositories;
 
 public interface IFlightBookingRepository
 {
-    Task<FlightBooking?> GetAsync(FlightBookingId id, CancellationToken cancellationToken = default);
+    Task<FlightBooking?> GetAsync(
+        FlightBookingId id,
+        CancellationToken cancellationToken = default
+    );
 
-    Task<FlightBooking?> GetByOrderIdAsync(Guid orderId, CancellationToken cancellationToken = default);
+    Task<FlightBooking?> GetByOrderIdAsync(
+        Guid orderId,
+        CancellationToken cancellationToken = default
+    );
 
-    Task<FlightBooking?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
+    Task<FlightBooking?> GetByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken = default
+    );
 
     Task<FlightBooking?> GetByProviderBookingIdAsync(
         string providerName,
         string providerBookingId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 
     Task AddAsync(FlightBooking booking, CancellationToken cancellationToken = default);
 

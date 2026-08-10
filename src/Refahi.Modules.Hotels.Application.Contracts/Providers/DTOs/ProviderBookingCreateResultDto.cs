@@ -7,4 +7,3 @@ public sealed class ProviderBookingCreateResultDto
     public string Currency { get; set; } = "IRT";
     public DateTime? LockedUntil { get; set; }
 }
-

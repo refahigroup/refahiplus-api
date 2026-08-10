@@ -8,9 +8,8 @@ namespace Refahi.Modules.Flights.Infrastructure.Persistence;
 
 public sealed class FlightsDbContext : DbContext
 {
-    public FlightsDbContext(DbContextOptions<FlightsDbContext> options) : base(options)
-    {
-    }
+    public FlightsDbContext(DbContextOptions<FlightsDbContext> options)
+        : base(options) { }
 
     public DbSet<FlightBooking> FlightBookings => Set<FlightBooking>();
 

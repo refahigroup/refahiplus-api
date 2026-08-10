@@ -13,7 +13,7 @@ namespace Refahi.Modules.Wallets.Application.Handlers;
 /// <summary>
 /// Query handler for retrieving payment intent details (read-only).
 /// </summary>
-public sealed class GetPaymentIntentQueryHandler 
+public sealed class GetPaymentIntentQueryHandler
     : IRequestHandler<GetPaymentIntentQuery, CommandResponse<GetPaymentIntentResponse>>
 {
     private readonly IPaymentReadRepository _repository;
@@ -21,7 +21,8 @@ public sealed class GetPaymentIntentQueryHandler
 
     public GetPaymentIntentQueryHandler(
         IPaymentReadRepository repository,
-        ILogger<GetPaymentIntentQueryHandler> logger)
+        ILogger<GetPaymentIntentQueryHandler> logger
+    )
     {
         _repository = repository;
         _logger = logger;
@@ -29,26 +30,24 @@ public sealed class GetPaymentIntentQueryHandler
 
     public async Task<CommandResponse<GetPaymentIntentResponse>> Handle(
         GetPaymentIntentQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        _logger.LogInformation(
-            "Querying payment intent: {IntentId}",
-            request.IntentId);
+        _logger.LogInformation("Querying payment intent: {IntentId}", request.IntentId);
 
         var result = await _repository.GetPaymentIntentAsync(request.IntentId, cancellationToken);
 
         if (result == null)
         {
-            _logger.LogWarning(
-                "Payment intent not found: {IntentId}",
-                request.IntentId);
+            _logger.LogWarning("Payment intent not found: {IntentId}", request.IntentId);
             throw new PaymentIntentNotFoundException(request.IntentId);
         }
 
         _logger.LogInformation(
             "Payment intent retrieved: {IntentId}, Status: {Status}",
             result.IntentId,
-            result.Status);
+            result.Status
+        );
 
         return new CommandResponse<GetPaymentIntentResponse>(CommandStatus.Completed, result);
     }

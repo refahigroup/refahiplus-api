@@ -20,7 +20,10 @@ public static class MediaTypeResolver
             "image/gif" => (MediaType.Image, ".gif"),
             "video/mp4" => (MediaType.Video, ".mp4"),
             "video/webm" => (MediaType.Video, ".webm"),
-            _ => throw new MediaDomainException("نوع فایل پشتیبانی نمی‌شود", "MEDIA_UNSUPPORTED_TYPE")
+            _ => throw new MediaDomainException(
+                "نوع فایل پشتیبانی نمی‌شود",
+                "MEDIA_UNSUPPORTED_TYPE"
+            ),
         };
     }
 }

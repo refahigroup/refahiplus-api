@@ -6,4 +6,5 @@ public sealed record ProvinceDto(
     string NameEn,
     string Slug,
     int SortOrder,
-    bool IsActive);
+    bool IsActive
+);

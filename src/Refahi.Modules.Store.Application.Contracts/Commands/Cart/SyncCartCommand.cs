@@ -16,7 +16,7 @@ public sealed record SyncCartItemInput(
     Guid? SessionId,
     DateOnly? UsageDate,
     int Quantity,
-    long UnitPriceMinor  // snapshot for PRICE_CHANGED warning detection only
+    long UnitPriceMinor // snapshot for PRICE_CHANGED warning detection only
 );
 
 public sealed record SyncCartResponse(
@@ -25,10 +25,10 @@ public sealed record SyncCartResponse(
 );
 
 public sealed record CartSyncWarning(
-    string Code,        // PRODUCT_DELETED | OUT_OF_STOCK | QUANTITY_CLAMPED |
-                        // PRICE_CHANGED | SHOP_MISMATCH_DROPPED |
-                        // VARIANT_REMOVED | SESSION_REMOVED
-    string Message,     // Persian — user-facing
+    string Code, // PRODUCT_DELETED | OUT_OF_STOCK | QUANTITY_CLAMPED |
+    // PRICE_CHANGED | SHOP_MISMATCH_DROPPED |
+    // VARIANT_REMOVED | SESSION_REMOVED
+    string Message, // Persian — user-facing
     Guid? ProductId,
     Guid? VariantId,
     Guid? SessionId,

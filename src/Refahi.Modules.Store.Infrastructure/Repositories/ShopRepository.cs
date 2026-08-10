@@ -12,24 +12,29 @@ public class ShopRepository : IShopRepository
 
     public ShopRepository(StoreDbContext db) => _db = db;
 
-    public Task<Shop?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _db.Shops.FirstOrDefaultAsync(s => s.Id == id, ct);
+    public Task<Shop?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.Shops.FirstOrDefaultAsync(s => s.Id == id, ct);
 
-    public Task<Shop?> GetBySlugAsync(string slug, CancellationToken ct = default)
-        => _db.Shops.FirstOrDefaultAsync(s => s.Slug == slug, ct);
+    public Task<Shop?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+        _db.Shops.FirstOrDefaultAsync(s => s.Slug == slug, ct);
 
-    public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default)
-        => _db.Shops.FirstOrDefaultAsync(s => s.SupplierId == providerId, ct);
+    public Task<Shop?> GetByProviderIdAsync(Guid providerId, CancellationToken ct = default) =>
+        _db.Shops.FirstOrDefaultAsync(s => s.SupplierId == providerId, ct);
 
-    public Task<List<Shop>> GetBySupplierIdAsync(Guid supplierId, CancellationToken ct = default)
-        => _db.Shops
-            .AsNoTracking()
+    public Task<List<Shop>> GetBySupplierIdAsync(Guid supplierId, CancellationToken ct = default) =>
+        _db
+            .Shops.AsNoTracking()
             .Where(s => s.SupplierId == supplierId)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
     public async Task<(List<Shop> Items, int Total)> GetPagedAsync(
-        ShopType? shopType, ShopStatus? status, int page, int size, CancellationToken ct = default)
+        ShopType? shopType,
+        ShopStatus? status,
+        int page,
+        int size,
+        CancellationToken ct = default
+    )
     {
         var query = _db.Shops.AsQueryable();
 
@@ -49,21 +54,24 @@ public class ShopRepository : IShopRepository
         return (items, total);
     }
 
-    public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default)
-        => _db.Shops.AnyAsync(s => s.Slug == slug, ct);
+    public Task<bool> SlugExistsAsync(string slug, CancellationToken ct = default) =>
+        _db.Shops.AnyAsync(s => s.Slug == slug, ct);
 
-    public Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default)
-        => _db.Shops.AnyAsync(s => s.SupplierId == providerId, ct);
+    public Task<bool> ProviderHasShopAsync(Guid providerId, CancellationToken ct = default) =>
+        _db.Shops.AnyAsync(s => s.SupplierId == providerId, ct);
 
     public async Task<(List<Shop> Items, int Total)> GetPagedByIdsAsync(
-        IEnumerable<Guid> ids, int page, int size, CancellationToken ct = default)
+        IEnumerable<Guid> ids,
+        int page,
+        int size,
+        CancellationToken ct = default
+    )
     {
         var idList = ids as ICollection<Guid> ?? ids.ToList();
         if (idList.Count == 0)
             return ([], 0);
 
-        var query = _db.Shops
-            .Where(s => idList.Contains(s.Id) && s.Status == ShopStatus.Active);
+        var query = _db.Shops.Where(s => idList.Contains(s.Id) && s.Status == ShopStatus.Active);
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -76,14 +84,15 @@ public class ShopRepository : IShopRepository
         return (items, total);
     }
 
-    public async Task<List<Shop>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
+    public async Task<List<Shop>> GetByIdsAsync(
+        IReadOnlyList<Guid> ids,
+        CancellationToken ct = default
+    )
     {
         if (ids.Count == 0)
             return [];
 
-        return await _db.Shops
-            .Where(s => ids.Contains(s.Id))
-            .ToListAsync(ct);
+        return await _db.Shops.Where(s => ids.Contains(s.Id)).ToListAsync(ct);
     }
 
     public async Task AddAsync(Shop shop, CancellationToken ct = default)

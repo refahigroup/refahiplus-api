@@ -6,20 +6,28 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.DailyDeals.CreateDailyDeal;
 
-public class CreateDailyDealCommandHandler : IRequestHandler<CreateDailyDealCommand, CreateDailyDealResponse>
+public class CreateDailyDealCommandHandler
+    : IRequestHandler<CreateDailyDealCommand, CreateDailyDealResponse>
 {
     private readonly IDailyDealRepository _dealRepo;
     private readonly IProductRepository _productRepo;
 
-    public CreateDailyDealCommandHandler(IDailyDealRepository dealRepo, IProductRepository productRepo)
+    public CreateDailyDealCommandHandler(
+        IDailyDealRepository dealRepo,
+        IProductRepository productRepo
+    )
     {
         _dealRepo = dealRepo;
         _productRepo = productRepo;
     }
 
-    public async Task<CreateDailyDealResponse> Handle(CreateDailyDealCommand request, CancellationToken cancellationToken)
+    public async Task<CreateDailyDealResponse> Handle(
+        CreateDailyDealCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         if (!DateTimeOffset.TryParse(request.StartTime, out var startTime))
@@ -28,7 +36,13 @@ public class CreateDailyDealCommandHandler : IRequestHandler<CreateDailyDealComm
         if (!DateTimeOffset.TryParse(request.EndTime, out var endTime))
             throw new StoreDomainException("زمان پایان معتبر نیست", "INVALID_END_TIME");
 
-        var deal = DailyDeal.CreateForModule(request.ModuleId, request.ProductId, request.DiscountPercent, startTime, endTime);
+        var deal = DailyDeal.CreateForModule(
+            request.ModuleId,
+            request.ProductId,
+            request.DiscountPercent,
+            startTime,
+            endTime
+        );
 
         await _dealRepo.AddAsync(deal, cancellationToken);
 

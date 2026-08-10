@@ -8,15 +8,23 @@ using Refahi.Modules.Identity.Domain.Repositories;
 
 namespace Refahi.Modules.Identity.Application.Features.Addresses.GetUserAddressById;
 
-public class GetUserAddressByIdQueryHandler : IRequestHandler<GetUserAddressByIdQuery, UserAddressDto?>
+public class GetUserAddressByIdQueryHandler
+    : IRequestHandler<GetUserAddressByIdQuery, UserAddressDto?>
 {
     private readonly IUserAddressRepository _repo;
 
     public GetUserAddressByIdQueryHandler(IUserAddressRepository repo) => _repo = repo;
 
-    public async Task<UserAddressDto?> Handle(GetUserAddressByIdQuery request, CancellationToken cancellationToken)
+    public async Task<UserAddressDto?> Handle(
+        GetUserAddressByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var a = await _repo.GetByIdForUserAsync(request.AddressId, request.UserId, cancellationToken);
+        var a = await _repo.GetByIdForUserAsync(
+            request.AddressId,
+            request.UserId,
+            cancellationToken
+        );
         return a?.ToDto();
     }
 }

@@ -12,15 +12,17 @@ public static class SnappTripMapper
     /// لیستی از availability برای room ها می‌دهد و اطلاعات نام هتل، شهر و تصویر را
     /// باید از /hotels بگیریم. بنابراین این متد فعلاً فقط فیلدهای قابل‌استخراج را پر می‌کند.
     /// </summary>
-    public static IEnumerable<HotelSearchByHotelResultDto> MapSearchResults(SnappTripAvailabilityResponse dto)
+    public static IEnumerable<HotelSearchByHotelResultDto> MapSearchResults(
+        SnappTripAvailabilityResponse dto
+    )
     {
         if (dto.availability == null || dto.availability.Count == 0)
         {
             return Enumerable.Empty<HotelSearchByHotelResultDto>();
         }
 
-        var minPrice = dto.availability
-            .Select(a => (decimal)a.pricing.price)
+        var minPrice = dto
+            .availability.Select(a => (decimal)a.pricing.price)
             .DefaultIfEmpty(0m)
             .Min();
 
@@ -37,7 +39,7 @@ public static class SnappTripMapper
             Stars = 0,
             AccommodationType = accommodationType,
             MinCustomerPrice = minPrice,
-            ThumbnailUrl = null
+            ThumbnailUrl = null,
         };
 
         return new[] { result };
@@ -54,8 +56,9 @@ public static class SnappTripMapper
     public static HotelDetailsDto MapHotelDetails(SnappTripHotelDetailsResponse h)
     {
         throw new NotImplementedException(
-            "MapHotelDetails در SnappTripMapper دیگر استفاده نمی‌شود. " +
-            "جزئیات هتل در SnappTripProvider.GetHotelDetailsAsync ساخته می‌شود.");
+            "MapHotelDetails در SnappTripMapper دیگر استفاده نمی‌شود. "
+                + "جزئیات هتل در SnappTripProvider.GetHotelDetailsAsync ساخته می‌شود."
+        );
     }
 
     /// <summary>
@@ -69,8 +72,8 @@ public static class SnappTripMapper
         {
             BookingCode = r.reservation_code,
             Price = r.price,
-            Currency = "IRR",       // SnappTrip ریال برمی‌گرداند؛ اگر بعداً لازم شد می‌توانیم تنظیم‌پذیرش کنیم
-            LockedUntil = null      // Lock جداگانه با /booking/{code}/lock هندل می‌شود
+            Currency = "IRR", // SnappTrip ریال برمی‌گرداند؛ اگر بعداً لازم شد می‌توانیم تنظیم‌پذیرش کنیم
+            LockedUntil = null, // Lock جداگانه با /booking/{code}/lock هندل می‌شود
         };
     }
 
@@ -85,9 +88,9 @@ public static class SnappTripMapper
         return new BookingStatusDto
         {
             Status = r.state,
-            VoucherUrl = null,      // در مدل فعلی موجود نیست
-            VoucherNumber = null,   // در مدل فعلی موجود نیست
-            Message = null  // می‌توانیم در صورت نیاز از فیلدهای اضافی SnappTrip پر کنیم
+            VoucherUrl = null, // در مدل فعلی موجود نیست
+            VoucherNumber = null, // در مدل فعلی موجود نیست
+            Message = null, // می‌توانیم در صورت نیاز از فیلدهای اضافی SnappTrip پر کنیم
         };
     }
 }

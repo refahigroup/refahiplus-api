@@ -9,5 +9,5 @@ public enum SupplierLinkType : short
     Twitter = 5,
     Facebook = 6,
     Youtube = 7,
-    Other = 99
+    Other = 99,
 }

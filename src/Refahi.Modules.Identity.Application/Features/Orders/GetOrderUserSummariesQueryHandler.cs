@@ -14,26 +14,32 @@ public sealed class GetOrderUserSummariesQueryHandler
 {
     private readonly IUserRepository _userRepository;
 
-    public GetOrderUserSummariesQueryHandler(IUserRepository userRepository)
-        => _userRepository = userRepository;
+    public GetOrderUserSummariesQueryHandler(IUserRepository userRepository) =>
+        _userRepository = userRepository;
 
     public async Task<IReadOnlyList<OrderUserSummaryDto>> Handle(
         GetOrderUserSummariesQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         List<User> users;
 
         if (!string.IsNullOrWhiteSpace(request.MobileNumber))
         {
-            if (!MobileNumberSearchNormalizer.TryNormalize(request.MobileNumber, out var normalizedMobileNumber)
-                || string.IsNullOrEmpty(normalizedMobileNumber))
+            if (
+                !MobileNumberSearchNormalizer.TryNormalize(
+                    request.MobileNumber,
+                    out var normalizedMobileNumber
+                ) || string.IsNullOrEmpty(normalizedMobileNumber)
+            )
             {
                 return [];
             }
 
             users = await _userRepository.SearchByMobileNumberAsync(
                 normalizedMobileNumber,
-                cancellationToken);
+                cancellationToken
+            );
 
             if (request.UserIds is { Count: > 0 })
             {
@@ -50,10 +56,13 @@ public sealed class GetOrderUserSummariesQueryHandler
             return [];
         }
 
-        return users.Select(user => new OrderUserSummaryDto(
-            user.Id,
-            user.Profile?.FirstName,
-            user.Profile?.LastName,
-            user.MobileNumber)).ToList();
+        return users
+            .Select(user => new OrderUserSummaryDto(
+                user.Id,
+                user.Profile?.FirstName,
+                user.Profile?.LastName,
+                user.MobileNumber
+            ))
+            .ToList();
     }
 }

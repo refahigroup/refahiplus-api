@@ -5,7 +5,8 @@ using Refahi.Modules.Store.Domain.Entities;
 
 namespace Refahi.Modules.Store.Infrastructure.Persistence.Configurations;
 
-public sealed class VoucherRefundOverrideConfiguration : IEntityTypeConfiguration<VoucherRefundOverride>
+public sealed class VoucherRefundOverrideConfiguration
+    : IEntityTypeConfiguration<VoucherRefundOverride>
 {
     public void Configure(EntityTypeBuilder<VoucherRefundOverride> builder)
     {
@@ -20,12 +21,16 @@ public sealed class VoucherRefundOverrideConfiguration : IEntityTypeConfiguratio
         builder.HasIndex(x => x.OrderId).IsUnique();
         builder.HasIndex(x => x.IdempotencyKey).IsUnique();
         builder.HasIndex(x => x.CorrelationId).IsUnique();
-        builder.HasOne<StoreOrder>().WithMany().HasForeignKey(x => x.StoreOrderId)
+        builder
+            .HasOne<StoreOrder>()
+            .WithMany()
+            .HasForeignKey(x => x.StoreOrderId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
-public sealed class VoucherRefundOverrideAttemptConfiguration : IEntityTypeConfiguration<VoucherRefundOverrideAttempt>
+public sealed class VoucherRefundOverrideAttemptConfiguration
+    : IEntityTypeConfiguration<VoucherRefundOverrideAttempt>
 {
     public void Configure(EntityTypeBuilder<VoucherRefundOverrideAttempt> builder)
     {
@@ -36,7 +41,10 @@ public sealed class VoucherRefundOverrideAttemptConfiguration : IEntityTypeConfi
         builder.Property(x => x.FailureCode).HasMaxLength(128);
         builder.Property(x => x.FailureMessage).HasMaxLength(500);
         builder.HasIndex(x => new { x.VoucherRefundOverrideId, x.SequenceNumber }).IsUnique();
-        builder.HasOne<VoucherRefundOverride>().WithMany().HasForeignKey(x => x.VoucherRefundOverrideId)
+        builder
+            .HasOne<VoucherRefundOverride>()
+            .WithMany()
+            .HasForeignKey(x => x.VoucherRefundOverrideId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

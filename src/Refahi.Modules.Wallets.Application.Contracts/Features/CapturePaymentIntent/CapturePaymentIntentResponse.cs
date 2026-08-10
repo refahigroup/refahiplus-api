@@ -14,9 +14,7 @@ public sealed record CapturePaymentIntentResponse(
     string Currency,
     string Status,
     List<PaymentAllocationResponse> Allocations,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt
+);
 
-public sealed record PaymentAllocationResponse(
-    Guid WalletId,
-    long AmountMinor,
-    Guid LedgerEntryId);
+public sealed record PaymentAllocationResponse(Guid WalletId, long AmountMinor, Guid LedgerEntryId);

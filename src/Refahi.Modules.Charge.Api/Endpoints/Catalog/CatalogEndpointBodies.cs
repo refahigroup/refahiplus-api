@@ -3,7 +3,10 @@ using Refahi.Modules.Charge.Domain.Enums;
 
 namespace Refahi.Modules.Charge.Api.Endpoints;
 
-public sealed record OffersBody(string MobileNumber, ChargeOfferCategory Category = ChargeOfferCategory.All);
+public sealed record OffersBody(
+    string MobileNumber,
+    ChargeOfferCategory Category = ChargeOfferCategory.All
+);
 
 public sealed record MobileBody(string MobileNumber);
 
@@ -12,7 +15,8 @@ public sealed record EligibilityBody(
     string MobileNumber,
     long AmountMinor,
     string ProviderProductId,
-    int ProductCategory);
+    int ProductCategory
+);
 
 public sealed record ChargeQuoteBody(
     ChargeOperator Operator,
@@ -21,4 +25,5 @@ public sealed record ChargeQuoteBody(
     string? ProviderProductId,
     long? RequestedAmountMinor,
     int? PinCategoryId,
-    int PinCount = 1);
+    int PinCount = 1
+);

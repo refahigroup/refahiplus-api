@@ -11,28 +11,50 @@ public class GetAllOrdersEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/admin", async (
-            IMediator mediator,
-            int pageNumber = 1,
-            int pageSize = 20,
-            string? status = null,
-            Guid? userId = null,
-            string? sourceModule = null,
-            string? mobileNumber = null,
-            CancellationToken ct = default) =>
-        {
-            var result = await mediator.Send(
-                new GetAllOrdersQuery(pageNumber, pageSize, status, userId, sourceModule, mobileNumber), ct);
-            return Results.Ok(ApiResponseHelper.SuccessPaginated(result.Data, result.PageNumber, result.PageSize, result.TotalCount));
-        })
-        .WithName("Orders.GetAllOrders")
-        .WithTags("Orders")
-        .RequireAuthorization("AdminOnly")
-        .Produces<PaginatedResponse<object>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status403Forbidden);
+        routes
+            .MapGet(
+                "/admin",
+                async (
+                    IMediator mediator,
+                    int pageNumber = 1,
+                    int pageSize = 20,
+                    string? status = null,
+                    Guid? userId = null,
+                    string? sourceModule = null,
+                    string? mobileNumber = null,
+                    CancellationToken ct = default
+                ) =>
+                {
+                    var result = await mediator.Send(
+                        new GetAllOrdersQuery(
+                            pageNumber,
+                            pageSize,
+                            status,
+                            userId,
+                            sourceModule,
+                            mobileNumber
+                        ),
+                        ct
+                    );
+                    return Results.Ok(
+                        ApiResponseHelper.SuccessPaginated(
+                            result.Data,
+                            result.PageNumber,
+                            result.PageSize,
+                            result.TotalCount
+                        )
+                    );
+                }
+            )
+            .WithName("Orders.GetAllOrders")
+            .WithTags("Orders")
+            .RequireAuthorization("AdminOnly")
+            .Produces<PaginatedResponse<object>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden);
     }
 }

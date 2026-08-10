@@ -6,16 +6,21 @@ using Refahi.Modules.SupplyChain.Domain.Exceptions;
 
 namespace Refahi.Modules.SupplyChain.Application.Features.SupplierLinks.AddSupplierLink;
 
-public class AddSupplierLinkCommandHandler : IRequestHandler<AddSupplierLinkCommand, AddSupplierLinkResponse>
+public class AddSupplierLinkCommandHandler
+    : IRequestHandler<AddSupplierLinkCommand, AddSupplierLinkResponse>
 {
     private readonly ISupplierRepository _repository;
 
-    public AddSupplierLinkCommandHandler(ISupplierRepository repository)
-        => _repository = repository;
+    public AddSupplierLinkCommandHandler(ISupplierRepository repository) =>
+        _repository = repository;
 
-    public async Task<AddSupplierLinkResponse> Handle(AddSupplierLinkCommand request, CancellationToken cancellationToken)
+    public async Task<AddSupplierLinkResponse> Handle(
+        AddSupplierLinkCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var supplier = await _repository.GetByIdAsync(request.SupplierId, true, cancellationToken)
+        var supplier =
+            await _repository.GetByIdAsync(request.SupplierId, true, cancellationToken)
             ?? throw new SupplyChainDomainException("تامین‌کننده یافت نشد", "SUPPLIER_NOT_FOUND");
 
         var link = supplier.AddLink((SupplierLinkType)request.Type, request.Url, request.Label);

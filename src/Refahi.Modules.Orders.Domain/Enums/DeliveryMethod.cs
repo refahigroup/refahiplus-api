@@ -15,7 +15,7 @@ public enum DeliveryMethod : short
     RefahiDelivery = 2,
 
     /// <summary>تحویل حضوری از فروشگاه.</summary>
-    InStorePickup = 3
+    InStorePickup = 3,
 }
 
 /// <summary>
@@ -36,5 +36,5 @@ public enum DeliveryTimeSlot : short
     Slot_16_20 = 3,
 
     /// <summary>۱۸ تا ۲۲.</summary>
-    Slot_18_22 = 4
+    Slot_18_22 = 4,
 }

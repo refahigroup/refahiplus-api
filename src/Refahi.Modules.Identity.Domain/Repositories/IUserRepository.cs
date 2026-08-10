@@ -5,24 +5,45 @@ namespace Refahi.Modules.Identity.Domain.Repositories;
 public interface IUserRepository
 {
     Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<User?> GetByMobileNumberAsync(string mobileNumber, CancellationToken cancellationToken = default);
+    Task<User?> GetByMobileNumberAsync(
+        string mobileNumber,
+        CancellationToken cancellationToken = default
+    );
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default);
-    Task<User?> GetByMobileOrEmailAsync(string mobileOrEmail, CancellationToken cancellationToken = default);
-    Task<User?> GetByMobileOrEmailOrUsernameAsync(string loginIdentifier, CancellationToken cancellationToken = default);
-    Task<bool> ExistsByMobileNumberAsync(string mobileNumber, CancellationToken cancellationToken = default);
+    Task<User?> GetByMobileOrEmailAsync(
+        string mobileOrEmail,
+        CancellationToken cancellationToken = default
+    );
+    Task<User?> GetByMobileOrEmailOrUsernameAsync(
+        string loginIdentifier,
+        CancellationToken cancellationToken = default
+    );
+    Task<bool> ExistsByMobileNumberAsync(
+        string mobileNumber,
+        CancellationToken cancellationToken = default
+    );
     Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default);
-    Task<bool> ExistsByUsernameAsync(string username, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByUsernameAsync(
+        string username,
+        CancellationToken cancellationToken = default
+    );
     Task<(List<User> Items, int Total)> GetPagedAsync(
-        string? search, string? role, bool? isActive,
-        int page, int pageSize,
-        CancellationToken cancellationToken = default);
+        string? search,
+        string? role,
+        bool? isActive,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default
+    );
     Task<List<User>> GetByIdsAsync(
         IReadOnlyCollection<Guid> userIds,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
     Task<List<User>> SearchByMobileNumberAsync(
         string mobileNumber,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     Task UpdateAsync(User user, CancellationToken cancellationToken = default);
 }

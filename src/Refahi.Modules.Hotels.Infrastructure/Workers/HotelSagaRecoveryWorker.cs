@@ -17,7 +17,7 @@ public sealed class HotelSagaRecoveryWorker : BackgroundService
         HotelBookingSagaStatus.OrderCreated,
         HotelBookingSagaStatus.PaymentPending,
         HotelBookingSagaStatus.Paid,
-        HotelBookingSagaStatus.ProviderBookingStarted
+        HotelBookingSagaStatus.ProviderBookingStarted,
     ];
 
     private readonly IServiceScopeFactory _scopeFactory;
@@ -25,7 +25,8 @@ public sealed class HotelSagaRecoveryWorker : BackgroundService
 
     public HotelSagaRecoveryWorker(
         IServiceScopeFactory scopeFactory,
-        ILogger<HotelSagaRecoveryWorker> logger)
+        ILogger<HotelSagaRecoveryWorker> logger
+    )
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
@@ -55,25 +56,29 @@ public sealed class HotelSagaRecoveryWorker : BackgroundService
     private async Task RecoverOnceAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var sagaRepository = scope.ServiceProvider.GetRequiredService<IHotelBookingSagaRepository>();
+        var sagaRepository =
+            scope.ServiceProvider.GetRequiredService<IHotelBookingSagaRepository>();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
         var candidates = await sagaRepository.GetStuckAsync(
             CandidateStatuses,
             DateTime.UtcNow.AddMinutes(-3),
             25,
-            cancellationToken);
+            cancellationToken
+        );
 
         foreach (var saga in candidates)
         {
-            using var logScope = _logger.BeginScope(new Dictionary<string, object?>
-            {
-                ["UserId"] = saga.UserId,
-                ["SagaId"] = saga.SagaId,
-                ["HotelRequestId"] = saga.HotelRequestId,
-                ["OrderId"] = saga.OrderId,
-                ["ProviderBookingCode"] = null
-            });
+            using var logScope = _logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["UserId"] = saga.UserId,
+                    ["SagaId"] = saga.SagaId,
+                    ["HotelRequestId"] = saga.HotelRequestId,
+                    ["OrderId"] = saga.OrderId,
+                    ["ProviderBookingCode"] = null,
+                }
+            );
 
             try
             {
@@ -82,29 +87,43 @@ public sealed class HotelSagaRecoveryWorker : BackgroundService
                     _logger.LogWarning(
                         "Recovering hotel saga without order. SagaId={SagaId}, RequestId={RequestId}",
                         saga.SagaId,
-                        saga.HotelRequestId);
+                        saga.HotelRequestId
+                    );
 
-                    await mediator.Send(new ConvertHotelRequestToOrderCommand(
-                        saga.HotelRequestId,
-                        saga.UserId,
-                        $"hotel-saga-recovery-{saga.SagaId:N}"), cancellationToken);
+                    await mediator.Send(
+                        new ConvertHotelRequestToOrderCommand(
+                            saga.HotelRequestId,
+                            saga.UserId,
+                            $"hotel-saga-recovery-{saga.SagaId:N}"
+                        ),
+                        cancellationToken
+                    );
 
                     continue;
                 }
 
-                if (saga.Status is HotelBookingSagaStatus.Paid or HotelBookingSagaStatus.ProviderBookingStarted)
+                if (
+                    saga.Status
+                    is HotelBookingSagaStatus.Paid
+                        or HotelBookingSagaStatus.ProviderBookingStarted
+                )
                 {
                     _logger.LogWarning(
                         "Recovering paid hotel saga. SagaId={SagaId}, OrderId={OrderId}, Status={Status}",
                         saga.SagaId,
                         saga.OrderId,
-                        saga.Status);
+                        saga.Status
+                    );
 
-                    await mediator.Send(new FinalizeHotelBookingAfterPaymentCommand(
-                        saga.OrderId.Value,
-                        saga.UserId,
-                        Guid.Empty,
-                        saga.SagaId), cancellationToken);
+                    await mediator.Send(
+                        new FinalizeHotelBookingAfterPaymentCommand(
+                            saga.OrderId.Value,
+                            saga.UserId,
+                            Guid.Empty,
+                            saga.SagaId
+                        ),
+                        cancellationToken
+                    );
                 }
             }
             catch (Exception ex)
@@ -114,7 +133,8 @@ public sealed class HotelSagaRecoveryWorker : BackgroundService
                     "Hotel saga recovery failed for saga. SagaId={SagaId}, HotelRequestId={HotelRequestId}, OrderId={OrderId}",
                     saga.SagaId,
                     saga.HotelRequestId,
-                    saga.OrderId);
+                    saga.OrderId
+                );
             }
         }
     }

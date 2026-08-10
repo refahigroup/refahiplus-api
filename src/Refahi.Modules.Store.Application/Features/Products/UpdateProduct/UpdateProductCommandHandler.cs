@@ -5,16 +5,21 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Products.UpdateProduct;
 
-public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand, UpdateProductResponse>
+public class UpdateProductCommandHandler
+    : IRequestHandler<UpdateProductCommand, UpdateProductResponse>
 {
     private readonly IProductRepository _productRepo;
 
-    public UpdateProductCommandHandler(IProductRepository productRepo)
-        => _productRepo = productRepo;
+    public UpdateProductCommandHandler(IProductRepository productRepo) =>
+        _productRepo = productRepo;
 
-    public async Task<UpdateProductResponse> Handle(UpdateProductCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateProductResponse> Handle(
+        UpdateProductCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.Id, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         product.UpdateInfo(request.Title, request.Description, request.IsAvailable);

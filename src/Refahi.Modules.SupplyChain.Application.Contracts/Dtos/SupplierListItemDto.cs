@@ -8,4 +8,5 @@ public sealed record SupplierListItemDto(
     short Status,
     string StatusName,
     int? CityId,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);

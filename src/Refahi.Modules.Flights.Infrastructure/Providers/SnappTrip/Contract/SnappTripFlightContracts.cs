@@ -17,7 +17,8 @@ internal sealed class SnappTripSearchRequest
     public bool? IsDomestic { get; set; }
 
     [JsonPropertyName("originDestinationInformations")]
-    public List<SnappTripOriginDestinationInformation> OriginDestinationInformations { get; set; } = new();
+    public List<SnappTripOriginDestinationInformation> OriginDestinationInformations { get; set; } =
+        new();
 
     [JsonPropertyName("travelPreference")]
     public SnappTripTravelPreference? TravelPreference { get; set; }

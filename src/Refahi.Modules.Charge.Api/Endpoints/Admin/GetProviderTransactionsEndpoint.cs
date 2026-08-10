@@ -16,11 +16,23 @@ public sealed class GetProviderTransactionsEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapPost("admin/provider/transactions", async ([FromBody] ProviderReportBody body, ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetProviderTransactionReportQuery(
-                body.PageNumber,
-                body.FromDate,
-                body.ToDate), ct))))
+        routes
+            .MapPost(
+                "admin/provider/transactions",
+                async ([FromBody] ProviderReportBody body, ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(
+                                new GetProviderTransactionReportQuery(
+                                    body.PageNumber,
+                                    body.FromDate,
+                                    body.ToDate
+                                ),
+                                ct
+                            )
+                        )
+                    )
+            )
             .RequireAuthorization("AdminOnly")
             .WithName("Charge.Admin.ProviderTransactions")
             .WithTags("Charge.Admin")

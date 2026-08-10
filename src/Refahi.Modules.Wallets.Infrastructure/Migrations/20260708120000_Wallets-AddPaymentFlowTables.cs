@@ -24,16 +24,30 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 idempotency_key = table.Column<string>(type: "text", nullable: false),
                 status = table.Column<short>(type: "smallint", nullable: false),
                 amount_minor = table.Column<long>(type: "bigint", nullable: false),
-                currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
-                created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                captured_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                released_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                metadata = table.Column<string>(type: "jsonb", nullable: true)
+                currency = table.Column<string>(
+                    type: "character varying(3)",
+                    maxLength: 3,
+                    nullable: false
+                ),
+                created_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: false
+                ),
+                captured_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: true
+                ),
+                released_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: true
+                ),
+                metadata = table.Column<string>(type: "jsonb", nullable: true),
             },
             constraints: table =>
             {
                 table.PrimaryKey("PK_payment_intents", x => x.intent_id);
-            });
+            }
+        );
 
         migrationBuilder.CreateTable(
             name: "payment_intent_allocations",
@@ -44,7 +58,7 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 intent_id = table.Column<Guid>(type: "uuid", nullable: false),
                 wallet_id = table.Column<Guid>(type: "uuid", nullable: false),
                 amount_minor = table.Column<long>(type: "bigint", nullable: false),
-                sequence = table.Column<int>(type: "integer", nullable: false)
+                sequence = table.Column<int>(type: "integer", nullable: false),
             },
             constraints: table =>
             {
@@ -55,15 +69,18 @@ public partial class WalletsAddPaymentFlowTables : Migration
                     principalSchema: "wallets",
                     principalTable: "payment_intents",
                     principalColumn: "intent_id",
-                    onDelete: ReferentialAction.Cascade);
+                    onDelete: ReferentialAction.Cascade
+                );
                 table.ForeignKey(
                     name: "FK_payment_intent_allocations_wallets",
                     column: x => x.wallet_id,
                     principalSchema: "wallets",
                     principalTable: "wallets",
                     principalColumn: "wallet_id",
-                    onDelete: ReferentialAction.Restrict);
-            });
+                    onDelete: ReferentialAction.Restrict
+                );
+            }
+        );
 
         migrationBuilder.CreateTable(
             name: "intent_operation_idempotency",
@@ -76,8 +93,14 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 operation_type = table.Column<short>(type: "smallint", nullable: false),
                 status = table.Column<short>(type: "smallint", nullable: false),
                 result_payment_id = table.Column<Guid>(type: "uuid", nullable: true),
-                created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                completed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                created_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: false
+                ),
+                completed_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: true
+                ),
             },
             constraints: table =>
             {
@@ -88,8 +111,10 @@ public partial class WalletsAddPaymentFlowTables : Migration
                     principalSchema: "wallets",
                     principalTable: "payment_intents",
                     principalColumn: "intent_id",
-                    onDelete: ReferentialAction.Cascade);
-            });
+                    onDelete: ReferentialAction.Cascade
+                );
+            }
+        );
 
         migrationBuilder.CreateTable(
             name: "payments",
@@ -101,9 +126,16 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 order_id = table.Column<Guid>(type: "uuid", nullable: false),
                 status = table.Column<short>(type: "smallint", nullable: false),
                 amount_minor = table.Column<long>(type: "bigint", nullable: false),
-                currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
-                completed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                metadata = table.Column<string>(type: "jsonb", nullable: true)
+                currency = table.Column<string>(
+                    type: "character varying(3)",
+                    maxLength: 3,
+                    nullable: false
+                ),
+                completed_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: false
+                ),
+                metadata = table.Column<string>(type: "jsonb", nullable: true),
             },
             constraints: table =>
             {
@@ -114,8 +146,10 @@ public partial class WalletsAddPaymentFlowTables : Migration
                     principalSchema: "wallets",
                     principalTable: "payment_intents",
                     principalColumn: "intent_id",
-                    onDelete: ReferentialAction.Restrict);
-            });
+                    onDelete: ReferentialAction.Restrict
+                );
+            }
+        );
 
         migrationBuilder.CreateTable(
             name: "payment_allocations",
@@ -127,7 +161,7 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 wallet_id = table.Column<Guid>(type: "uuid", nullable: false),
                 amount_minor = table.Column<long>(type: "bigint", nullable: false),
                 sequence = table.Column<int>(type: "integer", nullable: false),
-                ledger_entry_id = table.Column<Guid>(type: "uuid", nullable: false)
+                ledger_entry_id = table.Column<Guid>(type: "uuid", nullable: false),
             },
             constraints: table =>
             {
@@ -138,22 +172,26 @@ public partial class WalletsAddPaymentFlowTables : Migration
                     principalSchema: "wallets",
                     principalTable: "payments",
                     principalColumn: "payment_id",
-                    onDelete: ReferentialAction.Cascade);
+                    onDelete: ReferentialAction.Cascade
+                );
                 table.ForeignKey(
                     name: "FK_payment_allocations_wallets",
                     column: x => x.wallet_id,
                     principalSchema: "wallets",
                     principalTable: "wallets",
                     principalColumn: "wallet_id",
-                    onDelete: ReferentialAction.Restrict);
+                    onDelete: ReferentialAction.Restrict
+                );
                 table.ForeignKey(
                     name: "FK_payment_allocations_ledger_entries",
                     column: x => x.ledger_entry_id,
                     principalSchema: "wallets",
                     principalTable: "ledger_entries",
                     principalColumn: "ledger_entry_id",
-                    onDelete: ReferentialAction.Restrict);
-            });
+                    onDelete: ReferentialAction.Restrict
+                );
+            }
+        );
 
         migrationBuilder.CreateTable(
             name: "refunds",
@@ -165,11 +203,21 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 order_id = table.Column<Guid>(type: "uuid", nullable: false),
                 status = table.Column<short>(type: "smallint", nullable: false),
                 amount_minor = table.Column<long>(type: "bigint", nullable: false),
-                currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
+                currency = table.Column<string>(
+                    type: "character varying(3)",
+                    maxLength: 3,
+                    nullable: false
+                ),
                 reason = table.Column<string>(type: "text", nullable: true),
-                created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                completed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                metadata = table.Column<string>(type: "jsonb", nullable: true)
+                created_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: false
+                ),
+                completed_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: false
+                ),
+                metadata = table.Column<string>(type: "jsonb", nullable: true),
             },
             constraints: table =>
             {
@@ -180,8 +228,10 @@ public partial class WalletsAddPaymentFlowTables : Migration
                     principalSchema: "wallets",
                     principalTable: "payments",
                     principalColumn: "payment_id",
-                    onDelete: ReferentialAction.Restrict);
-            });
+                    onDelete: ReferentialAction.Restrict
+                );
+            }
+        );
 
         migrationBuilder.CreateTable(
             name: "refund_operation_idempotency",
@@ -193,8 +243,14 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 idempotency_key = table.Column<string>(type: "text", nullable: false),
                 status = table.Column<short>(type: "smallint", nullable: false),
                 result_refund_id = table.Column<Guid>(type: "uuid", nullable: true),
-                created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                completed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                created_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: false
+                ),
+                completed_at = table.Column<DateTimeOffset>(
+                    type: "timestamp with time zone",
+                    nullable: true
+                ),
             },
             constraints: table =>
             {
@@ -205,8 +261,10 @@ public partial class WalletsAddPaymentFlowTables : Migration
                     principalSchema: "wallets",
                     principalTable: "payments",
                     principalColumn: "payment_id",
-                    onDelete: ReferentialAction.Cascade);
-            });
+                    onDelete: ReferentialAction.Cascade
+                );
+            }
+        );
 
         migrationBuilder.CreateTable(
             name: "refund_allocations",
@@ -218,7 +276,7 @@ public partial class WalletsAddPaymentFlowTables : Migration
                 wallet_id = table.Column<Guid>(type: "uuid", nullable: false),
                 amount_minor = table.Column<long>(type: "bigint", nullable: false),
                 sequence = table.Column<int>(type: "integer", nullable: false),
-                ledger_entry_id = table.Column<Guid>(type: "uuid", nullable: false)
+                ledger_entry_id = table.Column<Guid>(type: "uuid", nullable: false),
             },
             constraints: table =>
             {
@@ -229,122 +287,141 @@ public partial class WalletsAddPaymentFlowTables : Migration
                     principalSchema: "wallets",
                     principalTable: "refunds",
                     principalColumn: "refund_id",
-                    onDelete: ReferentialAction.Cascade);
+                    onDelete: ReferentialAction.Cascade
+                );
                 table.ForeignKey(
                     name: "FK_refund_allocations_wallets",
                     column: x => x.wallet_id,
                     principalSchema: "wallets",
                     principalTable: "wallets",
                     principalColumn: "wallet_id",
-                    onDelete: ReferentialAction.Restrict);
+                    onDelete: ReferentialAction.Restrict
+                );
                 table.ForeignKey(
                     name: "FK_refund_allocations_ledger_entries",
                     column: x => x.ledger_entry_id,
                     principalSchema: "wallets",
                     principalTable: "ledger_entries",
                     principalColumn: "ledger_entry_id",
-                    onDelete: ReferentialAction.Restrict);
-            });
+                    onDelete: ReferentialAction.Restrict
+                );
+            }
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_payment_intents_order_idempotency",
             schema: "wallets",
             table: "payment_intents",
             columns: new[] { "order_id", "idempotency_key" },
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_payment_intent_allocations_intent_sequence",
             schema: "wallets",
             table: "payment_intent_allocations",
             columns: new[] { "intent_id", "sequence" },
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ix_payment_intent_allocations_wallet",
             schema: "wallets",
             table: "payment_intent_allocations",
-            column: "wallet_id");
+            column: "wallet_id"
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_intent_operation_idempotency_key",
             schema: "wallets",
             table: "intent_operation_idempotency",
             columns: new[] { "intent_id", "idempotency_key", "operation_type" },
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_payments_intent",
             schema: "wallets",
             table: "payments",
             column: "intent_id",
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ix_payments_order",
             schema: "wallets",
             table: "payments",
-            column: "order_id");
+            column: "order_id"
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_payment_allocations_payment_sequence",
             schema: "wallets",
             table: "payment_allocations",
             columns: new[] { "payment_id", "sequence" },
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ix_payment_allocations_wallet",
             schema: "wallets",
             table: "payment_allocations",
-            column: "wallet_id");
+            column: "wallet_id"
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_payment_allocations_ledger_entry",
             schema: "wallets",
             table: "payment_allocations",
             column: "ledger_entry_id",
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_refunds_payment",
             schema: "wallets",
             table: "refunds",
             column: "payment_id",
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ix_refunds_order",
             schema: "wallets",
             table: "refunds",
-            column: "order_id");
+            column: "order_id"
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_refund_operation_idempotency_key",
             schema: "wallets",
             table: "refund_operation_idempotency",
             columns: new[] { "payment_id", "idempotency_key" },
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_refund_allocations_refund_sequence",
             schema: "wallets",
             table: "refund_allocations",
             columns: new[] { "refund_id", "sequence" },
-            unique: true);
+            unique: true
+        );
 
         migrationBuilder.CreateIndex(
             name: "ix_refund_allocations_wallet",
             schema: "wallets",
             table: "refund_allocations",
-            column: "wallet_id");
+            column: "wallet_id"
+        );
 
         migrationBuilder.CreateIndex(
             name: "ux_refund_allocations_ledger_entry",
             schema: "wallets",
             table: "refund_allocations",
             column: "ledger_entry_id",
-            unique: true);
+            unique: true
+        );
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)

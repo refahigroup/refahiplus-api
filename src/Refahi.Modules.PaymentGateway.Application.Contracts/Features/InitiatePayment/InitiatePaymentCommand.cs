@@ -1,6 +1,6 @@
+using System;
 using MediatR;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
-using System;
 
 namespace Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
 

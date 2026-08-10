@@ -16,7 +16,8 @@ public class GetShopProductVariantBackfillAuditQueryHandler
     public GetShopProductVariantBackfillAuditQueryHandler(
         IShopProductRepository shopProductRepo,
         IProductRepository productRepo,
-        IShopRepository shopRepo)
+        IShopRepository shopRepo
+    )
     {
         _shopProductRepo = shopProductRepo;
         _productRepo = productRepo;
@@ -25,22 +26,26 @@ public class GetShopProductVariantBackfillAuditQueryHandler
 
     public async Task<ShopProductVariantBackfillAuditDto> Handle(
         GetShopProductVariantBackfillAuditQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var detailLimit = Math.Clamp(request.DetailLimit, 0, MaxDetailLimit);
 
         var shopProducts = await _shopProductRepo.ListForVariantBackfillAsync(
             request.ShopId,
             request.ProductId,
-            cancellationToken);
+            cancellationToken
+        );
 
         var products = await _productRepo.GetByIdsForAdminWithDetailsAsync(
             shopProducts.Select(sp => sp.ProductId).Distinct().ToArray(),
-            cancellationToken);
+            cancellationToken
+        );
 
         var shops = await _shopRepo.GetByIdsAsync(
             shopProducts.Select(sp => sp.ShopId).Distinct().ToArray(),
-            cancellationToken);
+            cancellationToken
+        );
 
         var productMap = products.ToDictionary(p => p.Id, p => p);
         var shopMap = shops.ToDictionary(s => s.Id, s => s);
@@ -52,7 +57,9 @@ public class GetShopProductVariantBackfillAuditQueryHandler
 
         foreach (var shopProduct in shopProducts)
         {
-            if (!productMap.TryGetValue(shopProduct.ProductId, out var product) || product.IsDeleted)
+            if (
+                !productMap.TryGetValue(shopProduct.ProductId, out var product) || product.IsDeleted
+            )
                 continue;
 
             var variantIds = product.Variants.Select(v => v.Id).ToHashSet();
@@ -61,8 +68,10 @@ public class GetShopProductVariantBackfillAuditQueryHandler
 
             productsWithVariants++;
 
-            var existingOfferingCount = shopProduct.VariantOfferings
-                .Where(v => !v.IsDeleted && variantIds.Contains(v.ProductVariantId))
+            var existingOfferingCount = shopProduct
+                .VariantOfferings.Where(v =>
+                    !v.IsDeleted && variantIds.Contains(v.ProductVariantId)
+                )
                 .Select(v => v.ProductVariantId)
                 .Distinct()
                 .Count();
@@ -74,15 +83,20 @@ public class GetShopProductVariantBackfillAuditQueryHandler
             if (missingOfferingCount <= 0 || items.Count >= detailLimit)
                 continue;
 
-            items.Add(new ShopProductVariantBackfillAuditItemDto(
-                shopProduct.ShopId,
-                shopMap.TryGetValue(shopProduct.ShopId, out var shop) ? shop.Name : string.Empty,
-                product.Id,
-                product.Title,
-                shopProduct.Id,
-                variantIds.Count,
-                existingOfferingCount,
-                missingOfferingCount));
+            items.Add(
+                new ShopProductVariantBackfillAuditItemDto(
+                    shopProduct.ShopId,
+                    shopMap.TryGetValue(shopProduct.ShopId, out var shop)
+                        ? shop.Name
+                        : string.Empty,
+                    product.Id,
+                    product.Title,
+                    shopProduct.Id,
+                    variantIds.Count,
+                    existingOfferingCount,
+                    missingOfferingCount
+                )
+            );
         }
 
         return new ShopProductVariantBackfillAuditDto(
@@ -90,6 +104,7 @@ public class GetShopProductVariantBackfillAuditQueryHandler
             productsWithVariants,
             existingOfferings,
             missingOfferings,
-            items);
+            items
+        );
     }
 }

@@ -8,5 +8,8 @@ namespace Refahi.Modules.Identity.Application.Contracts.Interfaces;
 public interface IAuthService
 {
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<User?> GetByMobileOrEmailAsync(string mobileOrEmail, CancellationToken cancellationToken = default);
+    Task<User?> GetByMobileOrEmailAsync(
+        string mobileOrEmail,
+        CancellationToken cancellationToken = default
+    );
 }

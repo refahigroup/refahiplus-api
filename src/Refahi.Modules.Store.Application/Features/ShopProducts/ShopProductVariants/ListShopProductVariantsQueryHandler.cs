@@ -14,7 +14,8 @@ public class ListShopProductVariantsQueryHandler
 
     public ListShopProductVariantsQueryHandler(
         IShopProductRepository shopProductRepo,
-        IProductRepository productRepo)
+        IProductRepository productRepo
+    )
     {
         _shopProductRepo = shopProductRepo;
         _productRepo = productRepo;
@@ -22,18 +23,24 @@ public class ListShopProductVariantsQueryHandler
 
     public async Task<IReadOnlyList<ShopProductVariantDto>> Handle(
         ListShopProductVariantsQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var shopProduct = await _shopProductRepo.GetWithVariantOfferingsAsync(
-            request.ShopId,
-            request.ProductId,
-            cancellationToken)
-            ?? throw new StoreDomainException("محصول در این فروشگاه یافت نشد", "SHOP_PRODUCT_NOT_FOUND");
+        var shopProduct =
+            await _shopProductRepo.GetWithVariantOfferingsAsync(
+                request.ShopId,
+                request.ProductId,
+                cancellationToken
+            )
+            ?? throw new StoreDomainException(
+                "محصول در این فروشگاه یافت نشد",
+                "SHOP_PRODUCT_NOT_FOUND"
+            );
 
         var product = await _productRepo.GetByIdForAdminAsync(request.ProductId, cancellationToken);
 
-        return shopProduct.VariantOfferings
-            .Where(v => !v.IsDeleted)
+        return shopProduct
+            .VariantOfferings.Where(v => !v.IsDeleted)
             .OrderByDescending(v => v.CreatedAt)
             .Select(v => ShopProductVariantMapper.ToDto(v, product))
             .ToArray();

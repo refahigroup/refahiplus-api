@@ -16,7 +16,10 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand, Remov
         _userRepository = userRepository;
     }
 
-    public async Task<RemoveRoleResult> Handle(RemoveRoleCommand request, CancellationToken cancellationToken)
+    public async Task<RemoveRoleResult> Handle(
+        RemoveRoleCommand request,
+        CancellationToken cancellationToken
+    )
     {
         // Validation
         if (string.IsNullOrWhiteSpace(request.Role))

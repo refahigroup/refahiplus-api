@@ -32,7 +32,7 @@ public sealed class Province
             Name = name.Trim(),
             Slug = slug.Trim().ToLowerInvariant(),
             SortOrder = sortOrder,
-            IsActive = true
+            IsActive = true,
         };
     }
 

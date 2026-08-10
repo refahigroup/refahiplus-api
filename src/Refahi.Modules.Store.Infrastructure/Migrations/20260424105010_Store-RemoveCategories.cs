@@ -11,9 +11,7 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "categories",
-                schema: "store");
+            migrationBuilder.DropTable(name: "categories", schema: "store");
         }
 
         /// <inheritdoc />
@@ -24,16 +22,36 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 schema: "store",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CategoryCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    ImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
+                    CategoryCode = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
+                    ImageUrl = table.Column<string>(
+                        type: "character varying(500)",
+                        maxLength: 500,
+                        nullable: true
+                    ),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     ModuleId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Name = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
                     ParentId = table.Column<int>(type: "integer", nullable: true),
-                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                    Slug = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -44,34 +62,40 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "categories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+                        onDelete: ReferentialAction.Restrict
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_CategoryCode",
                 schema: "store",
                 table: "categories",
                 column: "CategoryCode",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_ModuleId",
                 schema: "store",
                 table: "categories",
-                column: "ModuleId");
+                column: "ModuleId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_ParentId",
                 schema: "store",
                 table: "categories",
-                column: "ParentId");
+                column: "ParentId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_Slug",
                 schema: "store",
                 table: "categories",
                 column: "Slug",
-                unique: true);
+                unique: true
+            );
         }
     }
 }

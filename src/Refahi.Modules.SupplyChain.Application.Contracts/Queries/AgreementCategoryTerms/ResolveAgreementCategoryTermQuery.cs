@@ -7,18 +7,21 @@ public sealed record ResolveAgreementCategoryTermQuery(
     Guid SupplierId,
     int CategoryId,
     short SalesChannel,
-    DateTimeOffset AtUtc) : IRequest<ResolvedAgreementCategoryTermDto?>;
+    DateTimeOffset AtUtc
+) : IRequest<ResolvedAgreementCategoryTermDto?>;
 
 public sealed record AgreementCategoryTermResolutionRequest(
     Guid SupplierId,
     int CategoryId,
     short SalesChannel,
-    DateTimeOffset AtUtc);
+    DateTimeOffset AtUtc
+);
 
 public sealed record AgreementCategoryTermBatchResult(
     AgreementCategoryTermResolutionRequest Request,
-    ResolvedAgreementCategoryTermDto? Term);
+    ResolvedAgreementCategoryTermDto? Term
+);
 
 public sealed record ResolveAgreementCategoryTermsBatchQuery(
-    IReadOnlyList<AgreementCategoryTermResolutionRequest> Requests)
-    : IRequest<IReadOnlyList<AgreementCategoryTermBatchResult>>;
+    IReadOnlyList<AgreementCategoryTermResolutionRequest> Requests
+) : IRequest<IReadOnlyList<AgreementCategoryTermBatchResult>>;

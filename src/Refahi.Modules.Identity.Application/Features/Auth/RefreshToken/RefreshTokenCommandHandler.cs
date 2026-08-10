@@ -14,18 +14,25 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
 
     public RefreshTokenCommandHandler(
         IRefreshTokenRepository refreshTokenRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository
+    )
     {
         _refreshTokenRepository = refreshTokenRepository;
         _userRepository = userRepository;
     }
 
-    public async Task<RefreshTokenResult> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
+    public async Task<RefreshTokenResult> Handle(
+        RefreshTokenCommand request,
+        CancellationToken cancellationToken
+    )
     {
         // Note: Basic validation handled by FluentValidation
 
         // Find refresh token in database
-        var refreshToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken, cancellationToken);
+        var refreshToken = await _refreshTokenRepository.GetByTokenAsync(
+            request.RefreshToken,
+            cancellationToken
+        );
 
         if (refreshToken == null)
         {
@@ -73,10 +80,10 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         // Return user data - token generation will be handled in the endpoint layer
         return new RefreshTokenResult(
             Success: true,
-            AccessToken: null,  // Will be set by endpoint
-            AccessTokenExpiresAt: null,  // Will be set by endpoint
-            RefreshToken: null,  // Will be set by endpoint
-            RefreshTokenExpiresAt: null,  // Will be set by endpoint
+            AccessToken: null, // Will be set by endpoint
+            AccessTokenExpiresAt: null, // Will be set by endpoint
+            RefreshToken: null, // Will be set by endpoint
+            RefreshTokenExpiresAt: null, // Will be set by endpoint
             UserId: user.Id,
             Username: user.MobileNumber ?? user.Email ?? "",
             Roles: string.Join(",", user.Roles?.Select(r => r.Role) ?? new[] { "User" })

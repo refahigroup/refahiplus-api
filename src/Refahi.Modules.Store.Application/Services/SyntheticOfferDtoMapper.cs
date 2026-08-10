@@ -11,11 +11,16 @@ internal static class SyntheticOfferDtoMapper
     public static SyntheticOfferDto MapOffer(
         SyntheticOfferReadModel row,
         AgreementProductDto agreementProduct,
-        IPathService pathService)
+        IPathService pathService
+    )
     {
         var discountPercent = row.DiscountedPriceMinor.HasValue
-            ? (int?)Math.Round(
-                (row.OriginalPriceMinor - row.DiscountedPriceMinor.Value) * 100m / row.OriginalPriceMinor)
+            ? (int?)
+                Math.Round(
+                    (row.OriginalPriceMinor - row.DiscountedPriceMinor.Value)
+                        * 100m
+                        / row.OriginalPriceMinor
+                )
             : null;
 
         return new SyntheticOfferDto(
@@ -55,7 +60,9 @@ internal static class SyntheticOfferDtoMapper
                 row.ProductId,
                 row.VariantId,
                 row.SessionId,
-                row.FixedUsageDate),
-            agreementProduct.PricingMode == 2 ? "InPerson" : "Fixed");
+                row.FixedUsageDate
+            ),
+            agreementProduct.PricingMode == 2 ? "InPerson" : "Fixed"
+        );
     }
 }

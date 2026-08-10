@@ -15,8 +15,16 @@ public sealed class GetProviderChannelsEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("admin/provider/channels", async (ISender sender, CancellationToken ct)
-            => Results.Ok(ApiResponseHelper.Success(await sender.Send(new GetProviderChannelsQuery(), ct))))
+        routes
+            .MapGet(
+                "admin/provider/channels",
+                async (ISender sender, CancellationToken ct) =>
+                    Results.Ok(
+                        ApiResponseHelper.Success(
+                            await sender.Send(new GetProviderChannelsQuery(), ct)
+                        )
+                    )
+            )
             .RequireAuthorization("AdminOnly")
             .WithName("Charge.Admin.ProviderChannels")
             .WithTags("Charge.Admin")

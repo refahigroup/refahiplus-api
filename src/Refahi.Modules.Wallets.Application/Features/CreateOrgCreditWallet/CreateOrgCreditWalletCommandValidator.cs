@@ -4,7 +4,8 @@ using Refahi.Shared.Monetary;
 
 namespace Refahi.Modules.Wallets.Application.Features.CreateOrgCreditWallet;
 
-public sealed class CreateOrgCreditWalletCommandValidator : AbstractValidator<CreateOrgCreditWalletCommand>
+public sealed class CreateOrgCreditWalletCommandValidator
+    : AbstractValidator<CreateOrgCreditWalletCommand>
 {
     public CreateOrgCreditWalletCommandValidator()
     {

@@ -21,7 +21,8 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
         IShopProductRepository shopProductRepo,
         IReviewRepository reviewRepo,
         IMediator mediator,
-        IPathService pathService)
+        IPathService pathService
+    )
     {
         _productRepo = productRepo;
         _shopProductRepo = shopProductRepo;
@@ -30,7 +31,10 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
         _pathService = pathService;
     }
 
-    public async Task<ProductDetailDto?> Handle(AdminGetProductQuery request, CancellationToken cancellationToken)
+    public async Task<ProductDetailDto?> Handle(
+        AdminGetProductQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var product = await _productRepo.GetByIdForAdminAsync(request.ProductId, cancellationToken);
         if (product is null)
@@ -39,79 +43,146 @@ public class AdminGetProductQueryHandler : IRequestHandler<AdminGetProductQuery,
         var isCatalogV3 = product.AgreementProductId == Guid.Empty;
         var ap = isCatalogV3
             ? null
-            : await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
-        var salesModel = isCatalogV3 ? product.SalesModel : ap is null ? (SalesModel?)null : (SalesModel)ap.SalesModel;
+            : await _mediator.Send(
+                new GetAgreementProductByIdQuery(product.AgreementProductId),
+                cancellationToken
+            );
+        var salesModel =
+            isCatalogV3 ? product.SalesModel
+            : ap is null ? (SalesModel?)null
+            : (SalesModel)ap.SalesModel;
         var sp = isCatalogV3
             ? null
-            : (await _shopProductRepo.GetByProductAsync(product.Id, isActive: null, 1, 1, cancellationToken)).Items.FirstOrDefault();
+            : (
+                await _shopProductRepo.GetByProductAsync(
+                    product.Id,
+                    isActive: null,
+                    1,
+                    1,
+                    cancellationToken
+                )
+            ).Items.FirstOrDefault();
 
         var averageRating = await _reviewRepo.GetAverageRatingAsync(product.Id, cancellationToken);
-        var (_, reviewTotal) = await _reviewRepo.GetPagedAsync(product.Id, approvedOnly: true, page: 1, pageSize: 1, cancellationToken);
+        var (_, reviewTotal) = await _reviewRepo.GetPagedAsync(
+            product.Id,
+            approvedOnly: true,
+            page: 1,
+            pageSize: 1,
+            cancellationToken
+        );
 
-        var images = product.Images
-            .OrderBy(i => i.SortOrder)
-            .Select(i => new ProductImageDto(i.Id, _pathService.MakeAbsoluteMediaUrl(i.ImageUrl), i.IsMain, i.SortOrder))
+        var images = product
+            .Images.OrderBy(i => i.SortOrder)
+            .Select(i => new ProductImageDto(
+                i.Id,
+                _pathService.MakeAbsoluteMediaUrl(i.ImageUrl),
+                i.IsMain,
+                i.SortOrder
+            ))
             .ToList();
 
-        var variantAttributes = product.VariantAttributes
-            .OrderBy(a => a.SortOrder)
+        var variantAttributes = product
+            .VariantAttributes.OrderBy(a => a.SortOrder)
             .Select(a => new VariantAttributeDto(
                 a.Id,
                 a.Name,
                 a.SortOrder,
-                a.Values
-                    .OrderBy(v => v.SortOrder)
+                a.Values.OrderBy(v => v.SortOrder)
                     .Select(v => new VariantAttributeValueDto(v.Id, v.Value, v.SortOrder))
-                    .ToList()))
+                    .ToList()
+            ))
             .ToList();
 
-        var variants = product.Variants
-            .Select(v => new ProductVariantDto(
-                v.Id, v.SKU,
+        var variants = product
+            .Variants.Select(v => new ProductVariantDto(
+                v.Id,
+                v.SKU,
                 v.ImageUrl is null ? null : _pathService.MakeAbsoluteMediaUrl(v.ImageUrl),
                 v.StockCount,
-                v.PriceMinor, v.DiscountedPriceMinor,
-                v.FromDate, v.ToDate, v.CapacityType, v.Capacity, v.RequiresUsageDate,
+                v.PriceMinor,
+                v.DiscountedPriceMinor,
+                v.FromDate,
+                v.ToDate,
+                v.CapacityType,
+                v.Capacity,
+                v.RequiresUsageDate,
                 salesModel.HasValue ? v.IsAvailableFor(salesModel.Value) : v.IsAvailable,
                 v.Combinations.Select(c =>
-                {
-                    var attr = product.VariantAttributes.FirstOrDefault(a => a.Id == c.VariantAttributeId);
-                    var val = attr?.Values.FirstOrDefault(vv => vv.Id == c.VariantAttributeValueId);
-                    return new VariantCombinationDto(
-                        c.VariantAttributeId, attr?.Name ?? string.Empty,
-                        c.VariantAttributeValueId, val?.Value ?? string.Empty);
-                }).ToList()))
+                    {
+                        var attr = product.VariantAttributes.FirstOrDefault(a =>
+                            a.Id == c.VariantAttributeId
+                        );
+                        var val = attr?.Values.FirstOrDefault(vv =>
+                            vv.Id == c.VariantAttributeValueId
+                        );
+                        return new VariantCombinationDto(
+                            c.VariantAttributeId,
+                            attr?.Name ?? string.Empty,
+                            c.VariantAttributeValueId,
+                            val?.Value ?? string.Empty
+                        );
+                    })
+                    .ToList()
+            ))
             .ToList();
 
-        var specifications = product.Specifications
-            .OrderBy(s => s.SortOrder)
+        var specifications = product
+            .Specifications.OrderBy(s => s.SortOrder)
             .Select(s => new ProductSpecificationDto(s.Id, s.Key, s.Value, s.SortOrder))
             .ToList();
 
         List<ProductSessionDto>? sessions = null;
         if (salesModel == SalesModel.SessionBased)
         {
-            sessions = product.Sessions
-                .Select(s => new ProductSessionDto(
-                    s.Id, s.Date.ToString("yyyy-MM-dd"),
-                    s.StartTime.ToString("HH:mm"), s.EndTime.ToString("HH:mm"),
-                    s.Title, s.Capacity, s.SoldCount, s.RemainingCapacity,
-                    s.PriceAdjustment, s.IsActive, s.IsCancelled, s.IsAvailable))
+            sessions = product
+                .Sessions.Select(s => new ProductSessionDto(
+                    s.Id,
+                    s.Date.ToString("yyyy-MM-dd"),
+                    s.StartTime.ToString("HH:mm"),
+                    s.EndTime.ToString("HH:mm"),
+                    s.Title,
+                    s.Capacity,
+                    s.SoldCount,
+                    s.RemainingCapacity,
+                    s.PriceAdjustment,
+                    s.IsActive,
+                    s.IsCancelled,
+                    s.IsAvailable
+                ))
                 .ToList();
         }
 
         return new ProductDetailDto(
-            product.Id, product.AgreementProductId,
-            product.Title, product.Slug, product.Description,
-            sp?.Price ?? 0, sp?.DiscountedPrice ?? 0,
-            isCatalogV3 ? product.ProductType.ToString() : ap is not null ? ((ProductType)ap.ProductType).ToString() : string.Empty,
-            isCatalogV3 ? product.FulfillmentMethod.ToString() : ap is not null ? ((DeliveryType)ap.DeliveryType).ToString() : string.Empty,
+            product.Id,
+            product.AgreementProductId,
+            product.Title,
+            product.Slug,
+            product.Description,
+            sp?.Price ?? 0,
+            sp?.DiscountedPrice ?? 0,
+            isCatalogV3 ? product.ProductType.ToString()
+                : ap is not null ? ((ProductType)ap.ProductType).ToString()
+                : string.Empty,
+            isCatalogV3 ? product.FulfillmentMethod.ToString()
+                : ap is not null ? ((DeliveryType)ap.DeliveryType).ToString()
+                : string.Empty,
             salesModel?.ToString() ?? string.Empty,
-            isCatalogV3 ? product.CategoryId : ap?.CategoryId, null,
-            product.IsAvailable, product.StockCount,
-            images, variants, variantAttributes, specifications, sessions,
-            averageRating, reviewTotal,
+            isCatalogV3 ? product.CategoryId : ap?.CategoryId,
+            null,
+            product.IsAvailable,
+            product.StockCount,
+            images,
+            variants,
+            variantAttributes,
+            specifications,
+            sessions,
+            averageRating,
+            reviewTotal,
             product.CreatedAt,
-            isCatalogV3 ? "Offer" : ap?.PricingMode == 2 ? "InPerson" : "Fixed");
+            isCatalogV3 ? "Offer"
+                : ap?.PricingMode == 2 ? "InPerson"
+                : "Fixed"
+        );
     }
 }

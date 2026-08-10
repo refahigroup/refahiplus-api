@@ -12,9 +12,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
 
         builder.HasKey(s => s.Id);
 
-        builder.Property(s => s.Type)
-            .IsRequired()
-            .HasColumnType("smallint");
+        builder.Property(s => s.Type).IsRequired().HasColumnType("smallint");
 
         builder.Property(s => s.FirstName).HasMaxLength(100);
         builder.Property(s => s.LastName).HasMaxLength(100);
@@ -37,9 +35,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         builder.Property(s => s.RepresentativeName).HasMaxLength(150);
         builder.Property(s => s.RepresentativePhone).HasMaxLength(20);
 
-        builder.Property(s => s.Status)
-            .IsRequired()
-            .HasColumnType("smallint");
+        builder.Property(s => s.Status).IsRequired().HasColumnType("smallint");
 
         builder.Property(s => s.StatusNote).HasMaxLength(500);
         builder.Property(s => s.IsDeleted).IsRequired();
@@ -51,18 +47,21 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         builder.HasIndex(s => new { s.ProvinceId, s.CityId });
 
         // Unique filtered: NationalId where not null and not deleted
-        builder.HasIndex(s => s.NationalId)
+        builder
+            .HasIndex(s => s.NationalId)
             .IsUnique()
             .HasFilter("\"NationalId\" IS NOT NULL AND \"IsDeleted\" = false");
 
         // Children via private backing fields
-        builder.HasMany(s => s.Links)
+        builder
+            .HasMany(s => s.Links)
             .WithOne()
             .HasForeignKey("SupplierId")
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(s => s.Links).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany(s => s.Attachments)
+        builder
+            .HasMany(s => s.Attachments)
             .WithOne()
             .HasForeignKey("SupplierId")
             .OnDelete(DeleteBehavior.Cascade);

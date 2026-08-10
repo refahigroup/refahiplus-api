@@ -7,4 +7,5 @@ public sealed record UpdateAgreementCategoryTermCommand(
     Guid TermId,
     int CategoryId,
     short AllowedSalesChannels,
-    decimal CommissionPercent) : IRequest<Unit>;
+    decimal CommissionPercent
+) : IRequest<Unit>;

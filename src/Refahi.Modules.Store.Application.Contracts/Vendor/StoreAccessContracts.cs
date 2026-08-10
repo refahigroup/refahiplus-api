@@ -25,34 +25,65 @@ public static class StorePermissions
 }
 
 public sealed record StoreAccessAssignmentDto(
-    Guid Id, Guid UserId, string? MobileNumber, string? DisplayName,
-    Guid VendorId, string ResourceType, Guid ResourceId, string Role,
-    bool IsActive, DateTimeOffset CreatedAt);
+    Guid Id,
+    Guid UserId,
+    string? MobileNumber,
+    string? DisplayName,
+    Guid VendorId,
+    string ResourceType,
+    Guid ResourceId,
+    string Role,
+    bool IsActive,
+    DateTimeOffset CreatedAt
+);
 
 public sealed record StoreAccessSummaryDto(
-    Guid VendorId, int ActiveUserCount, int ActiveOwnerCount);
+    Guid VendorId,
+    int ActiveUserCount,
+    int ActiveOwnerCount
+);
 
 public sealed record VendorShopAccessDto(
-    Guid Id, string Name, string Status, string ShopType, string? LogoUrl,
-    IReadOnlyList<string> Roles, IReadOnlyList<string> Permissions);
+    Guid Id,
+    string Name,
+    string Status,
+    string ShopType,
+    string? LogoUrl,
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Permissions
+);
 
 public sealed record StoreVendorContextDto(
-    Guid VendorId, string VendorName, IReadOnlyList<string> Roles,
-    IReadOnlyList<string> Permissions, IReadOnlyList<VendorShopAccessDto> Shops)
+    Guid VendorId,
+    string VendorName,
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Permissions,
+    IReadOnlyList<VendorShopAccessDto> Shops
+)
 {
     public bool CanManageProducts =>
         Permissions.Contains(StorePermissions.ManageCatalog, StringComparer.OrdinalIgnoreCase);
-    public IReadOnlyList<Guid> ManageOfferShopIds => Shops
-        .Where(x => x.Permissions.Contains(StorePermissions.ManageCatalog, StringComparer.OrdinalIgnoreCase))
-        .Select(x => x.Id).ToArray();
+    public IReadOnlyList<Guid> ManageOfferShopIds =>
+        Shops
+            .Where(x =>
+                x.Permissions.Contains(
+                    StorePermissions.ManageCatalog,
+                    StringComparer.OrdinalIgnoreCase
+                )
+            )
+            .Select(x => x.Id)
+            .ToArray();
 }
 
 public sealed record GetStoreVendorContextsQuery(Guid UserId)
     : IRequest<IReadOnlyList<StoreVendorContextDto>>;
 
 public sealed record AuthorizeStoreResourceQuery(
-    Guid UserId, Guid VendorId, Guid? ShopId, string Permission)
-    : IRequest<bool>;
+    Guid UserId,
+    Guid VendorId,
+    Guid? ShopId,
+    string Permission
+) : IRequest<bool>;
 
 public sealed record GetStoreAccessAssignmentsQuery(Guid VendorId)
     : IRequest<IReadOnlyList<StoreAccessAssignmentDto>>;
@@ -61,12 +92,24 @@ public sealed record GetStoreAccessSummariesQuery(IReadOnlyCollection<Guid> Vend
     : IRequest<IReadOnlyList<StoreAccessSummaryDto>>;
 
 public sealed record CreateStoreAccessAssignmentCommand(
-    Guid VendorId, Guid UserId, string ResourceType, Guid ResourceId, string Role, Guid ActorId)
-    : IRequest<StoreAccessAssignmentDto>;
+    Guid VendorId,
+    Guid UserId,
+    string ResourceType,
+    Guid ResourceId,
+    string Role,
+    Guid ActorId
+) : IRequest<StoreAccessAssignmentDto>;
 
 public sealed record UpdateStoreAccessAssignmentCommand(
-    Guid VendorId, Guid AssignmentId, string Role, bool IsActive, Guid ActorId)
-    : IRequest<StoreAccessAssignmentDto?>;
+    Guid VendorId,
+    Guid AssignmentId,
+    string Role,
+    bool IsActive,
+    Guid ActorId
+) : IRequest<StoreAccessAssignmentDto?>;
 
-public sealed record RevokeStoreAccessAssignmentCommand(Guid VendorId, Guid AssignmentId, Guid ActorId)
-    : IRequest<bool>;
+public sealed record RevokeStoreAccessAssignmentCommand(
+    Guid VendorId,
+    Guid AssignmentId,
+    Guid ActorId
+) : IRequest<bool>;

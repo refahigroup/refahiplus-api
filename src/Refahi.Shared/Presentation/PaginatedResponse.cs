@@ -14,4 +14,3 @@ public sealed record PaginatedResponse<T>(
     string Message = "درخواست با موفقیت انجام شد",
     int StatusCode = 200
 );
-

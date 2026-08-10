@@ -3,7 +3,8 @@ using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.CancelP
 
 namespace Refahi.Modules.Hotels.Application.HotelRequests.CancelProviderBooking;
 
-public sealed class CancelProviderBookingCommandValidator : AbstractValidator<CancelProviderBookingCommand>
+public sealed class CancelProviderBookingCommandValidator
+    : AbstractValidator<CancelProviderBookingCommand>
 {
     public CancelProviderBookingCommandValidator()
     {

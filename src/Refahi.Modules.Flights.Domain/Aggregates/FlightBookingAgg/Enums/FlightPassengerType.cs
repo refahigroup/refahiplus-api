@@ -4,5 +4,5 @@ public enum FlightPassengerType
 {
     Adult = 1,
     Child = 2,
-    Infant = 3
+    Infant = 3,
 }

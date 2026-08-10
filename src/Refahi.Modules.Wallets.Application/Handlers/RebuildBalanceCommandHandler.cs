@@ -10,7 +10,7 @@ using Refahi.Modules.Wallets.Application.Services;
 
 namespace Refahi.Modules.Wallets.Application.Handlers;
 
-public sealed class RebuildBalanceCommandHandler 
+public sealed class RebuildBalanceCommandHandler
     : IRequestHandler<RebuildBalanceCommand, CommandResponse<RebuildBalanceResponse>>
 {
     private readonly BalanceRebuildApplicationService _service;
@@ -18,7 +18,8 @@ public sealed class RebuildBalanceCommandHandler
 
     public RebuildBalanceCommandHandler(
         BalanceRebuildApplicationService service,
-        IValidator<RebuildBalanceCommand> validator)
+        IValidator<RebuildBalanceCommand> validator
+    )
     {
         _service = service;
         _validator = validator;
@@ -26,15 +27,14 @@ public sealed class RebuildBalanceCommandHandler
 
     public async Task<CommandResponse<RebuildBalanceResponse>> Handle(
         RebuildBalanceCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
         {
             // Return completed with null to signal validation failure
-            return new CommandResponse<RebuildBalanceResponse>(
-                CommandStatus.Completed, 
-                null);
+            return new CommandResponse<RebuildBalanceResponse>(CommandStatus.Completed, null);
         }
 
         return await _service.RebuildBalanceAsync(request, cancellationToken);

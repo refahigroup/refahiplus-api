@@ -20,7 +20,7 @@ public class OtpApiClient
     private readonly ILogger<OtpApiClient> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
     };
 
     public OtpApiClient(HttpClient httpClient, ILogger<OtpApiClient> logger)
@@ -33,34 +33,41 @@ public class OtpApiClient
     /// Generate OTP and send to destination
     /// </summary>
     public async Task<GenerateOtpResponse> GenerateAsync(
-        GenerateOtpRequest request, 
-        CancellationToken cancellationToken = default)
+        GenerateOtpRequest request,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {
             _logger.LogDebug("Sending OTP generate request to {Destination}", request.Destination);
 
             var response = await _httpClient.PostAsJsonAsync(
-                "/V1/Otp/Generate", 
-                request, 
+                "/V1/Otp/Generate",
+                request,
                 JsonOptions,
-                cancellationToken);
+                cancellationToken
+            );
 
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<GenerateOtpResponse>(
-                    JsonOptions, 
-                    cancellationToken);
+                    JsonOptions,
+                    cancellationToken
+                );
 
                 if (result is null)
                 {
-                    throw new OtpApiException("Failed to deserialize generate OTP response", HttpStatusCode.InternalServerError);
+                    throw new OtpApiException(
+                        "Failed to deserialize generate OTP response",
+                        HttpStatusCode.InternalServerError
+                    );
                 }
 
                 _logger.LogInformation(
                     "OTP generated successfully. ReferenceCode={ReferenceCode}, ExpiresAt={ExpiresAt}",
-                    result.ReferenceCode, 
-                    result.ExpiresAt);
+                    result.ReferenceCode,
+                    result.ExpiresAt
+                );
 
                 return result;
             }
@@ -94,35 +101,45 @@ public class OtpApiClient
     /// Validate OTP code
     /// </summary>
     public async Task<ValidateOtpResponse> ValidateAsync(
-        ValidateOtpRequest request, 
-        CancellationToken cancellationToken = default)
+        ValidateOtpRequest request,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {
-            _logger.LogDebug("Sending OTP validate request for ReferenceCode={ReferenceCode}", request.ReferenceCode);
+            _logger.LogDebug(
+                "Sending OTP validate request for ReferenceCode={ReferenceCode}",
+                request.ReferenceCode
+            );
 
             var response = await _httpClient.PostAsJsonAsync(
-                "/V1/Otp/Validate", 
-                request, 
+                "/V1/Otp/Validate",
+                request,
                 JsonOptions,
-                cancellationToken);
+                cancellationToken
+            );
 
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ValidateOtpResponse>(
-                    JsonOptions, 
-                    cancellationToken);
+                    JsonOptions,
+                    cancellationToken
+                );
 
                 if (result is null)
                 {
-                    throw new OtpApiException("Failed to deserialize validate OTP response", HttpStatusCode.InternalServerError);
+                    throw new OtpApiException(
+                        "Failed to deserialize validate OTP response",
+                        HttpStatusCode.InternalServerError
+                    );
                 }
 
                 _logger.LogInformation(
                     "OTP validation completed. ReferenceCode={ReferenceCode}, IsValid={IsValid}, AttemptsRemaining={AttemptsRemaining}",
-                    request.ReferenceCode, 
-                    result.IsValid, 
-                    result.AttemptsRemaining);
+                    request.ReferenceCode,
+                    result.IsValid,
+                    result.AttemptsRemaining
+                );
 
                 return result;
             }
@@ -131,15 +148,17 @@ public class OtpApiClient
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 var result = await response.Content.ReadFromJsonAsync<ValidateOtpResponse>(
-                    JsonOptions, 
-                    cancellationToken);
+                    JsonOptions,
+                    cancellationToken
+                );
 
                 if (result is not null)
                 {
                     _logger.LogWarning(
                         "OTP validation failed. ReferenceCode={ReferenceCode}, Message={Message}",
-                        request.ReferenceCode, 
-                        result.Message);
+                        request.ReferenceCode,
+                        result.Message
+                    );
 
                     return result;
                 }
@@ -170,13 +189,17 @@ public class OtpApiClient
         }
     }
 
-    private async Task HandleErrorResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private async Task HandleErrorResponseAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
             var errorResponse = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(
-                JsonOptions, 
-                cancellationToken);
+                JsonOptions,
+                cancellationToken
+            );
 
             if (errorResponse is not null)
             {
@@ -189,7 +212,8 @@ public class OtpApiClient
                 _logger.LogError(
                     "OTP API error. StatusCode={StatusCode}, Message={Message}",
                     response.StatusCode,
-                    errorMessage);
+                    errorMessage
+                );
 
                 throw new OtpApiException(errorMessage, response.StatusCode);
             }
@@ -201,7 +225,8 @@ public class OtpApiClient
             _logger.LogError(
                 "OTP API returned error. StatusCode={StatusCode}, Content={Content}",
                 response.StatusCode,
-                content);
+                content
+            );
         }
     }
 }
@@ -213,16 +238,15 @@ public class OtpApiException : Exception
 {
     public HttpStatusCode? StatusCode { get; }
 
-    public OtpApiException(string message) : base(message)
-    {
-    }
+    public OtpApiException(string message)
+        : base(message) { }
 
-    public OtpApiException(string message, HttpStatusCode statusCode) : base(message)
+    public OtpApiException(string message, HttpStatusCode statusCode)
+        : base(message)
     {
         StatusCode = statusCode;
     }
 
-    public OtpApiException(string message, Exception innerException) : base(message, innerException)
-    {
-    }
+    public OtpApiException(string message, Exception innerException)
+        : base(message, innerException) { }
 }

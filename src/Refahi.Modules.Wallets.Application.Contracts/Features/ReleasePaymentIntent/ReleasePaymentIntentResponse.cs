@@ -9,4 +9,5 @@ public sealed record ReleasePaymentIntentResponse(
     Guid IntentId,
     Guid OrderId,
     string Status,
-    DateTimeOffset ReleasedAt);
+    DateTimeOffset ReleasedAt
+);

@@ -6,27 +6,20 @@ public sealed record GetTokenRequest(
     long AmountMinor,
     /// <summary>Backend callback URL where the provider will POST the result.</summary>
     string CallbackUrl,
-    string? CellNumber = null);
+    string? CellNumber = null
+);
 
-public sealed record GetTokenResult(
-    bool IsSuccess,
-    string? Token,
-    string? ErrorMessage = null);
+public sealed record GetTokenResult(bool IsSuccess, string? Token, string? ErrorMessage = null);
 
-public sealed record VerifyRequest(
-    string RefNum,
-    long ExpectedAmountMinor);
+public sealed record VerifyRequest(string RefNum, long ExpectedAmountMinor);
 
 public sealed record VerifyResult(
     bool IsSuccess,
     long VerifiedAmountMinor,
     int ResultCode,
-    string? ErrorMessage = null);
+    string? ErrorMessage = null
+);
 
-public sealed record ReverseRequest(
-    string RefNum);
+public sealed record ReverseRequest(string RefNum);
 
-public sealed record ReverseResult(
-    bool IsSuccess,
-    int ResultCode,
-    string? ErrorMessage = null);
+public sealed record ReverseResult(bool IsSuccess, int ResultCode, string? ErrorMessage = null);

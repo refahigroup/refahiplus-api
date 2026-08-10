@@ -21,7 +21,8 @@ public sealed record ShopDto(
     string? ContactPhone,
     string? Description,
     bool IsPopular,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);
 
 public sealed record ShopSummaryDto(
     Guid Id,
@@ -33,4 +34,5 @@ public sealed record ShopSummaryDto(
     int? ProvinceId,
     int? CityId,
     bool IsPopular,
-    Guid SupplierId);
+    Guid SupplierId
+);

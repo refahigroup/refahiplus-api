@@ -9,4 +9,5 @@ public sealed record CategoryDto(
     int? ParentId,
     int SortOrder,
     bool IsActive,
-    List<CategoryDto>? Children = null);
+    List<CategoryDto>? Children = null
+);

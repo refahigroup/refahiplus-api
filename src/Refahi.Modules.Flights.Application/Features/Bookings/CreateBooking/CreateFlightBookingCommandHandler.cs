@@ -24,7 +24,8 @@ public sealed class CreateFlightBookingCommandHandler
     public CreateFlightBookingCommandHandler(
         IFlightOfferSnapshotRepository offerSnapshotRepository,
         IFlightBookingRepository bookingRepository,
-        IFlightProviderFactory providerFactory)
+        IFlightProviderFactory providerFactory
+    )
     {
         _offerSnapshotRepository = offerSnapshotRepository;
         _bookingRepository = bookingRepository;
@@ -33,12 +34,14 @@ public sealed class CreateFlightBookingCommandHandler
 
     public async Task<FlightBookingDetailDto> Handle(
         CreateFlightBookingCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedIdempotencyKey = request.IdempotencyKey.Trim();
         var existing = await _bookingRepository.GetByIdempotencyKeyAsync(
             normalizedIdempotencyKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (existing is not null)
         {
@@ -48,24 +51,32 @@ public sealed class CreateFlightBookingCommandHandler
 
         var offerSnapshot = await _offerSnapshotRepository.GetByTokenAsync(
             request.OfferToken.Trim(),
-            cancellationToken);
+            cancellationToken
+        );
 
         if (offerSnapshot is null || offerSnapshot.IsExpired(DateTime.UtcNow))
             throw new InvalidOperationException("پیشنهاد پرواز یافت نشد یا منقضی شده است.");
 
-        var publicOffer = JsonSerializer.Deserialize<FlightOfferDto>(
-            offerSnapshot.PublicOfferSnapshotJson,
-            JsonOptions) ?? throw new InvalidOperationException("اطلاعات پیشنهاد پرواز معتبر نیست.");
+        var publicOffer =
+            JsonSerializer.Deserialize<FlightOfferDto>(
+                offerSnapshot.PublicOfferSnapshotJson,
+                JsonOptions
+            ) ?? throw new InvalidOperationException("اطلاعات پیشنهاد پرواز معتبر نیست.");
 
         var provider = ResolveProvider(offerSnapshot.ProviderName);
         var providerRequest = new FlightBookRequest(
             offerSnapshot.ProviderFareSourceCode,
             request.Contact.MobileNumber.Trim(),
             request.Contact.Email.Trim(),
-            request.Passengers.Select(MapProviderPassenger).ToList());
+            request.Passengers.Select(MapProviderPassenger).ToList()
+        );
 
         var providerResponse = await provider.BookAsync(providerRequest, cancellationToken);
-        ValidateProviderBookingResponse(providerResponse, offerSnapshot.TotalFareAmount, offerSnapshot.Currency);
+        ValidateProviderBookingResponse(
+            providerResponse,
+            offerSnapshot.TotalFareAmount,
+            offerSnapshot.Currency
+        );
 
         var nowUtc = DateTime.UtcNow;
         var booking = FlightBooking.CreateDraft(
@@ -76,43 +87,56 @@ public sealed class CreateFlightBookingCommandHandler
                 offerSnapshot.ProviderName,
                 offerSnapshot.ProviderName,
                 providerResponse.ProviderTraceId ?? offerSnapshot.ProviderTraceId,
-                offerSnapshot.ProviderSnapshotJson),
+                offerSnapshot.ProviderSnapshotJson
+            ),
             new SelectedFareSnapshot(
                 offerSnapshot.ProviderFareSourceCode,
                 BuildFareCaption(publicOffer),
                 publicOffer.CabinClassCaption ?? publicOffer.CabinClassCode ?? "Economy",
                 publicOffer.Segments.FirstOrDefault()?.BookingClass,
                 offerSnapshot.ProviderSnapshotJson,
-                offerSnapshot.ProviderTraceId),
+                offerSnapshot.ProviderTraceId
+            ),
             new ContactInfo(request.Contact.MobileNumber, request.Contact.Email),
             request.Passengers.Select(MapDomainPassenger).ToList(),
-            publicOffer.Segments.Select((segment, index) => MapDomainSegment(segment, index + 1)).ToList(),
+            publicOffer
+                .Segments.Select((segment, index) => MapDomainSegment(segment, index + 1))
+                .ToList(),
             BuildFareBreakdown(publicOffer.TotalFare),
             normalizedIdempotencyKey,
             nowUtc,
-            offerSnapshot.ExpiresAtUtc);
+            offerSnapshot.ExpiresAtUtc
+        );
 
-        booking.MarkProviderBooked(new ProviderBookingSnapshot(
-            providerResponse.BookId!,
-            providerResponse.TrackingCode ?? providerResponse.BookId!,
-            nowUtc,
-            providerResponse.TrackingCode,
-            providerResponse.ProviderTraceId,
-            JsonSerializer.Serialize(new
-            {
-                providerResponse.BookId,
+        booking.MarkProviderBooked(
+            new ProviderBookingSnapshot(
+                providerResponse.BookId!,
+                providerResponse.TrackingCode ?? providerResponse.BookId!,
+                nowUtc,
                 providerResponse.TrackingCode,
-                providerResponse.CheckoutUrl,
-                providerResponse.PaymentCurrency,
-                providerResponse.PaymentAmount,
                 providerResponse.ProviderTraceId,
-                providerResponse.RawPayloadSnapshot
-            }, JsonOptions)), nowUtc);
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        providerResponse.BookId,
+                        providerResponse.TrackingCode,
+                        providerResponse.CheckoutUrl,
+                        providerResponse.PaymentCurrency,
+                        providerResponse.PaymentAmount,
+                        providerResponse.ProviderTraceId,
+                        providerResponse.RawPayloadSnapshot,
+                    },
+                    JsonOptions
+                )
+            ),
+            nowUtc
+        );
 
         var duplicateProviderBooking = await _bookingRepository.GetByProviderBookingIdAsync(
             offerSnapshot.ProviderName,
             providerResponse.BookId!,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (duplicateProviderBooking is not null)
         {
@@ -128,7 +152,11 @@ public sealed class CreateFlightBookingCommandHandler
 
     private IFlightProvider ResolveProvider(string providerName)
     {
-        return Enum.TryParse<FlightProviderType>(providerName, ignoreCase: true, out var providerType)
+        return Enum.TryParse<FlightProviderType>(
+            providerName,
+            ignoreCase: true,
+            out var providerType
+        )
             ? _providerFactory.GetProvider(providerType)
             : _providerFactory.GetDefaultProvider();
     }
@@ -137,7 +165,9 @@ public sealed class CreateFlightBookingCommandHandler
     {
         return new FlightBookPassenger(
             passenger.NationalityCode.Trim().ToUpperInvariant(),
-            string.IsNullOrWhiteSpace(passenger.NationalCode) ? null : passenger.NationalCode.Trim(),
+            string.IsNullOrWhiteSpace(passenger.NationalCode)
+                ? null
+                : passenger.NationalCode.Trim(),
             passenger.FirstName.Trim(),
             passenger.LastName.Trim(),
             passenger.Gender.Trim(),
@@ -149,7 +179,9 @@ public sealed class CreateFlightBookingCommandHandler
                     passenger.Passport.CountryCode,
                     passenger.Passport.IssueDate,
                     passenger.Passport.ExpireDate,
-                    passenger.Passport.Number));
+                    passenger.Passport.Number
+                )
+        );
     }
 
     private static Passenger MapDomainPassenger(FlightBookingPassengerInput passenger)
@@ -161,7 +193,8 @@ public sealed class CreateFlightBookingCommandHandler
             passenger.BirthDate,
             passenger.NationalCode,
             passenger.Passport?.Number,
-            passenger.NationalityCode);
+            passenger.NationalityCode
+        );
     }
 
     private static FlightSegment MapDomainSegment(FlightSegmentDto segment, int sequence)
@@ -180,17 +213,20 @@ public sealed class CreateFlightBookingCommandHandler
             segment.ArrivalAirportCode,
             segment.ArrivalAirportCaption ?? segment.ArrivalAirportCode,
             DateTime.SpecifyKind(segment.DepartureDateTime.Value, DateTimeKind.Utc),
-            DateTime.SpecifyKind(segment.ArrivalDateTime.Value, DateTimeKind.Utc));
+            DateTime.SpecifyKind(segment.ArrivalDateTime.Value, DateTimeKind.Utc)
+        );
     }
 
     private static FareBreakdown BuildFareBreakdown(FlightMoneyDto money)
     {
-        var baseFare = money.BaseFare > 0 && money.BaseFare <= money.TotalFare
-            ? money.BaseFare
-            : money.TotalFare;
-        var taxes = money.TotalTax >= 0 && baseFare + money.TotalTax <= money.TotalFare
-            ? money.TotalTax
-            : 0;
+        var baseFare =
+            money.BaseFare > 0 && money.BaseFare <= money.TotalFare
+                ? money.BaseFare
+                : money.TotalFare;
+        var taxes =
+            money.TotalTax >= 0 && baseFare + money.TotalTax <= money.TotalFare
+                ? money.TotalTax
+                : 0;
         var fees = money.TotalFare - baseFare - taxes;
 
         return new FareBreakdown(
@@ -198,25 +234,40 @@ public sealed class CreateFlightBookingCommandHandler
             new Money(taxes, money.Currency),
             new Money(fees, money.Currency),
             Money.Zero(money.Currency),
-            new Money(money.TotalFare, money.Currency));
+            new Money(money.TotalFare, money.Currency)
+        );
     }
 
     private static void ValidateProviderBookingResponse(
         FlightBookResponse providerResponse,
         long expectedAmount,
-        string expectedCurrency)
+        string expectedCurrency
+    )
     {
         if (string.IsNullOrWhiteSpace(providerResponse.BookId))
             throw new InvalidOperationException("شناسه رزرو تامین‌کننده دریافت نشد.");
 
-        if (!string.IsNullOrWhiteSpace(providerResponse.PaymentCurrency)
-            && !string.Equals(providerResponse.PaymentCurrency, expectedCurrency, StringComparison.OrdinalIgnoreCase))
+        if (
+            !string.IsNullOrWhiteSpace(providerResponse.PaymentCurrency)
+            && !string.Equals(
+                providerResponse.PaymentCurrency,
+                expectedCurrency,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
         {
-            throw new InvalidOperationException("واحد پولی رزرو تامین‌کننده با پیشنهاد انتخاب‌شده همخوانی ندارد.");
+            throw new InvalidOperationException(
+                "واحد پولی رزرو تامین‌کننده با پیشنهاد انتخاب‌شده همخوانی ندارد."
+            );
         }
 
-        if (providerResponse.PaymentAmount.HasValue && providerResponse.PaymentAmount.Value != expectedAmount)
-            throw new InvalidOperationException("مبلغ رزرو تامین‌کننده با پیشنهاد انتخاب‌شده همخوانی ندارد.");
+        if (
+            providerResponse.PaymentAmount.HasValue
+            && providerResponse.PaymentAmount.Value != expectedAmount
+        )
+            throw new InvalidOperationException(
+                "مبلغ رزرو تامین‌کننده با پیشنهاد انتخاب‌شده همخوانی ندارد."
+            );
     }
 
     private static FlightPassengerType NormalizePassengerType(string value)

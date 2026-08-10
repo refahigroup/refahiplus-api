@@ -7,9 +7,7 @@ public sealed class RefundPaymentCommandValidator : AbstractValidator<RefundPaym
 {
     public RefundPaymentCommandValidator()
     {
-        RuleFor(x => x.PaymentId)
-            .NotEmpty()
-            .WithMessage("Payment ID is required.");
+        RuleFor(x => x.PaymentId).NotEmpty().WithMessage("Payment ID is required.");
 
         RuleFor(x => x.IdempotencyKey)
             .NotEmpty()

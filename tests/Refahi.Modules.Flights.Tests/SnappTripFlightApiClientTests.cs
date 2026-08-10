@@ -17,16 +17,19 @@ public sealed class SnappTripFlightApiClientTests
     {
         var handler = new CapturingHandler();
         using var httpClient = new HttpClient(handler);
-        var options = Options.Create(new SnappTripFlightOptions
-        {
-            BaseUrl = "https://b2bapiv2.snapptrip.com/flight",
-            ApiBasePath = "api/v1",
-            ApiKey = "test-api-key"
-        });
+        var options = Options.Create(
+            new SnappTripFlightOptions
+            {
+                BaseUrl = "https://b2bapiv2.snapptrip.com/flight",
+                ApiBasePath = "api/v1",
+                ApiKey = "test-api-key",
+            }
+        );
         var client = new SnappTripFlightApiClient(
             httpClient,
             NullLogger<SnappTripFlightApiClient>.Instance,
-            options);
+            options
+        );
         var request = new SnappTripSearchRequest
         {
             Adult = 1,
@@ -41,21 +44,24 @@ public sealed class SnappTripFlightApiClientTests
                     OriginLocationCode = "THR",
                     DestinationLocationCode = "KIH",
                     OriginType = "AIRPORT",
-                    DestinationType = "AIRPORT"
-                }
+                    DestinationType = "AIRPORT",
+                },
             ],
             TravelPreference = new SnappTripTravelPreference
             {
                 CabinType = "ECONOMY",
                 MaxStopsQuantity = "ALL",
-                AirTripType = "RETURN"
-            }
+                AirTripType = "RETURN",
+            },
         };
 
         await client.SearchAsync(request, CancellationToken.None);
 
         Assert.Equal(HttpMethod.Post, handler.Method);
-        Assert.Equal("https://b2bapiv2.snapptrip.com/flight/api/v1/search", handler.RequestUri?.ToString());
+        Assert.Equal(
+            "https://b2bapiv2.snapptrip.com/flight/api/v1/search",
+            handler.RequestUri?.ToString()
+        );
         Assert.Contains("application/json", handler.Accept);
         Assert.Equal(["test-api-key"], handler.ApiKey);
         Assert.Equal("application/json", handler.ContentType?.MediaType);
@@ -79,11 +85,14 @@ public sealed class SnappTripFlightApiClientTests
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken
+        )
         {
             Method = request.Method;
             RequestUri = request.RequestUri;
-            Accept = request.Headers.Accept.Select(header => header.MediaType ?? string.Empty).ToArray();
+            Accept = request
+                .Headers.Accept.Select(header => header.MediaType ?? string.Empty)
+                .ToArray();
             ApiKey = request.Headers.TryGetValues("api-key", out var apiKey)
                 ? apiKey.ToArray()
                 : [];
@@ -94,7 +103,11 @@ public sealed class SnappTripFlightApiClientTests
 
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("{\"success\":true}", Encoding.UTF8, "application/json")
+                Content = new StringContent(
+                    "{\"success\":true}",
+                    Encoding.UTF8,
+                    "application/json"
+                ),
             };
         }
     }

@@ -5,14 +5,16 @@ namespace Refahi.Modules.Store.Application.Contracts.Queries.ShopProducts;
 public sealed record GetShopProductVariantBackfillAuditQuery(
     Guid? ShopId = null,
     Guid? ProductId = null,
-    int DetailLimit = 100) : IRequest<ShopProductVariantBackfillAuditDto>;
+    int DetailLimit = 100
+) : IRequest<ShopProductVariantBackfillAuditDto>;
 
 public sealed record ShopProductVariantBackfillAuditDto(
     int ShopProductsChecked,
     int ProductsWithVariants,
     int ExistingOfferings,
     int MissingOfferings,
-    IReadOnlyList<ShopProductVariantBackfillAuditItemDto> Items);
+    IReadOnlyList<ShopProductVariantBackfillAuditItemDto> Items
+);
 
 public sealed record ShopProductVariantBackfillAuditItemDto(
     Guid ShopId,
@@ -22,4 +24,5 @@ public sealed record ShopProductVariantBackfillAuditItemDto(
     Guid ShopProductId,
     int VariantCount,
     int ExistingOfferingCount,
-    int MissingOfferingCount);
+    int MissingOfferingCount
+);

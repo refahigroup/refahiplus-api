@@ -5,7 +5,8 @@ using Refahi.Modules.Orders.Domain.Repositories;
 
 namespace Refahi.Modules.Orders.Application.Features.GetOrderByIdempotencyKey;
 
-public class GetOrderByIdempotencyKeyQueryHandler : IRequestHandler<GetOrderByIdempotencyKeyQuery, OrderDto?>
+public class GetOrderByIdempotencyKeyQueryHandler
+    : IRequestHandler<GetOrderByIdempotencyKeyQuery, OrderDto?>
 {
     private readonly IOrderRepository _orderRepository;
 
@@ -14,28 +15,44 @@ public class GetOrderByIdempotencyKeyQueryHandler : IRequestHandler<GetOrderById
         _orderRepository = orderRepository;
     }
 
-    public async Task<OrderDto?> Handle(GetOrderByIdempotencyKeyQuery request, CancellationToken cancellationToken)
+    public async Task<OrderDto?> Handle(
+        GetOrderByIdempotencyKeyQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var order = await _orderRepository.GetByIdempotencyKeyWithItemsAsync(request.IdempotencyKey, cancellationToken);
-        if (order is null) return null;
+        var order = await _orderRepository.GetByIdempotencyKeyWithItemsAsync(
+            request.IdempotencyKey,
+            cancellationToken
+        );
+        if (order is null)
+            return null;
 
         if (order.UserId != request.CallerUserId)
             return null;
 
-        if (!string.Equals(order.SourceModule, request.SourceModule, StringComparison.OrdinalIgnoreCase))
+        if (
+            !string.Equals(
+                order.SourceModule,
+                request.SourceModule,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
             return null;
 
-        var items = order.Items.Select(i => new OrderItemDto(
-            Id: i.Id,
-            Title: i.Title,
-            UnitPriceMinor: i.UnitPriceMinor,
-            Quantity: i.Quantity,
-            FinalPriceMinor: i.FinalPriceMinor,
-            SourceItemId: i.SourceItemId,
-            CategoryCode: i.CategoryCode,
-            Tags: i.Tags,
-            MetadataJson: i.MetadataJson,
-            DeliveryMethod: (short)i.DeliveryMethod)).ToList();
+        var items = order
+            .Items.Select(i => new OrderItemDto(
+                Id: i.Id,
+                Title: i.Title,
+                UnitPriceMinor: i.UnitPriceMinor,
+                Quantity: i.Quantity,
+                FinalPriceMinor: i.FinalPriceMinor,
+                SourceItemId: i.SourceItemId,
+                CategoryCode: i.CategoryCode,
+                Tags: i.Tags,
+                MetadataJson: i.MetadataJson,
+                DeliveryMethod: (short)i.DeliveryMethod
+            ))
+            .ToList();
 
         var paymentEligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
 
@@ -71,6 +88,7 @@ public class GetOrderByIdempotencyKeyQueryHandler : IRequestHandler<GetOrderById
             RecipientNetAmountMinor: order.RecipientNetAmountMinor,
             CanPay: paymentEligibility.CanPay,
             PaymentUnavailableReason: paymentEligibility.UnavailableReason,
-            PayableUntil: order.PayableUntil);
+            PayableUntil: order.PayableUntil
+        );
     }
 }

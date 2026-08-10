@@ -6,5 +6,5 @@ namespace Refahi.Api.Services.Notification.Dtos;
 public enum DeviceType
 {
     Android = 1,
-    iOS = 2
+    iOS = 2,
 }

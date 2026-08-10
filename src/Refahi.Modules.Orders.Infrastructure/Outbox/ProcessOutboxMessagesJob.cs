@@ -17,7 +17,10 @@ public class ProcessOutboxMessagesJob : BackgroundService
     private readonly ILogger<ProcessOutboxMessagesJob> _logger;
     private static readonly TimeSpan _interval = TimeSpan.FromSeconds(10);
 
-    public ProcessOutboxMessagesJob(IServiceScopeFactory scopeFactory, ILogger<ProcessOutboxMessagesJob> logger)
+    public ProcessOutboxMessagesJob(
+        IServiceScopeFactory scopeFactory,
+        ILogger<ProcessOutboxMessagesJob> logger
+    )
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
@@ -38,15 +41,18 @@ public class ProcessOutboxMessagesJob : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
         var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
 
-        var messages = await context.OutboxMessages
-            .Where(m => m.ProcessedAt == null &&
-                        m.Status == OutboxMessageStatus.Pending &&
-                        m.RetryCount < MaxRetryCount)
+        var messages = await context
+            .OutboxMessages.Where(m =>
+                m.ProcessedAt == null
+                && m.Status == OutboxMessageStatus.Pending
+                && m.RetryCount < MaxRetryCount
+            )
             .OrderBy(m => m.OccurredAt)
             .Take(20)
             .ToListAsync(ct);
 
-        if (messages.Count == 0) return;
+        if (messages.Count == 0)
+            return;
 
         foreach (var message in messages)
         {
@@ -63,12 +69,14 @@ public class ProcessOutboxMessagesJob : BackgroundService
                         "Outbox message type was not found. OutboxMessageId={OutboxMessageId}, EventType={EventType}, RetryCount={RetryCount}",
                         message.Id,
                         message.EventType,
-                        message.RetryCount);
+                        message.RetryCount
+                    );
                     message.Error = $"Type not found: {message.EventType}";
                     message.RetryCount++;
-                    message.Status = message.RetryCount >= MaxRetryCount
-                        ? OutboxMessageStatus.DeadLettered
-                        : OutboxMessageStatus.Pending;
+                    message.Status =
+                        message.RetryCount >= MaxRetryCount
+                            ? OutboxMessageStatus.DeadLettered
+                            : OutboxMessageStatus.Pending;
                     continue;
                 }
 
@@ -80,10 +88,13 @@ public class ProcessOutboxMessagesJob : BackgroundService
                     var referenceType = paidEvent.ReferenceType;
                     var sagaId = paidEvent.SagaId;
 
-                    if (string.IsNullOrWhiteSpace(sourceModule) || string.IsNullOrWhiteSpace(referenceType))
+                    if (
+                        string.IsNullOrWhiteSpace(sourceModule)
+                        || string.IsNullOrWhiteSpace(referenceType)
+                    )
                     {
-                        var order = await context.Orders
-                            .AsNoTracking()
+                        var order = await context
+                            .Orders.AsNoTracking()
                             .FirstOrDefaultAsync(o => o.Id == paidEvent.OrderId, ct);
 
                         if (order is not null)
@@ -95,31 +106,38 @@ public class ProcessOutboxMessagesJob : BackgroundService
                         }
                     }
 
-                    using var logScope = _logger.BeginScope(new Dictionary<string, object?>
-                    {
-                        ["SagaId"] = sagaId,
-                        ["OrderId"] = paidEvent.OrderId,
-                        ["UserId"] = paidEvent.UserId,
-                        ["HotelRequestId"] = sourceReferenceId,
-                        ["ProviderBookingCode"] = null
-                    });
+                    using var logScope = _logger.BeginScope(
+                        new Dictionary<string, object?>
+                        {
+                            ["SagaId"] = sagaId,
+                            ["OrderId"] = paidEvent.OrderId,
+                            ["UserId"] = paidEvent.UserId,
+                            ["HotelRequestId"] = sourceReferenceId,
+                            ["ProviderBookingCode"] = null,
+                        }
+                    );
 
                     _logger.LogInformation(
                         "Publishing OrderPaidIntegrationEvent from outbox. OutboxMessageId={OutboxMessageId}, RetryCount={RetryCount}",
                         message.Id,
-                        message.RetryCount);
+                        message.RetryCount
+                    );
 
-                    await publisher.Publish(new OrderPaidIntegrationEvent(
-                        paidEvent.OrderId,
-                        paidEvent.OrderNumber,
-                        paidEvent.UserId,
-                        sourceModule ?? string.Empty,
-                        sourceReferenceId,
-                        referenceType ?? string.Empty,
-                        sagaId,
-                        paidEvent.PaymentId,
-                        paidEvent.AmountMinor,
-                        paidEvent.OccurredAt), ct);
+                    await publisher.Publish(
+                        new OrderPaidIntegrationEvent(
+                            paidEvent.OrderId,
+                            paidEvent.OrderNumber,
+                            paidEvent.UserId,
+                            sourceModule ?? string.Empty,
+                            sourceReferenceId,
+                            referenceType ?? string.Empty,
+                            sagaId,
+                            paidEvent.PaymentId,
+                            paidEvent.AmountMinor,
+                            paidEvent.OccurredAt
+                        ),
+                        ct
+                    );
                 }
                 else if (evt is INotification notification)
                 {
@@ -136,12 +154,14 @@ public class ProcessOutboxMessagesJob : BackgroundService
                     "Outbox message processing failed. OutboxMessageId={OutboxMessageId}, EventType={EventType}, RetryCount={RetryCount}",
                     message.Id,
                     message.EventType,
-                    message.RetryCount);
+                    message.RetryCount
+                );
                 message.Error = ex.Message[..Math.Min(ex.Message.Length, 2000)];
                 message.RetryCount++;
-                message.Status = message.RetryCount >= MaxRetryCount
-                    ? OutboxMessageStatus.DeadLettered
-                    : OutboxMessageStatus.Pending;
+                message.Status =
+                    message.RetryCount >= MaxRetryCount
+                        ? OutboxMessageStatus.DeadLettered
+                        : OutboxMessageStatus.Pending;
             }
         }
 

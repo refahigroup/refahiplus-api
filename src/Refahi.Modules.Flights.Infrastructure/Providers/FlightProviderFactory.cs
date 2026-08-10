@@ -11,7 +11,8 @@ public sealed class FlightProviderFactory : IFlightProviderFactory
 
     public FlightProviderFactory(
         IServiceProvider serviceProvider,
-        FlightProviderType defaultProvider = FlightProviderType.SnappTrip)
+        FlightProviderType defaultProvider = FlightProviderType.SnappTrip
+    )
     {
         _serviceProvider = serviceProvider;
         _defaultProvider = defaultProvider;
@@ -21,8 +22,13 @@ public sealed class FlightProviderFactory : IFlightProviderFactory
     {
         return providerType switch
         {
-            FlightProviderType.SnappTrip => _serviceProvider.GetRequiredService<SnappTripFlightProvider>(),
-            _ => throw new ArgumentOutOfRangeException(nameof(providerType), providerType, "Unknown flight provider type.")
+            FlightProviderType.SnappTrip =>
+                _serviceProvider.GetRequiredService<SnappTripFlightProvider>(),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(providerType),
+                providerType,
+                "Unknown flight provider type."
+            ),
         };
     }
 

@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
@@ -5,10 +9,6 @@ using Refahi.Modules.PaymentGateway.Domain.Enums;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit.Api;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit.Config;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit.Contract;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit;
 
@@ -34,7 +34,8 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
     public JibitPaymentGatewayProvider(
         JibitApiClient apiClient,
         IOptions<JibitOptions> options,
-        ILogger<JibitPaymentGatewayProvider> logger)
+        ILogger<JibitPaymentGatewayProvider> logger
+    )
     {
         _apiClient = apiClient;
         _options = options.Value;
@@ -47,7 +48,10 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
     /// ایجاد درخواست پرداخت در جیبیت.
     /// Token بازگشتی = pspSwitchingUrl (آدرس مستقیم صفحه پرداخت).
     /// </summary>
-    public async Task<GetTokenResult> GetTokenAsync(GetTokenRequest request, CancellationToken ct = default)
+    public async Task<GetTokenResult> GetTokenAsync(
+        GetTokenRequest request,
+        CancellationToken ct = default
+    )
     {
         try
         {
@@ -60,13 +64,17 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
                 CallbackUrl = callbackUrl,
                 ClientReferenceNumber = request.ResNum,
                 Currency = "IRR",
-                UserIdentifier = string.IsNullOrEmpty(request.CellNumber) ? request.ResNum : request.CellNumber,
-                Description = "شارژ کیف‌پول"
+                UserIdentifier = string.IsNullOrEmpty(request.CellNumber)
+                    ? request.ResNum
+                    : request.CellNumber,
+                Description = "شارژ کیف‌پول",
             };
 
             _logger.LogInformation(
                 "Jibit: Creating purchase. ClientRef={ClientRef} Amount={Amount}",
-                request.ResNum, request.AmountMinor);
+                request.ResNum,
+                request.AmountMinor
+            );
 
             var response = await _apiClient.CreatePurchaseAsync(jibitRequest, ct);
 
@@ -75,18 +83,27 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
                 var firstError = response.Errors.First();
                 _logger.LogWarning(
                     "Jibit: CreatePurchase returned errors. Code={Code} Message={Message}",
-                    firstError.Code, firstError.Message);
+                    firstError.Code,
+                    firstError.Message
+                );
                 return new GetTokenResult(false, null, $"خطای جیبیت: {firstError.Message}");
             }
 
-            if (string.IsNullOrEmpty(response.PspSwitchingUrl) || string.IsNullOrEmpty(response.PurchaseId))
+            if (
+                string.IsNullOrEmpty(response.PspSwitchingUrl)
+                || string.IsNullOrEmpty(response.PurchaseId)
+            )
             {
-                _logger.LogWarning("Jibit: CreatePurchase succeeded but pspSwitchingUrl or purchaseId is empty.");
+                _logger.LogWarning(
+                    "Jibit: CreatePurchase succeeded but pspSwitchingUrl or purchaseId is empty."
+                );
                 return new GetTokenResult(false, null, "آدرس صفحه پرداخت جیبیت دریافت نشد.");
             }
 
             _logger.LogInformation(
-                "Jibit: Purchase created. PurchaseId={PurchaseId}", response.PurchaseId);
+                "Jibit: Purchase created. PurchaseId={PurchaseId}",
+                response.PurchaseId
+            );
 
             // We store only the pspSwitchingUrl as the "token".
             // The purchaseId comes back from Jibit's callback directly.
@@ -108,17 +125,26 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
     /// تأیید تراکنش جیبیت.
     /// request.RefNum = purchaseId دریافت شده از callback جیبیت.
     /// </summary>
-    public async Task<VerifyResult> VerifyAsync(VerifyRequest request, CancellationToken ct = default)
+    public async Task<VerifyResult> VerifyAsync(
+        VerifyRequest request,
+        CancellationToken ct = default
+    )
     {
         try
         {
-            _logger.LogInformation("Jibit: Verifying purchase. PurchaseId={PurchaseId}", request.RefNum);
+            _logger.LogInformation(
+                "Jibit: Verifying purchase. PurchaseId={PurchaseId}",
+                request.RefNum
+            );
 
             var response = await _apiClient.VerifyPurchaseAsync(request.RefNum, ct);
 
             if (response.Status?.Equals("SUCCESSFUL", StringComparison.OrdinalIgnoreCase) == true)
             {
-                _logger.LogInformation("Jibit: Purchase verified successfully. PurchaseId={PurchaseId}", request.RefNum);
+                _logger.LogInformation(
+                    "Jibit: Purchase verified successfully. PurchaseId={PurchaseId}",
+                    request.RefNum
+                );
                 return new VerifyResult(true, request.ExpectedAmountMinor, 0);
             }
 
@@ -127,34 +153,42 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
 
             _logger.LogWarning(
                 "Jibit: Verification failed. PurchaseId={PurchaseId} Status={Status}",
-                request.RefNum, response.Status);
+                request.RefNum,
+                response.Status
+            );
 
             return new VerifyResult(false, 0, GetJibitStatusCode(response.Status), description);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Jibit: Exception during VerifyPurchase. PurchaseId={PurchaseId}", request.RefNum);
+            _logger.LogError(
+                ex,
+                "Jibit: Exception during VerifyPurchase. PurchaseId={PurchaseId}",
+                request.RefNum
+            );
             return new VerifyResult(false, 0, -99, ex.Message);
         }
     }
 
-    private static int GetJibitStatusCode(string? status) => status switch
-    {
-        "SUCCESSFUL" => 0,
-        "FAILED" => -1,
-        "PURCHASE_NOT_FOUND" => -2,
-        "ALREADY_VERIFIED" => -3,
-        "EXPIRED" => -4,
-        _ => -99
-    };
+    private static int GetJibitStatusCode(string? status) =>
+        status switch
+        {
+            "SUCCESSFUL" => 0,
+            "FAILED" => -1,
+            "PURCHASE_NOT_FOUND" => -2,
+            "ALREADY_VERIFIED" => -3,
+            "EXPIRED" => -4,
+            _ => -99,
+        };
 
-    private static string GetJibitStatusDescription(string? status, string errorCode) => status switch
-    {
-        "SUCCESSFUL" => "تراکنش موفق",
-        "FAILED" => "تراکنش ناموفق",
-        "PURCHASE_NOT_FOUND" => "تراکنش یافت نشد",
-        "ALREADY_VERIFIED" => "تراکنش قبلاً تأیید شده",
-        "EXPIRED" => "مهلت تراکنش منقضی شده",
-        _ => $"وضعیت نامشخص تراکنش جیبیت: {errorCode}"
-    };
+    private static string GetJibitStatusDescription(string? status, string errorCode) =>
+        status switch
+        {
+            "SUCCESSFUL" => "تراکنش موفق",
+            "FAILED" => "تراکنش ناموفق",
+            "PURCHASE_NOT_FOUND" => "تراکنش یافت نشد",
+            "ALREADY_VERIFIED" => "تراکنش قبلاً تأیید شده",
+            "EXPIRED" => "مهلت تراکنش منقضی شده",
+            _ => $"وضعیت نامشخص تراکنش جیبیت: {errorCode}",
+        };
 }

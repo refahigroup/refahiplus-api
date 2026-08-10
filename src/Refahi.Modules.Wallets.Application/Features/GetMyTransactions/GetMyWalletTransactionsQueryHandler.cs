@@ -1,9 +1,9 @@
-using MediatR;
-using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyTransactions;
-using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
+using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyTransactions;
+using Refahi.Modules.Wallets.Application.Contracts.Repositories;
 
 namespace Refahi.Modules.Wallets.Application.Features.GetMyTransactions;
 
@@ -19,7 +19,8 @@ public sealed class GetMyWalletTransactionsQueryHandler
 
     public async Task<IReadOnlyList<MyWalletTransactionDto>> Handle(
         GetMyWalletTransactionsQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var take = request.Take is < 1 or > 100 ? 20 : request.Take;
 
@@ -29,6 +30,7 @@ public sealed class GetMyWalletTransactionsQueryHandler
             request.WalletType,
             request.OperationType,
             request.EntryType,
-            cancellationToken);
+            cancellationToken
+        );
     }
 }

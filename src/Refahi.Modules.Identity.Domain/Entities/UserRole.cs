@@ -35,7 +35,7 @@ public class UserRole
             UserId = userId,
             Role = role,
             AssignedAt = DateTime.UtcNow,
-            AssignedBy = assignedBy
+            AssignedBy = assignedBy,
         };
     }
 }

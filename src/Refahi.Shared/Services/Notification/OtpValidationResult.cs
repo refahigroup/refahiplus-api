@@ -3,4 +3,5 @@
 public record OtpValidationResult(
     bool IsValid,
     string? Receipt = null,
-    OtpReceiptType? ReceiptType = null);
+    OtpReceiptType? ReceiptType = null
+);

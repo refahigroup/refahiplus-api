@@ -9,10 +9,13 @@ public class EnableUserCommandHandler : IRequestHandler<EnableUserCommand, Enabl
 {
     private readonly IUserRepository _userRepository;
 
-    public EnableUserCommandHandler(IUserRepository userRepository)
-        => _userRepository = userRepository;
+    public EnableUserCommandHandler(IUserRepository userRepository) =>
+        _userRepository = userRepository;
 
-    public async Task<EnableUserResult> Handle(EnableUserCommand request, CancellationToken cancellationToken)
+    public async Task<EnableUserResult> Handle(
+        EnableUserCommand request,
+        CancellationToken cancellationToken
+    )
     {
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)

@@ -9,11 +9,13 @@ public class GetCityByIdQueryHandler : IRequestHandler<GetCityByIdQuery, CityDto
 {
     private readonly ICityRepository _cityRepository;
 
-    public GetCityByIdQueryHandler(ICityRepository cityRepository)
-        => _cityRepository = cityRepository;
+    public GetCityByIdQueryHandler(ICityRepository cityRepository) =>
+        _cityRepository = cityRepository;
 
     public async Task<CityDto?> Handle(
-        GetCityByIdQuery request, CancellationToken cancellationToken)
+        GetCityByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var city = await _cityRepository.GetByIdAsync(request.Id, cancellationToken);
 

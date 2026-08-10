@@ -1,7 +1,7 @@
-using Refahi.Modules.Wallets.Domain.Events;
-using Refahi.Shared.Domain;
 using System.Collections.Generic;
 using System.Linq;
+using Refahi.Modules.Wallets.Domain.Events;
+using Refahi.Shared.Domain;
 
 namespace Refahi.Modules.Wallets.Domain.Common;
 

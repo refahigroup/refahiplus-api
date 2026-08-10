@@ -1,7 +1,4 @@
 ﻿namespace Refahi.Modules.References.Application.Contracts
 {
-    public class Class1
-    {
-
-    }
+    public class Class1 { }
 }

@@ -12,21 +12,23 @@ public class GetMediaAssetEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/{id:guid}", async (
-            Guid id,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new GetMediaAssetQuery(id), ct);
-            return result is null
-                ? Results.NotFound()
-                : Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Media.GetById")
-        .WithTags("Media")
-        .Produces<ApiResponse<MediaAssetDto>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapGet(
+                "/{id:guid}",
+                async (Guid id, IMediator mediator, CancellationToken ct) =>
+                {
+                    var result = await mediator.Send(new GetMediaAssetQuery(id), ct);
+                    return result is null
+                        ? Results.NotFound()
+                        : Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Media.GetById")
+            .WithTags("Media")
+            .Produces<ApiResponse<MediaAssetDto>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

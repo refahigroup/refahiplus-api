@@ -16,7 +16,10 @@ public class GetProfileQueryHandler : IRequestHandler<GetProfileQuery, GetProfil
         _profileRepository = profileRepository;
     }
 
-    public async Task<GetProfileResult> Handle(GetProfileQuery request, CancellationToken cancellationToken)
+    public async Task<GetProfileResult> Handle(
+        GetProfileQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var profile = await _profileRepository.GetByUserIdAsync(request.UserId, cancellationToken);
 
@@ -31,7 +34,8 @@ public class GetProfileQueryHandler : IRequestHandler<GetProfileQuery, GetProfil
             profile.FirstName,
             profile.LastName,
             profile.NationalCode,
-            profile.Gender);
+            profile.Gender
+        );
 
         return new GetProfileResult(true, null, profileDto);
     }

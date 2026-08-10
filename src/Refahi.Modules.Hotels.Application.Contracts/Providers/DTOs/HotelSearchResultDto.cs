@@ -2,8 +2,7 @@
 
 namespace Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs;
 
-public sealed record HotelSearchResultDto
-(
+public sealed record HotelSearchResultDto(
     int HotelId,
     string Name,
     int CityId,

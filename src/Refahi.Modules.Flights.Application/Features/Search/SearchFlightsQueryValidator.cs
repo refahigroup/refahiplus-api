@@ -19,17 +19,26 @@ public sealed class SearchFlightsQueryValidator : AbstractValidator<SearchFlight
             .WithMessage("کد فرودگاه مقصد باید سه حرفی باشد.");
 
         RuleFor(query => query)
-            .Must(query => !string.Equals(query.Origin, query.Destination, StringComparison.OrdinalIgnoreCase))
+            .Must(query =>
+                !string.Equals(query.Origin, query.Destination, StringComparison.OrdinalIgnoreCase)
+            )
             .WithMessage("مبدأ و مقصد پرواز نمی‌توانند یکسان باشند.");
 
         RuleFor(query => query.DepartureDate)
             .NotNull()
             .WithMessage("تاریخ رفت الزامی است.")
-            .Must(date => !date.HasValue || date.Value >= DateOnly.FromDateTime(DateTime.UtcNow.Date))
+            .Must(date =>
+                !date.HasValue || date.Value >= DateOnly.FromDateTime(DateTime.UtcNow.Date)
+            )
             .WithMessage("تاریخ رفت نمی‌تواند در گذشته باشد.");
 
         RuleFor(query => query.ReturnDate)
-            .Must((query, returnDate) => !returnDate.HasValue || !query.DepartureDate.HasValue || returnDate.Value > query.DepartureDate.Value)
+            .Must(
+                (query, returnDate) =>
+                    !returnDate.HasValue
+                    || !query.DepartureDate.HasValue
+                    || returnDate.Value > query.DepartureDate.Value
+            )
             .WithMessage("تاریخ برگشت باید بعد از تاریخ رفت باشد.");
 
         RuleFor(query => query.Adult)

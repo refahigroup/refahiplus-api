@@ -7,7 +7,8 @@ public sealed record VendorShopSummaryDto(
     string Name,
     string Status,
     string ShopType,
-    string? LogoUrl);
+    string? LogoUrl
+);
 
 public sealed record GetVendorShopsBySupplierIdQuery(Guid SupplierId)
     : IRequest<IReadOnlyList<VendorShopSummaryDto>>;

@@ -15,4 +15,5 @@ public sealed record UpdateProductVariantCommand(
     DateOnly? FromDate = null,
     DateOnly? ToDate = null,
     VariantCapacityType CapacityType = VariantCapacityType.Unlimited,
-    int? Capacity = null) : IRequest<Unit>;
+    int? Capacity = null
+) : IRequest<Unit>;

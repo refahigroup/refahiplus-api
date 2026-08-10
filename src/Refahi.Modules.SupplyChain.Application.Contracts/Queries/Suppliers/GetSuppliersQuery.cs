@@ -17,4 +17,5 @@ public sealed record SuppliersPagedResponse(
     int PageNumber,
     int PageSize,
     int TotalCount,
-    int TotalPages);
+    int TotalPages
+);

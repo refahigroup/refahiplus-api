@@ -22,7 +22,8 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
         IProductRepository productRepo,
         IShopProductRepository shopProductRepo,
         IShopRepository shopRepo,
-        IPathService pathService)
+        IPathService pathService
+    )
     {
         _dealRepo = dealRepo;
         _productRepo = productRepo;
@@ -31,7 +32,10 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
         _pathService = pathService;
     }
 
-    public async Task<List<DailyDealDto>> Handle(GetDailyDealsQuery request, CancellationToken cancellationToken)
+    public async Task<List<DailyDealDto>> Handle(
+        GetDailyDealsQuery request,
+        CancellationToken cancellationToken
+    )
     {
         List<DailyDeal> deals;
 
@@ -65,36 +69,54 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
 
             if (deal.ShopId.HasValue)
             {
-                firstShopProduct = await _shopProductRepo.GetAsync(deal.ShopId.Value, product.Id, cancellationToken);
+                firstShopProduct = await _shopProductRepo.GetAsync(
+                    deal.ShopId.Value,
+                    product.Id,
+                    cancellationToken
+                );
                 shop = await _shopRepo.GetByIdAsync(deal.ShopId.Value, cancellationToken);
             }
             else
             {
-                var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(product.Id, isActive: true, page: 1, pageSize: 1, cancellationToken);
+                var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(
+                    product.Id,
+                    isActive: true,
+                    page: 1,
+                    pageSize: 1,
+                    cancellationToken
+                );
                 firstShopProduct = shopProducts.FirstOrDefault();
                 var shopId = firstShopProduct?.ShopId;
-                shop = shopId.HasValue ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken) : null;
+                shop = shopId.HasValue
+                    ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken)
+                    : null;
             }
 
             var originalPrice = firstShopProduct?.Price ?? 0;
 
-            var mainImage = product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
-                         ?? product.Images.FirstOrDefault()?.ImageUrl;
-            var mainImageUrl = mainImage is null ? null : _pathService.MakeAbsoluteMediaUrl(mainImage);
+            var mainImage =
+                product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
+                ?? product.Images.FirstOrDefault()?.ImageUrl;
+            var mainImageUrl = mainImage is null
+                ? null
+                : _pathService.MakeAbsoluteMediaUrl(mainImage);
 
             var discountedPrice = originalPrice * (100 - deal.DiscountPercent) / 100;
 
-            result.Add(new DailyDealDto(
-                deal.Id,
-                deal.ProductId,
-                product.Title,
-                mainImageUrl,
-                originalPrice,
-                deal.DiscountPercent,
-                discountedPrice,
-                deal.StartTime,
-                deal.EndTime,
-                shop?.Name ?? string.Empty));
+            result.Add(
+                new DailyDealDto(
+                    deal.Id,
+                    deal.ProductId,
+                    product.Title,
+                    mainImageUrl,
+                    originalPrice,
+                    deal.DiscountPercent,
+                    discountedPrice,
+                    deal.StartTime,
+                    deal.EndTime,
+                    shop?.Name ?? string.Empty
+                )
+            );
         }
 
         return result;

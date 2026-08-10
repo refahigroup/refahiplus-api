@@ -7,7 +7,8 @@ using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts
 
 namespace Refahi.Modules.Store.Application.Features.Sessions.CreateSession;
 
-public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand, CreateSessionResponse>
+public class CreateSessionCommandHandler
+    : IRequestHandler<CreateSessionCommand, CreateSessionResponse>
 {
     private readonly IProductRepository _productRepo;
     private readonly IMediator _mediator;
@@ -18,9 +19,13 @@ public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand,
         _mediator = mediator;
     }
 
-    public async Task<CreateSessionResponse> Handle(CreateSessionCommand request, CancellationToken cancellationToken)
+    public async Task<CreateSessionResponse> Handle(
+        CreateSessionCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var product = await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
+        var product =
+            await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         if (product.AgreementProductId == Guid.Empty)
@@ -30,7 +35,10 @@ public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand,
         }
         else
         {
-            var ap = await _mediator.Send(new GetAgreementProductByIdQuery(product.AgreementProductId), cancellationToken);
+            var ap = await _mediator.Send(
+                new GetAgreementProductByIdQuery(product.AgreementProductId),
+                cancellationToken
+            );
             if (ap is null || ap.SalesModel != (short)SalesModel.SessionBased)
                 throw new StoreDomainException("این محصول سانسی نیست", "NOT_SESSION_PRODUCT");
         }
@@ -45,9 +53,19 @@ public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand,
             throw new StoreDomainException("زمان پایان وارد شده معتبر نیست", "INVALID_END_TIME");
 
         if (endTime <= startTime)
-            throw new StoreDomainException("زمان پایان باید بعد از زمان شروع باشد", "INVALID_SESSION_TIME_RANGE");
+            throw new StoreDomainException(
+                "زمان پایان باید بعد از زمان شروع باشد",
+                "INVALID_SESSION_TIME_RANGE"
+            );
 
-        product.AddSession(date, startTime, endTime, request.Capacity, request.Title, request.PriceAdjustment);
+        product.AddSession(
+            date,
+            startTime,
+            endTime,
+            request.Capacity,
+            request.Title,
+            request.PriceAdjustment
+        );
 
         await _productRepo.UpdateAsync(product, cancellationToken);
 
@@ -57,6 +75,7 @@ public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand,
             session.Date.ToString("yyyy-MM-dd"),
             session.StartTime.ToString("HH:mm"),
             session.EndTime.ToString("HH:mm"),
-            session.Capacity);
+            session.Capacity
+        );
     }
 }

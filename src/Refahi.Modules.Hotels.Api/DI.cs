@@ -11,7 +11,10 @@ namespace Refahi.Modules.Hotels.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterHotelsModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterHotelsModule(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.AddInfrastructure(configuration);
         services.AddHotelsApplication(configuration);
@@ -32,7 +35,8 @@ public static class DI
     {
         var assembly = typeof(DI).Assembly;
 
-        var endpointTypes = assembly.GetTypes()
+        var endpointTypes = assembly
+            .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);
@@ -47,5 +51,4 @@ public static class DI
 
         group.MapGet("/ping", () => Results.Ok(new { module = "Hotels Module" }));
     }
-
 }

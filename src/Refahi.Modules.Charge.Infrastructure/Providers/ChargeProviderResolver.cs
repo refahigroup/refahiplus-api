@@ -12,8 +12,9 @@ public sealed class ChargeProviderResolver : IChargeProviderResolver
     }
 
     public IChargeProvider Get(string providerName) =>
-        _providers.FirstOrDefault(x => x.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase)) ??
-            throw new InvalidOperationException($"تامین‌کننده شارژ {providerName} ثبت نشده است");
+        _providers.FirstOrDefault(x =>
+            x.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase)
+        ) ?? throw new InvalidOperationException($"تامین‌کننده شارژ {providerName} ثبت نشده است");
 
     public IChargeProvider GetDefault() => Get("Eniac");
 }

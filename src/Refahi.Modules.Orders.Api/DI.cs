@@ -11,11 +11,13 @@ namespace Refahi.Modules.Orders.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterOrdersModule(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
+    public static IServiceCollection RegisterOrdersModule(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment? environment = null
+    )
     {
-        services
-            .RegisterApplication(configuration)
-            .RegisterInfrastructure(configuration);
+        services.RegisterApplication(configuration).RegisterInfrastructure(configuration);
 
         return services;
     }
@@ -32,7 +34,8 @@ public static class DI
     {
         var assembly = typeof(DI).Assembly;
 
-        var endpointTypes = assembly.GetTypes()
+        var endpointTypes = assembly
+            .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);

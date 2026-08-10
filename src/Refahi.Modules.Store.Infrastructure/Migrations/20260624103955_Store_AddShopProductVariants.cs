@@ -23,8 +23,14 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                     DiscountedPriceMinor = table.Column<long>(type: "bigint", nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
@@ -35,33 +41,39 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                         principalSchema: "store",
                         principalTable: "product_variants",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Restrict
+                    );
                     table.ForeignKey(
                         name: "FK_shop_product_variants_shop_products_ShopProductId",
                         column: x => x.ShopProductId,
                         principalSchema: "store",
                         principalTable: "shop_products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+                        onDelete: ReferentialAction.Restrict
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shop_product_variants_IsDeleted",
                 schema: "store",
                 table: "shop_product_variants",
-                column: "IsDeleted");
+                column: "IsDeleted"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shop_product_variants_ProductVariantId",
                 schema: "store",
                 table: "shop_product_variants",
-                column: "ProductVariantId");
+                column: "ProductVariantId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shop_product_variants_ShopProductId",
                 schema: "store",
                 table: "shop_product_variants",
-                column: "ShopProductId");
+                column: "ShopProductId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_shop_product_variants_ShopProductId_ProductVariantId",
@@ -69,15 +81,14 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "shop_product_variants",
                 columns: new[] { "ShopProductId", "ProductVariantId" },
                 unique: true,
-                filter: "\"IsDeleted\" = false");
+                filter: "\"IsDeleted\" = false"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "shop_product_variants",
-                schema: "store");
+            migrationBuilder.DropTable(name: "shop_product_variants", schema: "store");
         }
     }
 }

@@ -24,13 +24,15 @@ public partial class RemoveBothShopType : Migration
                     RAISE EXCEPTION 'پیش از اجرای migration، نوع فروشگاه‌های Both باید به Online یا Physical تغییر کند.';
                 END IF;
             END $$;
-            """);
+            """
+        );
 
         migrationBuilder.AddCheckConstraint(
             name: "CK_shops_shop_type",
             schema: "store",
             table: "shops",
-            sql: "\"ShopType\" IN (1, 2)");
+            sql: "\"ShopType\" IN (1, 2)"
+        );
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
@@ -38,6 +40,7 @@ public partial class RemoveBothShopType : Migration
         migrationBuilder.DropCheckConstraint(
             name: "CK_shops_shop_type",
             schema: "store",
-            table: "shops");
+            table: "shops"
+        );
     }
 }

@@ -7,13 +7,10 @@ public class UpdateCartItemCommandValidator : AbstractValidator<UpdateCartItemCo
 {
     public UpdateCartItemCommandValidator()
     {
-        RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("شناسه کاربر الزامی است");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("شناسه کاربر الزامی است");
 
-        RuleFor(x => x.CartItemId)
-            .NotEmpty().WithMessage("شناسه آیتم سبد خرید الزامی است");
+        RuleFor(x => x.CartItemId).NotEmpty().WithMessage("شناسه آیتم سبد خرید الزامی است");
 
-        RuleFor(x => x.Quantity)
-            .GreaterThan(0).WithMessage("تعداد باید بیشتر از صفر باشد");
+        RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("تعداد باید بیشتر از صفر باشد");
     }
 }

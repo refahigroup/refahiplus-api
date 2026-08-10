@@ -10,13 +10,9 @@ public sealed class PreviewChargeRequestValidator : AbstractValidator<PreviewCha
 {
     public PreviewChargeRequestValidator()
     {
-        RuleFor(x => x.Operator)
-            .IsInEnum()
-            .WithMessage("اپراتور معتبر نیست");
+        RuleFor(x => x.Operator).IsInEnum().WithMessage("اپراتور معتبر نیست");
 
-        RuleFor(x => x.ServiceType)
-            .IsInEnum()
-            .WithMessage("نوع خدمت معتبر نیست");
+        RuleFor(x => x.ServiceType).IsInEnum().WithMessage("نوع خدمت معتبر نیست");
 
         RuleFor(x => x.DestinationMobileNumber)
             .Matches("^09[0-9]{9}$")
@@ -29,24 +25,33 @@ public sealed class PreviewChargeRequestValidator : AbstractValidator<PreviewCha
     }
 }
 
-public sealed class PreviewChargeRequestHandler(ChargeRequestQuoteService quotes): IRequestHandler<PreviewChargeRequestCommand, ChargeRequestQuoteResponse>
+public sealed class PreviewChargeRequestHandler(ChargeRequestQuoteService quotes)
+    : IRequestHandler<PreviewChargeRequestCommand, ChargeRequestQuoteResponse>
 {
-    public async Task<ChargeRequestQuoteResponse> Handle(PreviewChargeRequestCommand command, CancellationToken ct)
+    public async Task<ChargeRequestQuoteResponse> Handle(
+        PreviewChargeRequestCommand command,
+        CancellationToken ct
+    )
     {
-        var quote = await quotes.ResolveAsync(new ChargeSelection(
-            command.Operator,
-            command.ServiceType,
-            command.DestinationMobileNumber,
-            command.ProviderProductId,
-            command.RequestedAmountMinor,
-            command.PinCategoryId,
-            command.PinCount), ct);
+        var quote = await quotes.ResolveAsync(
+            new ChargeSelection(
+                command.Operator,
+                command.ServiceType,
+                command.DestinationMobileNumber,
+                command.ProviderProductId,
+                command.RequestedAmountMinor,
+                command.PinCategoryId,
+                command.PinCount
+            ),
+            ct
+        );
 
         return new ChargeRequestQuoteResponse(
             quote.ExpireAt,
             quote.ProviderCostMinor,
             quote.MarkupAmountMinor,
             quote.FinalAmountMinor,
-            "IRR");
+            "IRR"
+        );
     }
 }

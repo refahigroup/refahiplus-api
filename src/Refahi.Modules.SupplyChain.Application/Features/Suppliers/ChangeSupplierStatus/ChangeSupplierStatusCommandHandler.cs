@@ -18,9 +18,13 @@ public class ChangeSupplierStatusCommandHandler : IRequestHandler<ChangeSupplier
         _mediator = mediator;
     }
 
-    public async Task<Unit> Handle(ChangeSupplierStatusCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        ChangeSupplierStatusCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var supplier = await _repository.GetByIdAsync(request.Id, false, cancellationToken)
+        var supplier =
+            await _repository.GetByIdAsync(request.Id, false, cancellationToken)
             ?? throw new SupplyChainDomainException("تامین‌کننده یافت نشد", "SUPPLIER_NOT_FOUND");
 
         var newStatus = (SupplierStatus)request.NewStatus;
@@ -32,8 +36,10 @@ public class ChangeSupplierStatusCommandHandler : IRequestHandler<ChangeSupplier
                 break;
             case SupplierStatus.Approved:
                 supplier.Approve();
-                await _mediator.Send(new CreateWalletCommand(
-                    supplier.Id, WalletTypeCodes.Provider, "IRR"), cancellationToken);
+                await _mediator.Send(
+                    new CreateWalletCommand(supplier.Id, WalletTypeCodes.Provider, "IRR"),
+                    cancellationToken
+                );
                 break;
             case SupplierStatus.Rejected:
                 supplier.Reject(request.Note ?? string.Empty);
@@ -42,7 +48,10 @@ public class ChangeSupplierStatusCommandHandler : IRequestHandler<ChangeSupplier
                 supplier.ResetToRegistered();
                 break;
             default:
-                throw new SupplyChainDomainException("وضعیت درخواستی معتبر نیست", "INVALID_STATUS_TRANSITION");
+                throw new SupplyChainDomainException(
+                    "وضعیت درخواستی معتبر نیست",
+                    "INVALID_STATUS_TRANSITION"
+                );
         }
 
         _repository.Update(supplier);

@@ -11,5 +11,5 @@ public enum HotelBookingSagaStatus
     ProviderBookingConfirmed = 7,
     Completed = 8,
     Failed = 9,
-    Compensated = 10
+    Compensated = 10,
 }

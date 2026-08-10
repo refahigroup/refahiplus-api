@@ -9,4 +9,5 @@ public record UserProfileDto(
     string FirstName,
     string LastName,
     string? NationalCode,
-    Gender? Gender);
+    Gender? Gender
+);

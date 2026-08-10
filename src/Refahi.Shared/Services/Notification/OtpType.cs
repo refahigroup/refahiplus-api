@@ -4,5 +4,5 @@ public enum OtpType
 {
     SignIn,
     SignUp,
-    VendorInPersonPayment
+    VendorInPersonPayment,
 }

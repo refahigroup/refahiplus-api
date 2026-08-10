@@ -31,7 +31,8 @@ public class MeQueryHandler : IRequestHandler<MeQuery, MeDetailDto?>
                 user.Profile.FirstName,
                 user.Profile.LastName,
                 user.Profile.NationalCode,
-                user.Profile.Gender);
+                user.Profile.Gender
+            );
         }
 
         return new MeDetailDto(
@@ -40,6 +41,7 @@ public class MeQueryHandler : IRequestHandler<MeQuery, MeDetailDto?>
             user.Email,
             user.IsActive,
             user.GetRoles(),
-            profileDto);
+            profileDto
+        );
     }
 }

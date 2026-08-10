@@ -8,44 +8,59 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.SupplyChain.Api.Endpoints.AgreementProducts;
 
-[Obsolete("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations.")]
+[Obsolete(
+    "Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints for new integrations."
+)]
 public class UpdateAgreementProductEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPut("/admin/agreements/{id:guid}/products/{productId:guid}", async (
-            Guid id,
-            Guid productId,
-            [FromBody] UpdateAgreementProductRequest body,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var command = new UpdateAgreementProductCommand(
-                id,
-                productId,
-                body.Name,
-                body.Description,
-                body.CategoryId,
-                body.ProductType,
-                body.DeliveryType,
-                body.SalesModel,
-                body.CommissionPercent,
-                body.VatApplicable);
+        routes
+            .MapPut(
+                "/admin/agreements/{id:guid}/products/{productId:guid}",
+                async (
+                    Guid id,
+                    Guid productId,
+                    [FromBody] UpdateAgreementProductRequest body,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var command = new UpdateAgreementProductCommand(
+                        id,
+                        productId,
+                        body.Name,
+                        body.Description,
+                        body.CategoryId,
+                        body.ProductType,
+                        body.DeliveryType,
+                        body.SalesModel,
+                        body.CommissionPercent,
+                        body.VatApplicable
+                    );
 
-            await mediator.Send(command, ct);
-            return Results.Ok(ApiResponseHelper.Success<object>(null!, "محصول با موفقیت بروزرسانی شد"));
-        })
-        .WithName("SupplyChain.UpdateAgreementProduct")
-        .WithTags("SupplyChain.AgreementProducts")
-        .WithMetadata(new ObsoleteAttribute("Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."))
-        .RequireAuthorization("AdminOnly")
-        .Produces(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status403Forbidden)
-        .Produces(StatusCodes.Status404NotFound);
+                    await mediator.Send(command, ct);
+                    return Results.Ok(
+                        ApiResponseHelper.Success<object>(null!, "محصول با موفقیت بروزرسانی شد")
+                    );
+                }
+            )
+            .WithName("SupplyChain.UpdateAgreementProduct")
+            .WithTags("SupplyChain.AgreementProducts")
+            .WithMetadata(
+                new ObsoleteAttribute(
+                    "Legacy compatibility endpoint. Use AgreementCategoryTerms endpoints."
+                )
+            )
+            .RequireAuthorization("AdminOnly")
+            .Produces(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
 
@@ -57,4 +72,5 @@ public sealed record UpdateAgreementProductRequest(
     short DeliveryType,
     short SalesModel,
     decimal CommissionPercent,
-    bool VatApplicable);
+    bool VatApplicable
+);

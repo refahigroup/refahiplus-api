@@ -8,11 +8,14 @@ public sealed class GetProductDetailV2QueryValidator : AbstractValidator<GetProd
     public GetProductDetailV2QueryValidator()
     {
         RuleFor(x => x.Slug).NotEmpty().MaximumLength(500).WithMessage("آدرس محصول معتبر نیست.");
-        RuleFor(x => x.ShopId).NotEqual(Guid.Empty).When(x => x.ShopId.HasValue)
+        RuleFor(x => x.ShopId)
+            .NotEqual(Guid.Empty)
+            .When(x => x.ShopId.HasValue)
             .WithMessage("شناسه فروشگاه معتبر نیست.");
-        RuleFor(x => x.VariantId).NotEqual(Guid.Empty).When(x => x.VariantId.HasValue)
+        RuleFor(x => x.VariantId)
+            .NotEqual(Guid.Empty)
+            .When(x => x.VariantId.HasValue)
             .WithMessage("شناسه تنوع معتبر نیست.");
         RuleFor(x => x.OfferKey).MaximumLength(100).WithMessage("کلید Offer معتبر نیست.");
     }
 }
-

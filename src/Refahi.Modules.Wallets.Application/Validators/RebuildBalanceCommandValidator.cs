@@ -7,7 +7,6 @@ public sealed class RebuildBalanceCommandValidator : AbstractValidator<RebuildBa
 {
     public RebuildBalanceCommandValidator()
     {
-        RuleFor(x => x.WalletId)
-            .NotEmpty().WithMessage("WalletId is required");
+        RuleFor(x => x.WalletId).NotEmpty().WithMessage("WalletId is required");
     }
 }

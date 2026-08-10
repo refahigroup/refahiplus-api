@@ -7,8 +7,6 @@ public class GetProfileQueryValidator : AbstractValidator<GetProfileQuery>
     public GetProfileQueryValidator()
     {
         // UserId validation
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("User ID is required");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("User ID is required");
     }
 }

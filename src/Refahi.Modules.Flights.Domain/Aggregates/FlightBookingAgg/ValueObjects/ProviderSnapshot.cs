@@ -17,7 +17,8 @@ public sealed class ProviderSnapshot : ValueObject
         string providerId,
         string providerCaption,
         string? providerTraceId = null,
-        string? snapshotJson = null)
+        string? snapshotJson = null
+    )
     {
         if (string.IsNullOrWhiteSpace(providerName))
         {
@@ -37,7 +38,9 @@ public sealed class ProviderSnapshot : ValueObject
         ProviderName = providerName.Trim();
         ProviderId = providerId.Trim();
         ProviderCaption = providerCaption.Trim();
-        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId) ? null : providerTraceId.Trim();
+        ProviderTraceId = string.IsNullOrWhiteSpace(providerTraceId)
+            ? null
+            : providerTraceId.Trim();
         SnapshotJson = string.IsNullOrWhiteSpace(snapshotJson) ? null : snapshotJson.Trim();
     }
 

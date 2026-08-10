@@ -10,12 +10,13 @@ public sealed record CreateOrgCreditWalletCommand(
     Guid OwnerId,
     string Currency,
     string? AllowedCategoryCode,
-    DateTimeOffset? ContractExpiresAt)
-    : IRequest<CreateOrgCreditWalletResponse>;
+    DateTimeOffset? ContractExpiresAt
+) : IRequest<CreateOrgCreditWalletResponse>;
 
 public sealed record CreateOrgCreditWalletResponse(
     Guid WalletId,
     string WalletType,
     string Currency,
     string? AllowedCategoryCode,
-    DateTimeOffset? ContractExpiresAt);
+    DateTimeOffset? ContractExpiresAt
+);

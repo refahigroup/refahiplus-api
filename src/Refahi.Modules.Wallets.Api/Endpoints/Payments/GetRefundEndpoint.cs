@@ -23,40 +23,45 @@ public sealed class GetRefundEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
-        routes.MapGet("/payments/{paymentId:guid}/refunds/{refundId:guid}", async (
-            [FromRoute] Guid paymentId,
-            [FromRoute] Guid refundId,
-            [FromServices] ISender mediator,
-            CancellationToken ct) =>
-        {
-            try
-            {
-                var query = new GetRefundQuery(paymentId, refundId);
-                var result = await mediator.Send(query, ct);
+        routes
+            .MapGet(
+                "/payments/{paymentId:guid}/refunds/{refundId:guid}",
+                async (
+                    [FromRoute] Guid paymentId,
+                    [FromRoute] Guid refundId,
+                    [FromServices] ISender mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    try
+                    {
+                        var query = new GetRefundQuery(paymentId, refundId);
+                        var result = await mediator.Send(query, ct);
 
-                return result.Status == CommandStatus.Completed
-                    ? Results.Ok(result.Data)
-                    : Results.StatusCode(StatusCodes.Status500InternalServerError);
-            }
-            catch (RefundNotFoundException ex)
-            {
-                return Results.NotFound(new ErrorResponse(ex.Code, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    title: "Internal server error",
-                    detail: ex.Message,
-                    statusCode: StatusCodes.Status500InternalServerError
-                );
-            }
-        })
-        .RequireAuthorization()
-        .WithName("Payments.GetRefund")
-        .WithTags("Payments")
-        .Produces<GetRefundResponse>(StatusCodes.Status200OK)
-        .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status500InternalServerError);
+                        return result.Status == CommandStatus.Completed
+                            ? Results.Ok(result.Data)
+                            : Results.StatusCode(StatusCodes.Status500InternalServerError);
+                    }
+                    catch (RefundNotFoundException ex)
+                    {
+                        return Results.NotFound(new ErrorResponse(ex.Code, ex.Message));
+                    }
+                    catch (Exception ex)
+                    {
+                        return Results.Problem(
+                            title: "Internal server error",
+                            detail: ex.Message,
+                            statusCode: StatusCodes.Status500InternalServerError
+                        );
+                    }
+                }
+            )
+            .RequireAuthorization()
+            .WithName("Payments.GetRefund")
+            .WithTags("Payments")
+            .Produces<GetRefundResponse>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status500InternalServerError);
     }
 }

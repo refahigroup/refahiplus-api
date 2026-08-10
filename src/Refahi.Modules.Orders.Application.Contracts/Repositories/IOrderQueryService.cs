@@ -12,18 +12,21 @@ public interface IOrderQueryService
         string? sourceModule,
         int page,
         int pageSize,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 
     Task<int> CountUserOrdersAsync(
         Guid userId,
         OrderStatus[]? statuses,
         string? sourceModule,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 
     Task<int> GetStoreVariantSoldQuantityAsync(
         Guid variantId,
         DateOnly? usageDate,
         StoreVariantCapacityScope capacityScope,
         Guid? excludeOrderId = null,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
 }

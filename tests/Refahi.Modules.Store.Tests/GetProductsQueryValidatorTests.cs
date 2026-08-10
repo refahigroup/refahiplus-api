@@ -35,7 +35,9 @@ public sealed class GetProductsQueryValidatorTests
     [Fact]
     public void Search_longer_than_two_hundred_characters_is_rejected()
     {
-        var result = _validator.Validate(new GetProductsQuery(1, new string('x', 201), "newest", 1, 30));
+        var result = _validator.Validate(
+            new GetProductsQuery(1, new string('x', 201), "newest", 1, 30)
+        );
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(GetProductsQuery.SearchQuery));
     }
 }

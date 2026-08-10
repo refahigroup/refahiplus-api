@@ -11,13 +11,16 @@ public class ProvinceRepository : IProvinceRepository
 
     public ProvinceRepository(ReferencesDbContext db) => _db = db;
 
-    public Task<Province?> GetByIdAsync(int id, CancellationToken ct = default)
-        => _db.Provinces.FirstOrDefaultAsync(p => p.Id == id, ct);
+    public Task<Province?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        _db.Provinces.FirstOrDefaultAsync(p => p.Id == id, ct);
 
-    public Task<Province?> GetBySlugAsync(string slug, CancellationToken ct = default)
-        => _db.Provinces.FirstOrDefaultAsync(p => p.Slug == slug, ct);
+    public Task<Province?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+        _db.Provinces.FirstOrDefaultAsync(p => p.Slug == slug, ct);
 
-    public async Task<List<Province>> GetAllAsync(bool activeOnly = false, CancellationToken ct = default)
+    public async Task<List<Province>> GetAllAsync(
+        bool activeOnly = false,
+        CancellationToken ct = default
+    )
     {
         var query = _db.Provinces.AsQueryable();
 
@@ -27,7 +30,11 @@ public class ProvinceRepository : IProvinceRepository
         return await query.OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync(ct);
     }
 
-    public async Task<bool> SlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default)
+    public async Task<bool> SlugExistsAsync(
+        string slug,
+        int? excludeId = null,
+        CancellationToken ct = default
+    )
     {
         var query = _db.Provinces.Where(p => p.Slug == slug);
 

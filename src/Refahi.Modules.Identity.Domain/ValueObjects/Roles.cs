@@ -8,22 +8,9 @@ public static class Roles
     public const string ProviderStaff = "ProviderStaff";
     public const string Supervisor = "Supervisor";
 
-    public static readonly string[] All =
-    {
-        User,
-        Admin,
-        Vendor,
-        ProviderStaff,
-        Supervisor
-    };
+    public static readonly string[] All = { User, Admin, Vendor, ProviderStaff, Supervisor };
 
-    public static readonly string[] ManuallyAssignable =
-    {
-        User,
-        Admin,
-        ProviderStaff,
-        Supervisor
-    };
+    public static readonly string[] ManuallyAssignable = { User, Admin, ProviderStaff, Supervisor };
 
     public static bool IsValid(string role)
     {

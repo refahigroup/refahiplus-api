@@ -18,7 +18,10 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
         _mediator = mediator;
     }
 
-    public async Task<AgreementDto?> Handle(GetAgreementByIdQuery request, CancellationToken cancellationToken)
+    public async Task<AgreementDto?> Handle(
+        GetAgreementByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var agreement = await _repository.GetByIdAsync(request.Id, true, cancellationToken);
 
@@ -31,18 +34,22 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
             : string.Empty;
 
         var categoryTree = await _mediator.Send(
-            new GetCategoriesQuery(IncludeInactive: true), cancellationToken);
+            new GetCategoriesQuery(IncludeInactive: true),
+            cancellationToken
+        );
         var categoryNames = Flatten(categoryTree).ToDictionary(x => x.Id, x => x.Name);
 
-        var products = agreement.Products
-            .Where(p => !p.IsDeleted)
+        var products = agreement
+            .Products.Where(p => !p.IsDeleted)
             .Select(p => new AgreementProductDto(
                 p.Id,
                 p.AgreementId,
                 p.Name,
                 p.Description,
                 p.CategoryId,
-                p.CategoryId.HasValue && categoryNames.TryGetValue(p.CategoryId.Value, out var cn) ? cn : null,
+                p.CategoryId.HasValue && categoryNames.TryGetValue(p.CategoryId.Value, out var cn)
+                    ? cn
+                    : null,
                 (short)p.ProductType,
                 (short)p.DeliveryType,
                 (short)p.SalesModel,
@@ -50,11 +57,12 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
                 p.IsDeleted,
                 p.CreatedAt,
                 (short)p.PricingMode,
-                p.VatApplicable))
+                p.VatApplicable
+            ))
             .ToList();
 
-        var terms = agreement.CategoryTerms
-            .Where(x => !x.IsDeleted)
+        var terms = agreement
+            .CategoryTerms.Where(x => !x.IsDeleted)
             .Select(x => new AgreementCategoryTermDto(
                 x.Id,
                 x.AgreementId,
@@ -64,7 +72,8 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
                 x.CommissionPercent,
                 x.IsDeleted,
                 x.CreatedAt,
-                x.UpdatedAt))
+                x.UpdatedAt
+            ))
             .ToList();
 
         return new AgreementDto(
@@ -83,7 +92,8 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
             agreement.CreatedAt,
             agreement.UpdatedAt,
             products,
-            terms);
+            terms
+        );
     }
 
     private static IEnumerable<CategoryDto> Flatten(IEnumerable<CategoryDto> categories)
@@ -91,7 +101,8 @@ public class GetAgreementByIdQueryHandler : IRequestHandler<GetAgreementByIdQuer
         foreach (var category in categories)
         {
             yield return category;
-            if (category.Children is null) continue;
+            if (category.Children is null)
+                continue;
             foreach (var child in Flatten(category.Children))
                 yield return child;
         }

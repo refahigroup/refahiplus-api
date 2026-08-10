@@ -1,33 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
-		<Nullable>enable</Nullable>
-		<ImplicitUsings>enable</ImplicitUsings>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
 
-		<AssemblyVersion>1.0.*</AssemblyVersion>
-		<FileVersion>1.0.*</FileVersion>
-		<Deterministic>false</Deterministic>
-	</PropertyGroup>
-	<ItemGroup>
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.11" />
-	</ItemGroup>
-	<ItemGroup>
-	  <ProjectReference Include="..\Refahi.Modules.Charge.Api\Refahi.Modules.Charge.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Flights.Api\Refahi.Modules.Flights.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Hotels.Api\Refahi.Modules.Hotels.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Identity.Api\Refahi.Modules.Identity.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Media.Api\Refahi.Modules.Media.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Orders.Api\Refahi.Modules.Orders.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Organizations.Api\Refahi.Modules.Organizations.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.PaymentGateway.Api\Refahi.Modules.PaymentGateway.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.References.Api\Refahi.Modules.References.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Store.Api\Refahi.Modules.Store.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.SupplyChain.Api\Refahi.Modules.SupplyChain.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Modules.Wallets.Api\Refahi.Modules.Wallets.Api.csproj" />
-	  <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
-	</ItemGroup>
+    <AssemblyVersion>1.0.*</AssemblyVersion>
+    <FileVersion>1.0.*</FileVersion>
+    <Deterministic>false</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.11" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Refahi.Modules.Charge.Api\Refahi.Modules.Charge.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Flights.Api\Refahi.Modules.Flights.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Hotels.Api\Refahi.Modules.Hotels.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Identity.Api\Refahi.Modules.Identity.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Media.Api\Refahi.Modules.Media.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Orders.Api\Refahi.Modules.Orders.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Organizations.Api\Refahi.Modules.Organizations.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.PaymentGateway.Api\Refahi.Modules.PaymentGateway.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.References.Api\Refahi.Modules.References.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Store.Api\Refahi.Modules.Store.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.SupplyChain.Api\Refahi.Modules.SupplyChain.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Wallets.Api\Refahi.Modules.Wallets.Api.csproj" />
+    <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
+  </ItemGroup>
 </Project>

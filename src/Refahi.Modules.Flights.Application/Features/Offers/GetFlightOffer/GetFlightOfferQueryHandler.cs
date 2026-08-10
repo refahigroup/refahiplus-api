@@ -19,17 +19,20 @@ public sealed class GetFlightOfferQueryHandler
 
     public async Task<FlightOfferDto?> Handle(
         GetFlightOfferQuery request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var snapshot = await _offerSnapshotRepository.GetByTokenAsync(
             request.OfferToken.Trim(),
-            cancellationToken);
+            cancellationToken
+        );
 
         if (snapshot is null || snapshot.IsExpired(DateTime.UtcNow))
             return null;
 
         return JsonSerializer.Deserialize<FlightOfferDto>(
             snapshot.PublicOfferSnapshotJson,
-            JsonOptions);
+            JsonOptions
+        );
     }
 }

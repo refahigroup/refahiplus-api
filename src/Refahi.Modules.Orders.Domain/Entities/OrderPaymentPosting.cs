@@ -15,21 +15,34 @@ public sealed class OrderPaymentPosting
     public string Purpose { get; private set; } = string.Empty;
     public int SortOrder { get; private set; }
 
-    internal static OrderPaymentPosting Create(Guid orderId, Guid walletId,
-        PaymentPostingDirection direction, long amountMinor, string purpose, int sortOrder)
+    internal static OrderPaymentPosting Create(
+        Guid orderId,
+        Guid walletId,
+        PaymentPostingDirection direction,
+        long amountMinor,
+        string purpose,
+        int sortOrder
+    )
     {
         if (walletId == Guid.Empty)
             throw new OrderDomainException("شناسه کیف مقصد معتبر نیست", "INVALID_POSTING_WALLET");
         if (amountMinor <= 0)
-            throw new OrderDomainException("مبلغ ثبت مالی باید مثبت باشد", "INVALID_POSTING_AMOUNT");
+            throw new OrderDomainException(
+                "مبلغ ثبت مالی باید مثبت باشد",
+                "INVALID_POSTING_AMOUNT"
+            );
         if (string.IsNullOrWhiteSpace(purpose))
             throw new OrderDomainException("هدف ثبت مالی الزامی است", "INVALID_POSTING_PURPOSE");
 
         return new OrderPaymentPosting
         {
-            Id = Guid.NewGuid(), OrderId = orderId, WalletId = walletId,
-            Direction = direction, AmountMinor = amountMinor,
-            Purpose = purpose.Trim(), SortOrder = sortOrder
+            Id = Guid.NewGuid(),
+            OrderId = orderId,
+            WalletId = walletId,
+            Direction = direction,
+            AmountMinor = amountMinor,
+            Purpose = purpose.Trim(),
+            SortOrder = sortOrder,
         };
     }
 }

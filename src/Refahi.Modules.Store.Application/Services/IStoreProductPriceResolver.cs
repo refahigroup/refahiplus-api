@@ -8,12 +8,13 @@ public interface IStoreProductPriceResolver
         Guid shopId,
         Guid productId,
         Guid? variantId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 
     Task<StoreResolvedPrice> ResolveAsync(
         Guid shopId,
         Product product,
         Guid? variantId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default
+    );
 }
-

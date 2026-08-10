@@ -7,6 +7,7 @@ public enum ProductType : short
 
     [Obsolete("نام legacy است؛ از Goods استفاده کنید.")]
     Physical = Goods,
+
     [Obsolete("نوع Digital در مدل جدید با FulfillmentMethod مشخص می‌شود.")]
-    Digital = Service
+    Digital = Service,
 }

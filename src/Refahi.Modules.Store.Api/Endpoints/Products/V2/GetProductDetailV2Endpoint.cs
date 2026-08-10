@@ -14,34 +14,51 @@ public sealed class GetProductDetailV2Endpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/v2/{moduleSlug}/products/{slug}", async (
-            string moduleSlug,
-            string slug,
-            Guid? shopId,
-            string? shopSlug,
-            string? offerKey,
-            Guid? variantId,
-            IModuleResolver moduleResolver,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
-            if (moduleId is null)
-                return Results.NotFound();
+        routes
+            .MapGet(
+                "/v2/{moduleSlug}/products/{slug}",
+                async (
+                    string moduleSlug,
+                    string slug,
+                    Guid? shopId,
+                    string? shopSlug,
+                    string? offerKey,
+                    Guid? variantId,
+                    IModuleResolver moduleResolver,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var moduleId = await moduleResolver.ResolveIdAsync(moduleSlug, ct);
+                    if (moduleId is null)
+                        return Results.NotFound();
 
-            var result = await mediator.Send(new GetProductDetailV2Query(
-                moduleId.Value, slug, shopId, shopSlug, offerKey, variantId), ct);
+                    var result = await mediator.Send(
+                        new GetProductDetailV2Query(
+                            moduleId.Value,
+                            slug,
+                            shopId,
+                            shopSlug,
+                            offerKey,
+                            variantId
+                        ),
+                        ct
+                    );
 
-            return result is null
-                ? Results.NotFound()
-                : Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Store.V2.GetProductDetail")
-        .WithMetadata(new ObsoleteAttribute("Legacy synthetic pricing endpoint. Use Store v3 catalog."))
-        .WithTags("Store.Products.V2")
-        .Produces<ApiResponse<ProductDetailV2Dto>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+                    return result is null
+                        ? Results.NotFound()
+                        : Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Store.V2.GetProductDetail")
+            .WithMetadata(
+                new ObsoleteAttribute("Legacy synthetic pricing endpoint. Use Store v3 catalog.")
+            )
+            .WithTags("Store.Products.V2")
+            .Produces<ApiResponse<ProductDetailV2Dto>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

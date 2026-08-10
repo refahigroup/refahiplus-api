@@ -18,7 +18,8 @@ public sealed class CreateHotelRequestCommandHandler
     public CreateHotelRequestCommandHandler(
         IHotelRequestRepository repository,
         IHotelBookingSagaRepository sagaRepository,
-        ILogger<CreateHotelRequestCommandHandler> logger)
+        ILogger<CreateHotelRequestCommandHandler> logger
+    )
     {
         _repository = repository;
         _sagaRepository = sagaRepository;
@@ -27,44 +28,57 @@ public sealed class CreateHotelRequestCommandHandler
 
     public async Task<CreateHotelRequestResponse> Handle(
         CreateHotelRequestCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var idempotencyKey = NormalizeIdempotencyKey(request.IdempotencyKey);
         var existing = await _repository.GetByIdempotencyKeyAsync(
             request.UserId,
             idempotencyKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (existing is not null)
         {
-            var existingSaga = await _sagaRepository.GetByHotelRequestIdAsync(existing.Id, cancellationToken);
+            var existingSaga = await _sagaRepository.GetByHotelRequestIdAsync(
+                existing.Id,
+                cancellationToken
+            );
             if (existingSaga is null)
             {
-                existingSaga = HotelBookingSagaState.Start(existing.UserId, existing.Id, DateTime.UtcNow);
+                existingSaga = HotelBookingSagaState.Start(
+                    existing.UserId,
+                    existing.Id,
+                    DateTime.UtcNow
+                );
                 await _sagaRepository.AddAsync(existingSaga, cancellationToken);
                 await _repository.SaveChangesAsync(cancellationToken);
             }
 
-            using var existingScope = _logger.BeginScope(new Dictionary<string, object?>
-            {
-                ["UserId"] = existing.UserId,
-                ["SagaId"] = existingSaga.SagaId,
-                ["HotelRequestId"] = existing.Id,
-                ["OrderId"] = existing.OrderId,
-                ["ProviderBookingCode"] = existing.ProviderBookingCode
-            });
+            using var existingScope = _logger.BeginScope(
+                new Dictionary<string, object?>
+                {
+                    ["UserId"] = existing.UserId,
+                    ["SagaId"] = existingSaga.SagaId,
+                    ["HotelRequestId"] = existing.Id,
+                    ["OrderId"] = existing.OrderId,
+                    ["ProviderBookingCode"] = existing.ProviderBookingCode,
+                }
+            );
 
             _logger.LogInformation(
                 "Hotel request idempotency replayed. HotelRequestId={HotelRequestId}, Status={Status}",
                 existing.Id,
-                existing.Status);
+                existing.Status
+            );
 
             return new CreateHotelRequestResponse(
                 existing.Id,
                 existing.Status.ToString(),
                 existing.ExpireAt,
                 existing.TotalPrice,
-                existing.Currency);
+                existing.Currency
+            );
         }
 
         var now = DateTime.UtcNow;
@@ -83,34 +97,39 @@ public sealed class CreateHotelRequestCommandHandler
             request.GuestInfoSnapshot,
             now,
             now.Add(RequestTtl),
-            idempotencyKey);
+            idempotencyKey
+        );
 
         await _repository.AddAsync(hotelRequest, cancellationToken);
         var saga = HotelBookingSagaState.Start(hotelRequest.UserId, hotelRequest.Id, now);
         await _sagaRepository.AddAsync(saga, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        using var scope = _logger.BeginScope(new Dictionary<string, object?>
-        {
-            ["UserId"] = hotelRequest.UserId,
-            ["SagaId"] = saga.SagaId,
-            ["HotelRequestId"] = hotelRequest.Id,
-            ["OrderId"] = null,
-            ["ProviderBookingCode"] = null
-        });
+        using var scope = _logger.BeginScope(
+            new Dictionary<string, object?>
+            {
+                ["UserId"] = hotelRequest.UserId,
+                ["SagaId"] = saga.SagaId,
+                ["HotelRequestId"] = hotelRequest.Id,
+                ["OrderId"] = null,
+                ["ProviderBookingCode"] = null,
+            }
+        );
 
         _logger.LogInformation(
             "Hotel request created. HotelRequestId={HotelRequestId}, SagaId={SagaId}, Provider={Provider}",
             hotelRequest.Id,
             saga.SagaId,
-            hotelRequest.ProviderName);
+            hotelRequest.ProviderName
+        );
 
         return new CreateHotelRequestResponse(
             hotelRequest.Id,
             hotelRequest.Status.ToString(),
             hotelRequest.ExpireAt,
             hotelRequest.TotalPrice,
-            hotelRequest.Currency);
+            hotelRequest.Currency
+        );
     }
 
     private static string NormalizeIdempotencyKey(string value)

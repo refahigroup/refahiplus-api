@@ -29,7 +29,8 @@ public sealed class ChargeFulfillmentProcessor
         IMediator mediator,
         IConfiguration configuration,
         ILogger<ChargeFulfillmentProcessor> logger,
-        ChargeRefundProcessor refunds)
+        ChargeRefundProcessor refunds
+    )
     {
         _requests = requests;
         _providers = providers;
@@ -42,8 +43,9 @@ public sealed class ChargeFulfillmentProcessor
 
     public async Task ProcessAsync(Guid requestId, CancellationToken ct)
     {
-        var request = await _requests.GetAsync(requestId, ct) ??
-            throw new InvalidOperationException("درخواست شارژ یافت نشد");
+        var request =
+            await _requests.GetAsync(requestId, ct)
+            ?? throw new InvalidOperationException("درخواست شارژ یافت نشد");
 
         if (request.Status == ChargeRequestStatus.Refunding)
         {
@@ -51,9 +53,11 @@ public sealed class ChargeFulfillmentProcessor
             return;
         }
 
-        bool status = request.Status is ChargeRequestStatus.Fulfilled or
-                      ChargeRequestStatus.Refunded or
-                      ChargeRequestStatus.ManualReview;
+        bool status =
+            request.Status
+            is ChargeRequestStatus.Fulfilled
+                or ChargeRequestStatus.Refunded
+                or ChargeRequestStatus.ManualReview;
 
         if (status)
             return;
@@ -67,15 +71,21 @@ public sealed class ChargeFulfillmentProcessor
 
         _logger.LogInformation(
             "Charge processing lease acquired. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, PreviousStatus={PreviousStatus}, LeaseUntil={LeaseUntil}",
-            request.Id, request.OrderId, previousStatus, request.ProcessingLeaseUntil);
+            request.Id,
+            request.OrderId,
+            previousStatus,
+            request.ProcessingLeaseUntil
+        );
 
         try
         {
             _logger.LogInformation(
                 "Dispatching charge provider operation. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, Operation={Operation}, Provider={Provider}",
-                request.Id, request.OrderId,
+                request.Id,
+                request.OrderId,
                 previousStatus == ChargeRequestStatus.Paid ? "Purchase" : "Trace",
-                request.ProviderName);
+                request.ProviderName
+            );
 
             if (previousStatus == ChargeRequestStatus.Paid)
                 await PurchaseAsync(request, ct);
@@ -84,15 +94,35 @@ public sealed class ChargeFulfillmentProcessor
         }
         catch (ChargeProviderException ex)
         {
-            _logger.LogWarning(ex,
+            _logger.LogWarning(
+                ex,
                 "Charge provider operation failed. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, Ambiguous={Ambiguous}",
-                request.Id, request.OrderId, ex.OutcomeAmbiguous);
-
-            await RecordAttemptAsync(request, ChargeFulfillmentAttempt.Create(
                 request.Id,
-                previousStatus == ChargeRequestStatus.Paid ? FulfillmentAttemptType.Purchase : FulfillmentAttemptType.Trace,
-                false, ex.ProviderResultCode, null, null, null, ex.Message, "{}", "{}", 0, DateTime.UtcNow,
-                ex.ProviderCallLogId), ct);
+                request.OrderId,
+                ex.OutcomeAmbiguous
+            );
+
+            await RecordAttemptAsync(
+                request,
+                ChargeFulfillmentAttempt.Create(
+                    request.Id,
+                    previousStatus == ChargeRequestStatus.Paid
+                        ? FulfillmentAttemptType.Purchase
+                        : FulfillmentAttemptType.Trace,
+                    false,
+                    ex.ProviderResultCode,
+                    null,
+                    null,
+                    null,
+                    ex.Message,
+                    "{}",
+                    "{}",
+                    0,
+                    DateTime.UtcNow,
+                    ex.ProviderCallLogId
+                ),
+                ct
+            );
 
             if (!ex.OutcomeAmbiguous)
             {
@@ -116,19 +146,25 @@ public sealed class ChargeFulfillmentProcessor
             await RecoverInterruptedProcessingAsync(
                 request,
                 "پردازش درخواست شارژ به علت توقف سرویس قطع شد",
-                null);
+                null
+            );
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
+            _logger.LogError(
+                ex,
                 "Unexpected charge fulfillment failure after lease acquisition. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, PreviousStatus={PreviousStatus}",
-                request.Id, request.OrderId, previousStatus);
+                request.Id,
+                request.OrderId,
+                previousStatus
+            );
 
             await RecoverInterruptedProcessingAsync(
                 request,
                 "پردازش درخواست شارژ به علت خطای داخلی قطع شد و برای استعلام مجدد صف‌بندی شد",
-                ex);
+                ex
+            );
             throw;
         }
     }
@@ -136,7 +172,8 @@ public sealed class ChargeFulfillmentProcessor
     private async Task RecoverInterruptedProcessingAsync(
         ChargeRequest request,
         string message,
-        Exception? originalException)
+        Exception? originalException
+    )
     {
         if (request.Status != ChargeRequestStatus.Processing)
             return;
@@ -147,21 +184,29 @@ public sealed class ChargeFulfillmentProcessor
             request.OperatorResultCode,
             message,
             now.Add(InterruptedRecoveryDelay),
-            now);
+            now
+        );
 
         try
         {
             using var recoveryTimeout = new CancellationTokenSource(RecoveryPersistenceTimeout);
             await _requests.SaveChangesAsync(recoveryTimeout.Token);
-            _logger.LogWarning(originalException,
+            _logger.LogWarning(
+                originalException,
                 "Interrupted charge processing was recovered. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}, NextReconciliationAt={NextReconciliationAt}",
-                request.Id, request.OrderId, request.NextReconciliationAt);
+                request.Id,
+                request.OrderId,
+                request.NextReconciliationAt
+            );
         }
         catch (Exception recoveryException)
         {
-            _logger.LogCritical(recoveryException,
+            _logger.LogCritical(
+                recoveryException,
                 "Failed to persist interrupted charge processing recovery. ChargeRequestId={ChargeRequestId}, OrderId={OrderId}",
-                request.Id, request.OrderId);
+                request.Id,
+                request.OrderId
+            );
         }
     }
 
@@ -171,67 +216,91 @@ public sealed class ChargeFulfillmentProcessor
             .Get(request.ProviderName)
             .PurchaseAsync(
                 new(
-                    request.Operator, 
-                    request.ServiceType, 
-                    request.OriginMobileNumber, 
+                    request.Operator,
+                    request.ServiceType,
+                    request.OriginMobileNumber,
                     request.DestinationMobileNumber,
-                    request.ProviderCostMinor, 
-                    request.CustomerInvoiceNumber, 
+                    request.ProviderCostMinor,
+                    request.CustomerInvoiceNumber,
                     request.ProviderProductId,
-                    request.ProductCategory, 
+                    request.ProductCategory,
                     request.PayBill,
-                    int.TryParse(_configuration["Charge:Providers:Eniac:ChannelId"], out var channelId) ? channelId : 102,
-                    _configuration["Charge:Providers:Eniac:ResellerName"], 
-                    request.PinCategoryId, request.PinCount,
+                    int.TryParse(
+                        _configuration["Charge:Providers:Eniac:ChannelId"],
+                        out var channelId
+                    )
+                        ? channelId
+                        : 102,
+                    _configuration["Charge:Providers:Eniac:ResellerName"],
+                    request.PinCategoryId,
+                    request.PinCount,
                     BuildCallContext(request)
-                ), ct
+                ),
+                ct
             );
 
-        await RecordAttemptAsync(request, ChargeFulfillmentAttempt.Create(
-            request.Id, 
-            FulfillmentAttemptType.Purchase, 
-            result.Success,
-            result.EniacResultCode, 
-            result.OperatorResultCode, 
-            result.Rrn, 
-            result.OperatorTraceId, 
-            result.Message,
-            result.RequestSnapshotJson, 
-            result.ResponseSnapshotJson, 
-            result.LatencyMilliseconds,
-            DateTime.UtcNow), ct);
+        await RecordAttemptAsync(
+            request,
+            ChargeFulfillmentAttempt.Create(
+                request.Id,
+                FulfillmentAttemptType.Purchase,
+                result.Success,
+                result.EniacResultCode,
+                result.OperatorResultCode,
+                result.Rrn,
+                result.OperatorTraceId,
+                result.Message,
+                result.RequestSnapshotJson,
+                result.ResponseSnapshotJson,
+                result.LatencyMilliseconds,
+                DateTime.UtcNow
+            ),
+            ct
+        );
 
         bool isValid = IsValidSuccess(
-            request, 
-            result.Success, 
-            result.EniacResultCode, 
-            result.Rrn, 
+            request,
+            result.Success,
+            result.EniacResultCode,
+            result.Rrn,
             result.Pins
         );
 
         if (isValid)
         {
-            foreach (var pin in result.Pins) 
-                request.AddPin(_protector.Protect(pin.Serial), _protector.Protect(pin.Code), pin.AmountMinor);
+            foreach (var pin in result.Pins)
+                request.AddPin(
+                    _protector.Protect(pin.Serial),
+                    _protector.Protect(pin.Code),
+                    pin.AmountMinor
+                );
 
-            request.MarkFulfilled(result.Rrn, result.OperatorTraceId, result.EniacResultCode, result.OperatorResultCode, result.Message, DateTime.UtcNow);
+            request.MarkFulfilled(
+                result.Rrn,
+                result.OperatorTraceId,
+                result.EniacResultCode,
+                result.OperatorResultCode,
+                result.Message,
+                DateTime.UtcNow
+            );
 
-            await _requests.SaveChangesAsync(ct); 
-            await CompleteOrderAsync(request, ct); 
-            
+            await _requests.SaveChangesAsync(ct);
+            await CompleteOrderAsync(request, ct);
+
             return;
         }
         if (result.EniacResultCode == 0 || AmbiguousCodes.Contains(result.EniacResultCode))
         {
             request.MarkReconciliationPending(
-                result.EniacResultCode, 
-                result.OperatorResultCode, 
-                result.Message, 
-                DateTime.UtcNow.AddMinutes(1), 
-                DateTime.UtcNow);
+                result.EniacResultCode,
+                result.OperatorResultCode,
+                result.Message,
+                DateTime.UtcNow.AddMinutes(1),
+                DateTime.UtcNow
+            );
 
-            await _requests.SaveChangesAsync(ct); 
-            
+            await _requests.SaveChangesAsync(ct);
+
             return;
         }
 
@@ -239,82 +308,130 @@ public sealed class ChargeFulfillmentProcessor
             result.EniacResultCode,
             result.OperatorResultCode,
             result.Message,
-            DateTime.UtcNow);
+            DateTime.UtcNow
+        );
 
         await RefundAsync(request, result.Message ?? "خرید شارژ توسط تامین‌کننده ناموفق بود", ct);
     }
 
     private async Task TraceAsync(ChargeRequest request, CancellationToken ct)
     {
-        if (IsUnresolvedExpired(request) &&
-            request.Attempts.Count(x => x.Type == FulfillmentAttemptType.Trace) >= MinimumTraceAttempts())
-        { 
-            await ApplyUnresolvedPolicyAsync(request, ct); return; 
+        if (
+            IsUnresolvedExpired(request)
+            && request.Attempts.Count(x => x.Type == FulfillmentAttemptType.Trace)
+                >= MinimumTraceAttempts()
+        )
+        {
+            await ApplyUnresolvedPolicyAsync(request, ct);
+            return;
         }
 
         var result = await _providers
             .Get(request.ProviderName)
-            .TraceAsync(new(
-                0, 
-                request.CustomerInvoiceNumber,
-                request.ProviderProductId, 
-                request.ProviderCostMinor, 
-                DateOnly.FromDateTime(request.CreatedAt),
-                BuildCallContext(request)), ct
+            .TraceAsync(
+                new(
+                    0,
+                    request.CustomerInvoiceNumber,
+                    request.ProviderProductId,
+                    request.ProviderCostMinor,
+                    DateOnly.FromDateTime(request.CreatedAt),
+                    BuildCallContext(request)
+                ),
+                ct
             );
 
-        await RecordAttemptAsync(request, ChargeFulfillmentAttempt.Create(
-            request.Id, 
-            FulfillmentAttemptType.Trace, 
-            result.Success,
-            result.EniacResultCode, 
-            result.OperatorResultCode, 
-            result.Rrn, 
-            result.OperatorTraceId, 
-            result.Message,
-            result.RequestSnapshotJson, 
-            result.ResponseSnapshotJson, 
-            result.LatencyMilliseconds,
-            DateTime.UtcNow), ct);
+        await RecordAttemptAsync(
+            request,
+            ChargeFulfillmentAttempt.Create(
+                request.Id,
+                FulfillmentAttemptType.Trace,
+                result.Success,
+                result.EniacResultCode,
+                result.OperatorResultCode,
+                result.Rrn,
+                result.OperatorTraceId,
+                result.Message,
+                result.RequestSnapshotJson,
+                result.ResponseSnapshotJson,
+                result.LatencyMilliseconds,
+                DateTime.UtcNow
+            ),
+            ct
+        );
 
         if (
-            result.Success && 
-            result.EniacResultCode == 0 && 
-            (result.PaymentResultCode is null or 0) && 
-            IsValidSuccess(request, true, 0, result.Rrn, result.Pins)
+            result.Success
+            && result.EniacResultCode == 0
+            && (result.PaymentResultCode is null or 0)
+            && IsValidSuccess(request, true, 0, result.Rrn, result.Pins)
         )
         {
-            foreach (var pin in result.Pins) 
-                request.AddPin(_protector.Protect(pin.Serial), _protector.Protect(pin.Code), pin.AmountMinor);
+            foreach (var pin in result.Pins)
+                request.AddPin(
+                    _protector.Protect(pin.Serial),
+                    _protector.Protect(pin.Code),
+                    pin.AmountMinor
+                );
 
-            request.MarkFulfilled(result.Rrn, result.OperatorTraceId, result.EniacResultCode, result.OperatorResultCode, result.Message, DateTime.UtcNow);
+            request.MarkFulfilled(
+                result.Rrn,
+                result.OperatorTraceId,
+                result.EniacResultCode,
+                result.OperatorResultCode,
+                result.Message,
+                DateTime.UtcNow
+            );
 
-            await _requests.SaveChangesAsync(ct); 
-            await CompleteOrderAsync(request, ct); 
-            
+            await _requests.SaveChangesAsync(ct);
+            await CompleteOrderAsync(request, ct);
+
             return;
         }
-        if (result.EniacResultCode == 0 || AmbiguousCodes.Contains(result.EniacResultCode) || result.EniacResultCode == 109)
+        if (
+            result.EniacResultCode == 0
+            || AmbiguousCodes.Contains(result.EniacResultCode)
+            || result.EniacResultCode == 109
+        )
         {
-            var delay = TimeSpan.FromMinutes(Math.Min(30, Math.Pow(2, Math.Min(request.ReconciliationCount, 5))));
-            request.MarkReconciliationPending(result.EniacResultCode, result.OperatorResultCode, result.Message, DateTime.UtcNow.Add(delay), DateTime.UtcNow);
-            await _requests.SaveChangesAsync(ct); return;
+            var delay = TimeSpan.FromMinutes(
+                Math.Min(30, Math.Pow(2, Math.Min(request.ReconciliationCount, 5)))
+            );
+            request.MarkReconciliationPending(
+                result.EniacResultCode,
+                result.OperatorResultCode,
+                result.Message,
+                DateTime.UtcNow.Add(delay),
+                DateTime.UtcNow
+            );
+            await _requests.SaveChangesAsync(ct);
+            return;
         }
-        request.MarkFailed(result.EniacResultCode, result.OperatorResultCode, result.Message, DateTime.UtcNow);
+        request.MarkFailed(
+            result.EniacResultCode,
+            result.OperatorResultCode,
+            result.Message,
+            DateTime.UtcNow
+        );
         await RefundAsync(request, result.Message ?? "تراکنش شارژ ناموفق بود", ct);
     }
 
     private bool IsUnresolvedExpired(ChargeRequest request)
     {
-        var hours = int.TryParse(_configuration[$"Charge:Providers:{request.ProviderName}:UnresolvedTimeoutHours"], out var configuredHours)
-            ? Math.Clamp(configuredHours, 1, 168) : 24;
+        var hours = int.TryParse(
+            _configuration[$"Charge:Providers:{request.ProviderName}:UnresolvedTimeoutHours"],
+            out var configuredHours
+        )
+            ? Math.Clamp(configuredHours, 1, 168)
+            : 24;
 
-        return request.PaidAt.HasValue && 
-            request.PaidAt.Value.AddHours(hours) <= DateTime.UtcNow;
+        return request.PaidAt.HasValue && request.PaidAt.Value.AddHours(hours) <= DateTime.UtcNow;
     }
 
     private int MinimumTraceAttempts() =>
-        int.TryParse(_configuration["Charge:Reconciliation:MinimumTraceAttempts"], out var configured)
+        int.TryParse(
+            _configuration["Charge:Reconciliation:MinimumTraceAttempts"],
+            out var configured
+        )
             ? Math.Clamp(configured, 1, 10)
             : 3;
 
@@ -324,7 +441,8 @@ public sealed class ChargeFulfillmentProcessor
     private async Task RecordAttemptAsync(
         ChargeRequest request,
         ChargeFulfillmentAttempt attempt,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         request.RecordAttempt(attempt);
         await _requests.AddFulfillmentAttemptAsync(attempt, ct);
@@ -332,50 +450,69 @@ public sealed class ChargeFulfillmentProcessor
 
     private async Task ApplyUnresolvedPolicyAsync(ChargeRequest request, CancellationToken ct)
     {
-        var action = _configuration[$"Charge:Providers:{request.ProviderName}:UnresolvedAction"] ?? "ManualReview";
-        
+        var action =
+            _configuration[$"Charge:Providers:{request.ProviderName}:UnresolvedAction"]
+            ?? "ManualReview";
+
         if (action.Equals("Refund", StringComparison.OrdinalIgnoreCase))
         {
             await RefundAsync(request, "مهلت تعیین وضعیت خرید شارژ به پایان رسید", ct);
         }
-        else 
-        { 
-            request.MarkManualReview("نیازمند بررسی دستی وضعیت تراکنش تامین‌کننده", DateTime.UtcNow); 
-            await _requests.SaveChangesAsync(ct); 
+        else
+        {
+            request.MarkManualReview(
+                "نیازمند بررسی دستی وضعیت تراکنش تامین‌کننده",
+                DateTime.UtcNow
+            );
+            await _requests.SaveChangesAsync(ct);
         }
     }
 
     private async Task CompleteOrderAsync(ChargeRequest request, CancellationToken ct)
     {
-        if (!request.OrderId.HasValue) 
+        if (!request.OrderId.HasValue)
             return;
 
-        await _mediator.Send(new UpdateOrderStatusCommand(request.OrderId.Value, OrderStatusInput.Processing), ct);
-        await _mediator.Send(new UpdateOrderStatusCommand(request.OrderId.Value, OrderStatusInput.Delivered), ct);
+        await _mediator.Send(
+            new UpdateOrderStatusCommand(request.OrderId.Value, OrderStatusInput.Processing),
+            ct
+        );
+        await _mediator.Send(
+            new UpdateOrderStatusCommand(request.OrderId.Value, OrderStatusInput.Delivered),
+            ct
+        );
     }
 
     private async Task RefundAsync(ChargeRequest request, string reason, CancellationToken ct)
     {
-        if (!request.OrderId.HasValue) 
-        { 
-            request.MarkManualReview("سفارش برای بازگشت وجه یافت نشد", DateTime.UtcNow); 
-            await _requests.SaveChangesAsync(ct); return; 
+        if (!request.OrderId.HasValue)
+        {
+            request.MarkManualReview("سفارش برای بازگشت وجه یافت نشد", DateTime.UtcNow);
+            await _requests.SaveChangesAsync(ct);
+            return;
         }
 
         await _refunds.BeginAsync(request, reason, $"charge-refund-{request.Id:N}", ct);
     }
 
-    private static bool IsValidSuccess(ChargeRequest request, bool success, int code, string? rrn, IReadOnlyList<ProviderPinDto> pins)
+    private static bool IsValidSuccess(
+        ChargeRequest request,
+        bool success,
+        int code,
+        string? rrn,
+        IReadOnlyList<ProviderPinDto> pins
+    )
     {
-        return 
-            success && 
-            code == 0 &&
-            !string.IsNullOrWhiteSpace(rrn) &&
-            (
-                request.ServiceType != ChargeServiceType.PinCharge ||
-                (
-                    pins.Count == request.PinCount &&
-                    pins.All(x => !string.IsNullOrWhiteSpace(x.Serial) && !string.IsNullOrWhiteSpace(x.Code))
+        return success
+            && code == 0
+            && !string.IsNullOrWhiteSpace(rrn)
+            && (
+                request.ServiceType != ChargeServiceType.PinCharge
+                || (
+                    pins.Count == request.PinCount
+                    && pins.All(x =>
+                        !string.IsNullOrWhiteSpace(x.Serial) && !string.IsNullOrWhiteSpace(x.Code)
+                    )
                 )
             );
     }

@@ -14,7 +14,8 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
     public StoreProductPriceResolver(
         IProductRepository productRepository,
         IShopProductRepository shopProductRepository,
-        ILogger<StoreProductPriceResolver> logger)
+        ILogger<StoreProductPriceResolver> logger
+    )
     {
         _productRepository = productRepository;
         _shopProductRepository = shopProductRepository;
@@ -25,9 +26,11 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
         Guid shopId,
         Guid productId,
         Guid? variantId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
-        var product = await _productRepository.GetByIdAsync(productId, cancellationToken)
+        var product =
+            await _productRepository.GetByIdAsync(productId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
         return await ResolveAsync(shopId, product, variantId, cancellationToken);
@@ -37,7 +40,8 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
         Guid shopId,
         Product product,
         Guid? variantId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         if (product.IsDeleted)
             throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
@@ -45,10 +49,14 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
         var shopProduct = await _shopProductRepository.GetWithVariantOfferingsAsync(
             shopId,
             product.Id,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (shopProduct is null || !shopProduct.IsActive)
-            throw new StoreDomainException("این محصول در فروشگاه مورد نظر موجود نیست", "PRODUCT_NOT_IN_SHOP");
+            throw new StoreDomainException(
+                "این محصول در فروشگاه مورد نظر موجود نیست",
+                "PRODUCT_NOT_IN_SHOP"
+            );
 
         if (!variantId.HasValue)
         {
@@ -62,14 +70,17 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
                 ShopProductId: shopProduct.Id,
                 ShopProductVariantId: null,
                 VariantId: null,
-                Source: StorePriceSource.ShopProduct);
+                Source: StorePriceSource.ShopProduct
+            );
         }
 
-        var variant = product.Variants.FirstOrDefault(v => v.Id == variantId.Value)
+        var variant =
+            product.Variants.FirstOrDefault(v => v.Id == variantId.Value)
             ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
 
-        var offering = shopProduct.VariantOfferings
-            .FirstOrDefault(v => v.ProductVariantId == variant.Id && !v.IsDeleted);
+        var offering = shopProduct.VariantOfferings.FirstOrDefault(v =>
+            v.ProductVariantId == variant.Id && !v.IsDeleted
+        );
 
         if (offering is null)
         {
@@ -77,15 +88,20 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
                 "Missing ShopProductVariant offering for shop {ShopId}, product {ProductId}, variant {VariantId}.",
                 shopId,
                 product.Id,
-                variant.Id);
+                variant.Id
+            );
 
             throw new StoreDomainException(
                 "این تنوع برای فروشگاه انتخاب‌شده تعریف نشده است.",
-                "SHOP_PRODUCT_VARIANT_NOT_CONFIGURED");
+                "SHOP_PRODUCT_VARIANT_NOT_CONFIGURED"
+            );
         }
 
         if (!offering.IsActive)
-            throw new StoreDomainException("این تنوع در فروشگاه انتخاب‌شده فعال نیست.", "SHOP_PRODUCT_VARIANT_INACTIVE");
+            throw new StoreDomainException(
+                "این تنوع در فروشگاه انتخاب‌شده فعال نیست.",
+                "SHOP_PRODUCT_VARIANT_INACTIVE"
+            );
 
         ValidatePrice(offering.PriceMinor, offering.DiscountedPriceMinor);
 
@@ -96,11 +112,12 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
             ShopProductId: shopProduct.Id,
             ShopProductVariantId: offering.Id,
             VariantId: variant.Id,
-            Source: StorePriceSource.ShopProductVariant);
+            Source: StorePriceSource.ShopProductVariant
+        );
     }
 
-    private static long? NormalizeShopDiscount(long discountedPrice)
-        => discountedPrice > 0 ? discountedPrice : null;
+    private static long? NormalizeShopDiscount(long discountedPrice) =>
+        discountedPrice > 0 ? discountedPrice : null;
 
     private static void ValidatePrice(long priceMinor, long? discountedPriceMinor)
     {
@@ -108,9 +125,15 @@ public sealed class StoreProductPriceResolver : IStoreProductPriceResolver
             throw new StoreDomainException("قیمت باید بیشتر از صفر باشد", "INVALID_PRICE");
 
         if (discountedPriceMinor is <= 0)
-            throw new StoreDomainException("قیمت تخفیف‌خورده باید بیشتر از صفر باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده باید بیشتر از صفر باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
 
         if (discountedPriceMinor > priceMinor)
-            throw new StoreDomainException("قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد", "INVALID_DISCOUNTED_PRICE");
+            throw new StoreDomainException(
+                "قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد",
+                "INVALID_DISCOUNTED_PRICE"
+            );
     }
 }

@@ -11,21 +11,25 @@ public class DeactivateBannerEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPost("/admin/banners/{id:int}/deactivate", async (
-            int id,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new DeactivateBannerCommand(id), ct);
-            return Results.Ok(ApiResponseHelper.Success(result, "بنر با موفقیت غیرفعال شد"));
-        })
-        .WithName("Store.DeactivateBanner")
-        .WithTags("Store.Banners")
-        .RequireAuthorization("AdminOnly")
-        .Produces<ApiResponse<DeactivateBannerResponse>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status404NotFound);
+        routes
+            .MapPost(
+                "/admin/banners/{id:int}/deactivate",
+                async (int id, IMediator mediator, CancellationToken ct) =>
+                {
+                    var result = await mediator.Send(new DeactivateBannerCommand(id), ct);
+                    return Results.Ok(
+                        ApiResponseHelper.Success(result, "بنر با موفقیت غیرفعال شد")
+                    );
+                }
+            )
+            .WithName("Store.DeactivateBanner")
+            .WithTags("Store.Banners")
+            .RequireAuthorization("AdminOnly")
+            .Produces<ApiResponse<DeactivateBannerResponse>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

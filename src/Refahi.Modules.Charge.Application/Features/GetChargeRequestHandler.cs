@@ -5,7 +5,8 @@ using Refahi.Modules.Charge.Domain.Repositories;
 
 namespace Refahi.Modules.Charge.Application.Features;
 
-public sealed class GetChargeRequestHandler : IRequestHandler<GetChargeRequestQuery, ChargeRequestDetailDto?>
+public sealed class GetChargeRequestHandler
+    : IRequestHandler<GetChargeRequestQuery, ChargeRequestDetailDto?>
 {
     private readonly IChargeRequestRepository _requests;
 
@@ -14,7 +15,10 @@ public sealed class GetChargeRequestHandler : IRequestHandler<GetChargeRequestQu
         _requests = requests;
     }
 
-    public async Task<ChargeRequestDetailDto?> Handle(GetChargeRequestQuery query, CancellationToken ct)
+    public async Task<ChargeRequestDetailDto?> Handle(
+        GetChargeRequestQuery query,
+        CancellationToken ct
+    )
     {
         var request = query.IsAdmin
             ? await _requests.GetAsync(query.RequestId, ct)
@@ -27,31 +31,35 @@ public sealed class GetChargeRequestHandler : IRequestHandler<GetChargeRequestQu
             request.Id,
             request.OrderId,
             request.Status.ToString(),
-            request.Operator, 
+            request.Operator,
             request.ServiceType,
-            request.DestinationMobileNumber, 
-            request.ProductCaption, 
-            request.ProviderCostMinor, 
+            request.DestinationMobileNumber,
+            request.ProductCaption,
+            request.ProviderCostMinor,
             request.MarkupAmountMinor,
-            request.FinalAmountMinor, 
-            request.ProviderRrn, request.ProviderTraceId, 
+            request.FinalAmountMinor,
+            request.ProviderRrn,
+            request.ProviderTraceId,
             query.IsAdmin ? request.ProviderMessage : UserMessage(request.Status),
-            request.CreatedAt, 
-            request.FulfilledAt, 
+            request.CreatedAt,
+            request.FulfilledAt,
             request.Pins.Count
         );
     }
 
-    private static string? UserMessage(ChargeRequestStatus status) => status switch
-    {
-        ChargeRequestStatus.Fulfilled => "خرید با موفقیت انجام شد",
-        ChargeRequestStatus.Paid or ChargeRequestStatus.Processing or ChargeRequestStatus.ReconciliationPending => "تراکنش در حال پردازش و بررسی است",
-        ChargeRequestStatus.Refunding => "بازگشت وجه در حال انجام است",
-        ChargeRequestStatus.Refunded => "وجه پرداختی بازگردانده شد",
-        ChargeRequestStatus.ManualReview => "تراکنش توسط پشتیبانی در حال بررسی است",
-        ChargeRequestStatus.Failed => "خرید ناموفق بود",
-        ChargeRequestStatus.Expired => "مهلت درخواست به پایان رسیده است",
-        ChargeRequestStatus.Cancelled => "درخواست لغو شده است",
-        _ => null
-    };
+    private static string? UserMessage(ChargeRequestStatus status) =>
+        status switch
+        {
+            ChargeRequestStatus.Fulfilled => "خرید با موفقیت انجام شد",
+            ChargeRequestStatus.Paid
+            or ChargeRequestStatus.Processing
+            or ChargeRequestStatus.ReconciliationPending => "تراکنش در حال پردازش و بررسی است",
+            ChargeRequestStatus.Refunding => "بازگشت وجه در حال انجام است",
+            ChargeRequestStatus.Refunded => "وجه پرداختی بازگردانده شد",
+            ChargeRequestStatus.ManualReview => "تراکنش توسط پشتیبانی در حال بررسی است",
+            ChargeRequestStatus.Failed => "خرید ناموفق بود",
+            ChargeRequestStatus.Expired => "مهلت درخواست به پایان رسیده است",
+            ChargeRequestStatus.Cancelled => "درخواست لغو شده است",
+            _ => null,
+        };
 }

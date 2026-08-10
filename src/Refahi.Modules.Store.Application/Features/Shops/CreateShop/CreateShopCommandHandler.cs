@@ -11,11 +11,13 @@ public class CreateShopCommandHandler : IRequestHandler<CreateShopCommand, Creat
 {
     private readonly IShopRepository _shopRepository;
 
-    public CreateShopCommandHandler(IShopRepository shopRepository)
-        => _shopRepository = shopRepository;
+    public CreateShopCommandHandler(IShopRepository shopRepository) =>
+        _shopRepository = shopRepository;
 
     public async Task<CreateShopResponse> Handle(
-        CreateShopCommand request, CancellationToken cancellationToken)
+        CreateShopCommand request,
+        CancellationToken cancellationToken
+    )
     {
         if (await _shopRepository.SlugExistsAsync(request.Slug.Trim().ToLower(), cancellationToken))
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
@@ -40,7 +42,8 @@ public class CreateShopCommandHandler : IRequestHandler<CreateShopCommand, Creat
             request.RepresentativeName,
             request.RepresentativePhone,
             request.ContactPhone,
-            request.Description);
+            request.Description
+        );
 
         await _shopRepository.AddAsync(shop, cancellationToken);
 

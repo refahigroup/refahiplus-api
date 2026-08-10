@@ -12,14 +12,19 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
     private readonly ICategoryRepository _categoryRepository;
     private readonly IPathService _pathService;
 
-    public GetCategoriesQueryHandler(ICategoryRepository categoryRepository, IPathService pathService)
+    public GetCategoriesQueryHandler(
+        ICategoryRepository categoryRepository,
+        IPathService pathService
+    )
     {
         _categoryRepository = categoryRepository;
         _pathService = pathService;
     }
 
     public async Task<List<CategoryDto>> Handle(
-        GetCategoriesQuery request, CancellationToken cancellationToken)
+        GetCategoriesQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var categories = request.IncludeInactive
             ? await _categoryRepository.GetAllAsync(cancellationToken)
@@ -43,17 +48,28 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
         return roots.Select(c => MapToDto(c, lookup, _pathService)).ToList();
     }
 
-    private static CategoryDto MapToDto(Category c, ILookup<int?, Category> lookup, IPathService pathService)
+    private static CategoryDto MapToDto(
+        Category c,
+        ILookup<int?, Category> lookup,
+        IPathService pathService
+    )
     {
         var childList = lookup[c.Id].ToList();
-        List<CategoryDto>? children = childList.Count > 0
-            ? childList.Select(ch => MapToDto(ch, lookup, pathService)).ToList()
-            : null;
+        List<CategoryDto>? children =
+            childList.Count > 0
+                ? childList.Select(ch => MapToDto(ch, lookup, pathService)).ToList()
+                : null;
 
         return new CategoryDto(
-            c.Id, c.Name, c.Slug, c.CategoryCode,
+            c.Id,
+            c.Name,
+            c.Slug,
+            c.CategoryCode,
             c.ImageUrl is null ? null : pathService.MakeAbsoluteMediaUrl(c.ImageUrl),
-            c.ParentId, c.SortOrder, c.IsActive,
-            children);
+            c.ParentId,
+            c.SortOrder,
+            c.IsActive,
+            children
+        );
     }
 }

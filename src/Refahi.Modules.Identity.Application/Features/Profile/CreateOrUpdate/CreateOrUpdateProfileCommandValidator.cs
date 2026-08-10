@@ -8,9 +8,7 @@ public class CreateOrUpdateProfileCommandValidator : AbstractValidator<CreateOrU
     public CreateOrUpdateProfileCommandValidator()
     {
         // UserId validation
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("User ID is required");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("User ID is required");
 
         // First name validation
         RuleFor(x => x.FirstName)
@@ -31,22 +29,26 @@ public class CreateOrUpdateProfileCommandValidator : AbstractValidator<CreateOrU
             .WithMessage("Last name must contain only letters and spaces (Persian or English)");
 
         // National code validation (Iranian 10-digit format)
-        When(x => !string.IsNullOrWhiteSpace(x.NationalCode), () =>
-        {
-            RuleFor(x => x.NationalCode)
-                .Matches(@"^\d{10}$")
-                .WithMessage("National code must be exactly 10 digits")
-                .Must(BeValidNationalCode)
-                .WithMessage("Invalid Iranian national code");
-        });
+        When(
+            x => !string.IsNullOrWhiteSpace(x.NationalCode),
+            () =>
+            {
+                RuleFor(x => x.NationalCode)
+                    .Matches(@"^\d{10}$")
+                    .WithMessage("National code must be exactly 10 digits")
+                    .Must(BeValidNationalCode)
+                    .WithMessage("Invalid Iranian national code");
+            }
+        );
 
         // Gender validation
-        When(x => x.Gender.HasValue, () =>
-        {
-            RuleFor(x => x.Gender)
-                .IsInEnum()
-                .WithMessage("Invalid gender value");
-        });
+        When(
+            x => x.Gender.HasValue,
+            () =>
+            {
+                RuleFor(x => x.Gender).IsInEnum().WithMessage("Invalid gender value");
+            }
+        );
     }
 
     private bool BeValidNationalCode(string? nationalCode)

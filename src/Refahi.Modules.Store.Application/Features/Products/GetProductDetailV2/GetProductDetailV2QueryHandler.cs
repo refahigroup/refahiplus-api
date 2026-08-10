@@ -29,7 +29,8 @@ public sealed class GetProductDetailV2QueryHandler
         IReviewRepository reviewRepository,
         IStoreBusinessClock clock,
         IPathService pathService,
-        ILogger<GetProductDetailV2QueryHandler> logger)
+        ILogger<GetProductDetailV2QueryHandler> logger
+    )
     {
         _contextService = contextService;
         _offerRepository = offerRepository;
@@ -40,19 +41,32 @@ public sealed class GetProductDetailV2QueryHandler
         _logger = logger;
     }
 
-    public async Task<ProductDetailV2Dto?> Handle(GetProductDetailV2Query request, CancellationToken ct)
+    public async Task<ProductDetailV2Dto?> Handle(
+        GetProductDetailV2Query request,
+        CancellationToken ct
+    )
     {
         var stopwatch = Stopwatch.StartNew();
         var context = await _contextService.ResolveAsync(
-            request.ModuleId, null, request.ShopId, request.ShopSlug, null, ct);
+            request.ModuleId,
+            null,
+            request.ShopId,
+            request.ShopSlug,
+            null,
+            ct
+        );
         if (!context.IsShopValid || context.AgreementProducts.Count == 0)
             return null;
 
         var product = await _productRepository.GetDisplayableBySlugAsync(
             request.Slug.Trim().ToLowerInvariant(),
             context.AgreementProducts.Keys.ToArray(),
-            ct);
-        if (product is null || !context.AgreementProducts.TryGetValue(product.AgreementProductId, out var ap))
+            ct
+        );
+        if (
+            product is null
+            || !context.AgreementProducts.TryGetValue(product.AgreementProductId, out var ap)
+        )
             return null;
 
         var now = _clock.Current;
@@ -65,14 +79,18 @@ public sealed class GetProductDetailV2QueryHandler
                 ProductId: product.Id,
                 ProductSlug: product.Slug,
                 CurrentTime: now.Time,
-                ManualAgreementProductIds: context.ManualAgreementProductIds),
-            ct);
+                ManualAgreementProductIds: context.ManualAgreementProductIds
+            ),
+            ct
+        );
         if (allOffers.Count == 0)
             return null;
 
-        var preferred = allOffers.FirstOrDefault(x =>
+        var preferred =
+            allOffers.FirstOrDefault(x =>
                 !string.IsNullOrWhiteSpace(request.OfferKey)
-                && x.OfferKey.Equals(request.OfferKey.Trim(), StringComparison.OrdinalIgnoreCase))
+                && x.OfferKey.Equals(request.OfferKey.Trim(), StringComparison.OrdinalIgnoreCase)
+            )
             ?? allOffers
                 .Where(x => request.VariantId.HasValue && x.VariantId == request.VariantId)
                 .OrderBy(x => x.EffectivePriceMinor)
@@ -91,7 +109,9 @@ public sealed class GetProductDetailV2QueryHandler
             .ThenBy(x => x.OfferKey, StringComparer.Ordinal)
             .ToList();
 
-        var defaultOffer = selectedOffers.FirstOrDefault(x => x.OfferKey == preferred.OfferKey) ?? selectedOffers[0];
+        var defaultOffer =
+            selectedOffers.FirstOrDefault(x => x.OfferKey == preferred.OfferKey)
+            ?? selectedOffers[0];
         var offers = selectedOffers
             .Select(x => SyntheticOfferDtoMapper.MapOffer(x, ap, _pathService))
             .ToList();
@@ -101,7 +121,12 @@ public sealed class GetProductDetailV2QueryHandler
         stopwatch.Stop();
         _logger.LogInformation(
             "Store synthetic product detail query completed. ModuleId={ModuleId} ProductId={ProductId} ShopId={ShopId} Offers={Offers} DurationMs={DurationMs}",
-            request.ModuleId, product.Id, preferred.ShopId, offers.Count, stopwatch.ElapsedMilliseconds);
+            request.ModuleId,
+            product.Id,
+            preferred.ShopId,
+            offers.Count,
+            stopwatch.ElapsedMilliseconds
+        );
 
         return new ProductDetailV2Dto(
             product.Id,
@@ -114,20 +139,32 @@ public sealed class GetProductDetailV2QueryHandler
             ap.CategoryId,
             ap.CategoryName,
             product.IsAvailable,
-            ap.PricingMode == 2 ? "InPerson" : selectedOffers.Min(x => x.EffectivePriceMinor) == selectedOffers.Max(x => x.EffectivePriceMinor) ? "Exact" : "Range",
+            ap.PricingMode == 2 ? "InPerson"
+                : selectedOffers.Min(x => x.EffectivePriceMinor)
+                == selectedOffers.Max(x => x.EffectivePriceMinor)
+                    ? "Exact"
+                : "Range",
             selectedOffers.Min(x => x.EffectivePriceMinor),
             selectedOffers.Max(x => x.EffectivePriceMinor),
             defaultOffer.OfferKey,
             new SelectedShopV2Dto(preferred.ShopId, preferred.ShopName, preferred.ShopSlug),
-            product.Images.OrderBy(x => x.SortOrder)
-                .Select(x => new ProductImageDto(x.Id, _pathService.MakeAbsoluteMediaUrl(x.ImageUrl), x.IsMain, x.SortOrder))
+            product
+                .Images.OrderBy(x => x.SortOrder)
+                .Select(x => new ProductImageDto(
+                    x.Id,
+                    _pathService.MakeAbsoluteMediaUrl(x.ImageUrl),
+                    x.IsMain,
+                    x.SortOrder
+                ))
                 .ToList(),
-            product.Specifications.OrderBy(x => x.SortOrder)
+            product
+                .Specifications.OrderBy(x => x.SortOrder)
                 .Select(x => new ProductSpecificationDto(x.Id, x.Key, x.Value, x.SortOrder))
                 .ToList(),
             offers,
             averageRating,
             reviewCount,
-            product.CreatedAt);
+            product.CreatedAt
+        );
     }
 }

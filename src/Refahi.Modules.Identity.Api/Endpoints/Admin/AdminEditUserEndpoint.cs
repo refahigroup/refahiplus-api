@@ -12,30 +12,49 @@ public class AdminEditUserEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapPut("/admin/users/{userId:guid}", async (
-            Guid userId,
-            [FromBody] AdminEditUserRequest request,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var command = new AdminEditUserCommand(userId, request.FirstName, request.LastName, request.NationalCode);
-            var result = await mediator.Send(command, ct);
+        routes
+            .MapPut(
+                "/admin/users/{userId:guid}",
+                async (
+                    Guid userId,
+                    [FromBody] AdminEditUserRequest request,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var command = new AdminEditUserCommand(
+                        userId,
+                        request.FirstName,
+                        request.LastName,
+                        request.NationalCode
+                    );
+                    var result = await mediator.Send(command, ct);
 
-            if (!result.Success)
-                return Results.BadRequest(ApiResponseHelper.Error(result.ErrorMessage ?? "خطا در ویرایش کاربر"));
+                    if (!result.Success)
+                        return Results.BadRequest(
+                            ApiResponseHelper.Error(result.ErrorMessage ?? "خطا در ویرایش کاربر")
+                        );
 
-            return Results.Ok(ApiResponseHelper.Success(true, "اطلاعات کاربر با موفقیت ویرایش شد"));
-        })
-        .RequireAuthorization("AdminOnly")
-        .WithName("Identity.Admin.EditUser")
-        .WithTags("Identity.Admin")
-        .Produces(StatusCodes.Status200OK)
-        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
-        .Produces(StatusCodes.Status403Forbidden);
+                    return Results.Ok(
+                        ApiResponseHelper.Success(true, "اطلاعات کاربر با موفقیت ویرایش شد")
+                    );
+                }
+            )
+            .RequireAuthorization("AdminOnly")
+            .WithName("Identity.Admin.EditUser")
+            .WithTags("Identity.Admin")
+            .Produces(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
     }
 }
 
-public sealed record AdminEditUserRequest(string FirstName, string LastName, string? NationalCode = null);
+public sealed record AdminEditUserRequest(
+    string FirstName,
+    string LastName,
+    string? NationalCode = null
+);

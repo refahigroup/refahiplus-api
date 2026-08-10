@@ -9,16 +9,14 @@ public sealed class GetPostpaidBalanceValidator : AbstractValidator<GetPostpaidB
 {
     public GetPostpaidBalanceValidator()
     {
-        RuleFor(x => x.Operator).IsInEnum()
-            .WithMessage("اپراتور معتبر نیست");
+        RuleFor(x => x.Operator).IsInEnum().WithMessage("اپراتور معتبر نیست");
 
-        RuleFor(x => x.MobileNumber)
-            .Matches("^09[0-9]{9}$")
-            .WithMessage("شماره موبایل معتبر نیست");
+        RuleFor(x => x.MobileNumber).Matches("^09[0-9]{9}$").WithMessage("شماره موبایل معتبر نیست");
     }
 }
 
-public sealed class GetPostpaidBalanceQueryHandlers : IRequestHandler<GetPostpaidBalanceQuery, ChargePostpaidBalanceDto>
+public sealed class GetPostpaidBalanceQueryHandlers
+    : IRequestHandler<GetPostpaidBalanceQuery, ChargePostpaidBalanceDto>
 {
     private readonly IChargeProviderResolver _providers;
 
@@ -29,8 +27,6 @@ public sealed class GetPostpaidBalanceQueryHandlers : IRequestHandler<GetPostpai
 
     public Task<ChargePostpaidBalanceDto> Handle(GetPostpaidBalanceQuery q, CancellationToken ct)
     {
-        return _providers.GetDefault()
-                         .GetPostpaidBalanceAsync(q.Operator, q.MobileNumber, ct);
+        return _providers.GetDefault().GetPostpaidBalanceAsync(q.Operator, q.MobileNumber, ct);
     }
-
 }

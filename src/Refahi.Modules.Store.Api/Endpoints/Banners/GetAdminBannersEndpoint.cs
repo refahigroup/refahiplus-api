@@ -12,21 +12,30 @@ public class GetAdminBannersEndpoint : IEndpoint
 {
     public void Map(object app)
     {
-        if (app is not IEndpointRouteBuilder routes) return;
+        if (app is not IEndpointRouteBuilder routes)
+            return;
 
-        routes.MapGet("/admin/banners", async (
-            int? moduleId,
-            short? bannerType,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new GetAdminBannersQuery(moduleId, bannerType), ct);
-            return Results.Ok(ApiResponseHelper.Success(result));
-        })
-        .WithName("Store.GetAdminBanners")
-        .WithTags("Store.Banners")
-        .RequireAuthorization("AdminOnly")
-        .Produces<ApiResponse<List<AdminBannerDto>>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized);
+        routes
+            .MapGet(
+                "/admin/banners",
+                async (
+                    int? moduleId,
+                    short? bannerType,
+                    IMediator mediator,
+                    CancellationToken ct
+                ) =>
+                {
+                    var result = await mediator.Send(
+                        new GetAdminBannersQuery(moduleId, bannerType),
+                        ct
+                    );
+                    return Results.Ok(ApiResponseHelper.Success(result));
+                }
+            )
+            .WithName("Store.GetAdminBanners")
+            .WithTags("Store.Banners")
+            .RequireAuthorization("AdminOnly")
+            .Produces<ApiResponse<List<AdminBannerDto>>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized);
     }
 }

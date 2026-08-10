@@ -6,9 +6,8 @@ public sealed class CancelProviderBookingResultDto
     public string? ProviderMessage { get; set; }
 
     public bool IsCancelled =>
-        Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) ||
-        Status.Equals("AlreadyCancelled", StringComparison.OrdinalIgnoreCase);
+        Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
+        || Status.Equals("AlreadyCancelled", StringComparison.OrdinalIgnoreCase);
 
-    public bool IsUnsupported =>
-        Status.Equals("Unsupported", StringComparison.OrdinalIgnoreCase);
+    public bool IsUnsupported => Status.Equals("Unsupported", StringComparison.OrdinalIgnoreCase);
 }

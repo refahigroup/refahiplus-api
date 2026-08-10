@@ -23,7 +23,8 @@ public sealed class AuthorizationGrant
         string issuer,
         string value,
         string? emittedRole,
-        Guid? createdBy)
+        Guid? createdBy
+    )
     {
         if (userId == Guid.Empty)
             throw new DomainException("شناسه کاربر الزامی است", "INVALID_GRANT_USER");
@@ -43,7 +44,7 @@ public sealed class AuthorizationGrant
             EmittedRole = string.IsNullOrWhiteSpace(emittedRole) ? null : emittedRole.Trim(),
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = createdBy
+            CreatedBy = createdBy,
         };
     }
 
@@ -61,7 +62,8 @@ public sealed class AuthorizationGrant
 
     public void Revoke(Guid? actorId)
     {
-        if (!IsActive) return;
+        if (!IsActive)
+            return;
         IsActive = false;
         RevokedAt = DateTimeOffset.UtcNow;
         RevokedBy = actorId;

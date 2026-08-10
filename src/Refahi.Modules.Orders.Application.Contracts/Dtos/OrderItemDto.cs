@@ -10,4 +10,5 @@ public sealed record OrderItemDto(
     string CategoryCode,
     string[]? Tags,
     string? MetadataJson,
-    short DeliveryMethod);
+    short DeliveryMethod
+);

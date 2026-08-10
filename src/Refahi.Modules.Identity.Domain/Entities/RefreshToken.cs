@@ -1,4 +1,3 @@
-
 namespace Refahi.Modules.Identity.Domain.Entities;
 
 /// <summary>
@@ -20,10 +19,7 @@ public class RefreshToken
     // EF Core
     private RefreshToken() { }
 
-    private RefreshToken(
-        Guid userId,
-        string token,
-        DateTime expiresAt)
+    private RefreshToken(Guid userId, string token, DateTime expiresAt)
     {
         Id = Guid.NewGuid();
         UserId = userId;
@@ -34,10 +30,7 @@ public class RefreshToken
         IsUsed = false;
     }
 
-    public static RefreshToken Create(
-        Guid userId,
-        string token,
-        DateTime expiresAt)
+    public static RefreshToken Create(Guid userId, string token, DateTime expiresAt)
     {
         if (userId == Guid.Empty)
             throw new ArgumentException("User ID cannot be empty", nameof(userId));

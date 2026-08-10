@@ -5,5 +5,5 @@ public enum FulfillmentMethod : short
     Pickup = 1,
     Shipping = 2,
     Voucher = 3,
-    Download = 4
+    Download = 4,
 }

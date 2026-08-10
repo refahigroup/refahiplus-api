@@ -13,7 +13,8 @@ public class PaymentGatewayCallbackUrlBuilderTests
             PaymentGatewayProviderType.Sep,
             "https://refahiplus.com",
             "http",
-            "internal-server");
+            "internal-server"
+        );
 
         Assert.Equal("https://refahiplus.com/api/payment-gateway/callback/sep", url);
     }
@@ -27,7 +28,8 @@ public class PaymentGatewayCallbackUrlBuilderTests
             requestScheme: "http",
             requestHost: "internal-server",
             forwardedProto: "https",
-            forwardedHost: "refahiplus.com");
+            forwardedHost: "refahiplus.com"
+        );
 
         Assert.Equal("https://refahiplus.com/api/payment-gateway/callback/sep", url);
     }
@@ -39,7 +41,8 @@ public class PaymentGatewayCallbackUrlBuilderTests
             PaymentGatewayProviderType.Sep,
             publicBaseUrl: "",
             requestScheme: "http",
-            requestHost: "refahiplus.com");
+            requestHost: "refahiplus.com"
+        );
 
         Assert.Equal("https://refahiplus.com/api/payment-gateway/callback/sep", url);
     }
@@ -51,7 +54,8 @@ public class PaymentGatewayCallbackUrlBuilderTests
             PaymentGatewayProviderType.Sep,
             publicBaseUrl: "",
             requestScheme: "http",
-            requestHost: "localhost:5000");
+            requestHost: "localhost:5000"
+        );
 
         Assert.Equal("http://localhost:5000/api/payment-gateway/callback/sep", url);
     }

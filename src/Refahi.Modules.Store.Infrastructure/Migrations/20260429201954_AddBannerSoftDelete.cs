@@ -16,13 +16,15 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
                 table: "banners",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_banners_IsDeleted",
                 schema: "store",
                 table: "banners",
-                column: "IsDeleted");
+                column: "IsDeleted"
+            );
         }
 
         /// <inheritdoc />
@@ -31,12 +33,10 @@ namespace Refahi.Modules.Store.Infrastructure.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_banners_IsDeleted",
                 schema: "store",
-                table: "banners");
+                table: "banners"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "IsDeleted",
-                schema: "store",
-                table: "banners");
+            migrationBuilder.DropColumn(name: "IsDeleted", schema: "store", table: "banners");
         }
     }
 }

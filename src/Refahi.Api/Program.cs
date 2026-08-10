@@ -1,6 +1,8 @@
+using System.Diagnostics;
+using System.Reflection;
 using MediatR;
-using Microsoft.OpenApi;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.OpenApi;
 using Refahi.Api;
 using Refahi.Api.Middlewares;
 using Refahi.Api.Services;
@@ -20,19 +22,18 @@ using Refahi.Modules.Store.Api;
 using Refahi.Modules.SupplyChain.Api;
 using Refahi.Modules.Wallets.Api;
 using Refahi.Shared.Monetary;
-using System.Diagnostics;
-using System.Reflection;
 
 const string WebAppCorsPolicy = "WebApp";
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddOptions<MonetaryOptions>()
+builder
+    .Services.AddOptions<MonetaryOptions>()
     .Bind(builder.Configuration.GetSection(MonetaryOptions.SectionName))
     .Validate(
         options => SupportedCurrencies.IsSupported(options.PlatformCurrency),
-        "Monetary:PlatformCurrency must be IRR.")
+        "Monetary:PlatformCurrency must be IRR."
+    )
     .ValidateOnStart();
 
 // تنظیم Kestrel و IIS برای پشتیبانی از آپلود فایل‌های بزرگ (ویدیو تا ۲۰۰MB، batch تا ۱GB)
@@ -49,77 +50,80 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(options =>
 {
-    var allowedOrigins = builder.Configuration
-        .GetSection("Cors:AllowedOrigins")
-        .Get<string[]>() ?? [];
+    var allowedOrigins =
+        builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
-    options.AddPolicy(WebAppCorsPolicy, policy =>
-    {
-        policy
-            .WithOrigins(allowedOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
+    options.AddPolicy(
+        WebAppCorsPolicy,
+        policy =>
+        {
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+        }
+    );
 });
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Refahi API",
-        Version = "v1",
-        Description = "Refahi Plus API"
-    });
+    options.SwaggerDoc(
+        "v1",
+        new OpenApiInfo
+        {
+            Title = "Refahi API",
+            Version = "v1",
+            Description = "Refahi Plus API",
+        }
+    );
 
     // JWT Bearer authentication for Swagger UI
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "توکن JWT را وارد کنید. مثال: eyJhbGciOiJIUzI1NiIs..."
-    });
+    options.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "توکن JWT را وارد کنید. مثال: eyJhbGciOiJIUzI1NiIs...",
+        }
+    );
 
     // Global security requirement — Swagger UI sends Bearer header for all operations
     // Must pass `doc` so the reference serializes correctly as {"Bearer": []} not {}
-    options.AddSecurityRequirement(doc =>
-        new OpenApiSecurityRequirement
-        {
-            { new OpenApiSecuritySchemeReference("Bearer", doc), new List<string>() }
-        });
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        { new OpenApiSecuritySchemeReference("Bearer", doc), new List<string>() },
+    });
 });
-
 
 builder.Services.RegisterDbTools();
 
 // Register Shared services
-builder.Services
-    .RegisterCachingService(builder.Configuration, builder.Environment.IsDevelopment())
+builder
+    .Services.RegisterCachingService(builder.Configuration, builder.Environment.IsDevelopment())
     .RegisterNotificationService(builder.Configuration)
     .RegisterPathService(builder.Configuration);
-
 
 // Register modules
 //try
 //{
-    builder.Services
-        .RegisterReferencesModule(builder.Configuration)
-        .RegisterMediaModule(builder.Configuration)
-        .RegisterIdentityModule(builder.Configuration)
-        .RegisterOrganizationsModule(builder.Configuration)
-        .RegisterWalletsModule(builder.Configuration)
-        .RegisterOrdersModule(builder.Configuration)
-        .RegisterFlightsModule(builder.Configuration)
-        .RegisterHotelsModule(builder.Configuration)
-        .RegisterStoreModule(builder.Configuration)
-        .RegisterSupplyChainModule(builder.Configuration)
-        .RegisterPaymentGatewayModule(builder.Configuration)
-        .RegisterChargeModule(builder.Configuration);
+builder
+    .Services.RegisterReferencesModule(builder.Configuration)
+    .RegisterMediaModule(builder.Configuration)
+    .RegisterIdentityModule(builder.Configuration)
+    .RegisterOrganizationsModule(builder.Configuration)
+    .RegisterWalletsModule(builder.Configuration)
+    .RegisterFlightsModule(builder.Configuration)
+    .RegisterHotelsModule(builder.Configuration)
+    .RegisterStoreModule(builder.Configuration)
+    .RegisterOrdersModule(builder.Configuration)
+    .RegisterSupplyChainModule(builder.Configuration)
+    .RegisterPaymentGatewayModule(builder.Configuration)
+    .RegisterChargeModule(builder.Configuration);
+
 //}
-//catch(Exception ex) 
+//catch(Exception ex)
 //{
-    /* ignore if compile-time linking not present yet */
+/* ignore if compile-time linking not present yet */
 //    int a = 0;
 //}
 
@@ -146,53 +150,54 @@ app.UseAuthorization();
 
 //if (app.Environment.IsDevelopment())
 //{
-    app.UseSwagger(c =>
-    {
-        c.RouteTemplate = "api/swagger/{documentName}/swagger.json";
-    });
+app.UseSwagger(c =>
+{
+    c.RouteTemplate = "api/swagger/{documentName}/swagger.json";
+});
 
-    app.UseSwaggerUI(options =>
-    {
-        options.RoutePrefix = "api/swagger";
-        options.SwaggerEndpoint("v1/swagger.json", "Refahi API v1");
-    });
+app.UseSwaggerUI(options =>
+{
+    options.RoutePrefix = "api/swagger";
+    options.SwaggerEndpoint("v1/swagger.json", "Refahi API v1");
+});
+
 //}
 
-app.MapGet("/api/health", () => {
-
-    var assembly = Assembly.GetExecutingAssembly();
-    var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-
-    return Results.Ok(new
+app.MapGet(
+    "/api/health",
+    () =>
     {
-        status = "healthy",
-        ver = fvi.FileVersion
-    });
-});
-app.MapHealthChecks("/api/health/eniac", new HealthCheckOptions
-{
-    Predicate = registration => registration.Name == "eniac"
-});
+        var assembly = Assembly.GetExecutingAssembly();
+        var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+
+        return Results.Ok(new { status = "healthy", ver = fvi.FileVersion });
+    }
+);
+app.MapHealthChecks(
+    "/api/health/eniac",
+    new HealthCheckOptions { Predicate = registration => registration.Name == "eniac" }
+);
 
 // Map module endpoints
 //try
 //{
-    app.UseReferencesModule("/api/references")
-       .UseMediaModule("/api/media")
-       .UseIdentityModule("/api/auth")
-       .UseOrganizationsModule("/api/organizations")
-       .UseWalletsModule("/api/wallets")
-       .UseOrdersModule("/api/orders")
-       .UseFlightsModule("/api/flights")
-       .UseHotelModule("/api/hotels")
-       .UseStoreModule("/api/store")
-       .UseSupplyChainModule("/api/supply-chain")
-       .UsePaymentGatewayModule("/api/payment-gateway")
-       .UseChargeModule("/api/charge");
+app.UseReferencesModule("/api/references")
+    .UseMediaModule("/api/media")
+    .UseIdentityModule("/api/auth")
+    .UseOrganizationsModule("/api/organizations")
+    .UseWalletsModule("/api/wallets")
+    .UseFlightsModule("/api/flights")
+    .UseHotelModule("/api/hotels")
+    .UseStoreModule("/api/store")
+    .UseOrdersModule("/api/orders")
+    .UseSupplyChainModule("/api/supply-chain")
+    .UsePaymentGatewayModule("/api/payment-gateway")
+    .UseChargeModule("/api/charge");
+
 //}
-//catch 
-//{ 
-    /* endpoints will be available once modules compiled */ 
+//catch
+//{
+/* endpoints will be available once modules compiled */
 //}
 
 app.Run();

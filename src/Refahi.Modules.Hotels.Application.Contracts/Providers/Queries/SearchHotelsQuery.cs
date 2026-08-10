@@ -15,4 +15,3 @@ public sealed record SearchHotelsQuery(
     int[]? Stars,
     string[]? Accommodations
 ) : IRequest<IEnumerable<HotelSearchResultDto>>;
-

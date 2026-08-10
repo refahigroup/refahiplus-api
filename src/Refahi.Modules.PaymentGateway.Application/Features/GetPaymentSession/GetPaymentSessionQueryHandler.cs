@@ -1,12 +1,13 @@
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.GetPaymentSession;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Refahi.Modules.PaymentGateway.Application.Features.GetPaymentSession;
 
-public class GetPaymentSessionQueryHandler : IRequestHandler<GetPaymentSessionQuery, PaymentSessionDto?>
+public class GetPaymentSessionQueryHandler
+    : IRequestHandler<GetPaymentSessionQuery, PaymentSessionDto?>
 {
     private readonly IPaymentGatewaySessionRepository _sessionRepository;
 
@@ -36,6 +37,7 @@ public class GetPaymentSessionQueryHandler : IRequestHandler<GetPaymentSessionQu
             CompletedAt: session.CompletedAt,
             TopUpLedgerEntryId: session.TopUpLedgerEntryId,
             ProviderResultCode: session.ProviderResultCode,
-            ProviderResultDescription: session.ProviderResultDescription);
+            ProviderResultDescription: session.ProviderResultDescription
+        );
     }
 }

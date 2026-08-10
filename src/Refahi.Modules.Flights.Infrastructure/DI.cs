@@ -14,22 +14,33 @@ namespace Refahi.Modules.Flights.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         string connectionString = configuration.GetConnectionString();
 
         services.AddDbContext<FlightsDbContext>(options =>
             options.UseNpgsql(
                 connectionString,
-                npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "flights")));
+                npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "flights")
+            )
+        );
 
         services.AddScoped<IFlightBookingRepository, FlightBookingRepository>();
         services.AddScoped<IFlightOfferSnapshotRepository, FlightOfferSnapshotRepository>();
         services.AddScoped<IFlightAirportRepository, FlightAirportRepository>();
         services.AddScoped<FlightAirportDataSeeder>();
-        services.UseSnappTripFlightProvider(configuration)
-            .AddScoped<IFlightProvider>(sp => sp.GetRequiredService<IFlightProviderFactory>().GetDefaultProvider())
-            .AddScoped<IFlightProviderFactory>(sp => new FlightProviderFactory(sp, FlightProviderType.SnappTrip));
+        services
+            .UseSnappTripFlightProvider(configuration)
+            .AddScoped<IFlightProvider>(sp =>
+                sp.GetRequiredService<IFlightProviderFactory>().GetDefaultProvider()
+            )
+            .AddScoped<IFlightProviderFactory>(sp => new FlightProviderFactory(
+                sp,
+                FlightProviderType.SnappTrip
+            ));
 
         return services;
     }
@@ -40,7 +51,8 @@ public static class DI
         var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
 
         tools.ApplyMigrations<FlightsDbContext>();
-        scope.ServiceProvider.GetRequiredService<FlightAirportDataSeeder>()
+        scope
+            .ServiceProvider.GetRequiredService<FlightAirportDataSeeder>()
             .SeedAsync()
             .GetAwaiter()
             .GetResult();

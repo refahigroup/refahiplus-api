@@ -21,5 +21,5 @@ public sealed record ProductCatalogItemV2Dto(
     string DefaultOfferKey,
     Guid DefaultShopId,
     string DefaultShopSlug,
-    DateTimeOffset CreatedAt);
-
+    DateTimeOffset CreatedAt
+);

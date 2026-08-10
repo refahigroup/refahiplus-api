@@ -9,7 +9,7 @@ public sealed class Review
     public Guid Id { get; private set; }
     public Guid ProductId { get; private set; }
     public Guid UserId { get; private set; }
-    public int Rating { get; private set; }             // 1-5
+    public int Rating { get; private set; } // 1-5
     public string? Comment { get; private set; }
     public bool IsApproved { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
@@ -27,9 +27,12 @@ public sealed class Review
             Rating = rating,
             Comment = comment,
             IsApproved = false,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
         };
     }
 
-    public void Approve() { IsApproved = true; }
+    public void Approve()
+    {
+        IsApproved = true;
+    }
 }

@@ -11,7 +11,8 @@ using Refahi.Shared.Services.Notification;
 
 namespace Refahi.Modules.Identity.Application.Features.Auth.LoginByOtp;
 
-public class VerifyLoginOtpCommandHandler : IRequestHandler<VerifyLoginOtpCommand, VerifyLoginOtpResult>
+public class VerifyLoginOtpCommandHandler
+    : IRequestHandler<VerifyLoginOtpCommand, VerifyLoginOtpResult>
 {
     private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
@@ -22,7 +23,8 @@ public class VerifyLoginOtpCommandHandler : IRequestHandler<VerifyLoginOtpComman
         IUserRepository userRepository,
         INotificationService notificationService,
         IUserRegistrationService registrationService,
-        IOptions<IdentityOptions> options)
+        IOptions<IdentityOptions> options
+    )
     {
         _userRepository = userRepository;
         _notificationService = notificationService;
@@ -30,10 +32,18 @@ public class VerifyLoginOtpCommandHandler : IRequestHandler<VerifyLoginOtpComman
         _options = options.Value;
     }
 
-    public async Task<VerifyLoginOtpResult> Handle(VerifyLoginOtpCommand request, CancellationToken cancellationToken)
+    public async Task<VerifyLoginOtpResult> Handle(
+        VerifyLoginOtpCommand request,
+        CancellationToken cancellationToken
+    )
     {
         var otpType = AuthFlow.IsSignUp(request.Flow) ? OtpType.SignUp : OtpType.SignIn;
-        var validationResult = await _notificationService.ValidateOtp(request.Token, request.OtpCode, otpType, cancellationToken);
+        var validationResult = await _notificationService.ValidateOtp(
+            request.Token,
+            request.OtpCode,
+            otpType,
+            cancellationToken
+        );
 
         if (!validationResult.IsValid || string.IsNullOrWhiteSpace(validationResult.Receipt))
             return new VerifyLoginOtpResult(false, "کد OTP نامعتبر یا منقضی شده است");
@@ -41,12 +51,16 @@ public class VerifyLoginOtpCommandHandler : IRequestHandler<VerifyLoginOtpComman
         if (AuthFlow.IsSignUp(request.Flow))
         {
             if (validationResult.ReceiptType != OtpReceiptType.Sms)
-                return new VerifyLoginOtpResult(false, "ثبت‌نام خودکار فقط با شماره موبایل امکان‌پذیر است");
+                return new VerifyLoginOtpResult(
+                    false,
+                    "ثبت‌نام خودکار فقط با شماره موبایل امکان‌پذیر است"
+                );
 
             var registrationResult = await _registrationService.RegisterAsync(
                 validationResult.Receipt,
                 null,
-                cancellationToken);
+                cancellationToken
+            );
 
             if (!registrationResult.Success || registrationResult.User is null)
                 return new VerifyLoginOtpResult(false, registrationResult.ErrorMessage);
@@ -58,10 +72,14 @@ public class VerifyLoginOtpCommandHandler : IRequestHandler<VerifyLoginOtpComman
                 registrationResult.User,
                 IsNewUser: true,
                 RegistrationCompleted: registrationCompleted,
-                ProfileRequired: !registrationCompleted);
+                ProfileRequired: !registrationCompleted
+            );
         }
 
-        var user = await _userRepository.GetByMobileOrEmailAsync(validationResult.Receipt, cancellationToken);
+        var user = await _userRepository.GetByMobileOrEmailAsync(
+            validationResult.Receipt,
+            cancellationToken
+        );
 
         if (user is null || !user.IsActive)
             return new VerifyLoginOtpResult(false, "کاربر یافت نشد یا غیرفعال است");
@@ -71,7 +89,8 @@ public class VerifyLoginOtpCommandHandler : IRequestHandler<VerifyLoginOtpComman
             user.MobileNumber,
             user.Email,
             user.IsActive,
-            user.GetRoles());
+            user.GetRoles()
+        );
 
         return new VerifyLoginOtpResult(
             true,
@@ -79,6 +98,7 @@ public class VerifyLoginOtpCommandHandler : IRequestHandler<VerifyLoginOtpComman
             userDto,
             IsNewUser: false,
             RegistrationCompleted: true,
-            ProfileRequired: false);
+            ProfileRequired: false
+        );
     }
 }

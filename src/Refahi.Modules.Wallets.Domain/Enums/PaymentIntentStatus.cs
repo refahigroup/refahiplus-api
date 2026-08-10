@@ -10,14 +10,14 @@ public enum PaymentIntentStatus : short
     /// Intent is reserved, awaiting capture or release.
     /// </summary>
     Reserved = 1,
-    
+
     /// <summary>
     /// Intent has been captured (terminal state).
     /// </summary>
     Captured = 2,
-    
+
     /// <summary>
     /// Intent has been released/cancelled (terminal state).
     /// </summary>
-    Released = 3
+    Released = 3,
 }

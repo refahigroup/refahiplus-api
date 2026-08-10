@@ -42,13 +42,20 @@ public sealed class Agreement
         AgreementType agreementType,
         Guid supplierId,
         DateTimeOffset fromDate,
-        DateTimeOffset toDate)
+        DateTimeOffset toDate
+    )
     {
         if (string.IsNullOrWhiteSpace(agreementNo))
-            throw new SupplyChainDomainException("شماره قرارداد الزامی است", "AGREEMENT_NO_REQUIRED");
+            throw new SupplyChainDomainException(
+                "شماره قرارداد الزامی است",
+                "AGREEMENT_NO_REQUIRED"
+            );
 
         if (toDate <= fromDate)
-            throw new SupplyChainDomainException("تاریخ پایان باید بعد از تاریخ شروع باشد", "AGREEMENT_INVALID_DATE_RANGE");
+            throw new SupplyChainDomainException(
+                "تاریخ پایان باید بعد از تاریخ شروع باشد",
+                "AGREEMENT_INVALID_DATE_RANGE"
+            );
 
         return new Agreement
         {
@@ -62,7 +69,7 @@ public sealed class Agreement
             StatusNote = null,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
     }
 
@@ -72,13 +79,20 @@ public sealed class Agreement
         string agreementNo,
         AgreementType agreementType,
         DateTimeOffset fromDate,
-        DateTimeOffset toDate)
+        DateTimeOffset toDate
+    )
     {
         if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
-            throw new SupplyChainDomainException("ویرایش قرارداد تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است", "STATUS_IMMUTABLE");
+            throw new SupplyChainDomainException(
+                "ویرایش قرارداد تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است",
+                "STATUS_IMMUTABLE"
+            );
 
         if (toDate <= fromDate)
-            throw new SupplyChainDomainException("تاریخ پایان باید بعد از تاریخ شروع باشد", "AGREEMENT_INVALID_DATE_RANGE");
+            throw new SupplyChainDomainException(
+                "تاریخ پایان باید بعد از تاریخ شروع باشد",
+                "AGREEMENT_INVALID_DATE_RANGE"
+            );
 
         AgreementNo = agreementNo.Trim();
         AgreementType = agreementType;
@@ -90,7 +104,10 @@ public sealed class Agreement
     public void SubmitForReview()
     {
         if (Status != AgreementStatus.Registered)
-            throw new SupplyChainDomainException("ارسال برای بررسی تنها از وضعیت ثبت‌شده مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "ارسال برای بررسی تنها از وضعیت ثبت‌شده مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = AgreementStatus.UnderReview;
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -99,7 +116,10 @@ public sealed class Agreement
     public void Approve()
     {
         if (Status != AgreementStatus.UnderReview)
-            throw new SupplyChainDomainException("تایید تنها از وضعیت در حال بررسی مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "تایید تنها از وضعیت در حال بررسی مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = AgreementStatus.Approved;
         StatusNote = null;
@@ -109,7 +129,10 @@ public sealed class Agreement
     public void Reject(string note)
     {
         if (Status != AgreementStatus.UnderReview)
-            throw new SupplyChainDomainException("رد کردن تنها از وضعیت در حال بررسی مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "رد کردن تنها از وضعیت در حال بررسی مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = AgreementStatus.Rejected;
         StatusNote = note;
@@ -119,7 +142,10 @@ public sealed class Agreement
     public void ResetToRegistered()
     {
         if (Status != AgreementStatus.UnderReview && Status != AgreementStatus.Rejected)
-            throw new SupplyChainDomainException("بازگشت به وضعیت ثبت‌شده تنها از وضعیت در حال بررسی یا رد‌شده مجاز است", "INVALID_STATUS_TRANSITION");
+            throw new SupplyChainDomainException(
+                "بازگشت به وضعیت ثبت‌شده تنها از وضعیت در حال بررسی یا رد‌شده مجاز است",
+                "INVALID_STATUS_TRANSITION"
+            );
 
         Status = AgreementStatus.Registered;
         StatusNote = null;
@@ -134,12 +160,26 @@ public sealed class Agreement
         SupplyChainDeliveryType deliveryType,
         SupplyChainSalesModel salesModel,
         decimal commissionPercent,
-        bool vatApplicable)
+        bool vatApplicable
+    )
     {
         if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
-            throw new SupplyChainDomainException("افزودن محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است", "STATUS_IMMUTABLE");
+            throw new SupplyChainDomainException(
+                "افزودن محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است",
+                "STATUS_IMMUTABLE"
+            );
 
-        var product = AgreementProduct.Create(Id, name, description, categoryId, productType, deliveryType, salesModel, commissionPercent, vatApplicable);
+        var product = AgreementProduct.Create(
+            Id,
+            name,
+            description,
+            categoryId,
+            productType,
+            deliveryType,
+            salesModel,
+            commissionPercent,
+            vatApplicable
+        );
         _products.Add(product);
         UpdatedAt = DateTimeOffset.UtcNow;
         return product;
@@ -154,25 +194,49 @@ public sealed class Agreement
         SupplyChainDeliveryType deliveryType,
         SupplyChainSalesModel salesModel,
         decimal commissionPercent,
-        bool vatApplicable)
+        bool vatApplicable
+    )
     {
         if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
-            throw new SupplyChainDomainException("ویرایش محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است", "STATUS_IMMUTABLE");
+            throw new SupplyChainDomainException(
+                "ویرایش محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است",
+                "STATUS_IMMUTABLE"
+            );
 
-        var product = _products.FirstOrDefault(p => p.Id == productId && !p.IsDeleted)
-            ?? throw new SupplyChainDomainException("محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+        var product =
+            _products.FirstOrDefault(p => p.Id == productId && !p.IsDeleted)
+            ?? throw new SupplyChainDomainException(
+                "محصول یافت نشد",
+                "AGREEMENT_PRODUCT_NOT_FOUND"
+            );
 
-        product.Update(name, description, categoryId, productType, deliveryType, salesModel, commissionPercent, vatApplicable);
+        product.Update(
+            name,
+            description,
+            categoryId,
+            productType,
+            deliveryType,
+            salesModel,
+            commissionPercent,
+            vatApplicable
+        );
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     public void RemoveProduct(Guid productId)
     {
         if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
-            throw new SupplyChainDomainException("حذف محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است", "STATUS_IMMUTABLE");
+            throw new SupplyChainDomainException(
+                "حذف محصول تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است",
+                "STATUS_IMMUTABLE"
+            );
 
-        var product = _products.FirstOrDefault(p => p.Id == productId && !p.IsDeleted)
-            ?? throw new SupplyChainDomainException("محصول یافت نشد", "AGREEMENT_PRODUCT_NOT_FOUND");
+        var product =
+            _products.FirstOrDefault(p => p.Id == productId && !p.IsDeleted)
+            ?? throw new SupplyChainDomainException(
+                "محصول یافت نشد",
+                "AGREEMENT_PRODUCT_NOT_FOUND"
+            );
 
         product.MarkDeleted();
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -181,10 +245,16 @@ public sealed class Agreement
     public AgreementCategoryTerm AddCategoryTerm(
         int categoryId,
         SalesChannel allowedSalesChannels,
-        decimal commissionPercent)
+        decimal commissionPercent
+    )
     {
         EnsureTermsAreMutable("افزودن");
-        var term = AgreementCategoryTerm.Create(Id, categoryId, allowedSalesChannels, commissionPercent);
+        var term = AgreementCategoryTerm.Create(
+            Id,
+            categoryId,
+            allowedSalesChannels,
+            commissionPercent
+        );
         _categoryTerms.Add(term);
         UpdatedAt = DateTimeOffset.UtcNow;
         return term;
@@ -194,11 +264,16 @@ public sealed class Agreement
         Guid termId,
         int categoryId,
         SalesChannel allowedSalesChannels,
-        decimal commissionPercent)
+        decimal commissionPercent
+    )
     {
         EnsureTermsAreMutable("ویرایش");
-        var term = _categoryTerms.FirstOrDefault(x => x.Id == termId && !x.IsDeleted)
-            ?? throw new SupplyChainDomainException("شرط دسته‌بندی قرارداد یافت نشد", "AGREEMENT_CATEGORY_TERM_NOT_FOUND");
+        var term =
+            _categoryTerms.FirstOrDefault(x => x.Id == termId && !x.IsDeleted)
+            ?? throw new SupplyChainDomainException(
+                "شرط دسته‌بندی قرارداد یافت نشد",
+                "AGREEMENT_CATEGORY_TERM_NOT_FOUND"
+            );
 
         term.Update(categoryId, allowedSalesChannels, commissionPercent);
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -207,8 +282,12 @@ public sealed class Agreement
     public void RemoveCategoryTerm(Guid termId)
     {
         EnsureTermsAreMutable("حذف");
-        var term = _categoryTerms.FirstOrDefault(x => x.Id == termId && !x.IsDeleted)
-            ?? throw new SupplyChainDomainException("شرط دسته‌بندی قرارداد یافت نشد", "AGREEMENT_CATEGORY_TERM_NOT_FOUND");
+        var term =
+            _categoryTerms.FirstOrDefault(x => x.Id == termId && !x.IsDeleted)
+            ?? throw new SupplyChainDomainException(
+                "شرط دسته‌بندی قرارداد یافت نشد",
+                "AGREEMENT_CATEGORY_TERM_NOT_FOUND"
+            );
 
         term.MarkDeleted();
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -219,13 +298,17 @@ public sealed class Agreement
         if (Status != AgreementStatus.Registered && Status != AgreementStatus.Rejected)
             throw new SupplyChainDomainException(
                 $"{operation} شرط دسته‌بندی قرارداد تنها در وضعیت ثبت‌شده یا رد‌شده مجاز است",
-                "STATUS_IMMUTABLE");
+                "STATUS_IMMUTABLE"
+            );
     }
 
     public void MarkDeleted()
     {
         if (IsDeleted)
-            throw new SupplyChainDomainException("قرارداد قبلاً حذف شده است", "AGREEMENT_ALREADY_DELETED");
+            throw new SupplyChainDomainException(
+                "قرارداد قبلاً حذف شده است",
+                "AGREEMENT_ALREADY_DELETED"
+            );
 
         IsDeleted = true;
         UpdatedAt = DateTimeOffset.UtcNow;

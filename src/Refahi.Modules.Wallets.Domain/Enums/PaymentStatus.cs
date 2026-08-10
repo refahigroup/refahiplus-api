@@ -9,5 +9,5 @@ public enum PaymentStatus : short
     /// <summary>
     /// Payment completed successfully.
     /// </summary>
-    Completed = 1
+    Completed = 1,
 }

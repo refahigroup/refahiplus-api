@@ -6,4 +6,5 @@ public sealed record SupplierLinkDto(
     string TypeName,
     string Url,
     string? Label,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);

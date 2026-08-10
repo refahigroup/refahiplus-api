@@ -20,4 +20,5 @@ public record AdminUserDetailDto(
     string? LastName,
     string? NationalCode,
     string? ProfileImageUrl,
-    IEnumerable<string> Roles);
+    IEnumerable<string> Roles
+);

@@ -5,16 +5,20 @@ using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Banners.DeactivateBanner;
 
-public class DeactivateBannerCommandHandler : IRequestHandler<DeactivateBannerCommand, DeactivateBannerResponse>
+public class DeactivateBannerCommandHandler
+    : IRequestHandler<DeactivateBannerCommand, DeactivateBannerResponse>
 {
     private readonly IBannerRepository _bannerRepo;
 
-    public DeactivateBannerCommandHandler(IBannerRepository bannerRepo)
-        => _bannerRepo = bannerRepo;
+    public DeactivateBannerCommandHandler(IBannerRepository bannerRepo) => _bannerRepo = bannerRepo;
 
-    public async Task<DeactivateBannerResponse> Handle(DeactivateBannerCommand request, CancellationToken cancellationToken)
+    public async Task<DeactivateBannerResponse> Handle(
+        DeactivateBannerCommand request,
+        CancellationToken cancellationToken
+    )
     {
-        var banner = await _bannerRepo.GetByIdAsync(request.Id, cancellationToken)
+        var banner =
+            await _bannerRepo.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new StoreDomainException("بنر یافت نشد", "BANNER_NOT_FOUND");
 
         banner.Deactivate();

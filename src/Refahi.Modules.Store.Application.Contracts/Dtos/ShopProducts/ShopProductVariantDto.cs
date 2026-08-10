@@ -12,4 +12,5 @@ public sealed record ShopProductVariantDto(
     long PriceMinor,
     long? DiscountedPriceMinor,
     bool IsActive,
-    bool IsDeleted);
+    bool IsDeleted
+);
