@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 using Refahi.Modules.Store.Application.Contracts.Products.V3;
 using Refahi.Modules.Store.Domain.Aggregates;
@@ -39,6 +40,7 @@ public sealed class GetPublicProductCatalogV3Handler(
             request.CategoryId,
             request.ShopId,
             request.ShopSlug,
+            productSlug: null,
             request.Search,
             salesModel,
             atUtc,
@@ -120,7 +122,8 @@ public sealed class GetPublicProductDetailV3Handler(
     IStoreModuleRepository modules,
     IProductRepository products,
     IMediator mediator,
-    IPathService pathService
+    IPathService pathService,
+    ILogger<GetPublicProductDetailV3Handler> logger
 ) : IRequestHandler<GetPublicProductDetailV3Query, PublicProductDetailV3Dto?>
 {
     private readonly IPathService _pathService = pathService;
@@ -133,66 +136,205 @@ public sealed class GetPublicProductDetailV3Handler(
             string.IsNullOrWhiteSpace(request.ModuleSlug)
             || string.IsNullOrWhiteSpace(request.ProductSlug)
         )
-            throw new StoreDomainException("اسلاگ ماژول و محصول الزامی است", "SLUG_REQUIRED");
-        var module = await modules.GetBySlugAsync(request.ModuleSlug.Trim().ToLowerInvariant(), ct);
-        if (module is null || !module.IsActive)
-            return null;
-        var atUtc = DateTimeOffset.UtcNow;
-        var candidates = await catalog.GetEffectiveCandidatesAsync(
-            module.CategoryId,
-            null,
-            request.ShopId,
-            request.ShopSlug,
-            null,
-            null,
-            atUtc,
+        {
+            throw new StoreDomainException(
+                "اسلاگ ماژول و محصول الزامی است",
+                "SLUG_REQUIRED"
+            );
+        }
+
+        var normalizedModuleSlug =
+            request.ModuleSlug.Trim().ToLowerInvariant();
+
+        var normalizedProductSlug =
+            request.ProductSlug.Trim().ToLowerInvariant();
+
+        var module = await modules.GetBySlugAsync(
+            normalizedModuleSlug,
             ct
         );
-        var eligible = (await PublicCatalogEligibility.FilterAsync(candidates, mediator, atUtc, ct))
-            .Where(x =>
-                x.ProductSlug.Equals(request.ProductSlug.Trim(), StringComparison.OrdinalIgnoreCase)
+
+        if (module is null || !module.IsActive)
+            return null;
+
+        var atUtc = DateTimeOffset.UtcNow;
+
+        /*
+         * مهم:
+         * در نسخه قبلی ProductSlug اینجا به Repository ارسال نمی‌شد.
+         *
+         * در نتیجه تمام Offerهای Category/Module از DB گرفته می‌شدند،
+         * Eligibility روی همه آنها اجرا می‌شد و تازه بعد از آن
+         * ProductSlug در حافظه فیلتر می‌شد.
+         *
+         * حالا ProductSlug مستقیماً وارد Query دیتابیس می‌شود.
+         */
+        var candidates = await catalog.GetEffectiveCandidatesAsync(
+            moduleCategoryId: module.CategoryId,
+            categoryId: null,
+            shopId: request.ShopId,
+            shopSlug: request.ShopSlug,
+            productSlug: normalizedProductSlug,
+            search: null,
+            salesModel: null,
+            atUtc: atUtc,
+            ct: ct
+        );
+
+        /*
+         * candidates در این مرحله فقط متعلق به همین Product است.
+         * بنابراین دیگر Where(ProductSlug == ...) در Memory لازم نیست.
+         */
+        var eligible = (
+            await PublicCatalogEligibility.FilterAsync(
+                candidates,
+                mediator,
+                atUtc,
+                ct
             )
-            .ToArray();
+        ).ToArray();
+
         if (eligible.Length == 0)
             return null;
 
-        var selectedCandidates = eligible.AsEnumerable();
+        IEnumerable<PublicCatalogOfferCandidate> selectedCandidates =
+            eligible;
+
         if (request.OfferId.HasValue)
-            selectedCandidates = selectedCandidates.Where(x => x.OfferId == request.OfferId);
+        {
+            selectedCandidates = selectedCandidates.Where(x =>
+                x.OfferId == request.OfferId.Value
+            );
+        }
+
         if (request.VariantId.HasValue)
+        {
             selectedCandidates = selectedCandidates.Where(x =>
-                x.ProductVariantId == request.VariantId
+                x.ProductVariantId == request.VariantId.Value
             );
+        }
+
         if (request.SessionId.HasValue)
+        {
             selectedCandidates = selectedCandidates.Where(x =>
-                x.ProductSessionId == request.SessionId
+                x.ProductSessionId == request.SessionId.Value
             );
+        }
+
         var selected = selectedCandidates
             .OrderBy(x => x.FinalPriceMinor)
             .ThenBy(x => x.OfferId)
             .FirstOrDefault();
+
         if (
-            (request.OfferId.HasValue || request.VariantId.HasValue || request.SessionId.HasValue)
+            (
+                request.OfferId.HasValue
+                || request.VariantId.HasValue
+                || request.SessionId.HasValue
+            )
             && selected is null
         )
+        {
             return null;
-        selected ??= eligible.OrderBy(x => x.FinalPriceMinor).ThenBy(x => x.OfferId).First();
+        }
 
-        var product = await products.GetByIdAsync(selected.ProductId, ct);
+        selected ??= eligible
+            .OrderBy(x => x.FinalPriceMinor)
+            .ThenBy(x => x.OfferId)
+            .First();
+
+        logger?.LogWarning(
+            """
+    BEFORE GetByIdAsync
+    ProductId: {ProductId}
+    CancellationRequested: {CancellationRequested}
+    CanBeCanceled: {CanBeCanceled}
+    CandidateCount: {CandidateCount}
+    EligibleCount: {EligibleCount}
+    """,
+            selected.ProductId,
+            ct.IsCancellationRequested,
+            ct.CanBeCanceled,
+            candidates.Count,
+            eligible.Length
+        );
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        Product? product = null;
+
+        try
+        {
+            product = await products.GetByIdAsync(
+                selected.ProductId,
+                ct
+            );
+
+            logger?.LogWarning(
+                """
+        AFTER GetByIdAsync
+        ProductId: {ProductId}
+        ElapsedMs: {ElapsedMs}
+        CancellationRequested: {CancellationRequested}
+        Found: {Found}
+        """,
+                selected.ProductId,
+                sw.ElapsedMilliseconds,
+                ct.IsCancellationRequested,
+                product is not null
+            );
+
+            if (product is null || product.SupplierId == Guid.Empty)
+                return null;
+
+        }
+        catch (OperationCanceledException ex)
+        {
+            logger.LogError(
+                ex,
+                """
+        GetByIdAsync CANCELED
+        ProductId: {ProductId}
+        ElapsedMs: {ElapsedMs}
+        CancellationRequested: {CancellationRequested}
+        """,
+                selected.ProductId,
+                sw.ElapsedMilliseconds,
+                ct.IsCancellationRequested
+            );
+
+            throw;
+        }
+
+
+
+
+        //var product = await products.GetByIdAsync(
+        //    selected.ProductId,
+        //    ct
+        //);
+
         if (product is null || product.SupplierId == Guid.Empty)
             return null;
+
         var offers = eligible
             .OrderBy(x => x.FinalPriceMinor)
             .ThenBy(x => x.ShopSlug)
             .ThenBy(x => x.OfferId)
             .Select(PublicCatalogMapping.MapOffer)
             .ToArray();
+
         var summary = PublicCatalogMapping.MapPrice(eligible);
-        var dto = CatalogV3Mapper.Map(product, (short)SalesChannel.Online);
+
+        var dto = CatalogV3Mapper.Map(
+            product,
+            (short)SalesChannel.Online
+        );
+
         return new(
             dto,
             product
-                .Images.OrderBy(x => x.SortOrder)
+                .Images
+                .OrderBy(x => x.SortOrder)
                 .Select(x => new ProductImageDto(
                     x.Id,
                     _pathService.MakeAbsoluteMediaUrl(x.ImageUrl),
@@ -201,22 +343,46 @@ public sealed class GetPublicProductDetailV3Handler(
                 ))
                 .ToArray(),
             product
-                .Specifications.OrderBy(x => x.SortOrder)
-                .Select(x => new ProductSpecificationDto(x.Id, x.Key, x.Value, x.SortOrder))
+                .Specifications
+                .OrderBy(x => x.SortOrder)
+                .Select(x => new ProductSpecificationDto(
+                    x.Id,
+                    x.Key,
+                    x.Value,
+                    x.SortOrder
+                ))
                 .ToArray(),
             product
-                .VariantAttributes.OrderBy(x => x.SortOrder)
+                .VariantAttributes
+                .OrderBy(x => x.SortOrder)
                 .Select(x => new VariantAttributeDto(
                     x.Id,
                     x.Name,
                     x.SortOrder,
-                    x.Values.OrderBy(v => v.SortOrder)
-                        .Select(v => new VariantAttributeValueDto(v.Id, v.Value, v.SortOrder))
+                    x.Values
+                        .OrderBy(v => v.SortOrder)
+                        .Select(v => new VariantAttributeValueDto(
+                            v.Id,
+                            v.Value,
+                            v.SortOrder
+                        ))
                         .ToList()
                 ))
                 .ToArray(),
-            product.Variants.Select(x => CatalogV3Mapper.MapVariant(product, x, _pathService)).ToArray(),
-            product.Sessions.Select(CatalogV3Mapper.MapSession).ToArray(),
+            product
+                .Variants
+                .Select(x =>
+                    CatalogV3Mapper.MapVariant(
+                        product,
+                        x,
+                        _pathService
+                    )
+                )
+                .ToArray(),
+            product
+                .Sessions
+                .Select(CatalogV3Mapper.MapSession)
+                .ToArray(),
             offers,
             summary,
             selected.OfferId,
@@ -224,6 +390,40 @@ public sealed class GetPublicProductDetailV3Handler(
         );
     }
 }
+
+//internal static class PublicCatalogEligibility
+//{
+//    public static async Task<IReadOnlyList<PublicCatalogOfferCandidate>> FilterAsync(
+//        IReadOnlyList<PublicCatalogOfferCandidate> candidates,
+//        IMediator mediator,
+//        DateTimeOffset atUtc,
+//        CancellationToken ct
+//    )
+//    {
+//        if (candidates.Count == 0)
+//            return [];
+//        var requests = candidates
+//            .Select(x => new AgreementCategoryTermResolutionRequest(
+//                x.SupplierId,
+//                x.CategoryId,
+//                (short)SalesChannel.Online,
+//                atUtc
+//            ))
+//            .Distinct()
+//            .ToArray();
+//        var allowed = new HashSet<(Guid SupplierId, int CategoryId)>();
+//        foreach (var chunk in requests.Chunk(1000))
+//        {
+//            var resolved = await mediator.Send(
+//                new ResolveAgreementCategoryTermsBatchQuery(chunk),
+//                ct
+//            );
+//            foreach (var hit in resolved.Where(x => x.Term is not null))
+//                allowed.Add((hit.Request.SupplierId, hit.Request.CategoryId));
+//        }
+//        return candidates.Where(x => allowed.Contains((x.SupplierId, x.CategoryId))).ToArray();
+//    }
+//}
 
 internal static class PublicCatalogEligibility
 {
@@ -236,6 +436,7 @@ internal static class PublicCatalogEligibility
     {
         if (candidates.Count == 0)
             return [];
+
         var requests = candidates
             .Select(x => new AgreementCategoryTermResolutionRequest(
                 x.SupplierId,
@@ -245,17 +446,33 @@ internal static class PublicCatalogEligibility
             ))
             .Distinct()
             .ToArray();
+
         var allowed = new HashSet<(Guid SupplierId, int CategoryId)>();
+
         foreach (var chunk in requests.Chunk(1000))
         {
             var resolved = await mediator.Send(
                 new ResolveAgreementCategoryTermsBatchQuery(chunk),
                 ct
             );
+
             foreach (var hit in resolved.Where(x => x.Term is not null))
-                allowed.Add((hit.Request.SupplierId, hit.Request.CategoryId));
+            {
+                allowed.Add((
+                    hit.Request.SupplierId,
+                    hit.Request.CategoryId
+                ));
+            }
         }
-        return candidates.Where(x => allowed.Contains((x.SupplierId, x.CategoryId))).ToArray();
+
+        return candidates
+            .Where(x =>
+                allowed.Contains((
+                    x.SupplierId,
+                    x.CategoryId
+                ))
+            )
+            .ToArray();
     }
 }
 

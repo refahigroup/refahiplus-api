@@ -884,7 +884,8 @@ public sealed class CatalogV3PaginationEligibilityTests
             new FakeStoreModuleRepository(StoreModule.Create("فروشگاه", "store", categoryId: 7)),
             repository,
             new PublicEligibilityMediator(new HashSet<Guid> { supplier }),
-            pathService
+            pathService,
+            null
         );
 
         var detail = await handler.Handle(
@@ -1234,6 +1235,7 @@ public sealed class CatalogV3PaginationEligibilityTests
             int? categoryId,
             Guid? shopId,
             string? shopSlug,
+            string? productSlug,
             string? search,
             SalesModel? salesModel,
             DateTimeOffset atUtc,
