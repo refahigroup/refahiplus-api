@@ -155,7 +155,7 @@ public sealed class PublicCatalogV3Endpoints : IEndpoint
                     IMediator mediator,
                     CancellationToken ct
                 ) =>
-                    PublicDetail(
+                    await PublicDetail(
                         moduleSlug,
                         productSlug,
                         shopId,
@@ -185,7 +185,7 @@ public sealed class PublicCatalogV3Endpoints : IEndpoint
                     IMediator mediator,
                     CancellationToken ct
                 ) =>
-                    PublicDetail(
+                    await PublicDetail(
                         moduleSlug,
                         productSlug,
                         null,

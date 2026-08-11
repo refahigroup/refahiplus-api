@@ -9,6 +9,7 @@ public interface IPublicCatalogRepository
         int? categoryId,
         Guid? shopId,
         string? shopSlug,
+        string? productSlug,
         string? search,
         SalesModel? salesModel,
         DateTimeOffset atUtc,

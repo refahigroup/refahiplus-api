@@ -8,15 +8,16 @@ namespace Refahi.Modules.Store.Infrastructure.Repositories;
 public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogRepository
 {
     public async Task<IReadOnlyList<PublicCatalogOfferCandidate>> GetEffectiveCandidatesAsync(
-        int? moduleCategoryId,
-        int? categoryId,
-        Guid? shopId,
-        string? shopSlug,
-        string? search,
-        SalesModel? salesModel,
-        DateTimeOffset atUtc,
-        CancellationToken ct = default
-    )
+    int? moduleCategoryId,
+    int? categoryId,
+    Guid? shopId,
+    string? shopSlug,
+    string? productSlug,
+    string? search,
+    SalesModel? salesModel,
+    DateTimeOffset atUtc,
+    CancellationToken ct = default
+)
     {
         var query =
             from offer in db.Offers.AsNoTracking()
@@ -42,26 +43,49 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
 
         if (moduleCategoryId.HasValue)
             query = query.Where(x => x.Product.CategoryId == moduleCategoryId.Value);
+
         if (categoryId.HasValue)
             query = query.Where(x => x.Product.CategoryId == categoryId.Value);
+
         if (shopId.HasValue)
             query = query.Where(x => x.Shop.Id == shopId.Value);
+
         if (!string.IsNullOrWhiteSpace(shopSlug))
         {
             var normalizedShopSlug = shopSlug.Trim().ToLowerInvariant();
-            query = query.Where(x => x.Shop.Slug == normalizedShopSlug);
+
+            query = query.Where(x =>
+                x.Shop.Slug == normalizedShopSlug
+            );
         }
+
+        // مهم:
+        // ProductSlug قبل از ToListAsync و مستقیماً در SQL فیلتر می‌شود.
+        // بنابراین در صفحه Detail دیگر کل Catalog از دیتابیس خوانده نمی‌شود.
+        if (!string.IsNullOrWhiteSpace(productSlug))
+        {
+            var normalizedProductSlug = productSlug.Trim().ToLowerInvariant();
+
+            query = query.Where(x =>
+                x.Product.Slug == normalizedProductSlug
+            );
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
+
             query = query.Where(x =>
                 x.Product.Title.Contains(term)
                 || (x.Product.Description != null && x.Product.Description.Contains(term))
                 || x.Shop.Name.Contains(term)
             );
         }
+
         if (salesModel.HasValue)
-            query = query.Where(x => x.Product.SalesModel == salesModel.Value);
+            query = query.Where(x =>
+                x.Product.SalesModel == salesModel.Value
+            );
 
         return await query
             .OrderByDescending(x => x.Product.CreatedAt)
@@ -81,11 +105,13 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
                 x.Product.SalesModel,
                 x.Product.FulfillmentMethod,
                 x.Product.CreatedAt,
-                x.Product.Images.Where(image => image.IsMain)
+                x.Product.Images
+                    .Where(image => image.IsMain)
                     .OrderBy(image => image.SortOrder)
                     .Select(image => image.ImageUrl)
                     .FirstOrDefault()
-                    ?? x.Product.Images.OrderBy(image => image.SortOrder)
+                    ?? x.Product.Images
+                        .OrderBy(image => image.SortOrder)
                         .Select(image => image.ImageUrl)
                         .FirstOrDefault(),
                 x.Shop.Name,
