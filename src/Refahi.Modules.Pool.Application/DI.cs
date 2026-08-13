@@ -1,0 +1,19 @@
+﻿using FluentValidation;
+using MediatR;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Refahi.Modules.Pool.Application;
+
+public static class DI
+{
+    public static IServiceCollection RegisterApplication(this IServiceCollection services, IConfiguration configuration)
+    {
+        var assembly = typeof(DI).Assembly;
+
+        services.AddMediatR(assembly)
+                .AddValidatorsFromAssembly(assembly);
+
+        return services;
+    }
+}

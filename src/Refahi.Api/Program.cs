@@ -17,6 +17,7 @@ using Refahi.Modules.Media.Api;
 using Refahi.Modules.Orders.Api;
 using Refahi.Modules.Organizations.Api;
 using Refahi.Modules.PaymentGateway.Api;
+using Refahi.Modules.Pool.Api;
 using Refahi.Modules.References.Api;
 using Refahi.Modules.Store.Api;
 using Refahi.Modules.SupplyChain.Api;
@@ -118,7 +119,8 @@ builder
     .RegisterOrdersModule(builder.Configuration)
     .RegisterSupplyChainModule(builder.Configuration)
     .RegisterPaymentGatewayModule(builder.Configuration)
-    .RegisterChargeModule(builder.Configuration);
+    .RegisterChargeModule(builder.Configuration)
+    .RegisterPoolModule(builder.Configuration);
 
 //}
 //catch(Exception ex)
@@ -192,7 +194,8 @@ app.UseReferencesModule("/api/references")
     .UseOrdersModule("/api/orders")
     .UseSupplyChainModule("/api/supply-chain")
     .UsePaymentGatewayModule("/api/payment-gateway")
-    .UseChargeModule("/api/charge");
+    .UseChargeModule("/api/charge")
+    .UsePoolModule("/api/pools");
 
 //}
 //catch
