@@ -71,6 +71,26 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
         if (allowedCoordinates.Count == 0)
             return new([], 0);
 
+        var productIdsQuery = BuildEligibleProductIdsQuery(
+            categoryIds,
+            allowedCoordinates,
+            shopId,
+            shopSlug,
+            search,
+            salesModel,
+            minPriceMinor,
+            maxPriceMinor,
+            atUtc,
+            sort);
+
+        var total = await productIdsQuery.CountAsync(ct);
+        var productIds = await productIdsQuery
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+        if (productIds.Count == 0)
+            return new([], total);
+
         var candidates = BuildEligibleCandidatesQuery(
             categoryIds,
             allowedCoordinates,
@@ -81,30 +101,6 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
             minPriceMinor,
             maxPriceMinor,
             atUtc);
-        var productPage = candidates
-            .GroupBy(x => new { Id = x.ProductId, CreatedAt = x.ProductCreatedAt })
-            .Select(x => new
-            {
-                ProductId = x.Key.Id,
-                x.Key.CreatedAt,
-                MinPrice = x.Min(y => y.FinalPriceMinor)
-            });
-
-        var total = await productPage.CountAsync(ct);
-        var ordered = sort switch
-        {
-            "price-asc" => productPage.OrderBy(x => x.MinPrice).ThenBy(x => x.ProductId),
-            "price-desc" => productPage.OrderByDescending(x => x.MinPrice).ThenBy(x => x.ProductId),
-            _ => productPage.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.ProductId)
-        };
-        var productIds = await ordered
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(x => x.ProductId)
-            .ToListAsync(ct);
-        if (productIds.Count == 0)
-            return new([], total);
-
         var pageCandidates = await candidates
             .Where(x => productIds.Contains(x.ProductId))
             .ToListAsync(ct);
@@ -125,6 +121,86 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
             })
             .ToArray();
         return new(hydratedCandidates, total);
+    }
+
+    internal IQueryable<Guid> BuildEligibleProductIdsQuery(
+        IReadOnlyCollection<int> categoryIds,
+        IReadOnlyCollection<PublicCatalogEligibilityCoordinate> allowedCoordinates,
+        Guid? shopId,
+        string? shopSlug,
+        string? search,
+        SalesModel? salesModel,
+        long? minPriceMinor,
+        long? maxPriceMinor,
+        DateTimeOffset atUtc,
+        string sort)
+    {
+        var offers = BuildEffectiveOffers(atUtc, search);
+        if (minPriceMinor.HasValue)
+            offers = offers.Where(x => x.FinalPriceMinor >= minPriceMinor.Value);
+        if (maxPriceMinor.HasValue)
+            offers = offers.Where(x => x.FinalPriceMinor <= maxPriceMinor.Value);
+
+        var products = BuildEffectiveProducts(categoryIds, null, salesModel);
+        var shops = BuildEffectiveShops(shopId, shopSlug, includeInPerson: true);
+        var eligibleRows =
+            from offer in offers
+            join product in products
+                on new { offer.ProductId, offer.SupplierId }
+                equals new { ProductId = product.Id, product.SupplierId }
+            join shop in shops
+                on new { offer.ShopId, offer.SupplierId }
+                equals new { ShopId = shop.Id, shop.SupplierId }
+            where false
+            select new { Offer = offer, Product = product, Shop = shop };
+
+        foreach (var group in allowedCoordinates.GroupBy(x => new { x.CategoryId, x.SalesChannel }))
+        {
+            var categoryId = group.Key.CategoryId;
+            var shopType = group.Key.SalesChannel == SalesChannel.InPerson
+                ? ShopType.InPerson
+                : ShopType.Online;
+            var supplierIds = group.Select(x => x.SupplierId).Distinct().ToArray();
+            var eligibleProducts = products.Where(x => x.CategoryId == categoryId
+                && supplierIds.Contains(x.SupplierId));
+            var eligibleShops = shops.Where(x => x.ShopType == shopType
+                && supplierIds.Contains(x.SupplierId));
+            var channelRows =
+                from offer in offers
+                join product in eligibleProducts
+                    on new { offer.ProductId, offer.SupplierId }
+                    equals new { ProductId = product.Id, product.SupplierId }
+                join shop in eligibleShops
+                    on new { offer.ShopId, offer.SupplierId }
+                    equals new { ShopId = shop.Id, shop.SupplierId }
+                select new { Offer = offer, Product = product, Shop = shop };
+            eligibleRows = eligibleRows.Concat(channelRows);
+        }
+
+        var productPage = eligibleRows
+            .GroupBy(x => new { x.Product.Id, x.Product.CreatedAt })
+            .Select(x => new
+            {
+                ProductId = x.Key.Id,
+                x.Key.CreatedAt,
+                MinPrice = x.Min(y => y.Offer.FinalPriceMinor)
+            });
+
+        return sort switch
+        {
+            "price-asc" => productPage
+                .OrderBy(x => x.MinPrice)
+                .ThenBy(x => x.ProductId)
+                .Select(x => x.ProductId),
+            "price-desc" => productPage
+                .OrderByDescending(x => x.MinPrice)
+                .ThenBy(x => x.ProductId)
+                .Select(x => x.ProductId),
+            _ => productPage
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenBy(x => x.ProductId)
+                .Select(x => x.ProductId)
+        };
     }
 
     internal IQueryable<PublicCatalogOfferCandidate> BuildEligibleCandidatesQuery(

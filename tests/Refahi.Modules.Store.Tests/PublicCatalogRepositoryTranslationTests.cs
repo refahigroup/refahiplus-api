@@ -63,4 +63,36 @@ public sealed class PublicCatalogRepositoryTranslationTests
         Assert.Contains("ShopType", sql);
         Assert.Contains("UNION ALL", sql);
     }
+
+    [Fact]
+    public void Eligible_product_page_query_for_both_channels_is_translatable_by_npgsql()
+    {
+        var options = new DbContextOptionsBuilder<StoreDbContext>()
+            .UseNpgsql("Host=localhost;Database=translation_only;Username=test;Password=test")
+            .Options;
+        using var db = new StoreDbContext(options);
+        var repository = new PublicCatalogRepository(db);
+        var supplierId = Guid.NewGuid();
+
+        var query = repository.BuildEligibleProductIdsQuery(
+            [4],
+            [
+                new PublicCatalogEligibilityCoordinate(supplierId, 4, SalesChannel.Online),
+                new PublicCatalogEligibilityCoordinate(supplierId, 4, SalesChannel.InPerson)
+            ],
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow,
+            "newest");
+
+        var sql = query.Skip(0).Take(20).ToQueryString();
+
+        Assert.Contains("GROUP BY", sql);
+        Assert.Contains("UNION ALL", sql);
+        Assert.Contains("LIMIT", sql);
+    }
 }
