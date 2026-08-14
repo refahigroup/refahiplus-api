@@ -420,6 +420,12 @@ FodyWeavers.xsd
 # AI Agents
 .agents/*
 .codex/*
+
+!.codex/reports/
+.codex/reports/*
+!.codex/reports/store-modernization/
+!.codex/reports/store-modernization/**
+
 .codex-runtime/*
 .claude/*
 /src/Refahi.Api/appsettingsLocal.json
