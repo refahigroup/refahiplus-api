@@ -43,7 +43,10 @@ public interface IPublicCatalogRepository
     );
 }
 
-public sealed record PublicCatalogEligibilityCoordinate(Guid SupplierId, int CategoryId);
+public sealed record PublicCatalogEligibilityCoordinate(
+    Guid SupplierId,
+    int CategoryId,
+    SalesChannel SalesChannel);
 
 public sealed record PublicCatalogCandidatePage(
     IReadOnlyList<PublicCatalogOfferCandidate> Candidates,
@@ -66,6 +69,7 @@ public sealed record PublicCatalogOfferCandidate(
     string? MainImageUrl,
     string ShopName,
     string ShopSlug,
+    SalesChannel SalesChannel,
     long OriginalPriceMinor,
     decimal DiscountPercent,
     long FinalPriceMinor,

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Refahi.Modules.Store.Domain.Enums;
+using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 using Refahi.Modules.Store.Infrastructure.Repositories;
 using Xunit;
@@ -28,5 +30,37 @@ public sealed class PublicCatalogRepositoryTranslationTests
 
         Assert.Contains("CategoryId", sql);
         Assert.Contains("SupplierId", sql);
+        Assert.Contains("ShopType", sql);
+        Assert.Contains("IN (1, 2)", sql);
+    }
+
+    [Fact]
+    public void Eligible_candidates_query_for_both_channels_is_translatable_by_npgsql()
+    {
+        var options = new DbContextOptionsBuilder<StoreDbContext>()
+            .UseNpgsql("Host=localhost;Database=translation_only;Username=test;Password=test")
+            .Options;
+        using var db = new StoreDbContext(options);
+        var repository = new PublicCatalogRepository(db);
+        var supplierId = Guid.NewGuid();
+
+        var query = repository.BuildEligibleCandidatesQuery(
+            [4],
+            [
+                new PublicCatalogEligibilityCoordinate(supplierId, 4, SalesChannel.Online),
+                new PublicCatalogEligibilityCoordinate(supplierId, 4, SalesChannel.InPerson)
+            ],
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow);
+
+        var sql = query.ToQueryString();
+
+        Assert.Contains("ShopType", sql);
+        Assert.Contains("UNION ALL", sql);
     }
 }

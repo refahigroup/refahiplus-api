@@ -41,6 +41,8 @@ public sealed class StoreModule
                 "RESERVED_MODULE_SLUG"
             );
 
+        EnsureCategoryIsAssigned(categoryId);
+
         return new StoreModule
         {
             Name = name.Trim(),
@@ -55,6 +57,7 @@ public sealed class StoreModule
 
     public void Activate()
     {
+        EnsureCategoryIsAssigned(CategoryId);
         IsActive = true;
     }
 
@@ -71,10 +74,24 @@ public sealed class StoreModule
         int? categoryId
     )
     {
+        if (IsActive)
+            EnsureCategoryIsAssigned(categoryId);
+
         Name = name.Trim();
         Description = description;
         IconUrl = iconUrl;
         SortOrder = sortOrder;
         CategoryId = categoryId;
+    }
+
+    private static void EnsureCategoryIsAssigned(int? categoryId)
+    {
+        if (categoryId is > 0)
+            return;
+
+        throw new Exceptions.StoreDomainException(
+            "دسته‌بندی ریشه ماژول الزامی است",
+            "MODULE_CATEGORY_REQUIRED"
+        );
     }
 }

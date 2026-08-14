@@ -441,15 +441,21 @@ internal static class PublicCatalogEligibility
         if (coordinates.Count == 0)
             return [];
         var requests = coordinates.Select(x => new AgreementCategoryTermResolutionRequest(
-            x.SupplierId, x.CategoryId, (short)SalesChannel.Online, atUtc)).Distinct().ToArray();
-        var allowed = new HashSet<(Guid SupplierId, int CategoryId)>();
+            x.SupplierId, x.CategoryId, (short)x.SalesChannel, atUtc)).Distinct().ToArray();
+        var allowed = new HashSet<(Guid SupplierId, int CategoryId, SalesChannel SalesChannel)>();
         foreach (var chunk in requests.Chunk(1000))
         {
             var resolved = await mediator.Send(new ResolveAgreementCategoryTermsBatchQuery(chunk), ct);
             foreach (var hit in resolved.Where(x => x.Term is not null))
-                allowed.Add((hit.Request.SupplierId, hit.Request.CategoryId));
+                allowed.Add((
+                    hit.Request.SupplierId,
+                    hit.Request.CategoryId,
+                    (SalesChannel)hit.Request.SalesChannel));
         }
-        return coordinates.Where(x => allowed.Contains((x.SupplierId, x.CategoryId))).ToArray();
+        return coordinates.Where(x => allowed.Contains((
+            x.SupplierId,
+            x.CategoryId,
+            x.SalesChannel))).ToArray();
     }
 
     public static async Task<IReadOnlyList<PublicCatalogOfferCandidate>> FilterAsync(
@@ -466,13 +472,13 @@ internal static class PublicCatalogEligibility
             .Select(x => new AgreementCategoryTermResolutionRequest(
                 x.SupplierId,
                 x.CategoryId,
-                (short)SalesChannel.Online,
+                (short)x.SalesChannel,
                 atUtc
             ))
             .Distinct()
             .ToArray();
 
-        var allowed = new HashSet<(Guid SupplierId, int CategoryId)>();
+        var allowed = new HashSet<(Guid SupplierId, int CategoryId, SalesChannel SalesChannel)>();
 
         foreach (var chunk in requests.Chunk(1000))
         {
@@ -485,7 +491,8 @@ internal static class PublicCatalogEligibility
             {
                 allowed.Add((
                     hit.Request.SupplierId,
-                    hit.Request.CategoryId
+                    hit.Request.CategoryId,
+                    (SalesChannel)hit.Request.SalesChannel
                 ));
             }
         }
@@ -494,7 +501,8 @@ internal static class PublicCatalogEligibility
             .Where(x =>
                 allowed.Contains((
                     x.SupplierId,
-                    x.CategoryId
+                    x.CategoryId,
+                    x.SalesChannel
                 ))
             )
             .ToArray();
@@ -509,6 +517,9 @@ internal static class PublicCatalogMapping
     )
     {
         var first = group.First();
+        var purchasableOffers = group.Any(x => x.SalesChannel == SalesChannel.Online)
+            ? group.Where(x => x.SalesChannel == SalesChannel.Online)
+            : group;
         return new(
             first.ProductId,
             first.ProductTitle,
@@ -520,9 +531,9 @@ internal static class PublicCatalogMapping
             (short)first.FulfillmentMethod,
             first.CategoryId,
             first.ProductCreatedAt,
-            group.Any(x => x.ProductVariantId.HasValue),
-            group.Any(x => x.ProductSessionId.HasValue),
-            MapPrice(group)
+            purchasableOffers.Any(x => x.ProductVariantId.HasValue),
+            purchasableOffers.Any(x => x.ProductSessionId.HasValue),
+            MapPrice(purchasableOffers)
         );
     }
 
@@ -532,6 +543,21 @@ internal static class PublicCatalogMapping
     {
         var offers = source.ToArray();
         var selected = offers.OrderBy(x => x.FinalPriceMinor).ThenBy(x => x.OfferId).First();
+        if (offers.All(x => x.SalesChannel == SalesChannel.InPerson))
+        {
+            return new(
+                "InPerson",
+                0,
+                0,
+                offers.Length,
+                selected.OfferId,
+                selected.ShopId,
+                selected.ShopSlug,
+                0,
+                0,
+                0
+            );
+        }
         var min = offers.Min(x => x.FinalPriceMinor);
         var max = offers.Max(x => x.FinalPriceMinor);
         return new(

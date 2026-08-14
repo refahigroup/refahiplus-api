@@ -36,7 +36,7 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
     {
         var offers = BuildEffectiveOffers(atUtc, search);
         var products = BuildEffectiveProducts(categoryIds, null, salesModel);
-        var shops = BuildEffectiveShops(shopId, shopSlug);
+        var shops = BuildEffectiveShops(shopId, shopSlug, includeInPerson: true);
         return
             from offer in offers
             join product in products
@@ -45,7 +45,12 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
             join shop in shops
                 on new { offer.ShopId, offer.SupplierId }
                 equals new { ShopId = shop.Id, shop.SupplierId }
-            select new PublicCatalogEligibilityCoordinate(product.SupplierId, product.CategoryId);
+            select new PublicCatalogEligibilityCoordinate(
+                product.SupplierId,
+                product.CategoryId,
+                shop.ShopType == ShopType.InPerson
+                    ? SalesChannel.InPerson
+                    : SalesChannel.Online);
     }
 
     public async Task<PublicCatalogCandidatePage> GetEffectivePageAsync(
@@ -66,32 +71,23 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
         if (allowedCoordinates.Count == 0)
             return new([], 0);
 
-        var offers = BuildEffectiveOffers(atUtc, search);
-        var products = ApplyEligibility(
-            BuildEffectiveProducts(categoryIds, null, salesModel),
-            allowedCoordinates);
-        var shops = BuildEffectiveShops(shopId, shopSlug);
-        if (minPriceMinor.HasValue)
-            offers = offers.Where(x => x.FinalPriceMinor >= minPriceMinor.Value);
-        if (maxPriceMinor.HasValue)
-            offers = offers.Where(x => x.FinalPriceMinor <= maxPriceMinor.Value);
-
-        var rows =
-            from offer in offers
-            join product in products
-                on new { offer.ProductId, offer.SupplierId }
-                equals new { ProductId = product.Id, product.SupplierId }
-            join shop in shops
-                on new { offer.ShopId, offer.SupplierId }
-                equals new { ShopId = shop.Id, shop.SupplierId }
-            select new { Offer = offer, Product = product };
-        var productPage = rows
-            .GroupBy(x => new { x.Product.Id, x.Product.CreatedAt })
+        var candidates = BuildEligibleCandidatesQuery(
+            categoryIds,
+            allowedCoordinates,
+            shopId,
+            shopSlug,
+            search,
+            salesModel,
+            minPriceMinor,
+            maxPriceMinor,
+            atUtc);
+        var productPage = candidates
+            .GroupBy(x => new { Id = x.ProductId, CreatedAt = x.ProductCreatedAt })
             .Select(x => new
             {
                 ProductId = x.Key.Id,
                 x.Key.CreatedAt,
-                MinPrice = x.Min(y => y.Offer.FinalPriceMinor)
+                MinPrice = x.Min(y => y.FinalPriceMinor)
             });
 
         var total = await productPage.CountAsync(ct);
@@ -109,9 +105,91 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
         if (productIds.Count == 0)
             return new([], total);
 
-        products = products.Where(x => productIds.Contains(x.Id));
-        var candidates = await BuildCandidateQuery(offers, products, shops).ToListAsync(ct);
-        return new(candidates, total);
+        var pageCandidates = await candidates
+            .Where(x => productIds.Contains(x.ProductId))
+            .ToListAsync(ct);
+        var imageRows = await db.ProductImages.AsNoTracking()
+            .Where(x => productIds.Contains(x.ProductId))
+            .OrderByDescending(x => x.IsMain)
+            .ThenBy(x => x.SortOrder)
+            .ThenBy(x => x.Id)
+            .Select(x => new { x.ProductId, x.ImageUrl })
+            .ToListAsync(ct);
+        var mainImageByProductId = imageRows
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(x => x.Key, x => x.First().ImageUrl);
+        var hydratedCandidates = pageCandidates
+            .Select(x => x with
+            {
+                MainImageUrl = mainImageByProductId.GetValueOrDefault(x.ProductId)
+            })
+            .ToArray();
+        return new(hydratedCandidates, total);
+    }
+
+    internal IQueryable<PublicCatalogOfferCandidate> BuildEligibleCandidatesQuery(
+        IReadOnlyCollection<int> categoryIds,
+        IReadOnlyCollection<PublicCatalogEligibilityCoordinate> allowedCoordinates,
+        Guid? shopId,
+        string? shopSlug,
+        string? search,
+        SalesModel? salesModel,
+        long? minPriceMinor,
+        long? maxPriceMinor,
+        DateTimeOffset atUtc)
+    {
+        var offers = BuildEffectiveOffers(atUtc, search);
+        if (minPriceMinor.HasValue)
+            offers = offers.Where(x => x.FinalPriceMinor >= minPriceMinor.Value);
+        if (maxPriceMinor.HasValue)
+            offers = offers.Where(x => x.FinalPriceMinor <= maxPriceMinor.Value);
+
+        var products = BuildEffectiveProducts(categoryIds, null, salesModel);
+        var shops = BuildEffectiveShops(shopId, shopSlug, includeInPerson: true);
+        var eligibleRows =
+            from offer in offers
+            join product in products
+                on new { offer.ProductId, offer.SupplierId }
+                equals new { ProductId = product.Id, product.SupplierId }
+            join shop in shops
+                on new { offer.ShopId, offer.SupplierId }
+                equals new { ShopId = shop.Id, shop.SupplierId }
+            where false
+            select new { Offer = offer, Product = product, Shop = shop };
+
+        foreach (var group in allowedCoordinates.GroupBy(x => new { x.CategoryId, x.SalesChannel }))
+        {
+            var categoryId = group.Key.CategoryId;
+            var shopType = group.Key.SalesChannel == SalesChannel.InPerson
+                ? ShopType.InPerson
+                : ShopType.Online;
+            var supplierIds = group.Select(x => x.SupplierId).Distinct().ToArray();
+            var eligibleProducts = products.Where(x => x.CategoryId == categoryId
+                && supplierIds.Contains(x.SupplierId));
+            var eligibleShops = shops.Where(x => x.ShopType == shopType
+                && supplierIds.Contains(x.SupplierId));
+            var channelRows =
+                from offer in offers
+                join product in eligibleProducts
+                    on new { offer.ProductId, offer.SupplierId }
+                    equals new { ProductId = product.Id, product.SupplierId }
+                join shop in eligibleShops
+                    on new { offer.ShopId, offer.SupplierId }
+                    equals new { ShopId = shop.Id, shop.SupplierId }
+                select new { Offer = offer, Product = product, Shop = shop };
+            eligibleRows = eligibleRows.Concat(channelRows);
+        }
+
+        return eligibleRows.Select(x => new PublicCatalogOfferCandidate(
+            x.Offer.Id, x.Product.Id, x.Shop.Id, x.Product.SupplierId, x.Product.CategoryId,
+            x.Product.Title, x.Product.Slug, x.Product.Description, x.Product.ProductType,
+            x.Product.SalesModel, x.Product.FulfillmentMethod, x.Product.CreatedAt,
+            null,
+            x.Shop.Name, x.Shop.Slug,
+            x.Shop.ShopType == ShopType.InPerson ? SalesChannel.InPerson : SalesChannel.Online,
+            x.Offer.OriginalPriceMinor, x.Offer.DiscountPercent, x.Offer.FinalPriceMinor,
+            x.Offer.ProductVariantId, x.Offer.ProductSessionId, x.Offer.StartDateUtc,
+            x.Offer.EndDateUtc, x.Offer.Version, x.Offer.UpdatedAt));
     }
 
     public Task<IReadOnlyList<PublicCatalogOfferCandidate>> GetEffectiveCandidatesAsync(
@@ -130,7 +208,7 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
             : moduleCategoryId.HasValue ? [moduleCategoryId.Value] : [];
         var offers = BuildEffectiveOffers(atUtc, search);
         var products = BuildEffectiveProducts(categories, productSlug, salesModel);
-        var shops = BuildEffectiveShops(shopId, shopSlug);
+        var shops = BuildEffectiveShops(shopId, shopSlug, includeInPerson: false);
         return ReadAsync(BuildCandidateQuery(offers, products, shops), ct);
     }
 
@@ -178,10 +256,15 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
         return query;
     }
 
-    private IQueryable<Domain.Aggregates.Shop> BuildEffectiveShops(Guid? shopId, string? shopSlug)
+    private IQueryable<Domain.Aggregates.Shop> BuildEffectiveShops(
+        Guid? shopId,
+        string? shopSlug,
+        bool includeInPerson)
     {
         var query = db.Shops.AsNoTracking()
-            .Where(x => x.Status == ShopStatus.Active && x.ShopType == ShopType.Online);
+            .Where(x => x.Status == ShopStatus.Active
+                && (x.ShopType == ShopType.Online
+                    || (includeInPerson && x.ShopType == ShopType.InPerson)));
         if (shopId.HasValue)
             query = query.Where(x => x.Id == shopId.Value);
         if (!string.IsNullOrWhiteSpace(shopSlug))
@@ -190,24 +273,6 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
             query = query.Where(x => x.Slug == value);
         }
         return query;
-    }
-
-    private static IQueryable<Domain.Aggregates.Product> ApplyEligibility(
-        IQueryable<Domain.Aggregates.Product> products,
-        IReadOnlyCollection<PublicCatalogEligibilityCoordinate> coordinates)
-    {
-        IQueryable<Domain.Aggregates.Product>? eligibleProducts = null;
-        foreach (var group in coordinates.GroupBy(x => x.CategoryId))
-        {
-            var categoryId = group.Key;
-            var supplierIds = group.Select(x => x.SupplierId).Distinct().ToArray();
-            var groupProducts = products.Where(x => x.CategoryId == categoryId
-                && supplierIds.Contains(x.SupplierId));
-            eligibleProducts = eligibleProducts is null
-                ? groupProducts
-                : eligibleProducts.Concat(groupProducts);
-        }
-        return eligibleProducts!;
     }
 
     private static IQueryable<PublicCatalogOfferCandidate> BuildCandidateQuery(
@@ -226,10 +291,10 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
                 offer.Id, product.Id, shop.Id, product.SupplierId, product.CategoryId,
                 product.Title, product.Slug, product.Description, product.ProductType,
                 product.SalesModel, product.FulfillmentMethod, product.CreatedAt,
-                product.Images.Where(i => i.IsMain).OrderBy(i => i.SortOrder)
-                    .Select(i => i.ImageUrl).FirstOrDefault()
-                    ?? product.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).FirstOrDefault(),
-                shop.Name, shop.Slug, offer.OriginalPriceMinor, offer.DiscountPercent,
+                null,
+                shop.Name, shop.Slug,
+                shop.ShopType == ShopType.InPerson ? SalesChannel.InPerson : SalesChannel.Online,
+                offer.OriginalPriceMinor, offer.DiscountPercent,
                 offer.FinalPriceMinor, offer.ProductVariantId, offer.ProductSessionId,
                 offer.StartDateUtc, offer.EndDateUtc, offer.Version, offer.UpdatedAt);
 

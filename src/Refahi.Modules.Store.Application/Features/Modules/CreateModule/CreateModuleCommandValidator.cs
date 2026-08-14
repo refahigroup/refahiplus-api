@@ -24,5 +24,11 @@ public class CreateModuleCommandValidator : AbstractValidator<CreateModuleComman
         RuleFor(x => x.SortOrder)
             .GreaterThanOrEqualTo(0)
             .WithMessage("ترتیب نمایش نمی‌تواند منفی باشد");
+
+        RuleFor(x => x.CategoryId)
+            .NotNull()
+            .WithMessage("دسته‌بندی ریشه ماژول الزامی است")
+            .GreaterThan(0)
+            .WithMessage("شناسه دسته‌بندی ریشه ماژول نامعتبر است");
     }
 }
