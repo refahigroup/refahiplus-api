@@ -100,10 +100,9 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
             salesModel,
             minPriceMinor,
             maxPriceMinor,
-            atUtc);
-        var pageCandidates = await candidates
-            .Where(x => productIds.Contains(x.ProductId))
-            .ToListAsync(ct);
+            atUtc,
+            productIds);
+        var pageCandidates = await candidates.ToListAsync(ct);
         var imageRows = await db.ProductImages.AsNoTracking()
             .Where(x => productIds.Contains(x.ProductId))
             .OrderByDescending(x => x.IsMain)
@@ -212,7 +211,8 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
         SalesModel? salesModel,
         long? minPriceMinor,
         long? maxPriceMinor,
-        DateTimeOffset atUtc)
+        DateTimeOffset atUtc,
+        IReadOnlyCollection<Guid>? productIds = null)
     {
         var offers = BuildEffectiveOffers(atUtc, search);
         if (minPriceMinor.HasValue)
@@ -255,6 +255,9 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
                 select new { Offer = offer, Product = product, Shop = shop };
             eligibleRows = eligibleRows.Concat(channelRows);
         }
+
+        if (productIds is { Count: > 0 })
+            eligibleRows = eligibleRows.Where(x => productIds.Contains(x.Product.Id));
 
         return eligibleRows.Select(x => new PublicCatalogOfferCandidate(
             x.Offer.Id, x.Product.Id, x.Shop.Id, x.Product.SupplierId, x.Product.CategoryId,

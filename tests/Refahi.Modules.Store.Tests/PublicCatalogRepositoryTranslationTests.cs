@@ -43,6 +43,7 @@ public sealed class PublicCatalogRepositoryTranslationTests
         using var db = new StoreDbContext(options);
         var repository = new PublicCatalogRepository(db);
         var supplierId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
 
         var query = repository.BuildEligibleCandidatesQuery(
             [4],
@@ -56,12 +57,14 @@ public sealed class PublicCatalogRepositoryTranslationTests
             null,
             null,
             null,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            [productId]);
 
         var sql = query.ToQueryString();
 
         Assert.Contains("ShopType", sql);
         Assert.Contains("UNION ALL", sql);
+        Assert.Contains(productId.ToString(), sql, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
