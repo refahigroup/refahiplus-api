@@ -29,7 +29,7 @@ public sealed class VoucherEndpoints : IEndpoint
 
         routes
             .MapGet(
-                "/v3/vouchers",
+                "/vouchers",
                 async (ClaimsPrincipal principal, IMediator mediator, CancellationToken ct) =>
                 {
                     if (!TryUser(principal, out var userId))
@@ -41,15 +41,15 @@ public sealed class VoucherEndpoints : IEndpoint
                     );
                 }
             )
-            .WithName("Store.V3.Vouchers.List")
-            .WithTags("Store.V3.Vouchers")
+            .WithName("Store.Vouchers.List")
+            .WithTags("Store.Vouchers")
             .RequireAuthorization("UserOrAdmin")
             .AddEndpointFilter<VoucherTypedErrorFilter>()
             .Produces<ApiResponse<IReadOnlyList<VoucherDto>>>(StatusCodes.Status200OK);
 
         routes
             .MapGet(
-                "/v3/vouchers/{voucherId:guid}",
+                "/vouchers/{voucherId:guid}",
                 async (
                     Guid voucherId,
                     ClaimsPrincipal principal,
@@ -72,8 +72,8 @@ public sealed class VoucherEndpoints : IEndpoint
                         : Results.Ok(ApiResponseHelper.Success(result));
                 }
             )
-            .WithName("Store.V3.Vouchers.Detail")
-            .WithTags("Store.V3.Vouchers")
+            .WithName("Store.Vouchers.Detail")
+            .WithTags("Store.Vouchers")
             .RequireAuthorization("UserOrAdmin")
             .AddEndpointFilter<VoucherTypedErrorFilter>()
             .Produces<ApiResponse<VoucherDto>>(StatusCodes.Status200OK)

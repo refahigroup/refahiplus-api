@@ -4,6 +4,7 @@ using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Categories;
 using Refahi.Modules.Store.Application.Contracts.Queries.Categories;
 using Refahi.Modules.Store.Application.Services;
+using Refahi.Modules.Store.Application.Features.Catalog;
 using Refahi.Modules.Store.Domain.Repositories;
 
 namespace Refahi.Modules.Store.Application.Features.Categories.GetStoreCategories;
@@ -12,23 +13,17 @@ public sealed class GetStoreCategoriesQueryHandler
     : IRequestHandler<GetStoreCategoriesQuery, IReadOnlyList<StoreCategoryDto>>
 {
     private readonly IStoreModuleRepository _moduleRepository;
-    private readonly ISyntheticOfferQueryContextService _contextService;
-    private readonly ISyntheticOfferReadRepository _offerRepository;
-    private readonly IStoreBusinessClock _clock;
+    private readonly IPublicCatalogRepository _catalog;
     private readonly IMediator _mediator;
 
     public GetStoreCategoriesQueryHandler(
         IStoreModuleRepository moduleRepository,
-        ISyntheticOfferQueryContextService contextService,
-        ISyntheticOfferReadRepository offerRepository,
-        IStoreBusinessClock clock,
+        IPublicCatalogRepository catalog,
         IMediator mediator
     )
     {
         _moduleRepository = moduleRepository;
-        _contextService = contextService;
-        _offerRepository = offerRepository;
-        _clock = clock;
+        _catalog = catalog;
         _mediator = mediator;
     }
 
@@ -41,39 +36,14 @@ public sealed class GetStoreCategoriesQueryHandler
         if (module is null || !module.IsActive || !module.CategoryId.HasValue)
             return [];
 
-        var context = await _contextService.ResolveAsync(
-            request.ModuleId,
-            null,
-            null,
-            null,
-            null,
-            ct
-        );
-        if (!context.IsShopValid || context.AgreementProducts.Count == 0)
-            return [];
-
-        var now = _clock.Current;
-        var eligibleAgreementProductIds =
-            await _offerRepository.GetEligibleAgreementProductIdsAsync(
-                new SyntheticOfferQuerySpec(
-                    context.StockBasedAgreementProductIds,
-                    context.SessionBasedAgreementProductIds,
-                    now.Date,
-                    CurrentTime: now.Time,
-                    ManualAgreementProductIds: context.ManualAgreementProductIds
-                ),
-                ct
-            );
-
-        if (eligibleAgreementProductIds.Count == 0)
-            return [];
-
-        var directlyUsedCategoryIds = eligibleAgreementProductIds
-            .Where(context.AgreementProducts.ContainsKey)
-            .Select(id => context.AgreementProducts[id].CategoryId)
-            .Where(id => id.HasValue)
-            .Select(id => id!.Value)
-            .ToHashSet();
+        var subtreeIds = await _mediator.Send(
+            new GetCategorySubtreeIdsQuery(module.CategoryId.Value), ct);
+        var now = DateTimeOffset.UtcNow;
+        var coordinates = await _catalog.GetEligibilityCoordinatesAsync(
+            subtreeIds, null, null, null, null, now, ct);
+        var eligibleCoordinates = await PublicCatalogEligibility.ResolveAsync(
+            coordinates, _mediator, now, ct);
+        var directlyUsedCategoryIds = eligibleCoordinates.Select(x => x.CategoryId).ToHashSet();
 
         if (directlyUsedCategoryIds.Count == 0)
             return [];

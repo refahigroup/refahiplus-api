@@ -16,6 +16,11 @@ public interface IStoreOrderRepository
         IReadOnlyCollection<Guid> orderIds,
         CancellationToken ct = default
     ) => Task.FromResult<IReadOnlyList<StoreOrder>>([]);
+    Task<bool> UserHasPurchasedProductAsync(
+        Guid userId,
+        Guid productId,
+        CancellationToken ct = default
+    ) => Task.FromResult(false);
     Task AddAsync(StoreOrder order, CancellationToken ct = default);
     Task UpdateAsync(StoreOrder order, CancellationToken ct = default);
     Task CommitPaidAsync(Guid orderId, CancellationToken ct = default);

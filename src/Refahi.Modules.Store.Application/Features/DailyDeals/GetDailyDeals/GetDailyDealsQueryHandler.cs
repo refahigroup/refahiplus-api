@@ -5,6 +5,7 @@ using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Entities;
 using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementCategoryTerms;
 using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.DailyDeals.GetDailyDeals;
@@ -13,24 +14,28 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
 {
     private readonly IDailyDealRepository _dealRepo;
     private readonly IProductRepository _productRepo;
-    private readonly IShopProductRepository _shopProductRepo;
+    private readonly IOfferRepository _offerRepo;
     private readonly IShopRepository _shopRepo;
     private readonly IPathService _pathService;
 
     public GetDailyDealsQueryHandler(
         IDailyDealRepository dealRepo,
         IProductRepository productRepo,
-        IShopProductRepository shopProductRepo,
+        IOfferRepository offerRepo,
         IShopRepository shopRepo,
+        IMediator mediator,
         IPathService pathService
     )
     {
         _dealRepo = dealRepo;
         _productRepo = productRepo;
-        _shopProductRepo = shopProductRepo;
+        _offerRepo = offerRepo;
         _shopRepo = shopRepo;
         _pathService = pathService;
+        _mediator = mediator;
     }
+
+    private readonly IMediator _mediator;
 
     public async Task<List<DailyDealDto>> Handle(
         GetDailyDealsQuery request,
@@ -64,35 +69,30 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
             if (product is null || product.IsDeleted)
                 continue;
 
-            ShopProduct? firstShopProduct;
-            Shop? shop;
-
-            if (deal.ShopId.HasValue)
-            {
-                firstShopProduct = await _shopProductRepo.GetAsync(
-                    deal.ShopId.Value,
-                    product.Id,
-                    cancellationToken
-                );
-                shop = await _shopRepo.GetByIdAsync(deal.ShopId.Value, cancellationToken);
-            }
-            else
-            {
-                var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(
-                    product.Id,
-                    isActive: true,
-                    page: 1,
-                    pageSize: 1,
-                    cancellationToken
-                );
-                firstShopProduct = shopProducts.FirstOrDefault();
-                var shopId = firstShopProduct?.ShopId;
-                shop = shopId.HasValue
-                    ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken)
-                    : null;
-            }
-
-            var originalPrice = firstShopProduct?.Price ?? 0;
+            var now = DateTimeOffset.UtcNow;
+            var offerCandidates = await _offerRepo.GetEligibilityCandidatesAsync(
+                product.Id, deal.ShopId, now, cancellationToken);
+            var resolutions = await _mediator.Send(
+                new ResolveAgreementCategoryTermsBatchQuery(offerCandidates.Select(x =>
+                    new AgreementCategoryTermResolutionRequest(
+                        x.SupplierId, x.CategoryId, x.SalesChannel, now)).Distinct().ToArray()),
+                cancellationToken);
+            var allowed = resolutions.Where(x => x.Term is not null)
+                .Select(x => (x.Request.SupplierId, x.Request.CategoryId, x.Request.SalesChannel))
+                .ToHashSet();
+            var eligibleIds = offerCandidates.Where(x =>
+                allowed.Contains((x.SupplierId, x.CategoryId, x.SalesChannel)))
+                .Select(x => x.OfferId).ToHashSet();
+            var offers = new List<Offer>();
+            foreach (var offerId in eligibleIds)
+                if (await _offerRepo.GetByIdAsync(offerId, false, cancellationToken) is { } offer
+                    && offer.IsEffectiveAt(now))
+                    offers.Add(offer);
+            var selectedOffer = offers.OrderBy(x => x.FinalPriceMinor).ThenBy(x => x.Id).FirstOrDefault();
+            if (selectedOffer is null)
+                continue;
+            var shop = await _shopRepo.GetByIdAsync(selectedOffer.ShopId, cancellationToken);
+            var originalPrice = selectedOffer.OriginalPriceMinor;
 
             var mainImage =
                 product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
@@ -101,7 +101,7 @@ public class GetDailyDealsQueryHandler : IRequestHandler<GetDailyDealsQuery, Lis
                 ? null
                 : _pathService.MakeAbsoluteMediaUrl(mainImage);
 
-            var discountedPrice = originalPrice * (100 - deal.DiscountPercent) / 100;
+            var discountedPrice = selectedOffer.FinalPriceMinor;
 
             result.Add(
                 new DailyDealDto(

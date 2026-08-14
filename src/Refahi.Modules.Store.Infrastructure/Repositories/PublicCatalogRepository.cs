@@ -7,125 +7,233 @@ namespace Refahi.Modules.Store.Infrastructure.Repositories;
 
 public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogRepository
 {
-    public async Task<IReadOnlyList<PublicCatalogOfferCandidate>> GetEffectiveCandidatesAsync(
-    int? moduleCategoryId,
-    int? categoryId,
-    Guid? shopId,
-    string? shopSlug,
-    string? productSlug,
-    string? search,
-    SalesModel? salesModel,
-    DateTimeOffset atUtc,
-    CancellationToken ct = default
-)
+    public async Task<IReadOnlyList<PublicCatalogEligibilityCoordinate>> GetEligibilityCoordinatesAsync(
+        IReadOnlyCollection<int> categoryIds,
+        Guid? shopId,
+        string? shopSlug,
+        string? search,
+        SalesModel? salesModel,
+        DateTimeOffset atUtc,
+        CancellationToken ct = default)
     {
-        var query =
-            from offer in db.Offers.AsNoTracking()
-            join product in db.Products.AsNoTracking() on offer.ProductId equals product.Id
-            join shop in db.Shops.AsNoTracking() on offer.ShopId equals shop.Id
-            where
-                offer.IsActive
-                && !offer.IsDeleted
-                && offer.StartDateUtc <= atUtc
-                && (!offer.EndDateUtc.HasValue || atUtc < offer.EndDateUtc.Value)
-                && product.IsAvailable
-                && !product.IsDeleted
-                && product.SupplierId != Guid.Empty
-                && product.SupplierId == shop.SupplierId
-                && shop.Status == ShopStatus.Active
-                && shop.ShopType == ShopType.Online
-            select new
+        var query = BuildEligibilityCoordinatesQuery(
+            categoryIds,
+            shopId,
+            shopSlug,
+            search,
+            salesModel,
+            atUtc);
+        return await query.Distinct().ToListAsync(ct);
+    }
+
+    internal IQueryable<PublicCatalogEligibilityCoordinate> BuildEligibilityCoordinatesQuery(
+        IReadOnlyCollection<int> categoryIds,
+        Guid? shopId,
+        string? shopSlug,
+        string? search,
+        SalesModel? salesModel,
+        DateTimeOffset atUtc)
+    {
+        var offers = BuildEffectiveOffers(atUtc, search);
+        var products = BuildEffectiveProducts(categoryIds, null, salesModel);
+        var shops = BuildEffectiveShops(shopId, shopSlug);
+        return
+            from offer in offers
+            join product in products
+                on new { offer.ProductId, offer.SupplierId }
+                equals new { ProductId = product.Id, product.SupplierId }
+            join shop in shops
+                on new { offer.ShopId, offer.SupplierId }
+                equals new { ShopId = shop.Id, shop.SupplierId }
+            select new PublicCatalogEligibilityCoordinate(product.SupplierId, product.CategoryId);
+    }
+
+    public async Task<PublicCatalogCandidatePage> GetEffectivePageAsync(
+        IReadOnlyCollection<int> categoryIds,
+        IReadOnlyCollection<PublicCatalogEligibilityCoordinate> allowedCoordinates,
+        Guid? shopId,
+        string? shopSlug,
+        string? search,
+        SalesModel? salesModel,
+        long? minPriceMinor,
+        long? maxPriceMinor,
+        string sort,
+        int page,
+        int pageSize,
+        DateTimeOffset atUtc,
+        CancellationToken ct = default)
+    {
+        if (allowedCoordinates.Count == 0)
+            return new([], 0);
+
+        var offers = BuildEffectiveOffers(atUtc, search);
+        var products = ApplyEligibility(
+            BuildEffectiveProducts(categoryIds, null, salesModel),
+            allowedCoordinates);
+        var shops = BuildEffectiveShops(shopId, shopSlug);
+        if (minPriceMinor.HasValue)
+            offers = offers.Where(x => x.FinalPriceMinor >= minPriceMinor.Value);
+        if (maxPriceMinor.HasValue)
+            offers = offers.Where(x => x.FinalPriceMinor <= maxPriceMinor.Value);
+
+        var rows =
+            from offer in offers
+            join product in products
+                on new { offer.ProductId, offer.SupplierId }
+                equals new { ProductId = product.Id, product.SupplierId }
+            join shop in shops
+                on new { offer.ShopId, offer.SupplierId }
+                equals new { ShopId = shop.Id, shop.SupplierId }
+            select new { Offer = offer, Product = product };
+        var productPage = rows
+            .GroupBy(x => new { x.Product.Id, x.Product.CreatedAt })
+            .Select(x => new
             {
-                Offer = offer,
-                Product = product,
-                Shop = shop,
-            };
+                ProductId = x.Key.Id,
+                x.Key.CreatedAt,
+                MinPrice = x.Min(y => y.Offer.FinalPriceMinor)
+            });
 
-        if (moduleCategoryId.HasValue)
-            query = query.Where(x => x.Product.CategoryId == moduleCategoryId.Value);
-
-        if (categoryId.HasValue)
-            query = query.Where(x => x.Product.CategoryId == categoryId.Value);
-
-        if (shopId.HasValue)
-            query = query.Where(x => x.Shop.Id == shopId.Value);
-
-        if (!string.IsNullOrWhiteSpace(shopSlug))
+        var total = await productPage.CountAsync(ct);
+        var ordered = sort switch
         {
-            var normalizedShopSlug = shopSlug.Trim().ToLowerInvariant();
+            "price-asc" => productPage.OrderBy(x => x.MinPrice).ThenBy(x => x.ProductId),
+            "price-desc" => productPage.OrderByDescending(x => x.MinPrice).ThenBy(x => x.ProductId),
+            _ => productPage.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.ProductId)
+        };
+        var productIds = await ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => x.ProductId)
+            .ToListAsync(ct);
+        if (productIds.Count == 0)
+            return new([], total);
 
-            query = query.Where(x =>
-                x.Shop.Slug == normalizedShopSlug
-            );
-        }
+        products = products.Where(x => productIds.Contains(x.Id));
+        var candidates = await BuildCandidateQuery(offers, products, shops).ToListAsync(ct);
+        return new(candidates, total);
+    }
 
-        // مهم:
-        // ProductSlug قبل از ToListAsync و مستقیماً در SQL فیلتر می‌شود.
-        // بنابراین در صفحه Detail دیگر کل Catalog از دیتابیس خوانده نمی‌شود.
-        if (!string.IsNullOrWhiteSpace(productSlug))
-        {
-            var normalizedProductSlug = productSlug.Trim().ToLowerInvariant();
+    public Task<IReadOnlyList<PublicCatalogOfferCandidate>> GetEffectiveCandidatesAsync(
+        int? moduleCategoryId,
+        int? categoryId,
+        Guid? shopId,
+        string? shopSlug,
+        string? productSlug,
+        string? search,
+        SalesModel? salesModel,
+        DateTimeOffset atUtc,
+        CancellationToken ct = default)
+    {
+        IReadOnlyCollection<int> categories = categoryId.HasValue
+            ? [categoryId.Value]
+            : moduleCategoryId.HasValue ? [moduleCategoryId.Value] : [];
+        var offers = BuildEffectiveOffers(atUtc, search);
+        var products = BuildEffectiveProducts(categories, productSlug, salesModel);
+        var shops = BuildEffectiveShops(shopId, shopSlug);
+        return ReadAsync(BuildCandidateQuery(offers, products, shops), ct);
+    }
 
-            query = query.Where(x =>
-                x.Product.Slug == normalizedProductSlug
-            );
-        }
+    private IQueryable<Domain.Aggregates.Offer> BuildEffectiveOffers(
+        DateTimeOffset atUtc,
+        string? search)
+    {
+        var query = db.Offers.AsNoTracking()
+            .Where(offer => offer.IsActive && !offer.IsDeleted
+                && offer.StartDateUtc <= atUtc
+                && (!offer.EndDateUtc.HasValue || atUtc < offer.EndDateUtc.Value));
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
-
-            query = query.Where(x =>
-                x.Product.Title.Contains(term)
-                || (x.Product.Description != null && x.Product.Description.Contains(term))
-                || x.Shop.Name.Contains(term)
-            );
+            var value = search.Trim();
+            var matchingProductIds = db.Products
+                .Where(x => x.Title.Contains(value)
+                    || (x.Description != null && x.Description.Contains(value)))
+                .Select(x => x.Id);
+            var matchingShopIds = db.Shops
+                .Where(x => x.Name.Contains(value))
+                .Select(x => x.Id);
+            query = query.Where(x => matchingProductIds.Contains(x.ProductId)
+                || matchingShopIds.Contains(x.ShopId));
         }
-
-        if (salesModel.HasValue)
-            query = query.Where(x =>
-                x.Product.SalesModel == salesModel.Value
-            );
-
-        return await query
-            .OrderByDescending(x => x.Product.CreatedAt)
-            .ThenBy(x => x.Product.Id)
-            .ThenBy(x => x.Offer.FinalPriceMinor)
-            .ThenBy(x => x.Offer.Id)
-            .Select(x => new PublicCatalogOfferCandidate(
-                x.Offer.Id,
-                x.Product.Id,
-                x.Shop.Id,
-                x.Product.SupplierId,
-                x.Product.CategoryId,
-                x.Product.Title,
-                x.Product.Slug,
-                x.Product.Description,
-                x.Product.ProductType,
-                x.Product.SalesModel,
-                x.Product.FulfillmentMethod,
-                x.Product.CreatedAt,
-                x.Product.Images
-                    .Where(image => image.IsMain)
-                    .OrderBy(image => image.SortOrder)
-                    .Select(image => image.ImageUrl)
-                    .FirstOrDefault()
-                    ?? x.Product.Images
-                        .OrderBy(image => image.SortOrder)
-                        .Select(image => image.ImageUrl)
-                        .FirstOrDefault(),
-                x.Shop.Name,
-                x.Shop.Slug,
-                x.Offer.OriginalPriceMinor,
-                x.Offer.DiscountPercent,
-                x.Offer.FinalPriceMinor,
-                x.Offer.ProductVariantId,
-                x.Offer.ProductSessionId,
-                x.Offer.StartDateUtc,
-                x.Offer.EndDateUtc,
-                x.Offer.Version,
-                x.Offer.UpdatedAt
-            ))
-            .ToListAsync(ct);
+        return query;
     }
+
+    private IQueryable<Domain.Aggregates.Product> BuildEffectiveProducts(
+        IReadOnlyCollection<int> categoryIds,
+        string? productSlug,
+        SalesModel? salesModel)
+    {
+        var query = db.Products.AsNoTracking()
+            .Where(x => x.IsAvailable && !x.IsDeleted && x.SupplierId != Guid.Empty);
+        if (categoryIds.Count > 0)
+            query = query.Where(x => categoryIds.Contains(x.CategoryId));
+        if (!string.IsNullOrWhiteSpace(productSlug))
+        {
+            var value = productSlug.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Slug == value);
+        }
+        if (salesModel.HasValue)
+            query = query.Where(x => x.SalesModel == salesModel.Value);
+        return query;
+    }
+
+    private IQueryable<Domain.Aggregates.Shop> BuildEffectiveShops(Guid? shopId, string? shopSlug)
+    {
+        var query = db.Shops.AsNoTracking()
+            .Where(x => x.Status == ShopStatus.Active && x.ShopType == ShopType.Online);
+        if (shopId.HasValue)
+            query = query.Where(x => x.Id == shopId.Value);
+        if (!string.IsNullOrWhiteSpace(shopSlug))
+        {
+            var value = shopSlug.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Slug == value);
+        }
+        return query;
+    }
+
+    private static IQueryable<Domain.Aggregates.Product> ApplyEligibility(
+        IQueryable<Domain.Aggregates.Product> products,
+        IReadOnlyCollection<PublicCatalogEligibilityCoordinate> coordinates)
+    {
+        IQueryable<Domain.Aggregates.Product>? eligibleProducts = null;
+        foreach (var group in coordinates.GroupBy(x => x.CategoryId))
+        {
+            var categoryId = group.Key;
+            var supplierIds = group.Select(x => x.SupplierId).Distinct().ToArray();
+            var groupProducts = products.Where(x => x.CategoryId == categoryId
+                && supplierIds.Contains(x.SupplierId));
+            eligibleProducts = eligibleProducts is null
+                ? groupProducts
+                : eligibleProducts.Concat(groupProducts);
+        }
+        return eligibleProducts!;
+    }
+
+    private static IQueryable<PublicCatalogOfferCandidate> BuildCandidateQuery(
+        IQueryable<Domain.Aggregates.Offer> offers,
+        IQueryable<Domain.Aggregates.Product> products,
+        IQueryable<Domain.Aggregates.Shop> shops) =>
+        from offer in offers
+        join product in products
+            on new { offer.ProductId, offer.SupplierId }
+            equals new { ProductId = product.Id, product.SupplierId }
+        join shop in shops
+            on new { offer.ShopId, offer.SupplierId }
+            equals new { ShopId = shop.Id, shop.SupplierId }
+        orderby product.CreatedAt descending, product.Id, offer.FinalPriceMinor, offer.Id
+        select new PublicCatalogOfferCandidate(
+                offer.Id, product.Id, shop.Id, product.SupplierId, product.CategoryId,
+                product.Title, product.Slug, product.Description, product.ProductType,
+                product.SalesModel, product.FulfillmentMethod, product.CreatedAt,
+                product.Images.Where(i => i.IsMain).OrderBy(i => i.SortOrder)
+                    .Select(i => i.ImageUrl).FirstOrDefault()
+                    ?? product.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).FirstOrDefault(),
+                shop.Name, shop.Slug, offer.OriginalPriceMinor, offer.DiscountPercent,
+                offer.FinalPriceMinor, offer.ProductVariantId, offer.ProductSessionId,
+                offer.StartDateUtc, offer.EndDateUtc, offer.Version, offer.UpdatedAt);
+
+    private static async Task<IReadOnlyList<PublicCatalogOfferCandidate>> ReadAsync(
+        IQueryable<PublicCatalogOfferCandidate> query, CancellationToken ct) =>
+        await query.ToListAsync(ct);
 }

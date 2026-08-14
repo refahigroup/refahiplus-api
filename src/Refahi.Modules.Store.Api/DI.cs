@@ -78,7 +78,6 @@ public static class DI
                     )
             );
         });
-        services.AddScoped<StoreProviderOwnershipFilter>();
         services.AddScoped<InPersonTypedErrorFilter>();
         services.AddScoped<VoucherTypedErrorFilter>();
         services.AddSingleton<IInPersonOtpReferenceProtector, InPersonOtpReferenceProtector>();
@@ -107,7 +106,6 @@ public static class DI
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t));
 
         var group = app.MapGroup(endPointsPrefix);
-        group.AddEndpointFilter<StoreProviderOwnershipFilter>();
 
         foreach (var type in endpointTypes)
         {

@@ -17,10 +17,6 @@ public sealed class Product
 
     public Guid Id { get; private set; }
 
-    [Obsolete(
-        "فقط برای سازگاری APIهای legacy است؛ مسیر v3 از SupplierId و CategoryId استفاده می‌کند."
-    )]
-    public Guid AgreementProductId { get; private set; } // FK → SupplyChain.AgreementProduct
     public Guid SupplierId { get; private set; }
     public int CategoryId { get; private set; }
     public ProductType ProductType { get; private set; }
@@ -53,30 +49,6 @@ public sealed class Product
     public IReadOnlyList<ProductSession> Sessions => _sessions.AsReadOnly();
 
     // --- Factory ---
-    public static Product Create(
-        Guid agreementProductId,
-        string title,
-        string slug,
-        string? description = null,
-        int stockCount = 0,
-        bool? initialAvailability = null
-    )
-    {
-        return new Product
-        {
-            Id = Guid.NewGuid(),
-            AgreementProductId = agreementProductId,
-            Title = title.Trim(),
-            Slug = slug.Trim().ToLower(),
-            Description = description,
-            StockCount = stockCount,
-            IsAvailable = initialAvailability ?? stockCount > 0,
-            IsDeleted = false,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow,
-        };
-    }
-
     public static Product CreateCatalogProduct(
         Guid supplierId,
         int categoryId,
@@ -111,7 +83,6 @@ public sealed class Product
         return new Product
         {
             Id = Guid.NewGuid(),
-            AgreementProductId = Guid.Empty,
             SupplierId = supplierId,
             CategoryId = categoryId,
             ProductType = productType,
@@ -188,13 +159,10 @@ public sealed class Product
         TimeOnly startTime,
         TimeOnly endTime,
         int capacity,
-        string? title = null,
-        long priceAdjustment = 0
+        string? title = null
     )
     {
-        _sessions.Add(
-            ProductSession.Create(Id, date, startTime, endTime, capacity, title, priceAdjustment)
-        );
+        _sessions.Add(ProductSession.Create(Id, date, startTime, endTime, capacity, title));
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -377,8 +345,6 @@ public sealed class Product
     public ProductVariant AddVariant(
         List<(Guid AttributeId, Guid ValueId)> combinations,
         int stockCount,
-        long priceMinor,
-        long? discountedPriceMinor = null,
         string? imageUrl = null,
         string? sku = null,
         DateOnly? fromDate = null,
@@ -406,8 +372,6 @@ public sealed class Product
         var variant = ProductVariant.Create(
             Id,
             stockCount,
-            priceMinor,
-            discountedPriceMinor,
             imageUrl,
             sku,
             fromDate,
@@ -428,8 +392,6 @@ public sealed class Product
         Guid variantId,
         List<(Guid AttributeId, Guid ValueId)> combinations,
         int stockCount,
-        long priceMinor,
-        long? discountedPriceMinor = null,
         string? imageUrl = null,
         string? sku = null,
         DateOnly? fromDate = null,
@@ -460,8 +422,6 @@ public sealed class Product
 
         variant.Update(
             stockCount,
-            priceMinor,
-            discountedPriceMinor,
             imageUrl,
             sku,
             fromDate,

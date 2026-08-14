@@ -19,7 +19,6 @@ public class ProductSessionConfiguration : IEntityTypeConfiguration<ProductSessi
         builder.Property(s => s.Title).HasMaxLength(200);
         builder.Property(s => s.Capacity).IsRequired();
         builder.Property(s => s.SoldCount).IsRequired();
-        builder.Property(s => s.PriceAdjustment).IsRequired();
         builder.Property(s => s.IsActive).IsRequired();
         builder.Property(s => s.IsCancelled).IsRequired();
 
@@ -27,6 +26,7 @@ public class ProductSessionConfiguration : IEntityTypeConfiguration<ProductSessi
         builder.Ignore(s => s.IsAvailable);
 
         builder.HasIndex(s => s.ProductId);
+        builder.HasAlternateKey(s => new { s.Id, s.ProductId });
         builder.HasIndex(s => new { s.ProductId, s.Date });
     }
 }

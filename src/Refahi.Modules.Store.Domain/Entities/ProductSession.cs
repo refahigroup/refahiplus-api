@@ -3,7 +3,7 @@ using Refahi.Modules.Store.Domain.Exceptions;
 namespace Refahi.Modules.Store.Domain.Entities;
 
 /// <summary>
-/// ProductSession — سانس‌های محصول (v1.1)
+/// ProductSession — ساختار و ظرفیت سانس محصول
 /// برای محصولاتی که مدل فروش آن‌ها SessionBased است
 /// </summary>
 public sealed class ProductSession
@@ -18,7 +18,6 @@ public sealed class ProductSession
     public string? Title { get; private set; }
     public int Capacity { get; private set; }
     public int SoldCount { get; private set; }
-    public long PriceAdjustment { get; private set; }
     public bool IsActive { get; private set; }
     public bool IsCancelled { get; private set; }
 
@@ -31,8 +30,7 @@ public sealed class ProductSession
         TimeOnly startTime,
         TimeOnly endTime,
         int capacity,
-        string? title,
-        long priceAdjustment
+        string? title
     )
     {
         if (endTime <= startTime)
@@ -47,12 +45,6 @@ public sealed class ProductSession
                 "INVALID_SESSION_CAPACITY"
             );
 
-        if (priceAdjustment < 0)
-            throw new StoreDomainException(
-                "تفاوت قیمت نمی‌تواند منفی باشد",
-                "INVALID_SESSION_PRICE_ADJUSTMENT"
-            );
-
         return new ProductSession
         {
             Id = Guid.NewGuid(),
@@ -63,7 +55,6 @@ public sealed class ProductSession
             Title = title,
             Capacity = capacity,
             SoldCount = 0,
-            PriceAdjustment = priceAdjustment,
             IsActive = true,
             IsCancelled = false,
         };
@@ -100,7 +91,7 @@ public sealed class ProductSession
         IsActive = true;
     }
 
-    public void UpdateInfo(int capacity, string? title, long priceAdjustment)
+    public void UpdateInfo(int capacity, string? title)
     {
         if (capacity <= 0)
             throw new StoreDomainException(
@@ -114,14 +105,7 @@ public sealed class ProductSession
                 "SESSION_CAPACITY_BELOW_SOLD_COUNT"
             );
 
-        if (priceAdjustment < 0)
-            throw new StoreDomainException(
-                "تفاوت قیمت نمی‌تواند منفی باشد",
-                "INVALID_SESSION_PRICE_ADJUSTMENT"
-            );
-
         Capacity = capacity;
         Title = title;
-        PriceAdjustment = priceAdjustment;
     }
 }

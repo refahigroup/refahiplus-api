@@ -7,10 +7,11 @@ public sealed class PlaceStoreOrderCommandValidator : AbstractValidator<PlaceSto
 {
     public PlaceStoreOrderCommandValidator()
     {
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("شناسه کاربر الزامی است");
+        RuleFor(x => x.ModuleId).GreaterThan(0).WithMessage("ماژول فروشگاه نامعتبر است");
         RuleFor(x => x.IdempotencyKey)
             .NotEmpty()
-            .WithMessage("کلید یکتایی الزامی است")
-            .MaximumLength(200)
-            .WithMessage("کلید یکتایی نمی‌تواند بیشتر از ۲۰۰ کاراکتر باشد");
+            .MaximumLength(128)
+            .WithMessage("کلید یکتایی الزامی است و حداکثر ۱۲۸ کاراکتر دارد");
     }
 }

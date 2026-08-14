@@ -1,5 +1,4 @@
 using MediatR;
-using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Commands.Reviews;
 using Refahi.Modules.Store.Domain.Entities;
 using Refahi.Modules.Store.Domain.Exceptions;
@@ -11,20 +10,17 @@ public class CreateReviewCommandHandler : IRequestHandler<CreateReviewCommand, C
 {
     private readonly IReviewRepository _reviewRepo;
     private readonly IProductRepository _productRepo;
-    private readonly IShopProductRepository _shopProductRepo;
-    private readonly IMediator _mediator;
+    private readonly IStoreOrderRepository _storeOrderRepo;
 
     public CreateReviewCommandHandler(
         IReviewRepository reviewRepo,
         IProductRepository productRepo,
-        IShopProductRepository shopProductRepo,
-        IMediator mediator
+        IStoreOrderRepository storeOrderRepo
     )
     {
         _reviewRepo = reviewRepo;
         _productRepo = productRepo;
-        _shopProductRepo = shopProductRepo;
-        _mediator = mediator;
+        _storeOrderRepo = storeOrderRepo;
     }
 
     public async Task<CreateReviewResponse> Handle(
@@ -36,33 +32,16 @@ public class CreateReviewCommandHandler : IRequestHandler<CreateReviewCommand, C
             await _productRepo.GetByIdAsync(request.ProductId, cancellationToken)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
 
-        // Verify the user has a delivered order from a shop that carries this product
-        var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(
+        var hasPurchased = await _storeOrderRepo.UserHasPurchasedProductAsync(
+            request.UserId,
             product.Id,
-            isActive: true,
-            page: 1,
-            pageSize: 1,
             cancellationToken
         );
-        var shopId = shopProducts.FirstOrDefault()?.ShopId;
-
-        if (shopId.HasValue)
-        {
-            var hasPurchased = await _mediator.Send(
-                new HasUserPurchasedQuery(
-                    UserId: request.UserId,
-                    SourceModule: "Store",
-                    SourceReferenceId: shopId.Value
-                ),
-                cancellationToken
+        if (!hasPurchased)
+            throw new StoreDomainException(
+                "فقط خریداران می‌توانند نظر ثبت کنند",
+                "PURCHASE_REQUIRED"
             );
-
-            if (!hasPurchased)
-                throw new StoreDomainException(
-                    "فقط خریداران می‌توانند نظر ثبت کنند",
-                    "PURCHASE_REQUIRED"
-                );
-        }
 
         var alreadyReviewed = await _reviewRepo.UserHasReviewedAsync(
             request.ProductId,

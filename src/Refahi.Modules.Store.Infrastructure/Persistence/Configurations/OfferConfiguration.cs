@@ -24,6 +24,7 @@ public sealed class OfferConfiguration : IEntityTypeConfiguration<Offer>
             }
         );
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.SupplierId).IsRequired();
         builder.Property(x => x.OriginalPriceMinor).IsRequired();
         builder.Property(x => x.DiscountPercent).HasPrecision(5, 2).IsRequired();
         builder.Property(x => x.FinalPriceMinor).IsRequired();
@@ -54,25 +55,30 @@ public sealed class OfferConfiguration : IEntityTypeConfiguration<Offer>
             x.StartDateUtc,
             x.EndDateUtc,
         });
+        builder.HasIndex(x => x.SupplierId);
         builder
             .HasOne<Product>()
             .WithMany()
-            .HasForeignKey(x => x.ProductId)
+            .HasForeignKey(x => new { x.ProductId, x.SupplierId })
+            .HasPrincipalKey(x => new { x.Id, x.SupplierId })
             .OnDelete(DeleteBehavior.Restrict);
         builder
             .HasOne<Shop>()
             .WithMany()
-            .HasForeignKey(x => x.ShopId)
+            .HasForeignKey(x => new { x.ShopId, x.SupplierId })
+            .HasPrincipalKey(x => new { x.Id, x.SupplierId })
             .OnDelete(DeleteBehavior.Restrict);
         builder
             .HasOne<Domain.Entities.ProductVariant>()
             .WithMany()
-            .HasForeignKey(x => x.ProductVariantId)
+            .HasForeignKey(x => new { x.ProductVariantId, x.ProductId })
+            .HasPrincipalKey(x => new { x.Id, x.ProductId })
             .OnDelete(DeleteBehavior.Restrict);
         builder
             .HasOne<Domain.Entities.ProductSession>()
             .WithMany()
-            .HasForeignKey(x => x.ProductSessionId)
+            .HasForeignKey(x => new { x.ProductSessionId, x.ProductId })
+            .HasPrincipalKey(x => new { x.Id, x.ProductId })
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

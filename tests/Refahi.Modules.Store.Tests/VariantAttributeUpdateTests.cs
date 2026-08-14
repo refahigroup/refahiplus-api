@@ -1,5 +1,6 @@
 using Refahi.Modules.Store.Domain.Aggregates;
 using Refahi.Modules.Store.Domain.Exceptions;
+using Refahi.Modules.Store.Domain.Enums;
 using Xunit;
 
 namespace Refahi.Modules.Store.Tests;
@@ -82,6 +83,13 @@ public sealed class VariantAttributeUpdateTests
         Assert.Equal("VARIANT_ATTRIBUTE_VALUE_NOT_FOUND", exception.ErrorCode);
     }
 
-    private static Product CreateProduct() =>
-        Product.Create(Guid.NewGuid(), "محصول", $"product-{Guid.NewGuid():N}");
+    private static Product CreateProduct() => Product.CreateCatalogProduct(
+        Guid.NewGuid(),
+        1,
+        ProductType.Goods,
+        SalesModel.InventoryBased,
+        FulfillmentMethod.Shipping,
+        "محصول",
+        $"product-{Guid.NewGuid():N}"
+    );
 }

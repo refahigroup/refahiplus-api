@@ -47,6 +47,7 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
 
         builder.HasIndex(s => s.Slug).IsUnique();
         builder.HasIndex(s => s.SupplierId);
+        builder.HasAlternateKey(s => new { s.Id, s.SupplierId });
         builder.HasIndex(s => s.CityId);
         builder.HasIndex(s => s.ProvinceId);
     }

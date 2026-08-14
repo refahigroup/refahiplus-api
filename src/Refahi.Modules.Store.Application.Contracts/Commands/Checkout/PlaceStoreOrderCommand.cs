@@ -2,10 +2,6 @@ using MediatR;
 
 namespace Refahi.Modules.Store.Application.Contracts.Commands.Checkout;
 
-/// <summary>
-/// آماده‌سازی سفارش فروشگاه و تحویل آن به Checkout مشترک Orders.
-/// انتخاب کیف‌پول و پرداخت فقط در ماژول Orders انجام می‌شود.
-/// </summary>
 public sealed record PlaceStoreOrderCommand(
     Guid UserId,
     int ModuleId,
@@ -13,13 +9,23 @@ public sealed record PlaceStoreOrderCommand(
     Guid? ShippingAddressId = null,
     DateOnly? DeliveryDate = null,
     short DeliveryTimeSlot = 0,
-    Dictionary<Guid, short>? CartItemDeliveryMethods = null,
-    string? DiscountCode = null
+    Dictionary<Guid, short>? CartItemDeliveryMethods = null
 ) : IRequest<PlaceStoreOrderResponse>;
 
 public sealed record PlaceStoreOrderResponse(
+    Guid StoreOrderId,
     Guid OrderId,
     string OrderNumber,
     long FinalAmountMinor,
-    string Status
+    string Status,
+    string CheckoutDestination
+);
+
+public sealed record OfferChangedDetail(
+    Guid CartItemId,
+    Guid SnapshotOfferId,
+    long SnapshotPriceMinor,
+    Guid? CurrentOfferId,
+    long? CurrentPriceMinor,
+    string Reason
 );

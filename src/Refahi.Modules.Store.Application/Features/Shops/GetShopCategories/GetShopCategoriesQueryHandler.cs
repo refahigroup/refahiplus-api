@@ -1,110 +1,49 @@
 using MediatR;
+using Refahi.Modules.References.Application.Contracts.Dtos;
 using Refahi.Modules.References.Application.Contracts.Queries;
 using Refahi.Modules.Store.Application.Contracts.Dtos.Shops;
 using Refahi.Modules.Store.Application.Contracts.Queries.Shops;
+using Refahi.Modules.Store.Application.Features.Catalog;
 using Refahi.Modules.Store.Domain.Repositories;
-using Refahi.Modules.SupplyChain.Application.Contracts.Queries.AgreementProducts;
 using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Shops.GetShopCategories;
 
-public class GetShopCategoriesQueryHandler
-    : IRequestHandler<GetShopCategoriesQuery, List<ShopCategoryDto>>
+public sealed class GetShopCategoriesQueryHandler(
+    IShopRepository shops,
+    IPublicCatalogRepository catalog,
+    IMediator mediator,
+    IPathService pathService) : IRequestHandler<GetShopCategoriesQuery, List<ShopCategoryDto>>
 {
-    private readonly IShopRepository _shopRepo;
-    private readonly IShopProductRepository _shopProductRepo;
-    private readonly IProductRepository _productRepo;
-    private readonly IMediator _mediator;
-    private readonly IPathService _pathService;
-
-    public GetShopCategoriesQueryHandler(
-        IShopRepository shopRepo,
-        IShopProductRepository shopProductRepo,
-        IProductRepository productRepo,
-        IMediator mediator,
-        IPathService pathService
-    )
+    public async Task<List<ShopCategoryDto>> Handle(GetShopCategoriesQuery request, CancellationToken ct)
     {
-        _shopRepo = shopRepo;
-        _shopProductRepo = shopProductRepo;
-        _productRepo = productRepo;
-        _mediator = mediator;
-        _pathService = pathService;
+        var shop = await shops.GetBySlugAsync(request.ShopSlug, ct);
+        if (shop is null)
+            return [];
+        var atUtc = DateTimeOffset.UtcNow;
+        var candidates = await catalog.GetEffectiveCandidatesAsync(
+            null, null, shop.Id, null, null, null, null, atUtc, ct);
+        var eligible = await PublicCatalogEligibility.FilterAsync(candidates, mediator, atUtc, ct);
+        var usedIds = eligible.Select(x => x.CategoryId).ToHashSet();
+        if (usedIds.Count == 0)
+            return [];
+        var categories = Flatten(await mediator.Send(new GetCategoriesQuery(), ct))
+            .Where(x => x.IsActive && usedIds.Contains(x.Id))
+            .OrderBy(x => x.Name)
+            .Select(x => new ShopCategoryDto(x.Id, x.Name, x.Slug,
+                x.ImageUrl is null ? null : pathService.MakeAbsoluteMediaUrl(x.ImageUrl), x.ParentId))
+            .ToList();
+        return categories;
     }
 
-    public async Task<List<ShopCategoryDto>> Handle(
-        GetShopCategoriesQuery request,
-        CancellationToken ct
-    )
+    private static IEnumerable<CategoryDto> Flatten(IEnumerable<CategoryDto> source)
     {
-        var shop = await _shopRepo.GetBySlugAsync(request.ShopSlug, ct);
-        if (shop is null)
-            return new();
-
-        const int batchSize = 500;
-        var page = 1;
-        var productIds = new HashSet<Guid>();
-
-        while (true)
+        foreach (var category in source)
         {
-            var (items, total) = await _shopProductRepo.GetByShopAsync(
-                shop.Id,
-                isActive: true,
-                page,
-                batchSize,
-                ct
-            );
-            foreach (var sp in items)
-                productIds.Add(sp.ProductId);
-
-            if (items.Count < batchSize || productIds.Count >= total)
-                break;
-            page++;
+            yield return category;
+            if (category.Children is not null)
+                foreach (var child in Flatten(category.Children))
+                    yield return child;
         }
-
-        if (productIds.Count == 0)
-            return new();
-
-        var products = await _productRepo.GetByIdsAsync(productIds.ToList(), ct);
-        var apIds = products
-            .Where(p => !p.IsDeleted && p.IsAvailable)
-            .Select(p => p.AgreementProductId)
-            .Distinct()
-            .ToList();
-
-        if (apIds.Count == 0)
-            return new();
-
-        var apMap = await _mediator.Send(new GetAgreementProductsByIdsQuery(apIds), ct);
-        var categoryIds = apMap
-            .Values.Where(ap => ap.CategoryId.HasValue)
-            .Select(ap => ap.CategoryId!.Value)
-            .Distinct()
-            .ToList();
-
-        if (categoryIds.Count == 0)
-            return new();
-
-        var result = new List<ShopCategoryDto>();
-        foreach (var categoryId in categoryIds)
-        {
-            var category = await _mediator.Send(new GetCategoryByIdQuery(categoryId), ct);
-            if (category is null || !category.IsActive)
-                continue;
-
-            result.Add(
-                new ShopCategoryDto(
-                    category.Id,
-                    category.Name,
-                    category.Slug,
-                    category.ImageUrl is null
-                        ? null
-                        : _pathService.MakeAbsoluteMediaUrl(category.ImageUrl),
-                    category.ParentId
-                )
-            );
-        }
-
-        return result.OrderBy(c => c.Name).ToList();
     }
 }

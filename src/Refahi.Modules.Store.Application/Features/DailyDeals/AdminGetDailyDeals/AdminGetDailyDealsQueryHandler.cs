@@ -11,21 +11,21 @@ public class AdminGetDailyDealsQueryHandler
 {
     private readonly IDailyDealRepository _dealRepo;
     private readonly IProductRepository _productRepo;
-    private readonly IShopProductRepository _shopProductRepo;
+    private readonly IOfferRepository _offerRepo;
     private readonly IShopRepository _shopRepo;
     private readonly IPathService _pathService;
 
     public AdminGetDailyDealsQueryHandler(
         IDailyDealRepository dealRepo,
         IProductRepository productRepo,
-        IShopProductRepository shopProductRepo,
+        IOfferRepository offerRepo,
         IShopRepository shopRepo,
         IPathService pathService
     )
     {
         _dealRepo = dealRepo;
         _productRepo = productRepo;
-        _shopProductRepo = shopProductRepo;
+        _offerRepo = offerRepo;
         _shopRepo = shopRepo;
         _pathService = pathService;
     }
@@ -45,16 +45,29 @@ public class AdminGetDailyDealsQueryHandler
             if (product is null)
                 continue;
 
-            var (shopProducts, _) = await _shopProductRepo.GetByProductAsync(
+            var offerCandidates = await _offerRepo.GetEligibilityCandidatesAsync(
                 product.Id,
-                isActive: true,
-                page: 1,
-                pageSize: 1,
+                deal.ShopId,
+                DateTimeOffset.UtcNow,
                 cancellationToken
             );
-            var firstShopProduct = shopProducts.FirstOrDefault();
-            var originalPrice = firstShopProduct?.Price ?? 0;
-            var shopId = firstShopProduct?.ShopId;
+            var offers = new List<Domain.Aggregates.Offer>();
+            foreach (var candidate in offerCandidates)
+            {
+                var offer = await _offerRepo.GetByIdAsync(
+                    candidate.OfferId,
+                    includeDeleted: false,
+                    cancellationToken
+                );
+                if (offer is not null)
+                    offers.Add(offer);
+            }
+            var firstOffer = offers
+                .OrderBy(x => x.FinalPriceMinor)
+                .ThenBy(x => x.Id)
+                .FirstOrDefault();
+            var originalPrice = firstOffer?.OriginalPriceMinor ?? 0;
+            var shopId = firstOffer?.ShopId;
             var shop = shopId.HasValue
                 ? await _shopRepo.GetByIdAsync(shopId.Value, cancellationToken)
                 : null;
@@ -65,7 +78,7 @@ public class AdminGetDailyDealsQueryHandler
             var mainImageUrl = mainImage is null
                 ? null
                 : _pathService.MakeAbsoluteMediaUrl(mainImage);
-            var discountedPrice = originalPrice * (100 - deal.DiscountPercent) / 100;
+            var discountedPrice = firstOffer?.FinalPriceMinor ?? 0;
 
             result.Add(
                 new AdminDailyDealDto(

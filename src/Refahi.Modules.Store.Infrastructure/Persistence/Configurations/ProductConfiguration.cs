@@ -12,7 +12,6 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasKey(p => p.Id);
 
-        builder.Property(p => p.AgreementProductId).IsRequired();
         builder.Property(p => p.SupplierId).IsRequired();
         builder.Property(p => p.CategoryId).IsRequired();
         builder.Property(p => p.ProductType).HasColumnType("smallint").IsRequired();
@@ -28,8 +27,8 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.UpdatedAt).IsRequired();
 
         builder.HasIndex(p => p.Slug).IsUnique();
-        builder.HasIndex(p => p.AgreementProductId);
         builder.HasIndex(p => new { p.SupplierId, p.CategoryId });
+        builder.HasAlternateKey(p => new { p.Id, p.SupplierId });
         builder.HasIndex(p => p.IsDeleted);
 
         // Optimistic concurrency via PostgreSQL system column xmin.

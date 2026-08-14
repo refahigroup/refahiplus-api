@@ -15,8 +15,6 @@ public sealed class ProductVariant
     public string? SKU { get; private set; } // اختیاری — کد موجودی
     public string? ImageUrl { get; private set; }
     public int StockCount { get; private set; }
-    public long PriceMinor { get; private set; } // قیمت مستقل (ریال)
-    public long? DiscountedPriceMinor { get; private set; } // قیمت تخفیف‌خورده (ریال)
     public DateOnly? FromDate { get; private set; }
     public DateOnly? ToDate { get; private set; }
     public VariantCapacityType CapacityType { get; private set; }
@@ -52,8 +50,6 @@ public sealed class ProductVariant
     internal static ProductVariant Create(
         Guid productId,
         int stockCount,
-        long priceMinor,
-        long? discountedPriceMinor = null,
         string? imageUrl = null,
         string? sku = null,
         DateOnly? fromDate = null,
@@ -63,7 +59,6 @@ public sealed class ProductVariant
         SalesModel salesModel = SalesModel.StockBased
     )
     {
-        ValidatePrice(priceMinor, discountedPriceMinor);
         ValidateValidityRange(fromDate, toDate);
         var normalizedCapacity = ValidateAndNormalizeCapacity(capacityType, capacity);
 
@@ -74,8 +69,6 @@ public sealed class ProductVariant
             SKU = sku,
             ImageUrl = imageUrl,
             StockCount = stockCount,
-            PriceMinor = priceMinor,
-            DiscountedPriceMinor = discountedPriceMinor,
             FromDate = fromDate,
             ToDate = toDate,
             CapacityType = capacityType,
@@ -84,17 +77,8 @@ public sealed class ProductVariant
         };
     }
 
-    public void UpdatePrice(long priceMinor, long? discountedPriceMinor = null)
-    {
-        ValidatePrice(priceMinor, discountedPriceMinor);
-        PriceMinor = priceMinor;
-        DiscountedPriceMinor = discountedPriceMinor;
-    }
-
     internal void Update(
         int stockCount,
-        long priceMinor,
-        long? discountedPriceMinor,
         string? imageUrl,
         string? sku,
         DateOnly? fromDate,
@@ -104,13 +88,10 @@ public sealed class ProductVariant
         SalesModel salesModel
     )
     {
-        ValidatePrice(priceMinor, discountedPriceMinor);
         ValidateValidityRange(fromDate, toDate);
         var normalizedCapacity = ValidateAndNormalizeCapacity(capacityType, capacity);
 
         StockCount = stockCount;
-        PriceMinor = priceMinor;
-        DiscountedPriceMinor = discountedPriceMinor;
         ImageUrl = imageUrl;
         SKU = sku;
         FromDate = fromDate;
@@ -126,11 +107,6 @@ public sealed class ProductVariant
         foreach (var (attributeId, valueId) in combinations)
             AddCombination(attributeId, valueId);
     }
-
-    /// <summary>
-    /// قیمت موثر (با احتساب تخفیف)
-    /// </summary>
-    public long EffectivePriceMinor => DiscountedPriceMinor ?? PriceMinor;
 
     public void ValidateOrderEligibility(DateOnly? usageDate = null)
     {
@@ -194,24 +170,6 @@ public sealed class ProductVariant
             throw new StoreDomainException("تعداد باید بیشتر از صفر باشد", "INVALID_QUANTITY");
         StockCount += quantity;
         IsAvailable = true;
-    }
-
-    private static void ValidatePrice(long priceMinor, long? discountedPriceMinor)
-    {
-        if (priceMinor <= 0)
-            throw new StoreDomainException("قیمت باید بیشتر از صفر باشد", "INVALID_PRICE");
-
-        if (discountedPriceMinor is null or <= 0)
-            throw new StoreDomainException(
-                "قیمت تخفیف‌خورده باید بیشتر از صفر باشد",
-                "INVALID_DISCOUNTED_PRICE"
-            );
-
-        if (discountedPriceMinor > priceMinor)
-            throw new StoreDomainException(
-                "قیمت تخفیف‌خورده نباید بیشتر از قیمت اصلی باشد",
-                "INVALID_DISCOUNTED_PRICE"
-            );
     }
 
     private static void ValidateValidityRange(DateOnly? fromDate, DateOnly? toDate)

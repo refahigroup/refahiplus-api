@@ -17,8 +17,6 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.Property(v => v.SKU).HasMaxLength(50);
         builder.Property(v => v.ImageUrl).HasMaxLength(500);
         builder.Property(v => v.StockCount).IsRequired();
-        builder.Property(v => v.PriceMinor).IsRequired();
-        builder.Property(v => v.DiscountedPriceMinor);
         builder.Property(v => v.FromDate).HasColumnType("date");
         builder.Property(v => v.ToDate).HasColumnType("date");
         builder
@@ -30,6 +28,7 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.Property(v => v.IsAvailable).IsRequired();
 
         builder.HasIndex(v => v.ProductId);
+        builder.HasAlternateKey(v => new { v.Id, v.ProductId });
         builder.HasIndex(v => new { v.ProductId, v.CapacityType });
         builder.HasIndex(v => new
         {

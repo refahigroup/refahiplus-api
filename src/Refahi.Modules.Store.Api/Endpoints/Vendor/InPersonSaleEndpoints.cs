@@ -64,7 +64,7 @@ public sealed class InPersonSaleEndpoints : IEndpoint
 
         routes
             .MapGet(
-                "/v3/in-person/shops",
+                "/in-person/shops",
                 async (ClaimsPrincipal principal, IMediator mediator, CancellationToken ct) =>
                 {
                     if (!TryUser(principal, out var userId))
@@ -76,14 +76,14 @@ public sealed class InPersonSaleEndpoints : IEndpoint
                     );
                 }
             )
-            .WithName("Store.V3.InPerson.Shops.List")
-            .WithTags("Store.V3.InPerson")
+            .WithName("Store.InPerson.Shops.List")
+            .WithTags("Store.InPerson")
             .RequireAuthorization("UserOrAdmin")
             .AddEndpointFilter<InPersonTypedErrorFilter>();
 
         routes
             .MapGet(
-                "/v3/in-person/shops/{shopId:guid}/products",
+                "/in-person/shops/{shopId:guid}/products",
                 async (
                     Guid shopId,
                     ClaimsPrincipal principal,
@@ -103,14 +103,14 @@ public sealed class InPersonSaleEndpoints : IEndpoint
                     );
                 }
             )
-            .WithName("Store.V3.InPerson.Products.List")
-            .WithTags("Store.V3.InPerson")
+            .WithName("Store.InPerson.Products.List")
+            .WithTags("Store.InPerson")
             .RequireAuthorization("UserOrAdmin")
             .AddEndpointFilter<InPersonTypedErrorFilter>();
 
         routes
             .MapPost(
-                "/v3/in-person/orders",
+                "/in-person/orders",
                 async (
                     StartUserInPersonOrderRequest body,
                     ClaimsPrincipal principal,
@@ -131,13 +131,13 @@ public sealed class InPersonSaleEndpoints : IEndpoint
                         ct
                     );
                     return Results.Created(
-                        $"/api/store/v3/in-person/orders/{result.StoreOrderId}",
+                        $"/api/store/in-person/orders/{result.StoreOrderId}",
                         ApiResponseHelper.Success(result, "سفارش حضوری ایجاد شد", 201)
                     );
                 }
             )
-            .WithName("Store.V3.InPerson.Order.Start")
-            .WithTags("Store.V3.InPerson")
+            .WithName("Store.InPerson.Order.Start")
+            .WithTags("Store.InPerson")
             .RequireAuthorization("UserOrAdmin")
             .RequireRateLimiting("StoreCart")
             .AddEndpointFilter<InPersonTypedErrorFilter>();

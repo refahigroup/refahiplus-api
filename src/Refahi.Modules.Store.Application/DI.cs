@@ -22,11 +22,8 @@ public static class DI
             .AddMediatR(assembly)
             .AddValidatorsFromAssembly(assembly)
             .AddScoped<IModuleResolver, ModuleResolver>()
-            .AddScoped<IStoreModuleCatalogService, StoreModuleCatalogService>()
-            .AddScoped<ISyntheticOfferQueryContextService, SyntheticOfferQueryContextService>()
             .AddSingleton<IStoreBusinessClock, StoreBusinessClock>()
             .AddScoped<IDeliveryService, DeliveryService>()
-            .AddScoped<IStoreProductPriceResolver, StoreProductPriceResolver>()
             .AddScoped<IStoreInPersonFinancialPlanner, StoreInPersonFinancialPlanner>();
         services.AddScoped<IOnlineOfferEligibilityService, OnlineOfferEligibilityService>();
 

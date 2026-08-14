@@ -7,6 +7,7 @@ public sealed class Offer
     private Offer() { }
 
     public Guid Id { get; private set; }
+    public Guid SupplierId { get; private set; }
     public Guid ProductId { get; private set; }
     public Guid ShopId { get; private set; }
     public Guid? ProductVariantId { get; private set; }
@@ -23,6 +24,7 @@ public sealed class Offer
     public uint Version { get; private set; }
 
     public static Offer Create(
+        Guid supplierId,
         Guid productId,
         Guid shopId,
         Guid? productVariantId,
@@ -33,11 +35,12 @@ public sealed class Offer
         DateTimeOffset? endDateUtc
     )
     {
-        Validate(productId, shopId, originalPriceMinor, discountPercent, startDateUtc, endDateUtc);
+        Validate(supplierId, productId, shopId, originalPriceMinor, discountPercent, startDateUtc, endDateUtc);
         var now = DateTimeOffset.UtcNow;
         return new Offer
         {
             Id = Guid.NewGuid(),
+            SupplierId = supplierId,
             ProductId = productId,
             ShopId = shopId,
             ProductVariantId = productVariantId,
@@ -63,7 +66,7 @@ public sealed class Offer
     {
         if (IsDeleted)
             throw new StoreDomainException("پیشنهاد حذف شده است", "OFFER_DELETED");
-        Validate(ProductId, ShopId, originalPriceMinor, discountPercent, startDateUtc, endDateUtc);
+        Validate(SupplierId, ProductId, ShopId, originalPriceMinor, discountPercent, startDateUtc, endDateUtc);
         OriginalPriceMinor = originalPriceMinor;
         DiscountPercent = discountPercent;
         FinalPriceMinor = CalculateFinalPrice(originalPriceMinor, discountPercent);
@@ -145,6 +148,7 @@ public sealed class Offer
     private static int GetDecimalScale(decimal value) => (decimal.GetBits(value)[3] >> 16) & 0xFF;
 
     private static void Validate(
+        Guid supplierId,
         Guid productId,
         Guid shopId,
         long originalPriceMinor,
@@ -153,7 +157,7 @@ public sealed class Offer
         DateTimeOffset? endDateUtc
     )
     {
-        if (productId == Guid.Empty || shopId == Guid.Empty)
+        if (supplierId == Guid.Empty || productId == Guid.Empty || shopId == Guid.Empty)
             throw new StoreDomainException(
                 "مختصات پیشنهاد نامعتبر است",
                 "INVALID_OFFER_COORDINATE"

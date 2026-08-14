@@ -41,6 +41,18 @@ public sealed class StoreOrderRepository(StoreDbContext db) : IStoreOrderReposit
             .ToListAsync(ct);
     }
 
+    public Task<bool> UserHasPurchasedProductAsync(
+        Guid userId,
+        Guid productId,
+        CancellationToken ct = default
+    ) =>
+        db.StoreOrders.AsNoTracking().AnyAsync(
+            order => order.UserId == userId
+                && order.Status == StoreOrderStatus.Paid
+                && order.Items.Any(item => item.ProductId == productId),
+            ct
+        );
+
     public async Task AddAsync(StoreOrder order, CancellationToken ct = default)
     {
         db.StoreOrders.Add(order);

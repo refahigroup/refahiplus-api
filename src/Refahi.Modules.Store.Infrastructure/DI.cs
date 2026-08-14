@@ -29,10 +29,6 @@ public static class DI
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IOfferRepository, OfferRepository>();
         services.AddScoped<IPublicCatalogRepository, PublicCatalogRepository>();
-        services.AddScoped<IShopProductRepository, ShopProductRepository>();
-        services.AddScoped<ISyntheticOfferReadRepository>(_ => new SyntheticOfferReadRepository(
-            configuration.GetConnectionString()
-        ));
         services.AddScoped<IProductSessionRepository, ProductSessionRepository>();
         services.AddScoped<IBannerRepository, BannerRepository>();
         services.AddScoped<IDailyDealRepository, DailyDealRepository>();

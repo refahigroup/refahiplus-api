@@ -20,7 +20,7 @@ public sealed class UserStoreOrderReadEndpoints : IEndpoint
 
         routes
             .MapGet(
-                "/v3/store-orders/by-order/{orderId:guid}",
+                "/store-orders/by-order/{orderId:guid}",
                 async (
                     Guid orderId,
                     ClaimsPrincipal principal,
@@ -48,8 +48,8 @@ public sealed class UserStoreOrderReadEndpoints : IEndpoint
                         : Results.Ok(ApiResponseHelper.Success(result));
                 }
             )
-            .WithName("Store.V3.StoreOrders.ByOrderId")
-            .WithTags("Store.V3.StoreOrders")
+            .WithName("Store.StoreOrders.ByOrderId")
+            .WithTags("Store.StoreOrders")
             .RequireAuthorization("UserOrAdmin")
             .AddEndpointFilter<InPersonTypedErrorFilter>()
             .Produces<ApiResponse<VendorStoreOrderSnapshotDto>>(StatusCodes.Status200OK)
@@ -57,7 +57,7 @@ public sealed class UserStoreOrderReadEndpoints : IEndpoint
 
         routes
             .MapPost(
-                "/v3/store-orders/lookup",
+                "/store-orders/lookup",
                 async (
                     UserStoreOrderLookupRequest body,
                     ClaimsPrincipal principal,
@@ -78,8 +78,8 @@ public sealed class UserStoreOrderReadEndpoints : IEndpoint
                     return Results.Ok(ApiResponseHelper.Success(result));
                 }
             )
-            .WithName("Store.V3.StoreOrders.Lookup")
-            .WithTags("Store.V3.StoreOrders")
+            .WithName("Store.StoreOrders.Lookup")
+            .WithTags("Store.StoreOrders")
             .RequireAuthorization("UserOrAdmin")
             .AddEndpointFilter<InPersonTypedErrorFilter>()
             .Produces<ApiResponse<IReadOnlyList<VendorStoreOrderSnapshotDto>>>(
