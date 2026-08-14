@@ -421,10 +421,10 @@ FodyWeavers.xsd
 .agents/*
 .codex/*
 
-!.codex/reports/
+#.codex/reports/
 .codex/reports/*
-!.codex/reports/store-modernization/
-!.codex/reports/store-modernization/**
+#!.codex/reports/store-modernization/
+#!.codex/reports/store-modernization/**
 
 .codex-runtime/*
 .claude/*
