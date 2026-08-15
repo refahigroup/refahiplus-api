@@ -37,6 +37,11 @@ public sealed class StoreOrderItem
     public long CommissionAmountMinor { get; private set; }
     public DateOnly? UsageDate { get; private set; }
     public short DeliveryMethod { get; private set; }
+    public Guid? VoucherSourceId { get; private set; }
+    public string? VoucherSourceTitle { get; private set; }
+    public VoucherSourceType? VoucherSourceType { get; private set; }
+    public VoucherRedemptionMode? VoucherRedemptionMode { get; private set; }
+    public int? VoucherDefaultValidityDays { get; private set; }
 
     internal static StoreOrderItem Create(Guid storeOrderId, StoreOrderItemSnapshot snapshot)
     {
@@ -109,6 +114,11 @@ public sealed class StoreOrderItem
             CommissionAmountMinor = commission,
             UsageDate = snapshot.UsageDate,
             DeliveryMethod = snapshot.DeliveryMethod,
+            VoucherSourceId = snapshot.VoucherSourceId,
+            VoucherSourceTitle = snapshot.VoucherSourceTitle,
+            VoucherSourceType = snapshot.VoucherSourceType,
+            VoucherRedemptionMode = snapshot.VoucherRedemptionMode,
+            VoucherDefaultValidityDays = snapshot.VoucherDefaultValidityDays,
         };
     }
 }
@@ -139,5 +149,10 @@ public sealed record StoreOrderItemSnapshot(
     decimal CommissionPercent,
     DateOnly? UsageDate,
     short DeliveryMethod = 0,
-    long? DeclaredGrossAmountMinor = null
+    long? DeclaredGrossAmountMinor = null,
+    Guid? VoucherSourceId = null,
+    string? VoucherSourceTitle = null,
+    VoucherSourceType? VoucherSourceType = null,
+    VoucherRedemptionMode? VoucherRedemptionMode = null,
+    int? VoucherDefaultValidityDays = null
 );

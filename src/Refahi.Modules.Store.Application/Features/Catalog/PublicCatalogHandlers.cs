@@ -123,6 +123,7 @@ public sealed class GetPublicProductDetailHandler(
     IPublicCatalogRepository catalog,
     IStoreModuleRepository modules,
     IProductRepository products,
+    IVoucherSourceRepository voucherSources,
     IMediator mediator,
     IPathService pathService,
     ILogger<GetPublicProductDetailHandler> logger
@@ -321,11 +322,35 @@ public sealed class GetPublicProductDetailHandler(
         if (product is null || product.SupplierId == Guid.Empty)
             return null;
 
-        var offers = eligible
-            .OrderBy(x => x.FinalPriceMinor)
-            .ThenBy(x => x.ShopSlug)
-            .ThenBy(x => x.OfferId)
-            .Select(PublicCatalogMapping.MapOffer)
+        var mappedOffers = new List<PublicOfferDto>();
+        foreach (var candidate in eligible.OrderBy(x => x.FinalPriceMinor)
+                     .ThenBy(x => x.ShopSlug).ThenBy(x => x.OfferId))
+        {
+            var mapped = PublicCatalogMapping.MapOffer(candidate);
+            if (product.FulfillmentMethod == FulfillmentMethod.Voucher)
+            {
+                var sourceId = candidate.ProductVariantId.HasValue
+                    ? product.Variants.FirstOrDefault(x => x.Id == candidate.ProductVariantId.Value)?.VoucherSourceId
+                        ?? product.VoucherSourceId
+                    : product.VoucherSourceId;
+                if (sourceId.HasValue)
+                {
+                    var source = await voucherSources.GetByIdAsync(sourceId.Value, ct);
+                    if (source?.SourceType == VoucherSourceType.Preloaded)
+                    {
+                        var count = await voucherSources.GetAvailableCountAsync(source.Id, DateTimeOffset.UtcNow, ct);
+                        mapped = mapped with
+                        {
+                            IsAvailable = count > 0,
+                            AvailabilityCode = count > 0 ? "AVAILABLE" : "VOUCHER_CODES_UNAVAILABLE",
+                            MaxQuantity = count,
+                        };
+                    }
+                }
+            }
+            mappedOffers.Add(mapped);
+        }
+        var offers = mappedOffers
             .ToArray();
 
         var summary = PublicCatalogMapping.MapPrice(eligible);

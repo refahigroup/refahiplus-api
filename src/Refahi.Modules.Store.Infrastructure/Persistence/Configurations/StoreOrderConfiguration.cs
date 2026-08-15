@@ -26,6 +26,7 @@ public sealed class StoreOrderConfiguration : IEntityTypeConfiguration<StoreOrde
         builder.Property(x => x.OtpReferenceCode).HasMaxLength(2048);
         builder.Property(x => x.Status).HasConversion<short>();
         builder.Property(x => x.SalesChannel).HasConversion<short>();
+        builder.Property(x => x.PayableUntilUtc);
         builder.Property(x => x.Version).IsRowVersion();
         builder.HasIndex(x => new { x.UserId, x.IdempotencyKey }).IsUnique();
         builder.HasIndex(x => x.OrderId).IsUnique().HasFilter("\"OrderId\" IS NOT NULL");

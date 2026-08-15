@@ -19,8 +19,13 @@ public sealed class VoucherRepository(StoreDbContext db) : IVoucherRepository
             ct
         );
 
+    public Task<Voucher?> GetBySupplierAndCodeHashAsync(
+        Guid supplierId, string hash, CancellationToken ct = default) =>
+        db.Vouchers.SingleOrDefaultAsync(x => x.SupplierId == supplierId && x.CodeHash == hash, ct);
+
+    [Obsolete("Use supplier-scoped voucher lookup.")]
     public Task<Voucher?> GetByCodeHashAsync(string hash, CancellationToken ct = default) =>
-        db.Vouchers.SingleOrDefaultAsync(x => x.CodeHash == hash, ct);
+        Task.FromResult<Voucher?>(null);
 
     public Task<Voucher?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         db.Vouchers.SingleOrDefaultAsync(x => x.Id == id, ct);

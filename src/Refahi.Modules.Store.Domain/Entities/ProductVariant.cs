@@ -20,6 +20,7 @@ public sealed class ProductVariant
     public VariantCapacityType CapacityType { get; private set; }
     public int? Capacity { get; private set; }
     public bool IsAvailable { get; private set; }
+    public Guid? VoucherSourceId { get; private set; }
 
     public bool RequiresUsageDate =>
         CapacityType == VariantCapacityType.PerEligibleDay
@@ -56,7 +57,8 @@ public sealed class ProductVariant
         DateOnly? toDate = null,
         VariantCapacityType capacityType = VariantCapacityType.Unlimited,
         int? capacity = null,
-        SalesModel salesModel = SalesModel.StockBased
+        SalesModel salesModel = SalesModel.StockBased,
+        Guid? voucherSourceId = null
     )
     {
         ValidateValidityRange(fromDate, toDate);
@@ -74,6 +76,7 @@ public sealed class ProductVariant
             CapacityType = capacityType,
             Capacity = normalizedCapacity,
             IsAvailable = DetermineInitialAvailability(salesModel, stockCount),
+            VoucherSourceId = voucherSourceId,
         };
     }
 
@@ -85,7 +88,8 @@ public sealed class ProductVariant
         DateOnly? toDate,
         VariantCapacityType capacityType,
         int? capacity,
-        SalesModel salesModel
+        SalesModel salesModel,
+        Guid? voucherSourceId = null
     )
     {
         ValidateValidityRange(fromDate, toDate);
@@ -99,7 +103,10 @@ public sealed class ProductVariant
         CapacityType = capacityType;
         Capacity = normalizedCapacity;
         IsAvailable = DetermineInitialAvailability(salesModel, stockCount);
+        VoucherSourceId = voucherSourceId;
     }
+
+    internal void SetVoucherSource(Guid? sourceId) => VoucherSourceId = sourceId;
 
     internal void ReplaceCombinations(IEnumerable<(Guid AttributeId, Guid ValueId)> combinations)
     {

@@ -24,6 +24,7 @@ public sealed class OnlineOfferEligibilityService(
     IOfferRepository offers,
     IProductRepository products,
     IShopRepository shops,
+    IVoucherSourceRepository voucherSources,
     IMediator mediator,
     TimeProvider clock
 ) : IOnlineOfferEligibilityService
@@ -83,7 +84,24 @@ public sealed class OnlineOfferEligibilityService(
                 "AGREEMENT_TERM_NOT_EFFECTIVE"
             );
 
-        ValidateAvailability(product, offer, quantity, usageDate);
+        var preloadedVoucher = false;
+        if (product.FulfillmentMethod == FulfillmentMethod.Voucher)
+        {
+            var sourceId = variantId.HasValue
+                ? product.Variants.Single(x => x.Id == variantId.Value).VoucherSourceId
+                    ?? product.VoucherSourceId
+                : product.VoucherSourceId;
+            if (!sourceId.HasValue)
+                throw new StoreDomainException("منبع ووچر محصول تعیین نشده است", "VOUCHER_SOURCE_REQUIRED");
+            var source = await voucherSources.GetByIdAsync(sourceId.Value, ct);
+            if (source is null || !source.IsActive || source.SupplierId != product.SupplierId)
+                throw new StoreDomainException("منبع ووچر محصول معتبر نیست", "VOUCHER_SOURCE_INVALID");
+            preloadedVoucher = source.SourceType == VoucherSourceType.Preloaded;
+            if (preloadedVoucher
+                && await voucherSources.GetAvailableCountAsync(source.Id, now, ct) < quantity)
+                throw new StoreDomainException("کد ووچر کافی موجود نیست", "VOUCHER_CODES_UNAVAILABLE");
+        }
+        ValidateAvailability(product, offer, quantity, usageDate, preloadedVoucher);
         return new OnlineOfferContext(offer, product, shop, term, usageDate);
     }
 
@@ -91,7 +109,8 @@ public sealed class OnlineOfferEligibilityService(
         Product product,
         Offer offer,
         int quantity,
-        DateOnly? usageDate
+        DateOnly? usageDate,
+        bool skipInventoryStock = false
     )
     {
         if (quantity <= 0)
@@ -103,7 +122,11 @@ public sealed class OnlineOfferEligibilityService(
                     "سانس برای محصول موجودی‌محور معتبر نیست",
                     "INVALID_SESSION_SELECTION"
                 );
-            if (offer.ProductVariantId.HasValue)
+            if (skipInventoryStock)
+            {
+                // موجودی واقعی محصول ووچری Preloaded توسط تعداد کدهای آزاد کنترل می‌شود.
+            }
+            else if (offer.ProductVariantId.HasValue)
             {
                 var variant =
                     product.Variants.FirstOrDefault(x => x.Id == offer.ProductVariantId)

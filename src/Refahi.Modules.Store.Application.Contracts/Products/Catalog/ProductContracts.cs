@@ -23,6 +23,8 @@ public sealed record ProductDto(
 {
     /// <summary>Current AgreementCategoryTerm channel flags: Online=1, InPerson=2.</summary>
     public short EligibleSalesChannels { get; init; }
+    public Guid? VoucherSourceId { get; init; }
+    public string? VoucherSourceTitle { get; init; }
 }
 
 public sealed record CreateCatalogProductCommand(
@@ -36,7 +38,8 @@ public sealed record CreateCatalogProductCommand(
     short FulfillmentMethod,
     string Title,
     string Slug,
-    string? Description
+    string? Description,
+    Guid? VoucherSourceId = null
 ) : IRequest<ProductDto>;
 
 public sealed record UpdateCatalogProductCommand(
@@ -102,7 +105,12 @@ public sealed record ProductVariantStructureDto(
     bool RequiresUsageDate,
     bool IsAvailable,
     IReadOnlyList<VariantCombinationDto> Combinations
-);
+)
+{
+    public Guid? VoucherSourceId { get; init; }
+    public Guid? EffectiveVoucherSourceId { get; init; }
+    public string? EffectiveVoucherSourceTitle { get; init; }
+}
 
 public sealed record VariantCombinationDto(
     Guid AttributeId,
@@ -124,7 +132,8 @@ public sealed record CreateCatalogProductVariantCommand(
     DateOnly? FromDate = null,
     DateOnly? ToDate = null,
     VariantCapacityType CapacityType = VariantCapacityType.Unlimited,
-    int? Capacity = null
+    int? Capacity = null,
+    Guid? VoucherSourceId = null
 ) : IRequest<ProductVariantStructureDto>;
 
 public sealed record UpdateCatalogProductVariantCommand(
@@ -139,7 +148,8 @@ public sealed record UpdateCatalogProductVariantCommand(
     DateOnly? FromDate = null,
     DateOnly? ToDate = null,
     VariantCapacityType CapacityType = VariantCapacityType.Unlimited,
-    int? Capacity = null
+    int? Capacity = null,
+    Guid? VoucherSourceId = null
 ) : IRequest<ProductVariantStructureDto>;
 
 public sealed record DeleteCatalogProductVariantCommand(

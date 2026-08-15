@@ -23,7 +23,13 @@ public sealed record VoucherDto(
     string? RedeemedShopName,
     DateTimeOffset? RevokedAtUtc,
     DateTimeOffset? ExpiresAtUtc
-);
+)
+{
+    public Guid? VoucherSourceId { get; init; }
+    public string? VoucherSourceTitle { get; init; }
+    public string? SourceType { get; init; }
+    public string? RedemptionMode { get; init; }
+}
 
 public sealed record VoucherAuditDto(
     Guid Id,
@@ -48,7 +54,13 @@ public sealed record VoucherAuditDto(
     DateTimeOffset? RevokedAtUtc,
     string? RevocationReason,
     DateTimeOffset? ExpiresAtUtc
-);
+)
+{
+    public Guid? VoucherSourceId { get; init; }
+    public string? VoucherSourceTitle { get; init; }
+    public string? SourceType { get; init; }
+    public string? RedemptionMode { get; init; }
+}
 
 public sealed record VoucherRedemptionDto(
     Guid VoucherId,
@@ -135,7 +147,10 @@ public sealed record VoucherRefundOverrideDto(
     IReadOnlyList<VoucherRefundOverrideAttemptDto> Attempts
 );
 
-public sealed record VoucherRefundSnapshotItemDto(Guid VoucherId, string Status);
+public sealed record VoucherRefundSnapshotItemDto(
+    Guid VoucherId,
+    string Status,
+    string? RedemptionMode = null);
 
 public sealed record VoucherRefundOverrideAttemptDto(
     int SequenceNumber,

@@ -573,7 +573,9 @@ public sealed class VoucherLifecycleTests
         );
         Assert.Contains(
             voucher.GetIndexes(),
-            x => x.IsUnique && x.Properties.Single().Name == nameof(Voucher.CodeHash)
+            x => x.IsUnique && x.Properties.Select(p => p.Name).SequenceEqual([
+                nameof(Voucher.SupplierId), nameof(Voucher.CodeHash)
+            ])
         );
     }
 

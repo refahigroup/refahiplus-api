@@ -27,7 +27,11 @@ public interface IVoucherRepository
         int sequenceNumber,
         CancellationToken ct = default
     );
+    [Obsolete("Use supplier-scoped voucher lookup.")]
     Task<Voucher?> GetByCodeHashAsync(string codeHash, CancellationToken ct = default);
+    Task<Voucher?> GetBySupplierAndCodeHashAsync(
+        Guid supplierId, string codeHash, CancellationToken ct = default) =>
+        GetByCodeHashAsync(codeHash, ct);
     Task<Voucher?> GetByIdAsync(Guid voucherId, CancellationToken ct = default);
     Task<IReadOnlyList<Voucher>> GetByUserAsync(Guid userId, CancellationToken ct = default);
     Task<IReadOnlyList<Voucher>> GetAllAsync(CancellationToken ct = default);

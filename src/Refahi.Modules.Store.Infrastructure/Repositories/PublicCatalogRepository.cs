@@ -281,14 +281,33 @@ public sealed class PublicCatalogRepository(StoreDbContext db) : IPublicCatalogR
         SalesModel? salesModel,
         DateTimeOffset atUtc,
         CancellationToken ct = default)
+        => ReadAsync(BuildEffectiveCandidatesQuery(
+            moduleCategoryId,
+            categoryId,
+            shopId,
+            shopSlug,
+            productSlug,
+            search,
+            salesModel,
+            atUtc), ct);
+
+    internal IQueryable<PublicCatalogOfferCandidate> BuildEffectiveCandidatesQuery(
+        int? moduleCategoryId,
+        int? categoryId,
+        Guid? shopId,
+        string? shopSlug,
+        string? productSlug,
+        string? search,
+        SalesModel? salesModel,
+        DateTimeOffset atUtc)
     {
         IReadOnlyCollection<int> categories = categoryId.HasValue
             ? [categoryId.Value]
             : moduleCategoryId.HasValue ? [moduleCategoryId.Value] : [];
         var offers = BuildEffectiveOffers(atUtc, search);
         var products = BuildEffectiveProducts(categories, productSlug, salesModel);
-        var shops = BuildEffectiveShops(shopId, shopSlug, includeInPerson: false);
-        return ReadAsync(BuildCandidateQuery(offers, products, shops), ct);
+        var shops = BuildEffectiveShops(shopId, shopSlug, includeInPerson: true);
+        return BuildCandidateQuery(offers, products, shops);
     }
 
     private IQueryable<Domain.Aggregates.Offer> BuildEffectiveOffers(

@@ -2,6 +2,14 @@ using Refahi.Modules.Store.Domain.Aggregates;
 
 namespace Refahi.Modules.Store.Domain.Repositories;
 
+public sealed record GeneratedVoucherMaterial(int SequenceNumber, string CodeHash, string CodeCiphertext);
+public sealed record StoreOrderPaidContext(
+    string OrderNumber,
+    string SupplierName,
+    string ShopName,
+    DateTimeOffset PaidAtUtc,
+    IReadOnlyDictionary<Guid, IReadOnlyList<GeneratedVoucherMaterial>> GeneratedMaterials);
+
 public interface IStoreOrderRepository
 {
     Task<StoreOrder?> GetByIdempotencyKeyAsync(
@@ -23,5 +31,8 @@ public interface IStoreOrderRepository
     ) => Task.FromResult(false);
     Task AddAsync(StoreOrder order, CancellationToken ct = default);
     Task UpdateAsync(StoreOrder order, CancellationToken ct = default);
+    [Obsolete("Use the atomic finalization overload with StoreOrderPaidContext.")]
     Task CommitPaidAsync(Guid orderId, CancellationToken ct = default);
+    Task CommitPaidAsync(Guid orderId, StoreOrderPaidContext context, CancellationToken ct = default) =>
+        CommitPaidAsync(orderId, ct);
 }

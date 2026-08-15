@@ -18,6 +18,9 @@ public sealed class VoucherConfiguration : IEntityTypeConfiguration<Voucher>
         builder.Property(x => x.SupplierName).HasMaxLength(300).IsRequired();
         builder.Property(x => x.ShopName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.ProductTitle).HasMaxLength(300).IsRequired();
+        builder.Property(x => x.VoucherSourceTitle).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.SourceType).HasConversion<short>();
+        builder.Property(x => x.RedemptionMode).HasConversion<short>();
         builder.Property(x => x.RedeemedShopName).HasMaxLength(200);
         builder.Property(x => x.CodeHash).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CodeCiphertext).HasMaxLength(2048).IsRequired();
@@ -25,10 +28,16 @@ public sealed class VoucherConfiguration : IEntityTypeConfiguration<Voucher>
         builder.Property(x => x.RevocationReason).HasMaxLength(500);
         builder.Property(x => x.Version).IsRowVersion();
         builder.HasIndex(x => new { x.StoreOrderItemId, x.SequenceNumber }).IsUnique();
-        builder.HasIndex(x => x.CodeHash).IsUnique();
+        builder.HasIndex(x => new { x.SupplierId, x.CodeHash }).IsUnique();
         builder.HasIndex(x => new { x.UserId, x.IssuedAtUtc });
         builder.HasIndex(x => new { x.StoreOrderId, x.Status });
         builder.HasIndex(x => x.OrderId);
+        builder.HasIndex(x => x.VoucherSourceId);
+        builder.HasIndex(x => x.VoucherSourceCodeId).IsUnique().HasFilter("\"VoucherSourceCodeId\" IS NOT NULL");
+        builder.HasOne<VoucherSource>().WithMany().HasForeignKey(x => x.VoucherSourceId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<VoucherSourceCode>().WithMany().HasForeignKey(x => x.VoucherSourceCodeId)
+            .OnDelete(DeleteBehavior.Restrict);
         builder
             .HasOne<StoreOrderItem>()
             .WithMany()

@@ -17,6 +17,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.ProductType).HasColumnType("smallint").IsRequired();
         builder.Property(p => p.SalesModel).HasColumnType("smallint").IsRequired();
         builder.Property(p => p.FulfillmentMethod).HasColumnType("smallint").IsRequired();
+        builder.Property(p => p.VoucherSourceId);
         builder.Property(p => p.Title).HasMaxLength(300).IsRequired();
         builder.Property(p => p.Slug).HasMaxLength(300).IsRequired();
         builder.Property(p => p.Description).HasMaxLength(5000);
@@ -30,6 +31,8 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => new { p.SupplierId, p.CategoryId });
         builder.HasAlternateKey(p => new { p.Id, p.SupplierId });
         builder.HasIndex(p => p.IsDeleted);
+        builder.HasIndex(p => p.VoucherSourceId).HasFilter("\"VoucherSourceId\" IS NOT NULL");
+        builder.HasOne<VoucherSource>().WithMany().HasForeignKey(p => p.VoucherSourceId).OnDelete(DeleteBehavior.Restrict);
 
         // Optimistic concurrency via PostgreSQL system column xmin.
         builder.Property(p => p.Version).HasColumnName("xmin").HasColumnType("xid").IsRowVersion();

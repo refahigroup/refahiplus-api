@@ -22,6 +22,7 @@ public sealed class Product
     public ProductType ProductType { get; private set; }
     public SalesModel SalesModel { get; private set; }
     public FulfillmentMethod FulfillmentMethod { get; private set; }
+    public Guid? VoucherSourceId { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Slug { get; private set; } = string.Empty;
     public string? Description { get; private set; }
@@ -57,7 +58,8 @@ public sealed class Product
         FulfillmentMethod fulfillmentMethod,
         string title,
         string slug,
-        string? description = null
+        string? description = null,
+        Guid? voucherSourceId = null
     )
     {
         if (supplierId == Guid.Empty)
@@ -72,6 +74,16 @@ public sealed class Product
             throw new StoreDomainException(
                 "روش تحویل محصول نامعتبر است",
                 "INVALID_FULFILLMENT_METHOD"
+            );
+        if (fulfillmentMethod == FulfillmentMethod.Voucher && !voucherSourceId.HasValue)
+            throw new StoreDomainException(
+                "انتخاب منبع برای محصول ووچری الزامی است",
+                "VOUCHER_SOURCE_REQUIRED"
+            );
+        if (fulfillmentMethod != FulfillmentMethod.Voucher && voucherSourceId.HasValue)
+            throw new StoreDomainException(
+                "منبع ووچر فقط برای محصول ووچری مجاز است",
+                "VOUCHER_SOURCE_NOT_ALLOWED"
             );
         if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(slug))
             throw new StoreDomainException(
@@ -88,6 +100,7 @@ public sealed class Product
             ProductType = productType,
             SalesModel = salesModel,
             FulfillmentMethod = fulfillmentMethod,
+            VoucherSourceId = voucherSourceId,
             Title = title.Trim(),
             Slug = slug.Trim().ToLowerInvariant(),
             Description = description?.Trim(),
@@ -112,7 +125,20 @@ public sealed class Product
     {
         if (IsDeleted)
             throw new StoreDomainException("محصول حذف‌شده قابل فعال‌سازی نیست", "PRODUCT_DELETED");
+        if (FulfillmentMethod == FulfillmentMethod.Voucher && !VoucherSourceId.HasValue)
+            throw new StoreDomainException(
+                "انتخاب منبع برای فعال‌سازی محصول ووچری الزامی است",
+                "VOUCHER_SOURCE_REQUIRED"
+            );
         IsAvailable = true;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetVoucherSource(Guid sourceId)
+    {
+        if (FulfillmentMethod != FulfillmentMethod.Voucher || sourceId == Guid.Empty)
+            throw new StoreDomainException("منبع ووچر محصول معتبر نیست", "INVALID_PRODUCT_VOUCHER_SOURCE");
+        VoucherSourceId = sourceId;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -351,7 +377,8 @@ public sealed class Product
         DateOnly? toDate = null,
         VariantCapacityType capacityType = VariantCapacityType.Unlimited,
         int? capacity = null,
-        SalesModel salesModel = SalesModel.StockBased
+        SalesModel salesModel = SalesModel.StockBased,
+        Guid? voucherSourceId = null
     )
     {
         foreach (var (attrId, valueId) in combinations)
@@ -378,7 +405,8 @@ public sealed class Product
             toDate,
             capacityType,
             capacity,
-            salesModel
+            salesModel,
+            voucherSourceId
         );
         foreach (var (attrId, valueId) in combinations)
             variant.AddCombination(attrId, valueId);
@@ -398,7 +426,8 @@ public sealed class Product
         DateOnly? toDate = null,
         VariantCapacityType capacityType = VariantCapacityType.Unlimited,
         int? capacity = null,
-        SalesModel salesModel = SalesModel.StockBased
+        SalesModel salesModel = SalesModel.StockBased,
+        Guid? voucherSourceId = null
     )
     {
         var variant =
@@ -428,9 +457,20 @@ public sealed class Product
             toDate,
             capacityType,
             capacity,
-            salesModel
+            salesModel,
+            voucherSourceId
         );
         variant.ReplaceCombinations(combinations);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetVariantVoucherSource(Guid variantId, Guid? sourceId)
+    {
+        if (FulfillmentMethod != FulfillmentMethod.Voucher)
+            throw new StoreDomainException("این محصول ووچری نیست", "VOUCHER_SOURCE_NOT_ALLOWED");
+        var variant = _variants.FirstOrDefault(x => x.Id == variantId)
+            ?? throw new StoreDomainException("تنوع محصول یافت نشد", "VARIANT_NOT_FOUND");
+        variant.SetVoucherSource(sourceId);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

@@ -30,7 +30,8 @@ public sealed record ProductRequest(
     short FulfillmentMethod,
     string Title,
     string Slug,
-    string? Description
+    string? Description,
+    Guid? VoucherSourceId = null
 );
 
 public sealed record ProductContentRequest(string Title, string? Description);
@@ -46,7 +47,8 @@ public sealed record ProductVariantStructuralRequest(
     DateOnly? ToDate = null,
     Refahi.Modules.Store.Domain.Enums.VariantCapacityType CapacityType =
         Refahi.Modules.Store.Domain.Enums.VariantCapacityType.Unlimited,
-    int? Capacity = null
+    int? Capacity = null,
+    Guid? VoucherSourceId = null
 );
 
 public sealed record ProductSessionCreateRequest(
@@ -381,7 +383,8 @@ public sealed class ProductManagementEndpoints : IEndpoint
                             b.FromDate,
                             b.ToDate,
                             b.CapacityType,
-                            b.Capacity
+                            b.Capacity,
+                            b.VoucherSourceId
                         ),
                         ct
                     );
@@ -422,7 +425,8 @@ public sealed class ProductManagementEndpoints : IEndpoint
                                     b.FromDate,
                                     b.ToDate,
                                     b.CapacityType,
-                                    b.Capacity
+                                    b.Capacity,
+                                    b.VoucherSourceId
                                 ),
                                 ct
                             ),
@@ -538,7 +542,8 @@ public sealed class ProductManagementEndpoints : IEndpoint
                             body.FulfillmentMethod,
                             body.Title,
                             body.Slug,
-                            body.Description
+                            body.Description,
+                            body.VoucherSourceId
                         ),
                         ct
                     );

@@ -23,7 +23,7 @@ public sealed class IssueVouchersAfterOrderPaidHandler(
     IVoucherCodeProtector protector,
     TimeProvider timeProvider,
     ILogger<IssueVouchersAfterOrderPaidHandler> logger
-) : INotificationHandler<OrderPaidIntegrationEvent>
+)
 {
     public async Task Handle(OrderPaidIntegrationEvent notification, CancellationToken ct)
     {
@@ -151,13 +151,14 @@ public sealed class RedeemVoucherHandler(
         if (cached is not null)
             return await CachedAsync(cached, fingerprint, ct);
 
-        var voucher = await vouchers.GetByCodeHashAsync(codeHash, ct) ?? throw NotRedeemable();
         var shop = await shops.GetByIdAsync(request.ShopId, ct);
+        if (shop is null || shop.Status != ShopStatus.Active || shop.ShopType != ShopType.InPerson)
+            throw NotRedeemable();
+        var voucher = await vouchers.GetBySupplierAndCodeHashAsync(shop.SupplierId, codeHash, ct)
+            ?? throw NotRedeemable();
         if (
-            shop is null
-            || shop.Status != ShopStatus.Active
-            || shop.ShopType != ShopType.InPerson
-            || shop.SupplierId != voucher.SupplierId
+            shop.SupplierId != voucher.SupplierId
+            || voucher.RedemptionMode != VoucherRedemptionMode.RefahiValidation
         )
             throw NotRedeemable();
         if (
@@ -324,7 +325,13 @@ public sealed class GetMyVouchersHandler(
             voucher.RedeemedShopName,
             voucher.RevokedAtUtc,
             voucher.ExpiresAtUtc
-        );
+        )
+        {
+            VoucherSourceId = voucher.VoucherSourceId,
+            VoucherSourceTitle = voucher.VoucherSourceTitle,
+            SourceType = voucher.SourceType.ToString(),
+            RedemptionMode = voucher.RedemptionMode.ToString(),
+        };
     }
 }
 
@@ -432,6 +439,12 @@ public sealed class GetAdminVoucherAuditHandler(IVoucherRepository vouchers)
                     row.RevocationReason,
                     row.ExpiresAtUtc
                 )
+                {
+                    VoucherSourceId = row.VoucherSourceId,
+                    VoucherSourceTitle = row.VoucherSourceTitle,
+                    SourceType = row.SourceType.ToString(),
+                    RedemptionMode = row.RedemptionMode.ToString(),
+                }
             );
         }
         return result;
@@ -460,12 +473,17 @@ public sealed class PrepareStoreOrderRefundHandler(
         {
             var rows = await vouchers.GetByStoreOrderAsync(order.Id, ct);
             var redeemed = rows.Where(x => x.Status == VoucherStatus.Redeemed).ToArray();
-            if (redeemed.Length > 0)
+            var external = rows.Where(x => x.RedemptionMode == VoucherRedemptionMode.SupplierExternalValidation).ToArray();
+            if (redeemed.Length > 0 || external.Length > 0)
             {
                 if (!request.VoucherRefundOverrideId.HasValue)
                     throw new VoucherApplicationException(
-                        "REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE",
-                        "به دلیل استفاده شدن ووچر، بازگشت وجه خودکار امکان‌پذیر نیست"
+                        external.Length > 0
+                            ? "EXTERNAL_VOUCHER_REFUND_REQUIRES_OVERRIDE"
+                            : "REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE",
+                        external.Length > 0
+                            ? "بازگشت وجه ووچر اعتبارسنجی‌شده توسط تامین‌کننده نیازمند مجوز مدیر است"
+                            : "به دلیل استفاده شدن ووچر، بازگشت وجه خودکار امکان‌پذیر نیست"
                     );
                 var refundOverride = await overrides.GetByIdAsync(
                     request.VoucherRefundOverrideId.Value,
@@ -536,7 +554,8 @@ public sealed class GetAdminStoreOrderRefundHandler(
             ? null
             : await MapOverrideAsync(refundOverride, overrides, ct);
         var blocked =
-            rows.Any(x => x.Status == VoucherStatus.Redeemed)
+            rows.Any(x => x.Status == VoucherStatus.Redeemed
+                || x.RedemptionMode == VoucherRedemptionMode.SupplierExternalValidation)
             && storeOrder.Status != StoreOrderStatus.Refunded;
         return new AdminStoreOrderRefundDto(
             storeOrder.Id,
@@ -544,7 +563,11 @@ public sealed class GetAdminStoreOrderRefundHandler(
             storeOrder.Status.ToString(),
             storeOrder.FinalAmountMinor,
             blocked,
-            blocked ? "REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE" : null,
+            blocked
+                ? rows.Any(x => x.RedemptionMode == VoucherRedemptionMode.SupplierExternalValidation)
+                    ? "EXTERNAL_VOUCHER_REFUND_REQUIRES_OVERRIDE"
+                    : "REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE"
+                : null,
             rows.Select(MapAudit).ToArray(),
             overrideDto
         );
@@ -574,7 +597,13 @@ public sealed class GetAdminStoreOrderRefundHandler(
             row.RevokedAtUtc,
             row.RevocationReason,
             row.ExpiresAtUtc
-        );
+        )
+        {
+            VoucherSourceId = row.VoucherSourceId,
+            VoucherSourceTitle = row.VoucherSourceTitle,
+            SourceType = row.SourceType.ToString(),
+            RedemptionMode = row.RedemptionMode.ToString(),
+        };
 
     internal static async Task<VoucherRefundOverrideDto> MapOverrideAsync(
         VoucherRefundOverride value,
@@ -677,15 +706,17 @@ public sealed class OverrideRedeemedVoucherRefundHandler(
                             "سفارش فروشگاه در وضعیت قابل بازگشت وجه نیست"
                         );
                     var rows = await vouchers.GetByStoreOrderAsync(storeOrder.Id, ct);
-                    if (!rows.Any(x => x.Status == VoucherStatus.Redeemed))
+                    if (!rows.Any(x => x.Status == VoucherStatus.Redeemed
+                        || x.RedemptionMode == VoucherRedemptionMode.SupplierExternalValidation))
                         throw new VoucherApplicationException(
                             "VOUCHER_REFUND_OVERRIDE_NOT_REQUIRED",
-                            "این سفارش ووچر استفاده‌شده ندارد و باید از مسیر عادی بازگشت وجه استفاده شود"
+                            "این سفارش ووچر نیازمند مجوز مدیر ندارد و باید از مسیر عادی بازگشت وجه استفاده شود"
                         );
                     var snapshot = JsonSerializer.Serialize(
                         rows.Select(x => new VoucherRefundSnapshotItemDto(
                             x.Id,
-                            x.Status.ToString()
+                            x.Status.ToString(),
+                            x.RedemptionMode.ToString()
                         ))
                     );
                     value = VoucherRefundOverride.Create(

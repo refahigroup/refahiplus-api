@@ -16,7 +16,7 @@ namespace Refahi.Modules.Store.Application.Features.Catalog;
 
 internal static class CatalogMapper
 {
-    public static ProductDto Map(Product x, short eligibleSalesChannels = 0) =>
+    public static ProductDto Map(Product x, short eligibleSalesChannels = 0, string? voucherSourceTitle = null) =>
         new(
             x.Id,
             x.SupplierId,
@@ -35,6 +35,8 @@ internal static class CatalogMapper
         )
         {
             EligibleSalesChannels = eligibleSalesChannels,
+            VoucherSourceId = x.VoucherSourceId,
+            VoucherSourceTitle = voucherSourceTitle,
         };
 
     public static OfferDto Map(Offer x) =>
@@ -82,7 +84,11 @@ internal static class CatalogMapper
                     );
                 })
                 .ToArray()
-        );
+        )
+        {
+            VoucherSourceId = x.VoucherSourceId,
+            EffectiveVoucherSourceId = x.VoucherSourceId ?? product.VoucherSourceId,
+        };
 
     public static ProductSessionStructureDto MapSession(ProductSession x) =>
         new(
@@ -180,7 +186,10 @@ internal static class CatalogAuthorization
     }
 }
 
-public sealed class CreateProductHandler(IProductRepository products, IMediator mediator)
+public sealed class CreateProductHandler(
+    IProductRepository products,
+    IVoucherSourceRepository voucherSources,
+    IMediator mediator)
     : IRequestHandler<CreateCatalogProductCommand, ProductDto>
 {
     public async Task<ProductDto> Handle(CreateCatalogProductCommand r, CancellationToken ct)
@@ -193,6 +202,8 @@ public sealed class CreateProductHandler(IProductRepository products, IMediator 
             null,
             ct
         );
+        if ((FulfillmentMethod)r.FulfillmentMethod == FulfillmentMethod.Voucher)
+            await EnsureVoucherSourceAsync(voucherSources, r.VoucherSourceId, r.SupplierId, ct);
         var product = Product.CreateCatalogProduct(
             r.SupplierId,
             r.CategoryId,
@@ -201,7 +212,8 @@ public sealed class CreateProductHandler(IProductRepository products, IMediator 
             (FulfillmentMethod)r.FulfillmentMethod,
             r.Title,
             r.Slug,
-            r.Description
+            r.Description,
+            r.VoucherSourceId
         );
         var now = DateTimeOffset.UtcNow;
         var eligibility = await CatalogEligibility.ResolveChannelsAsync(
@@ -222,6 +234,21 @@ public sealed class CreateProductHandler(IProductRepository products, IMediator 
             throw new StoreDomainException("این اسلاگ قبلاً ثبت شده است", "SLUG_ALREADY_EXISTS");
         await products.AddAsync(product, ct);
         return CatalogMapper.Map(product, eligibleChannels);
+    }
+
+    internal static async Task EnsureVoucherSourceAsync(
+        IVoucherSourceRepository sources,
+        Guid? sourceId,
+        Guid supplierId,
+        CancellationToken ct)
+    {
+        if (!sourceId.HasValue)
+            throw new StoreDomainException("انتخاب منبع برای محصول ووچری الزامی است", "VOUCHER_SOURCE_REQUIRED");
+        var source = await sources.GetByIdAsync(sourceId.Value, ct);
+        if (source is null || !source.IsActive)
+            throw new StoreDomainException("منبع ووچر فعال یافت نشد", "VOUCHER_SOURCE_NOT_FOUND");
+        if (source.SupplierId != supplierId)
+            throw new StoreDomainException("منبع ووچر متعلق به این تامین‌کننده نیست", "VOUCHER_SOURCE_SUPPLIER_MISMATCH");
     }
 }
 
@@ -256,7 +283,10 @@ public sealed class UpdateProductHandler(IProductRepository products, IMediator 
     }
 }
 
-public sealed class SetProductActivationHandler(IProductRepository products, IMediator mediator)
+public sealed class SetProductActivationHandler(
+    IProductRepository products,
+    IVoucherSourceRepository voucherSources,
+    IMediator mediator)
     : IRequestHandler<SetCatalogProductActivationCommand, ProductDto>
 {
     public async Task<ProductDto> Handle(SetCatalogProductActivationCommand r, CancellationToken ct)
@@ -286,6 +316,9 @@ public sealed class SetProductActivationHandler(IProductRepository products, IMe
                 "قرارداد معتبر برای فعال‌سازی محصول وجود ندارد",
                 "AGREEMENT_TERM_NOT_FOUND"
             );
+        if (r.IsActive && product.FulfillmentMethod == FulfillmentMethod.Voucher)
+            await CreateProductHandler.EnsureVoucherSourceAsync(
+                voucherSources, product.VoucherSourceId, product.SupplierId, ct);
         if (r.IsActive)
             product.Activate();
         else
@@ -317,7 +350,10 @@ public sealed class DeleteProductHandler(IProductRepository products, IMediator 
     }
 }
 
-public sealed class GetProductHandler(IProductRepository products, IMediator mediator)
+public sealed class GetProductHandler(
+    IProductRepository products,
+    IVoucherSourceRepository voucherSources,
+    IMediator mediator)
     : IRequestHandler<GetCatalogProductQuery, ProductDto?>
 {
     public async Task<ProductDto?> Handle(GetCatalogProductQuery r, CancellationToken ct)
@@ -336,7 +372,10 @@ public sealed class GetProductHandler(IProductRepository products, IMediator med
         var eligibleChannels = eligibility.GetValueOrDefault((x.SupplierId, x.CategoryId));
         if (!r.IncludeInactive && (eligibleChannels & (short)SalesChannel.Online) == 0)
             return null;
-        return CatalogMapper.Map(x, eligibleChannels);
+        var sourceTitle = x.VoucherSourceId.HasValue
+            ? (await voucherSources.GetByIdAsync(x.VoucherSourceId.Value, ct))?.Title
+            : null;
+        return CatalogMapper.Map(x, eligibleChannels, sourceTitle);
     }
 }
 
@@ -399,7 +438,8 @@ public sealed class GetProductManagementDetailHandler(
 public sealed class ProductSubresourceHandlers(
     IProductRepository products,
     IMediator mediator,
-    IPathService pathService
+    IPathService pathService,
+    IVoucherSourceRepository voucherSources
 ) : IRequestHandler<CreateCatalogProductVariantCommand, ProductVariantStructureDto>,
         IRequestHandler<UpdateCatalogProductVariantCommand, ProductVariantStructureDto>,
         IRequestHandler<DeleteCatalogProductVariantCommand, Unit>,
@@ -422,6 +462,10 @@ public sealed class ProductSubresourceHandlers(
             null,
             ct
         );
+        if (r.VoucherSourceId.HasValue && product.FulfillmentMethod != FulfillmentMethod.Voucher)
+            throw new StoreDomainException("منبع ووچر فقط برای محصول ووچری مجاز است", "VOUCHER_SOURCE_NOT_ALLOWED");
+        if (r.VoucherSourceId.HasValue)
+            await CreateProductHandler.EnsureVoucherSourceAsync(voucherSources, r.VoucherSourceId, product.SupplierId, ct);
         var variant = product.AddVariant(
             r.Combinations.Select(x => (x.AttributeId, x.ValueId)).ToList(),
             r.StockCount,
@@ -431,7 +475,8 @@ public sealed class ProductSubresourceHandlers(
             r.ToDate,
             r.CapacityType,
             r.Capacity,
-            product.SalesModel
+            product.SalesModel,
+            r.VoucherSourceId
         );
         await products.AddProductVariantAsync(product, variant, ct);
         return CatalogMapper.MapVariant(product, variant, _pathService);
@@ -451,6 +496,10 @@ public sealed class ProductSubresourceHandlers(
             null,
             ct
         );
+        if (r.VoucherSourceId.HasValue && product.FulfillmentMethod != FulfillmentMethod.Voucher)
+            throw new StoreDomainException("منبع ووچر فقط برای محصول ووچری مجاز است", "VOUCHER_SOURCE_NOT_ALLOWED");
+        if (r.VoucherSourceId.HasValue)
+            await CreateProductHandler.EnsureVoucherSourceAsync(voucherSources, r.VoucherSourceId, product.SupplierId, ct);
         product.UpdateVariant(
             r.VariantId,
             r.Combinations.Select(x => (x.AttributeId, x.ValueId)).ToList(),
@@ -461,7 +510,8 @@ public sealed class ProductSubresourceHandlers(
             r.ToDate,
             r.CapacityType,
             r.Capacity,
-            product.SalesModel
+            product.SalesModel,
+            r.VoucherSourceId
         );
         await products.UpdateAsync(product, ct);
         return CatalogMapper.MapVariant(
@@ -564,7 +614,10 @@ public sealed class ProductSubresourceHandlers(
     }
 }
 
-public sealed class ListProductsHandler(IProductRepository products, IMediator mediator)
+public sealed class ListProductsHandler(
+    IProductRepository products,
+    IVoucherSourceRepository voucherSources,
+    IMediator mediator)
     : IRequestHandler<ListCatalogProductsQuery, ProductPage>
 {
     public async Task<ProductPage> Handle(ListCatalogProductsQuery r, CancellationToken ct)
@@ -585,12 +638,22 @@ public sealed class ListProductsHandler(IProductRepository products, IMediator m
                 DateTimeOffset.UtcNow,
                 ct
             );
+            var sourceTitles = new Dictionary<Guid, string>();
+            foreach (var sourceId in managementItems.Where(x => x.VoucherSourceId.HasValue)
+                         .Select(x => x.VoucherSourceId!.Value).Distinct())
+            {
+                var source = await voucherSources.GetByIdAsync(sourceId, ct);
+                if (source is not null) sourceTitles[sourceId] = source.Title;
+            }
             return new(
                 managementItems
                     .Select(x =>
                         CatalogMapper.Map(
                             x,
-                            eligibility.GetValueOrDefault((x.SupplierId, x.CategoryId))
+                            eligibility.GetValueOrDefault((x.SupplierId, x.CategoryId)),
+                            x.VoucherSourceId.HasValue
+                                ? sourceTitles.GetValueOrDefault(x.VoucherSourceId.Value)
+                                : null
                         )
                     )
                     .ToArray(),

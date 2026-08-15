@@ -25,6 +25,7 @@ public sealed class StoreOrder
     public long FinalAmountMinor { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTimeOffset? PayableUntilUtc { get; private set; }
     public uint Version { get; private set; }
     public string RequestFingerprint { get; private set; } = string.Empty;
     public Guid? ShippingAddressId { get; private set; }
@@ -48,7 +49,8 @@ public sealed class StoreOrder
         IReadOnlyCollection<StoreOrderItemSnapshot> items,
         Guid? shippingAddressId = null,
         DateOnly? deliveryDate = null,
-        short deliveryTimeSlot = 0
+        short deliveryTimeSlot = 0,
+        DateTimeOffset? payableUntilUtc = null
     )
     {
         if (
@@ -96,6 +98,7 @@ public sealed class StoreOrder
             DeliveryTimeSlot = deliveryTimeSlot,
             CreatedAt = now,
             UpdatedAt = now,
+            PayableUntilUtc = payableUntilUtc,
         };
         foreach (var item in items)
             order._items.Add(StoreOrderItem.Create(order.Id, item));

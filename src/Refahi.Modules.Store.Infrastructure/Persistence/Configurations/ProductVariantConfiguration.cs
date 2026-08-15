@@ -26,8 +26,12 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
             .IsRequired();
         builder.Property(v => v.Capacity);
         builder.Property(v => v.IsAvailable).IsRequired();
+        builder.Property(v => v.VoucherSourceId);
 
         builder.HasIndex(v => v.ProductId);
+        builder.HasIndex(v => v.VoucherSourceId).HasFilter("\"VoucherSourceId\" IS NOT NULL");
+        builder.HasOne<Refahi.Modules.Store.Domain.Aggregates.VoucherSource>()
+            .WithMany().HasForeignKey(v => v.VoucherSourceId).OnDelete(DeleteBehavior.Restrict);
         builder.HasAlternateKey(v => new { v.Id, v.ProductId });
         builder.HasIndex(v => new { v.ProductId, v.CapacityType });
         builder.HasIndex(v => new

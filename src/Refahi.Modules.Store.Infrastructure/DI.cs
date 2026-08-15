@@ -5,6 +5,7 @@ using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.Store.Infrastructure.Concurrency;
 using Refahi.Modules.Store.Infrastructure.Persistence.Context;
 using Refahi.Modules.Store.Infrastructure.Repositories;
+using Refahi.Modules.Store.Infrastructure.Workers;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
 
@@ -37,6 +38,8 @@ public static class DI
         services.AddScoped<IStoreOrderRepository, StoreOrderRepository>();
         services.AddScoped<IVoucherRepository, VoucherRepository>();
         services.AddScoped<IVoucherRefundOverrideRepository, VoucherRefundOverrideRepository>();
+        services.AddScoped<IVoucherSourceRepository, VoucherSourceRepository>();
+        services.AddHostedService<VoucherDeliveryWorker>();
         services.AddSingleton<IStoreOrderMutationLock>(_ => new PostgresStoreOrderMutationLock(
             configuration.GetConnectionString()
         ));

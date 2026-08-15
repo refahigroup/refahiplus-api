@@ -34,6 +34,11 @@ public class StoreDbContext : DbContext
     public DbSet<VoucherRefundOverride> VoucherRefundOverrides => Set<VoucherRefundOverride>();
     public DbSet<VoucherRefundOverrideAttempt> VoucherRefundOverrideAttempts =>
         Set<VoucherRefundOverrideAttempt>();
+    public DbSet<VoucherSource> VoucherSources => Set<VoucherSource>();
+    public DbSet<VoucherSourceCode> VoucherSourceCodes => Set<VoucherSourceCode>();
+    public DbSet<VoucherCodeAllocation> VoucherCodeAllocations => Set<VoucherCodeAllocation>();
+    public DbSet<VoucherCodeImportBatch> VoucherCodeImportBatches => Set<VoucherCodeImportBatch>();
+    public DbSet<VoucherDelivery> VoucherDeliveries => Set<VoucherDelivery>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,5 +68,10 @@ public class StoreDbContext : DbContext
         modelBuilder.ApplyConfiguration(new VoucherRedemptionConfiguration());
         modelBuilder.ApplyConfiguration(new VoucherRefundOverrideConfiguration());
         modelBuilder.ApplyConfiguration(new VoucherRefundOverrideAttemptConfiguration());
+        modelBuilder.ApplyConfiguration(new VoucherSourceConfiguration());
+        modelBuilder.ApplyConfiguration(new VoucherSourceCodeConfiguration());
+        modelBuilder.ApplyConfiguration(new VoucherCodeAllocationConfiguration());
+        modelBuilder.ApplyConfiguration(new VoucherCodeImportBatchConfiguration());
+        modelBuilder.ApplyConfiguration(new VoucherDeliveryConfiguration());
     }
 }

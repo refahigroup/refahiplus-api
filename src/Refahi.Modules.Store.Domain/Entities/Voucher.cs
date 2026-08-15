@@ -20,6 +20,11 @@ public sealed class Voucher
     public string ShopName { get; private set; } = string.Empty;
     public Guid ProductId { get; private set; }
     public string ProductTitle { get; private set; } = string.Empty;
+    public Guid? VoucherSourceId { get; private set; }
+    public string VoucherSourceTitle { get; private set; } = "منبع پیش‌فرض تولید خودکار";
+    public VoucherSourceType SourceType { get; private set; } = VoucherSourceType.Generated;
+    public VoucherRedemptionMode RedemptionMode { get; private set; } = VoucherRedemptionMode.RefahiValidation;
+    public Guid? VoucherSourceCodeId { get; private set; }
     public string CodeHash { get; private set; } = string.Empty;
     public string CodeCiphertext { get; private set; } = string.Empty;
     public VoucherStatus Status { get; private set; }
@@ -49,7 +54,12 @@ public sealed class Voucher
         string codeHash,
         string codeCiphertext,
         DateTimeOffset issuedAtUtc,
-        DateTimeOffset? expiresAtUtc = null
+        DateTimeOffset? expiresAtUtc = null,
+        Guid? voucherSourceId = null,
+        string? voucherSourceTitle = null,
+        VoucherSourceType sourceType = VoucherSourceType.Generated,
+        VoucherRedemptionMode redemptionMode = VoucherRedemptionMode.RefahiValidation,
+        Guid? voucherSourceCodeId = null
     )
     {
         if (
@@ -85,6 +95,13 @@ public sealed class Voucher
             ShopName = shopName.Trim(),
             ProductId = productId,
             ProductTitle = productTitle.Trim(),
+            VoucherSourceId = voucherSourceId,
+            VoucherSourceTitle = string.IsNullOrWhiteSpace(voucherSourceTitle)
+                ? "منبع پیش‌فرض تولید خودکار"
+                : voucherSourceTitle.Trim(),
+            SourceType = sourceType,
+            RedemptionMode = redemptionMode,
+            VoucherSourceCodeId = voucherSourceCodeId,
             CodeHash = codeHash,
             CodeCiphertext = codeCiphertext,
             Status = VoucherStatus.Issued,

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Refahi.Modules.Identity.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
@@ -20,7 +21,9 @@ public sealed class PlaceStoreOrderCommandHandler(
     IOfferRepository offers,
     IOnlineOfferEligibilityService eligibility,
     IMediator mediator,
-    TimeProvider clock
+    TimeProvider clock,
+    IVoucherSourceRepository? voucherSources = null,
+    IConfiguration? configuration = null
 ) : IRequestHandler<PlaceStoreOrderCommand, PlaceStoreOrderResponse>
 {
     public async Task<PlaceStoreOrderResponse> Handle(
@@ -144,6 +147,22 @@ public sealed class PlaceStoreOrderCommandHandler(
                     "CATEGORY_CODE_REQUIRED"
                 );
 
+            VoucherSource? voucherSource = null;
+            if (context.Product.FulfillmentMethod == FulfillmentMethod.Voucher)
+            {
+                var sourceId = item.VariantId.HasValue
+                    ? context.Product.Variants.Single(x => x.Id == item.VariantId.Value).VoucherSourceId
+                        ?? context.Product.VoucherSourceId
+                    : context.Product.VoucherSourceId;
+                if (!sourceId.HasValue)
+                    throw new StoreDomainException("منبع ووچر محصول تعیین نشده است", "VOUCHER_SOURCE_REQUIRED");
+                if (voucherSources is null)
+                    throw new StoreDomainException("سرویس منبع ووچر در دسترس نیست", "VOUCHER_SOURCE_UNAVAILABLE");
+                voucherSource = await voucherSources.GetByIdAsync(sourceId.Value, ct);
+                if (voucherSource is null || !voucherSource.IsActive || voucherSource.SupplierId != context.Product.SupplierId)
+                    throw new StoreDomainException("منبع ووچر محصول معتبر یا فعال نیست", "VOUCHER_SOURCE_INVALID");
+            }
+
             snapshots.Add(
                 new StoreOrderItemSnapshot(
                     item.Id,
@@ -174,7 +193,12 @@ public sealed class PlaceStoreOrderCommandHandler(
                         context.Product.FulfillmentMethod,
                         item.Id,
                         request.CartItemDeliveryMethods
-                    )
+                    ),
+                    VoucherSourceId: voucherSource?.Id,
+                    VoucherSourceTitle: voucherSource?.Title,
+                    VoucherSourceType: voucherSource?.SourceType,
+                    VoucherRedemptionMode: voucherSource?.RedemptionMode,
+                    VoucherDefaultValidityDays: voucherSource?.DefaultValidityDays
                 )
             );
         }
@@ -207,6 +231,10 @@ public sealed class PlaceStoreOrderCommandHandler(
 
         var shopId = snapshots[0].ShopId;
         var supplierId = snapshots[0].SupplierId;
+        var payableMinutes = configuration?.GetValue<int?>("Store:Checkout:PayableMinutes") ?? 30;
+        if (payableMinutes <= 0)
+            payableMinutes = 30;
+        var payableUntilUtc = clock.GetUtcNow().AddMinutes(payableMinutes);
         var storeOrder = StoreOrder.Create(
             request.UserId,
             request.ModuleId,
@@ -217,7 +245,8 @@ public sealed class PlaceStoreOrderCommandHandler(
             snapshots,
             requiresShipping ? request.ShippingAddressId : null,
             requiresShipping ? request.DeliveryDate : null,
-            requiresShipping ? request.DeliveryTimeSlot : (short)0
+            requiresShipping ? request.DeliveryTimeSlot : (short)0,
+            payableUntilUtc
         );
         try
         {
@@ -309,6 +338,7 @@ public sealed class PlaceStoreOrderCommandHandler(
                 ShippingAddressId: requiresShipping ? storeOrder.ShippingAddressId : null,
                 DeliveryDate: requiresShipping ? storeOrder.DeliveryDate : null,
                 DeliveryTimeSlot: requiresShipping ? storeOrder.DeliveryTimeSlot : (short)0,
+                PayableUntil: storeOrder.PayableUntilUtc,
                 SourceOwnerId: storeOrder.SupplierId,
                 SourceShopId: storeOrder.ShopId
             ),

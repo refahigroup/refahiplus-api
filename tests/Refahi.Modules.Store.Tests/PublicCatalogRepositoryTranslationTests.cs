@@ -98,4 +98,30 @@ public sealed class PublicCatalogRepositoryTranslationTests
         Assert.Contains("UNION ALL", sql);
         Assert.Contains("LIMIT", sql);
     }
+
+    [Fact]
+    public void Product_detail_candidates_include_in_person_shops()
+    {
+        var options = new DbContextOptionsBuilder<StoreDbContext>()
+            .UseNpgsql("Host=localhost;Database=translation_only;Username=test;Password=test")
+            .Options;
+        using var db = new StoreDbContext(options);
+        var repository = new PublicCatalogRepository(db);
+
+        var query = repository.BuildEffectiveCandidatesQuery(
+            moduleCategoryId: null,
+            categoryId: null,
+            shopId: null,
+            shopSlug: "store-saeed",
+            productSlug: "test-1",
+            search: null,
+            salesModel: null,
+            atUtc: DateTimeOffset.UtcNow);
+
+        var sql = query.ToQueryString();
+
+        Assert.Contains("IN (1, 2)", sql);
+        Assert.Contains("store-saeed", sql);
+        Assert.Contains("test-1", sql);
+    }
 }

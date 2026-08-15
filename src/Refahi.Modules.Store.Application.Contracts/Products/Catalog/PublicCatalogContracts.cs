@@ -28,7 +28,10 @@ public sealed record PublicOfferDto(
     bool IsAvailable,
     string AvailabilityCode,
     PublicOfferSelectionDto Selection
-);
+)
+{
+    public int? MaxQuantity { get; init; }
+}
 
 public sealed record PublicProductPriceSummaryDto(
     string DisplayMode,

@@ -20,7 +20,11 @@ public sealed class StoreOrderItemConfiguration : IEntityTypeConfiguration<Store
         builder.Property(x => x.ProductType).HasConversion<short>();
         builder.Property(x => x.SalesModel).HasConversion<short>();
         builder.Property(x => x.FulfillmentMethod).HasConversion<short>();
+        builder.Property(x => x.VoucherSourceTitle).HasMaxLength(200);
+        builder.Property(x => x.VoucherSourceType).HasConversion<short>();
+        builder.Property(x => x.VoucherRedemptionMode).HasConversion<short>();
         builder.HasIndex(x => x.StoreOrderId);
         builder.HasIndex(x => x.OfferId).HasFilter("\"OfferId\" IS NOT NULL");
+        builder.HasIndex(x => x.VoucherSourceId).HasFilter("\"VoucherSourceId\" IS NOT NULL");
     }
 }

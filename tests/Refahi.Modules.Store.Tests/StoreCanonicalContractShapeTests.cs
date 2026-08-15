@@ -19,13 +19,15 @@ public sealed class StoreCanonicalContractShapeTests
             "SelectedOfferId", "Sessions", "Specifications", "VariantAttributes", "Variants");
         Shape<PublicOfferDto>("AvailabilityCode", "DiscountPercent", "EndDateUtc", "FinalPriceMinor",
             "Id", "IsAvailable", "OriginalPriceMinor", "ProductId", "ProductSessionId",
-            "ProductVariantId", "Selection", "ShopId", "ShopName", "ShopSlug", "StartDateUtc",
+            "MaxQuantity", "ProductVariantId", "Selection", "ShopId", "ShopName", "ShopSlug", "StartDateUtc",
             "UpdatedAt", "Version");
         Shape<ProductDto>("CategoryId", "CreatedAt", "Description", "EligibleSalesChannels",
             "FulfillmentMethod", "Id", "IsActive", "IsDeleted", "ProductType", "SalesModel",
-            "Slug", "SupplierId", "Title", "UpdatedAt", "Version");
+            "Slug", "SupplierId", "Title", "UpdatedAt", "Version", "VoucherSourceId",
+            "VoucherSourceTitle");
         Shape<ProductVariantStructureDto>("Capacity", "CapacityType", "Combinations", "FromDate",
-            "Id", "ImageUrl", "IsAvailable", "RequiresUsageDate", "Sku", "StockCount", "ToDate");
+            "EffectiveVoucherSourceId", "EffectiveVoucherSourceTitle", "Id", "ImageUrl",
+            "IsAvailable", "RequiresUsageDate", "Sku", "StockCount", "ToDate", "VoucherSourceId");
         Shape<ProductSessionStructureDto>("Capacity", "Date", "EndTime", "Id", "IsActive",
             "IsAvailable", "IsCancelled", "RemainingCapacity", "SoldCount", "StartTime", "Title");
         Shape<OfferDto>("CreatedAt", "DiscountPercent", "EndDateUtc", "FinalPriceMinor", "Id",
