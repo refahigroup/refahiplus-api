@@ -11,6 +11,7 @@ using Refahi.Modules.Store.Domain.Enums;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
 using Refahi.Modules.SupplyChain.Application.Contracts.Dtos;
+using Refahi.Shared.Services.Path;
 using Xunit;
 
 namespace Refahi.Modules.Store.Tests;
@@ -33,6 +34,7 @@ public sealed class OfferCartMutationTests
             f.Products,
             f.Shops,
             f.Eligibility,
+            PassthroughPathService.Instance,
             f.Clock
         ).Handle(new GetOfferCartQuery(f.UserId, f.ModuleId), default);
 
@@ -571,6 +573,7 @@ public sealed class OfferCartMutationTests
                     products,
                     shops,
                     eligibility,
+                    PassthroughPathService.Instance,
                     TimeProvider.System
                 ).Handle(query, ct);
                 return (TResponse)(object)dto!;
@@ -604,6 +607,13 @@ public sealed class OfferCartMutationTests
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class PassthroughPathService : IPathService
+    {
+        public static PassthroughPathService Instance { get; } = new();
+
+        public string MakeAbsoluteMediaUrl(string mediaPath) => mediaPath;
     }
 
     private sealed class FakeProductRepository(Product product) : IProductRepository

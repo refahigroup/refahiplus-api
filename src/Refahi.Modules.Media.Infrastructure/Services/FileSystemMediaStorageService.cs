@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Refahi.Modules.Media.Application.Services;
 using Refahi.Modules.Media.Domain.Enums;
 using Refahi.Modules.Media.Infrastructure.Options;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Media.Infrastructure.Services;
 
@@ -17,6 +18,13 @@ public class FileSystemMediaStorageService : IMediaStorageService
         _options = options.Value;
         if (string.IsNullOrWhiteSpace(_options.BasePath))
             throw new InvalidOperationException("MediaStorage:BasePath تنظیم نشده است");
+        if (
+            !Uri.TryCreate(_options.LoadBaseUrl, UriKind.Absolute, out var loadBaseUri)
+            || (loadBaseUri.Scheme != Uri.UriSchemeHttp && loadBaseUri.Scheme != Uri.UriSchemeHttps)
+        )
+            throw new InvalidOperationException(
+                "MediaStorage:LoadBaseUrl باید یک آدرس مطلق HTTP یا HTTPS باشد"
+            );
     }
 
     public async Task<MediaStorageResult> SaveAsync(
@@ -83,5 +91,5 @@ public class FileSystemMediaStorageService : IMediaStorageService
     }
 
     public string GetPublicUrl(string storagePath) =>
-        $"{_options.CreateBaseUrl.TrimEnd('/')}/{storagePath.TrimStart('/')}";
+        MediaUrlBuilder.MakeAbsolute(_options.LoadBaseUrl, storagePath);
 }

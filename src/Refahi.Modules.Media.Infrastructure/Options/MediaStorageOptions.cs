@@ -7,8 +7,8 @@ public class MediaStorageOptions
     /// <summary>مسیر فیزیکی روی دیسک (متفاوت در Windows/Linux)</summary>
     public string BasePath { get; set; } = string.Empty;
 
-    /// <summary>پایه URL برای ساخت Public URL — می‌تواند relative یا absolute باشد</summary>
-    public string CreateBaseUrl { get; set; } = string.Empty;
+    /// <summary>آدرس عمومی مطلق برای بارگذاری فایل‌های رسانه</summary>
+    public string LoadBaseUrl { get; set; } = string.Empty;
 
     public long MaxImageSizeBytes { get; set; } = 10L * 1024 * 1024;
     public long MaxVideoSizeBytes { get; set; } = 200L * 1024 * 1024;

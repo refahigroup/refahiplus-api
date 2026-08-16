@@ -3,6 +3,7 @@ using Refahi.Modules.Store.Application.Contracts.Queries.Cart;
 using Refahi.Modules.Store.Application.Services;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.Store.Domain.Repositories;
+using Refahi.Shared.Services.Path;
 
 namespace Refahi.Modules.Store.Application.Features.Cart.GetOfferCart;
 
@@ -12,6 +13,7 @@ public sealed class GetOfferCartQueryHandler(
     IProductRepository products,
     IShopRepository shops,
     IOnlineOfferEligibilityService eligibility,
+    IPathService pathService,
     TimeProvider clock
 ) : IRequestHandler<GetOfferCartQuery, OfferCartDto?>
 {
@@ -109,7 +111,7 @@ public sealed class GetOfferCartQueryHandler(
                     item.Quantity,
                     product?.Title ?? "محصول ناموجود",
                     product?.Slug ?? string.Empty,
-                    image,
+                    image is null ? null : pathService.MakeAbsoluteMediaUrl(image),
                     shop?.Name ?? "فروشگاه ناموجود",
                     shop?.Slug ?? string.Empty,
                     variantLabel,

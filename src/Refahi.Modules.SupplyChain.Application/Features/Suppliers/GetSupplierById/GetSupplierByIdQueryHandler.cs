@@ -70,7 +70,7 @@ public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery,
             s.Attachments.Select(a => new SupplierAttachmentDto(
                     a.Id,
                     a.Title,
-                    a.FileUrl,
+                    pathService.MakeAbsoluteMediaUrl(a.FileUrl),
                     a.FileName,
                     a.ContentType,
                     a.SizeBytes,
