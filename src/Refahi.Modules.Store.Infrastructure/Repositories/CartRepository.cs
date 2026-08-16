@@ -84,6 +84,7 @@ public class CartRepository : ICartRepository
             cart = Cart.Create(userId, moduleId);
             await _db.Carts.AddAsync(cart, ct);
         }
+        var existingItemIds = cart.Items.Select(x => x.Id).ToHashSet();
         cart.AddOfferItem(
             shopId,
             productId,
@@ -95,6 +96,7 @@ public class CartRepository : ICartRepository
             originalUnitPriceMinor,
             finalUnitPriceMinor
         );
+        MarkNewItemsAsAdded(cart, existingItemIds);
         await _db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return cart;
@@ -126,6 +128,7 @@ public class CartRepository : ICartRepository
             cart = Cart.Create(userId, moduleId);
             await _db.Carts.AddAsync(cart, ct);
         }
+        var existingItemIds = cart.Items.Select(x => x.Id).ToHashSet();
 
         foreach (var item in items)
             cart.AddOfferItem(
@@ -140,6 +143,7 @@ public class CartRepository : ICartRepository
                 item.FinalUnitPriceMinor
             );
 
+        MarkNewItemsAsAdded(cart, existingItemIds);
         await _db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return cart;
@@ -284,5 +288,11 @@ public class CartRepository : ICartRepository
         return BinaryPrimitives.ReadInt64LittleEndian(bytes[..8])
             ^ BinaryPrimitives.ReadInt64LittleEndian(bytes[8..])
             ^ moduleId;
+    }
+
+    private void MarkNewItemsAsAdded(Cart cart, HashSet<Guid> existingItemIds)
+    {
+        foreach (var item in cart.Items.Where(x => !existingItemIds.Contains(x.Id)))
+            _db.Entry(item).State = EntityState.Added;
     }
 }
