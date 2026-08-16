@@ -61,6 +61,38 @@ public sealed record SetCatalogProductActivationCommand(
 public sealed record DeleteCatalogProductCommand(Guid ActorUserId, bool IsAdmin, Guid ProductId)
     : IRequest<Unit>;
 
+public sealed record AddCatalogProductImageCommand(
+    Guid ActorUserId,
+    bool IsAdmin,
+    Guid ProductId,
+    string ImageUrl,
+    bool IsMain,
+    int SortOrder
+) : IRequest<ProductImageDto>;
+
+public sealed record RemoveCatalogProductImageCommand(
+    Guid ActorUserId,
+    bool IsAdmin,
+    Guid ProductId,
+    int ImageId
+) : IRequest<Unit>;
+
+public sealed record SetMainCatalogProductImageCommand(
+    Guid ActorUserId,
+    bool IsAdmin,
+    Guid ProductId,
+    int ImageId
+) : IRequest<Unit>;
+
+public sealed record ProductImageOrderInput(int ImageId, int SortOrder);
+
+public sealed record ReorderCatalogProductImagesCommand(
+    Guid ActorUserId,
+    bool IsAdmin,
+    Guid ProductId,
+    IReadOnlyList<ProductImageOrderInput> Items
+) : IRequest<Unit>;
+
 public sealed record GetCatalogProductQuery(Guid ProductId, bool IncludeInactive)
     : IRequest<ProductDto?>;
 

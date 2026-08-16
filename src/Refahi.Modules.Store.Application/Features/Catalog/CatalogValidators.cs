@@ -57,6 +57,60 @@ public sealed class UpdateProductValidator : AbstractValidator<UpdateCatalogProd
     }
 }
 
+public sealed class AddProductImageValidator : AbstractValidator<AddCatalogProductImageCommand>
+{
+    public AddProductImageValidator()
+    {
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("شناسه محصول الزامی است");
+        RuleFor(x => x.ImageUrl)
+            .NotEmpty()
+            .WithMessage("آدرس تصویر الزامی است")
+            .MaximumLength(500)
+            .WithMessage("آدرس تصویر حداکثر ۵۰۰ کاراکتر است");
+        RuleFor(x => x.SortOrder)
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("ترتیب تصویر نامعتبر است");
+    }
+}
+
+public sealed class ReorderProductImagesValidator
+    : AbstractValidator<ReorderCatalogProductImagesCommand>
+{
+    public ReorderProductImagesValidator()
+    {
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("شناسه محصول الزامی است");
+        RuleFor(x => x.Items).NotNull().NotEmpty().WithMessage("ترتیب تصاویر الزامی است");
+        RuleForEach(x => x.Items).ChildRules(item =>
+        {
+            item.RuleFor(x => x.ImageId).GreaterThan(0).WithMessage("شناسه تصویر نامعتبر است");
+            item.RuleFor(x => x.SortOrder).GreaterThanOrEqualTo(0).WithMessage("ترتیب تصویر نامعتبر است");
+        });
+        RuleFor(x => x.Items)
+            .Must(items => items is null || items.Select(x => x.ImageId).Distinct().Count() == items.Count)
+            .WithMessage("شناسه تصویر تکراری است");
+    }
+}
+
+public sealed class RemoveProductImageValidator
+    : AbstractValidator<RemoveCatalogProductImageCommand>
+{
+    public RemoveProductImageValidator()
+    {
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("شناسه محصول الزامی است");
+        RuleFor(x => x.ImageId).GreaterThan(0).WithMessage("شناسه تصویر نامعتبر است");
+    }
+}
+
+public sealed class SetMainProductImageValidator
+    : AbstractValidator<SetMainCatalogProductImageCommand>
+{
+    public SetMainProductImageValidator()
+    {
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("شناسه محصول الزامی است");
+        RuleFor(x => x.ImageId).GreaterThan(0).WithMessage("شناسه تصویر نامعتبر است");
+    }
+}
+
 public sealed class CreateOfferValidator : AbstractValidator<CreateOfferCommand>
 {
     public CreateOfferValidator()

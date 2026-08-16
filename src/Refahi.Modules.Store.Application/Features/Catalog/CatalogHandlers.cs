@@ -443,10 +443,64 @@ public sealed class ProductSubresourceHandlers(
 ) : IRequestHandler<CreateCatalogProductVariantCommand, ProductVariantStructureDto>,
         IRequestHandler<UpdateCatalogProductVariantCommand, ProductVariantStructureDto>,
         IRequestHandler<DeleteCatalogProductVariantCommand, Unit>,
+        IRequestHandler<AddCatalogProductImageCommand, ProductImageDto>,
+        IRequestHandler<RemoveCatalogProductImageCommand, Unit>,
+        IRequestHandler<SetMainCatalogProductImageCommand, Unit>,
+        IRequestHandler<ReorderCatalogProductImagesCommand, Unit>,
         IRequestHandler<CreateCatalogProductSessionCommand, ProductSessionStructureDto>,
         IRequestHandler<UpdateCatalogProductSessionCommand, ProductSessionStructureDto>
 {
     private readonly IPathService _pathService = pathService;
+
+    public async Task<ProductImageDto> Handle(
+        AddCatalogProductImageCommand r,
+        CancellationToken ct
+    )
+    {
+        var product = await GetAuthorizedProduct(r.ProductId, r.ActorUserId, r.IsAdmin, ct);
+        product.AddImage(r.ImageUrl, r.IsMain, r.SortOrder);
+        var image = product.Images.Last();
+        await products.UpdateAsync(product, ct);
+        return new(
+            image.Id,
+            _pathService.MakeAbsoluteMediaUrl(image.ImageUrl),
+            image.IsMain,
+            image.SortOrder
+        );
+    }
+
+    public async Task<Unit> Handle(
+        RemoveCatalogProductImageCommand r,
+        CancellationToken ct
+    )
+    {
+        var product = await GetAuthorizedProduct(r.ProductId, r.ActorUserId, r.IsAdmin, ct);
+        product.RemoveImage(r.ImageId);
+        await products.UpdateAsync(product, ct);
+        return Unit.Value;
+    }
+
+    public async Task<Unit> Handle(
+        SetMainCatalogProductImageCommand r,
+        CancellationToken ct
+    )
+    {
+        var product = await GetAuthorizedProduct(r.ProductId, r.ActorUserId, r.IsAdmin, ct);
+        product.SetMainImage(r.ImageId);
+        await products.UpdateAsync(product, ct);
+        return Unit.Value;
+    }
+
+    public async Task<Unit> Handle(
+        ReorderCatalogProductImagesCommand r,
+        CancellationToken ct
+    )
+    {
+        var product = await GetAuthorizedProduct(r.ProductId, r.ActorUserId, r.IsAdmin, ct);
+        product.ReorderImages(r.Items.Select(x => (x.ImageId, x.SortOrder)));
+        await products.UpdateAsync(product, ct);
+        return Unit.Value;
+    }
 
     public async Task<ProductVariantStructureDto> Handle(
         CreateCatalogProductVariantCommand r,
@@ -604,6 +658,25 @@ public sealed class ProductSubresourceHandlers(
         var product =
             await products.GetByIdAsync(id, ct)
             ?? throw new StoreDomainException("محصول یافت نشد", "PRODUCT_NOT_FOUND");
+        return product;
+    }
+
+    private async Task<Product> GetAuthorizedProduct(
+        Guid productId,
+        Guid actorUserId,
+        bool isAdmin,
+        CancellationToken ct
+    )
+    {
+        var product = await GetCatalogProduct(productId, ct);
+        await CatalogAuthorization.DemandAsync(
+            mediator,
+            actorUserId,
+            isAdmin,
+            product.SupplierId,
+            null,
+            ct
+        );
         return product;
     }
 

@@ -216,7 +216,18 @@ public sealed class Product
 
     public void AddImage(string imageUrl, bool isMain = false, int sortOrder = 0)
     {
-        _images.Add(ProductImage.Create(Id, imageUrl, isMain, sortOrder));
+        var normalizedUrl = imageUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedUrl) || normalizedUrl.Length > 500)
+            throw new StoreDomainException("آدرس تصویر محصول نامعتبر است", "INVALID_IMAGE_URL");
+        if (sortOrder < 0)
+            throw new StoreDomainException("ترتیب تصویر نامعتبر است", "INVALID_IMAGE_SORT_ORDER");
+        if (_images.Any(x => string.Equals(x.ImageUrl, normalizedUrl, StringComparison.OrdinalIgnoreCase)))
+            throw new StoreDomainException("این تصویر قبلاً به محصول افزوده شده است", "IMAGE_ALREADY_EXISTS");
+
+        if (isMain)
+            foreach (var image in _images)
+                image.SetMain(false);
+        _images.Add(ProductImage.Create(Id, normalizedUrl, isMain, sortOrder));
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -241,7 +252,13 @@ public sealed class Product
 
     public void ReorderImages(IEnumerable<(int ImageId, int SortOrder)> map)
     {
-        var orderMap = map.ToDictionary(x => x.ImageId, x => x.SortOrder);
+        var items = map.ToList();
+        if (items.Any(x => x.SortOrder < 0) || items.Select(x => x.ImageId).Distinct().Count() != items.Count)
+            throw new StoreDomainException("ترتیب تصاویر نامعتبر است", "INVALID_IMAGE_ORDER");
+        if (items.Any(x => _images.All(image => image.Id != x.ImageId)))
+            throw new StoreDomainException("تصویر محصول یافت نشد", "IMAGE_NOT_FOUND");
+
+        var orderMap = items.ToDictionary(x => x.ImageId, x => x.SortOrder);
         foreach (var img in _images)
         {
             if (orderMap.TryGetValue(img.Id, out var order))

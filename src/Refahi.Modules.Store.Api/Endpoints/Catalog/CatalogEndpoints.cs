@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Refahi.Modules.Store.Application.Contracts.Offers;
+using Refahi.Modules.Store.Application.Contracts.Dtos.Products;
 using Refahi.Modules.Store.Application.Contracts.Products;
 using Refahi.Modules.Store.Application.Contracts.Vendor;
 using Refahi.Shared.Presentation;
@@ -37,6 +38,12 @@ public sealed record ProductRequest(
 public sealed record ProductContentRequest(string Title, string? Description);
 
 public sealed record ProductActivationRequest(short EligibilityChannel = 0);
+
+public sealed record ProductImageRequest(string ImageUrl, bool IsMain, int SortOrder);
+
+public sealed record ProductImageOrderRequest(int ImageId, int SortOrder);
+
+public sealed record ReorderProductImagesRequest(IReadOnlyList<ProductImageOrderRequest> Items);
 
 public sealed record ProductVariantStructuralRequest(
     IReadOnlyList<VariantCombinationInput> Combinations,
@@ -359,6 +366,125 @@ public sealed class ProductManagementEndpoints : IEndpoint
             .WithTags(tag)
             .RequireAuthorization(policy)
             .Produces<ApiResponse<ProductManagementDetailDto>>(200)
+            .Produces<ApiErrorResponse>(403)
+            .Produces<ApiErrorResponse>(404);
+        r.MapPost(
+                $"/{role}/products/{{id:guid}}/images",
+                async (
+                    Guid id,
+                    ProductImageRequest body,
+                    HttpContext h,
+                    IMediator m,
+                    CancellationToken ct
+                ) =>
+                {
+                    var image = await m.Send(
+                        new AddCatalogProductImageCommand(
+                            CatalogActor.Id(h),
+                            admin,
+                            id,
+                            body.ImageUrl,
+                            body.IsMain,
+                            body.SortOrder
+                        ),
+                        ct
+                    );
+                    return Results.Created(
+                        $"/api/store/{role}/products/{id}/images/{image.Id}",
+                        ApiResponseHelper.Success(image, "تصویر محصول افزوده شد", 201)
+                    );
+                }
+            )
+            .WithName($"Store.{role}.AddProductImage")
+            .WithTags(tag)
+            .RequireAuthorization(policy)
+            .Produces<ApiResponse<ProductImageDto>>(201)
+            .Produces<ApiErrorResponse>(400)
+            .Produces<ApiErrorResponse>(403)
+            .Produces<ApiErrorResponse>(404);
+        r.MapDelete(
+                $"/{role}/products/{{id:guid}}/images/{{imageId:int}}",
+                async (
+                    Guid id,
+                    int imageId,
+                    HttpContext h,
+                    IMediator m,
+                    CancellationToken ct
+                ) =>
+                {
+                    await m.Send(
+                        new RemoveCatalogProductImageCommand(
+                            CatalogActor.Id(h),
+                            admin,
+                            id,
+                            imageId
+                        ),
+                        ct
+                    );
+                    return Results.Ok(ApiResponseHelper.Success("تصویر محصول حذف شد"));
+                }
+            )
+            .WithName($"Store.{role}.RemoveProductImage")
+            .WithTags(tag)
+            .RequireAuthorization(policy)
+            .Produces<ApiResponse<string>>(200)
+            .Produces<ApiErrorResponse>(403)
+            .Produces<ApiErrorResponse>(404);
+        r.MapPatch(
+                $"/{role}/products/{{id:guid}}/images/{{imageId:int}}/set-main",
+                async (
+                    Guid id,
+                    int imageId,
+                    HttpContext h,
+                    IMediator m,
+                    CancellationToken ct
+                ) =>
+                {
+                    await m.Send(
+                        new SetMainCatalogProductImageCommand(
+                            CatalogActor.Id(h),
+                            admin,
+                            id,
+                            imageId
+                        ),
+                        ct
+                    );
+                    return Results.Ok(ApiResponseHelper.Success("تصویر اصلی محصول تعیین شد"));
+                }
+            )
+            .WithName($"Store.{role}.SetMainProductImage")
+            .WithTags(tag)
+            .RequireAuthorization(policy)
+            .Produces<ApiResponse<string>>(200)
+            .Produces<ApiErrorResponse>(403)
+            .Produces<ApiErrorResponse>(404);
+        r.MapPatch(
+                $"/{role}/products/{{id:guid}}/images/reorder",
+                async (
+                    Guid id,
+                    ReorderProductImagesRequest body,
+                    HttpContext h,
+                    IMediator m,
+                    CancellationToken ct
+                ) =>
+                {
+                    await m.Send(
+                        new ReorderCatalogProductImagesCommand(
+                            CatalogActor.Id(h),
+                            admin,
+                            id,
+                            body.Items.Select(x => new ProductImageOrderInput(x.ImageId, x.SortOrder)).ToArray()
+                        ),
+                        ct
+                    );
+                    return Results.Ok(ApiResponseHelper.Success("ترتیب تصاویر محصول به‌روزرسانی شد"));
+                }
+            )
+            .WithName($"Store.{role}.ReorderProductImages")
+            .WithTags(tag)
+            .RequireAuthorization(policy)
+            .Produces<ApiResponse<string>>(200)
+            .Produces<ApiErrorResponse>(400)
             .Produces<ApiErrorResponse>(403)
             .Produces<ApiErrorResponse>(404);
         r.MapPost(
