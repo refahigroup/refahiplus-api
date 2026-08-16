@@ -12,5 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.References.Application\Refahi.Modules.References.Application.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.References.Infrastructure\Refahi.Modules.References.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

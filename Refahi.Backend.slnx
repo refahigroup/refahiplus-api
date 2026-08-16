@@ -58,6 +58,7 @@
     <Project Path="src/Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj" Id="d2727290-9cd6-44c3-8d26-79e6577bb6d9" />
     <Project Path="src/Refahi.Modules.References.Application/Refahi.Modules.References.Application.csproj" Id="b52022b2-4bc1-4aad-9030-7a9ee6843fe1" />
     <Project Path="src/Refahi.Modules.References.Domain/Refahi.Modules.References.Domain.csproj" Id="1b0c64b9-1651-4ac8-a8a5-7cd2533ced74" />
+    <Project Path="src/Refahi.Modules.References.Infrastructure/Refahi.Modules.References.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/01_Modules/Store/">
     <Project Path="src/Refahi.Modules.Store.Api/Refahi.Modules.Store.Api.csproj" Id="b56fb814-6674-44fc-a494-bd1a7e2a7b9e" />
