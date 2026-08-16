@@ -72,7 +72,8 @@ public sealed class StoreOrderRepository(StoreDbContext db) : IStoreOrderReposit
                 var availableStatus = (short)VoucherSourceCodeStatus.Available;
                 var selected = await db.VoucherSourceCodes
                     .FromSqlInterpolated($@"
-                        SELECT * FROM store.voucher_source_codes
+                        SELECT source_code.*, source_code.xmin AS xmin
+                        FROM store.voucher_source_codes AS source_code
                         WHERE ""VoucherSourceId"" = {sourceId}
                           AND ""Status"" = {availableStatus}
                           AND (""ExpiresAtUtc"" IS NULL OR ""ExpiresAtUtc"" > {requiredUntil})

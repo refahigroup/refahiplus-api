@@ -54,7 +54,8 @@ public sealed class VoucherDeliveryWorker(
         var retry = (short)VoucherDeliveryStatus.Retry;
         var rows = await db.VoucherDeliveries
             .FromSqlInterpolated($@"
-                SELECT * FROM store.voucher_deliveries
+                SELECT delivery.*, delivery.xmin AS xmin
+                FROM store.voucher_deliveries AS delivery
                 WHERE ""Status"" IN ({pending}, {retry})
                   AND ""NextAttemptAtUtc"" <= {now}
                 ORDER BY ""NextAttemptAtUtc"", ""Id""
