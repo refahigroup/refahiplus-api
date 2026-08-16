@@ -325,32 +325,28 @@ public sealed class SyncOfferCartCommandHandler(
                     "MIXED_SHOP_ITEMS"
                 );
 
-            cart ??= CartAggregate.Create(request.UserId, request.ModuleId);
-            for (var i = 0; i < resolved.Count; i++)
-            {
-                var context = resolved[i];
-                cart.AddOfferItem(
-                    context.Shop.Id,
-                    context.Product.Id,
-                    context.Offer.Id,
-                    context.Offer.ProductVariantId,
-                    context.Offer.ProductSessionId,
-                    context.UsageDate,
-                    quantities[i],
-                    context.Offer.OriginalPriceMinor,
-                    context.Offer.FinalPriceMinor
-                );
-            }
             if (resolved.Count > 0)
-            {
-                if (
-                    await carts.GetByUserAndModuleIdAsync(request.UserId, request.ModuleId, ct)
-                    is null
-                )
-                    await carts.AddAsync(cart, ct);
-                else
-                    await carts.UpdateAsync(cart, ct);
-            }
+                await carts.AddOfferItemsAsync(
+                    request.UserId,
+                    request.ModuleId,
+                    resolved
+                        .Select(
+                            (context, index) =>
+                                new OfferCartItemSpec(
+                                    context.Shop.Id,
+                                    context.Product.Id,
+                                    context.Offer.Id,
+                                    context.Offer.ProductVariantId,
+                                    context.Offer.ProductSessionId,
+                                    context.UsageDate,
+                                    quantities[index],
+                                    context.Offer.OriginalPriceMinor,
+                                    context.Offer.FinalPriceMinor
+                                )
+                        )
+                        .ToArray(),
+                    ct
+                );
             var result = await OfferCartSupport.ProjectAsync(
                 mediator,
                 request.UserId,

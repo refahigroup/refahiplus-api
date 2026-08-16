@@ -100,6 +100,51 @@ public class CartRepository : ICartRepository
         return cart;
     }
 
+    public async Task<Cart> AddOfferItemsAsync(
+        Guid userId,
+        int moduleId,
+        IReadOnlyList<OfferCartItemSpec> items,
+        CancellationToken ct = default
+    )
+    {
+        if (items.Count == 0)
+            throw new ArgumentException("لیست آیتم‌های سبد نمی‌تواند خالی باشد", nameof(items));
+
+        _db.ChangeTracker.Clear();
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        var lockKey = CreateCartLockKey(userId, moduleId);
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock({lockKey})",
+            ct
+        );
+
+        var cart = await _db
+            .Carts.Include(x => x.Items)
+            .SingleOrDefaultAsync(x => x.UserId == userId && x.ModuleId == moduleId, ct);
+        if (cart is null)
+        {
+            cart = Cart.Create(userId, moduleId);
+            await _db.Carts.AddAsync(cart, ct);
+        }
+
+        foreach (var item in items)
+            cart.AddOfferItem(
+                item.ShopId,
+                item.ProductId,
+                item.OfferId,
+                item.VariantId,
+                item.SessionId,
+                item.UsageDate,
+                item.Quantity,
+                item.OriginalUnitPriceMinor,
+                item.FinalUnitPriceMinor
+            );
+
+        await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return cart;
+    }
+
     public Task<Cart> ReplaceItemAsync(
         Guid userId,
         int moduleId,

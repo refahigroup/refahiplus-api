@@ -420,6 +420,35 @@ public sealed class OfferCartMutationTests
             return Task.FromResult(Value);
         }
 
+        public Task<Cart> AddOfferItemsAsync(
+            Guid userId,
+            int moduleId,
+            IReadOnlyList<OfferCartItemSpec> items,
+            CancellationToken ct = default
+        )
+        {
+            ct.ThrowIfCancellationRequested();
+            var isNew = Value is null;
+            Value ??= Cart.Create(userId, moduleId);
+            foreach (var item in items)
+                Value.AddOfferItem(
+                    item.ShopId,
+                    item.ProductId,
+                    item.OfferId,
+                    item.VariantId,
+                    item.SessionId,
+                    item.UsageDate,
+                    item.Quantity,
+                    item.OriginalUnitPriceMinor,
+                    item.FinalUnitPriceMinor
+                );
+            if (isNew)
+                AddCount++;
+            else
+                UpdateCount++;
+            return Task.FromResult(Value);
+        }
+
         public Task AddAsync(Cart cart, CancellationToken ct = default)
         {
             AddCount++;

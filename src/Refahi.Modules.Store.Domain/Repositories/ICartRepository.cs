@@ -37,6 +37,31 @@ public interface ICartRepository
         long finalUnitPriceMinor,
         CancellationToken ct = default
     ) => throw new NotSupportedException("این repository از سبد Offer-based پشتیبانی نمی‌کند");
+    async Task<Cart> AddOfferItemsAsync(
+        Guid userId,
+        int moduleId,
+        IReadOnlyList<OfferCartItemSpec> items,
+        CancellationToken ct = default
+    )
+    {
+        Cart? cart = null;
+        foreach (var item in items)
+            cart = await AddOfferItemAsync(
+                userId,
+                moduleId,
+                item.ShopId,
+                item.ProductId,
+                item.OfferId,
+                item.VariantId,
+                item.SessionId,
+                item.UsageDate,
+                item.Quantity,
+                item.OriginalUnitPriceMinor,
+                item.FinalUnitPriceMinor,
+                ct
+            );
+        return cart ?? throw new ArgumentException("لیست آیتم‌های سبد نمی‌تواند خالی باشد", nameof(items));
+    }
     Task<Cart> ReplaceItemAsync(
         Guid userId,
         int moduleId,
@@ -65,3 +90,15 @@ public interface ICartRepository
     Task UpdateAsync(Cart cart, CancellationToken ct = default);
     Task DeleteAsync(Cart cart, CancellationToken ct = default);
 }
+
+public readonly record struct OfferCartItemSpec(
+    Guid ShopId,
+    Guid ProductId,
+    Guid OfferId,
+    Guid? VariantId,
+    Guid? SessionId,
+    DateOnly? UsageDate,
+    int Quantity,
+    long OriginalUnitPriceMinor,
+    long FinalUnitPriceMinor
+);
