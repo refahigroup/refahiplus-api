@@ -98,6 +98,7 @@
   </Folder>
   <Folder Name="/02_Tests/">
     <Project Path="tests/Refahi.Modules.Charge.Tests/Refahi.Modules.Charge.Tests.csproj" />
+    <Project Path="tests/Refahi.Modules.Commerce.Tests/Refahi.Modules.Commerce.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Flights.Tests/Refahi.Modules.Flights.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Hotels.Tests/Refahi.Modules.Hotels.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Identity.Tests/Refahi.Modules.Identity.Tests.csproj" />

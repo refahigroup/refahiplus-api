@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Refahi.Shared.Infrastructure;
+using Refahi.Modules.Commerce.Application.Contracts.Abstraction;
+using Refahi.Modules.Commerce.Infrastructure.Providers.Asbsar;
 using Refahi.Shared.Extensions;
+using Refahi.Shared.Infrastructure;
 
 namespace Refahi.Modules.Commerce.Infrastructure;
 
@@ -20,6 +22,8 @@ public static class DI
         //    )
         //);
 
+        services.AddAabsarProvider(configuration);
+
         return services;
     }
 
@@ -28,5 +32,10 @@ public static class DI
         using var scope = provider.CreateScope();
 
         //scope.ServiceProvider.GetRequiredService<IDbTools>().ApplyMigrations<CommerceDbContext>();
+
+
+        provider.UseAabsarProvider();
+
+
     }
 }

@@ -10,7 +10,7 @@ namespace Refahi.Modules.Commerce.Api;
 
 public static class DI
 {
-    public static IServiceCollection RegisterChargeModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterCommerceModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.RegisterApplication(configuration)
                 .RegisterInfrastructure(configuration);
@@ -18,7 +18,7 @@ public static class DI
         return services;
     }
 
-    public static WebApplication UseChargeModule(this WebApplication app, string endPointsPrefix)
+    public static WebApplication UseCommerceModule(this WebApplication app, string endPointsPrefix)
     {
         app.Services.UseInfrastructure(app.Environment.IsDevelopment());
 
@@ -45,10 +45,5 @@ public static class DI
             }
         }
     }
-}
-
-public static class ChargeRateLimiting
-{
-    public const string PublicCatalogPolicy = "ChargePublicCatalog";
 }
 
