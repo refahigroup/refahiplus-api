@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Refahi.Modules.Commerce.Application.Contracts.Abstraction;
+using Refahi.Modules.Commerce.Application.Contracts.Providers;
 using Refahi.Modules.Commerce.Infrastructure.Providers.Asbsar.Abstraction;
 using Refahi.Modules.Commerce.Infrastructure.Providers.Asbsar.Options;
 using System.Net.Http.Headers;
+using Polly;
+using Polly.Extensions.Http;
 
 namespace Refahi.Modules.Commerce.Infrastructure.Providers.Asbsar;
 
@@ -15,17 +17,19 @@ public static class DI
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
         
+        var enabled = configuration.GetValue<bool>($"{AabsarOptions.SectionName}:Enabled");
         services
             .AddOptions<AabsarOptions>()
             .Bind(configuration.GetSection(AabsarOptions.SectionName))
             .Validate(
-                options => !string.IsNullOrWhiteSpace(options.AccessToken),
+                options => !options.Enabled || !string.IsNullOrWhiteSpace(options.AccessToken),
                 $"{AabsarOptions.SectionName}:AccessToken is required.")
             .Validate(
                 options => TryCreateBaseUri(options.BaseUrl, out _),
                 $"{AabsarOptions.SectionName}:BaseUrl must be a valid absolute HTTP/HTTPS URL.")
             .ValidateOnStart();
 
+        services.AddTransient<AabsarObservabilityHandler>();
         services.AddHttpClient<IAabsarApiClient, AabsarApiClient>((serviceProvider, httpClient) =>
         {
             var options = serviceProvider
@@ -41,6 +45,7 @@ public static class DI
             }
 
             httpClient.BaseAddress = baseUri;
+            httpClient.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 3, 60));
 
             httpClient.DefaultRequestHeaders.Accept.Clear();
             httpClient.DefaultRequestHeaders.Accept.Add(
@@ -50,29 +55,19 @@ public static class DI
             // Do not replace it with access_token in production.
             httpClient.DefaultRequestHeaders.Remove("access-token");
             httpClient.DefaultRequestHeaders.TryAddWithoutValidation("access-token", options.AccessToken);
-        });
+        })
+        .AddHttpMessageHandler<AabsarObservabilityHandler>()
+        .AddPolicyHandler(request => request.Method == HttpMethod.Get
+            ? HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(2, retry => TimeSpan.FromMilliseconds(150 * retry))
+            : Policy.NoOpAsync<HttpResponseMessage>());
 
-        services.AddScoped<AsbsarCommerceProvider>((sp) =>
+        if (enabled)
         {
-            var apiClient = sp.GetRequiredService<IAabsarApiClient>();
-            return new AsbsarCommerceProvider(apiClient);
-        });
+            services.AddScoped<ICommerceProvider, AabsarCommerceProvider>();
+            services.AddHealthChecks().AddCheck<AabsarHealthCheck>("commerce-aabsar", tags: ["commerce", "provider"]);
+        }
 
         return services;
-    }
-
-    public static void UseAabsarProvider(this IServiceProvider provider)
-    {
-        using var scope = provider.CreateScope();
-
-        var aabsarProvider = scope.ServiceProvider
-            .GetRequiredService<AsbsarCommerceProvider>();
-
-        var providerManager = scope.ServiceProvider
-            .GetRequiredService<ICommerceProviderManager>();
-
-        providerManager.Register(aabsarProvider);
-
     }
 
     private static bool TryCreateBaseUri(string? configuredUrl, out Uri? baseUri)

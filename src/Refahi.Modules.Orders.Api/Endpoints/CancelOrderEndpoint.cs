@@ -1,4 +1,5 @@
 using MediatR;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -22,14 +23,20 @@ public class CancelOrderEndpoint : IEndpoint
                 async (
                     Guid orderId,
                     CancelOrderRequest request,
+                    HttpContext httpContext,
                     IMediator mediator,
                     CancellationToken ct
                 ) =>
                 {
+                    if (!Guid.TryParse(httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                        ?? httpContext.User.FindFirstValue("sub"), out var userId))
+                        return Results.Unauthorized();
                     var command = new CancelOrderCommand(
                         orderId,
                         request.Reason,
-                        request.IdempotencyKey
+                        request.IdempotencyKey,
+                        CallerUserId: userId,
+                        CallerRole: httpContext.User.IsInRole("Admin") ? "Admin" : "User"
                     );
                     var result = await mediator.Send(command, ct);
                     return Results.Ok(ApiResponseHelper.Success(result));

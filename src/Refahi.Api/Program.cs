@@ -179,6 +179,10 @@ app.MapHealthChecks(
     "/api/health/eniac",
     new HealthCheckOptions { Predicate = registration => registration.Name == "eniac" }
 );
+app.MapHealthChecks(
+    "/api/health/commerce/aabsar",
+    new HealthCheckOptions { Predicate = registration => registration.Name == "commerce-aabsar" }
+);
 
 // Map module endpoints
 //try

@@ -4,6 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-  </PropertyGroup>
+</PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="11.1.0" />
+    <ProjectReference Include="..\Refahi.Modules.Commerce.Domain\Refahi.Modules.Commerce.Domain.csproj" />
+  </ItemGroup>
 
 </Project>

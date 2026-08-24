@@ -2,7 +2,8 @@
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Refahi.Modules.Commerce.Application.Contracts.Abstraction;
+using Refahi.Modules.Commerce.Application.Features.Checkout.CancellationParticipant;
+using Refahi.Modules.Orders.Application.Contracts.Cancellation;
 
 namespace Refahi.Modules.Commerce.Application;
 
@@ -15,9 +16,10 @@ public static class DI
 
         services.AddMediatR(assembly)
                 .AddValidatorsFromAssembly(assembly);
+        services.AddOptions<CommerceRuntimeOptions>().Bind(configuration.GetSection(CommerceRuntimeOptions.SectionName));
 
-        services.AddSingleton<ICommerceProviderManager, CommerceProviderManager>()
-                .AddScoped<ICommerceProvider, CommerceProvider>();
+        services.AddScoped<CommerceFulfillmentProcessor>();
+        services.AddScoped<IOrderCancellationParticipant, CommerceCancellationParticipant>();
 
         return services;
     }
