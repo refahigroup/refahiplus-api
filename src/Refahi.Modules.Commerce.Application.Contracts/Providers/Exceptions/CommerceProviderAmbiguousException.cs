@@ -1,4 +1,4 @@
-namespace Refahi.Modules.Commerce.Application.Contracts.Providers;
+namespace Refahi.Modules.Commerce.Application.Contracts.Providers.Exceptions;
 
 public sealed class CommerceProviderAmbiguousException(
     string message, 

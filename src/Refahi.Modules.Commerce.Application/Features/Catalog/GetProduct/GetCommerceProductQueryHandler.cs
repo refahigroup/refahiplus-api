@@ -1,6 +1,7 @@
 using MediatR;
 using Refahi.Modules.Commerce.Application.Contracts;
 using Refahi.Modules.Commerce.Application.Contracts.Providers;
+using Refahi.Modules.Commerce.Application.Contracts.Providers.Dtos;
 using Refahi.Shared.Services.Cache;
 
 namespace Refahi.Modules.Commerce.Application.Features.Catalog.GetProduct;

@@ -1,4 +1,4 @@
-namespace Refahi.Modules.Commerce.Application.Contracts.Providers;
+namespace Refahi.Modules.Commerce.Application.Contracts.Providers.Requests;
 
 public sealed record CommerceCancellationRequest(
     string OperationId, 

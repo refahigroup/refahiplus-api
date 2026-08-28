@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Commerce.Application.Contracts;
 using Refahi.Modules.Commerce.Application.Contracts.Providers;
+using Refahi.Modules.Commerce.Application.Contracts.Providers.Exceptions;
 using Refahi.Modules.Commerce.Domain;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 

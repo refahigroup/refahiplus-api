@@ -4,6 +4,7 @@ using Refahi.Modules.Commerce.Application.Contracts.Providers;
 using Refahi.Modules.Commerce.Application.Exceptions;
 using Refahi.Modules.Commerce.Domain;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
+using Refahi.Modules.Identity.Application.Contracts.Queries;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -15,7 +16,10 @@ public sealed class PrepareCommerceCheckoutCommandHandler(ICommerceRepository re
 {
     public async Task<PrepareCommerceCheckoutResponse> Handle(PrepareCommerceCheckoutCommand request, CancellationToken ct)
     {
-        ValidateContact(request.RecipientName, request.RecipientMobile);
+        var contact = await mediator.Send(new GetUserCommerceContactQuery(request.UserId), ct);
+        var recipientName = contact?.FullName ?? string.Empty;
+        var recipientMobile = contact?.MobileNumber ?? string.Empty;
+        ValidateContact(recipientName, recipientMobile);
 
         var commerceOrder = await repository.GetOrderByIdempotencyAsync(request.UserId, request.IdempotencyKey.Trim(), ct);
 
@@ -24,8 +28,8 @@ public sealed class PrepareCommerceCheckoutCommandHandler(ICommerceRepository re
             var replayCart = await repository.GetCartAsync(request.UserId, ct);
 
             var replayFingerprint = replayCart is { Items.Count: > 0 }
-                ? Fingerprint(request, replayCart.Items.Select(x => (x.ProviderKey, x.ProductKey, x.OfferKey, x.PurchaseOptionKey, x.Quantity, x.ExpectedUnitPriceMinor)))
-                : Fingerprint(request, commerceOrder.Items.Select(x => (x.ProviderKey, x.ProductKey, x.OfferKey, x.PurchaseOptionKey, x.Quantity, x.UnitPriceMinor)));
+                ? Fingerprint(request.UserId, recipientName, recipientMobile, replayCart.Items.Select(x => (x.ProviderKey, x.ProductKey, x.OfferKey, x.PurchaseOptionKey, x.Quantity, x.ExpectedUnitPriceMinor)))
+                : Fingerprint(request.UserId, recipientName, recipientMobile, commerceOrder.Items.Select(x => (x.ProviderKey, x.ProductKey, x.OfferKey, x.PurchaseOptionKey, x.Quantity, x.UnitPriceMinor)));
 
             commerceOrder.EnsureFingerprint(replayFingerprint);
 
@@ -38,7 +42,9 @@ public sealed class PrepareCommerceCheckoutCommandHandler(ICommerceRepository re
             throw new CommerceDomainException("سبد خرید خالی است", "CART_EMPTY");
 
         var fingerprint = Fingerprint(
-            request,
+            request.UserId,
+            recipientName,
+            recipientMobile,
             cart.Items.Select(x => (x.ProviderKey, x.ProductKey, x.OfferKey, x.PurchaseOptionKey, x.Quantity, x.ExpectedUnitPriceMinor))
          );
 
@@ -76,8 +82,8 @@ public sealed class PrepareCommerceCheckoutCommandHandler(ICommerceRepository re
             request.UserId,
             request.IdempotencyKey,
             fingerprint,
-            secrets.Protect(request.RecipientName.Trim()),
-            secrets.Protect(request.RecipientMobile.Trim()),
+            secrets.Protect(recipientName.Trim()),
+            secrets.Protect(recipientMobile.Trim()),
             snapshots
         );
 
@@ -142,23 +148,29 @@ public sealed class PrepareCommerceCheckoutCommandHandler(ICommerceRepository re
     private static void ValidateContact(string name, string mobile)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length is < 3 or > 255)
-            throw new CommerceDomainException("نام دریافت‌کننده معتبر نیست", "INVALID_RECIPIENT_NAME");
+            throw new CommerceDomainException(
+                "برای ادامه خرید، نام و نام خانوادگی پروفایل خود را تکمیل کنید",
+                "PROFILE_CONTACT_INCOMPLETE");
 
         var digits = new string(mobile.Where(char.IsDigit).ToArray());
 
         if (digits.Length is < 10 or > 13)
-            throw new CommerceDomainException("شماره موبایل معتبر نیست", "INVALID_RECIPIENT_MOBILE");
+            throw new CommerceDomainException(
+                "برای ادامه خرید، شماره موبایل معتبر در پروفایل لازم است",
+                "PROFILE_CONTACT_INCOMPLETE");
     }
 
     private static string Fingerprint(
-        PrepareCommerceCheckoutCommand r,
+        Guid userId,
+        string recipientName,
+        string recipientMobile,
         IEnumerable<(string ProviderKey, string ProductKey, string OfferKey, string PurchaseOptionKey, int Quantity, long UnitPriceMinor)> items)
     {
         var raw = JsonSerializer.Serialize(new
         {
-            r.UserId,
-            name = r.RecipientName.Trim(),
-            mobile = r.RecipientMobile.Trim(),
+            UserId = userId,
+            name = recipientName.Trim(),
+            mobile = recipientMobile.Trim(),
             items = items.OrderBy(x => x.ProviderKey)
                          .ThenBy(x => x.ProductKey)
                          .ThenBy(x => x.OfferKey)

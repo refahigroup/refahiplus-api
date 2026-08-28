@@ -1,4 +1,4 @@
-namespace Refahi.Modules.Commerce.Application.Contracts.Providers;
+namespace Refahi.Modules.Commerce.Application.Contracts.Providers.Dtos;
 
 public sealed record CommerceProductDto(
     string ProviderKey, 
@@ -7,5 +7,7 @@ public sealed record CommerceProductDto(
     string Title,
     string? Description, 
     string? ImageUrl, 
+    IEnumerable<string> Tags,
+    CommerceAddressDto Address,
     IReadOnlyList<CommerceOfferDto> Offers
 );

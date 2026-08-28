@@ -21,6 +21,7 @@ public sealed class GetProductsEndpoint : IEndpoint
             async (
                 string? search, 
                 string? providerKey, 
+                string? sellerKey,
                 int? pageNumber, 
                 int? pageSize, 
                 IMediator m, 
@@ -30,6 +31,7 @@ public sealed class GetProductsEndpoint : IEndpoint
                 var result = await m.Send(new GetCommerceProductsQuery(
                     search,
                     providerKey,
+                    sellerKey,
                     pageNumber is > 0 ? pageNumber.Value : 1,
                     pageSize is > 0 ? pageSize.Value : 24
                 ), ct);

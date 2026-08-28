@@ -42,7 +42,8 @@ public sealed class CommerceDomainTests
     public void Cart_owns_items_and_rejects_invalid_quantity()
     {
         var cart = CommerceCart.Create(Guid.NewGuid());
-        cart.AddOrReplace(new("aabsar", "aabsar", "event", "showtime", "adult", "title", "offer", 1, 100));
+        cart.AddOrReplace(new("aabsar", "aabsar", "event", "showtime", "adult",
+            "title", "آبسار", "محصول", null, "بزرگسال", "offer", 1, 100, 100));
         var error = Assert.Throws<CommerceDomainException>(() => cart.UpdateQuantity(cart.Items.Single().Id, 0));
         Assert.Equal("INVALID_QUANTITY", error.ErrorCode);
     }

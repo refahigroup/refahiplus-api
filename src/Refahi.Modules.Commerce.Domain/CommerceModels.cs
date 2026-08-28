@@ -56,7 +56,7 @@ public sealed class CommerceCart
             throw new CommerceDomainException("تعداد یا قیمت آیتم معتبر نیست", "INVALID_CART_ITEM");
         var existing = _items.FirstOrDefault(x => x.IdentityEquals(item));
         if (existing is null) _items.Add(CommerceCartItem.Create(Id, item));
-        else existing.Replace(item.Quantity, item.ExpectedUnitPriceMinor, item.Title, item.OfferTitle);
+        else existing.Replace(item);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -90,24 +90,45 @@ public sealed class CommerceCartItem
     public string OfferKey { get; private set; } = string.Empty;
     public string PurchaseOptionKey { get; private set; } = string.Empty;
     public string Title { get; private set; } = string.Empty;
+    public string SellerTitle { get; private set; } = string.Empty;
+    public string ProductTitle { get; private set; } = string.Empty;
+    public string? ProductImageUrl { get; private set; }
+    public string OptionTitle { get; private set; } = string.Empty;
     public string OfferTitle { get; private set; } = string.Empty;
     public int Quantity { get; private set; }
     public long ExpectedUnitPriceMinor { get; private set; }
+    public long OriginalUnitPriceMinor { get; private set; }
+    public bool IsAvailable { get; private set; }
 
     internal static CommerceCartItem Create(Guid cartId, CommerceCartItemSnapshot x) => new()
     {
         Id = Guid.NewGuid(), CartId = cartId, ProviderKey = Normalize(x.ProviderKey),
         SellerKey = Normalize(x.SellerKey), ProductKey = x.ProductKey.Trim(), OfferKey = x.OfferKey.Trim(),
-        PurchaseOptionKey = Normalize(x.PurchaseOptionKey), Title = x.Title.Trim(), OfferTitle = x.OfferTitle.Trim(),
-        Quantity = x.Quantity, ExpectedUnitPriceMinor = x.ExpectedUnitPriceMinor
+        PurchaseOptionKey = Normalize(x.PurchaseOptionKey), Title = x.Title.Trim(),
+        SellerTitle = x.SellerTitle.Trim(), ProductTitle = x.ProductTitle.Trim(),
+        ProductImageUrl = string.IsNullOrWhiteSpace(x.ProductImageUrl) ? null : x.ProductImageUrl.Trim(),
+        OptionTitle = x.OptionTitle.Trim(), OfferTitle = x.OfferTitle.Trim(),
+        Quantity = x.Quantity, ExpectedUnitPriceMinor = x.ExpectedUnitPriceMinor,
+        OriginalUnitPriceMinor = x.OriginalUnitPriceMinor, IsAvailable = x.IsAvailable
     };
 
     internal bool IdentityEquals(CommerceCartItemSnapshot x) =>
         ProviderKey.Equals(x.ProviderKey, StringComparison.OrdinalIgnoreCase) &&
         SellerKey.Equals(x.SellerKey, StringComparison.OrdinalIgnoreCase) && ProductKey == x.ProductKey &&
         OfferKey == x.OfferKey && PurchaseOptionKey.Equals(x.PurchaseOptionKey, StringComparison.OrdinalIgnoreCase);
-    internal void Replace(int quantity, long price, string title, string offerTitle)
-    { Quantity = quantity; ExpectedUnitPriceMinor = price; Title = title.Trim(); OfferTitle = offerTitle.Trim(); }
+    internal void Replace(CommerceCartItemSnapshot item)
+    {
+        Quantity = item.Quantity;
+        ExpectedUnitPriceMinor = item.ExpectedUnitPriceMinor;
+        OriginalUnitPriceMinor = item.OriginalUnitPriceMinor;
+        IsAvailable = item.IsAvailable;
+        Title = item.Title.Trim();
+        SellerTitle = item.SellerTitle.Trim();
+        ProductTitle = item.ProductTitle.Trim();
+        ProductImageUrl = string.IsNullOrWhiteSpace(item.ProductImageUrl) ? null : item.ProductImageUrl.Trim();
+        OptionTitle = item.OptionTitle.Trim();
+        OfferTitle = item.OfferTitle.Trim();
+    }
     internal void ChangeQuantity(int quantity)
     {
         if (quantity is <= 0 or > 100) throw new CommerceDomainException("تعداد آیتم معتبر نیست", "INVALID_QUANTITY");
@@ -117,8 +138,9 @@ public sealed class CommerceCartItem
 }
 
 public sealed record CommerceCartItemSnapshot(string ProviderKey, string SellerKey, string ProductKey,
-    string OfferKey, string PurchaseOptionKey, string Title, string OfferTitle, int Quantity,
-    long ExpectedUnitPriceMinor);
+    string OfferKey, string PurchaseOptionKey, string Title, string SellerTitle, string ProductTitle,
+    string? ProductImageUrl, string OptionTitle, string OfferTitle, int Quantity,
+    long ExpectedUnitPriceMinor, long OriginalUnitPriceMinor, bool IsAvailable = true);
 
 public sealed class CommerceOrder
 {

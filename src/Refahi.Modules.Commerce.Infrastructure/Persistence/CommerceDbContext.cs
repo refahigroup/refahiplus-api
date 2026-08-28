@@ -30,6 +30,8 @@ public sealed class CommerceDbContext(DbContextOptions<CommerceDbContext> option
             x.Property(v => v.ProviderKey).HasMaxLength(80); x.Property(v => v.SellerKey).HasMaxLength(200);
             x.Property(v => v.ProductKey).HasMaxLength(300); x.Property(v => v.OfferKey).HasMaxLength(300);
             x.Property(v => v.PurchaseOptionKey).HasMaxLength(80); x.Property(v => v.Title).HasMaxLength(500);
+            x.Property(v => v.SellerTitle).HasMaxLength(300); x.Property(v => v.ProductTitle).HasMaxLength(500);
+            x.Property(v => v.ProductImageUrl).HasMaxLength(2000); x.Property(v => v.OptionTitle).HasMaxLength(300);
             x.Property(v => v.OfferTitle).HasMaxLength(500);
             x.HasIndex(v => new { v.CartId, v.ProviderKey, v.ProductKey, v.OfferKey, v.PurchaseOptionKey }).IsUnique();
         });

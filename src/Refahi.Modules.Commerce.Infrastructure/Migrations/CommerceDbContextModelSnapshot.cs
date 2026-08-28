@@ -64,6 +64,9 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
                     b.Property<long>("ExpectedUnitPriceMinor")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("OfferKey")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -74,10 +77,27 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("OptionTitle")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<long>("OriginalUnitPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ProductImageUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("ProductKey")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<string>("ProductTitle")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ProviderKey")
                         .IsRequired()
@@ -96,6 +116,11 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SellerTitle")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()

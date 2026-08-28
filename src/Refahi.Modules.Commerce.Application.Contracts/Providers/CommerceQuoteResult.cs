@@ -6,12 +6,15 @@ public sealed record CommerceQuoteResult(
     string ProductKey, 
     string OfferKey,
     string PurchaseOptionKey, 
+    string SellerTitle,
     string ProductTitle, 
+    string? ProductImageUrl,
     string OfferTitle, 
     string OptionTitle, 
     string CategoryCode,
     int Quantity, 
-    long UnitPriceMinor, 
+    long UnitPriceMinor,
+    long OriginalUnitPriceMinor,
     int? Capacity, 
     string ProviderPayloadJson
 );

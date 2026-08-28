@@ -31,9 +31,14 @@ public sealed class AddCommerceCartItemCommandHandler(ICommerceRepository reposi
             quote.OfferKey,
             quote.PurchaseOptionKey,
             $"{quote.ProductTitle} - {quote.OptionTitle}",
+            quote.SellerTitle,
+            quote.ProductTitle,
+            quote.ProductImageUrl,
+            quote.OptionTitle,
             quote.OfferTitle,
             request.Quantity,
-            quote.UnitPriceMinor
+            quote.UnitPriceMinor,
+            quote.OriginalUnitPriceMinor
         ));
 
         await repository.SaveChangesAsync(ct); return Mapper.Map(cart);

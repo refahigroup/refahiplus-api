@@ -15,7 +15,7 @@ public sealed class AabsarCommerceProviderTests
         var api = new FakeAabsarApi();
         var provider = new AabsarCommerceProvider(api);
 
-        var page = await provider.GetProductsAsync(new(null, null, 1, 20), default);
+        var page = await provider.GetProductsAsync(new(null, null, null, 1, 20), default);
 
         var product = Assert.Single(page.Items);
         Assert.Equal("event-opaque", product.ProductKey);
@@ -35,7 +35,36 @@ public sealed class AabsarCommerceProviderTests
         var quote = await provider.QuoteAsync(new("event-opaque", "showtime-opaque", "child", 2), default);
         Assert.Equal(75_000, quote.UnitPriceMinor);
         Assert.Equal(5, quote.Capacity);
+        Assert.Equal("مجموعه آبی آبسار", quote.SellerTitle);
+        Assert.False(string.IsNullOrWhiteSpace(quote.ProductImageUrl));
+        Assert.Equal(75_000, quote.OriginalUnitPriceMinor);
         Assert.Contains("showtime_id", quote.ProviderPayloadJson);
+    }
+
+    [Fact]
+    public async Task Seller_lookup_maps_address_and_location_and_rejects_another_seller()
+    {
+        var provider = new AabsarCommerceProvider(new FakeAabsarApi());
+
+        var seller = await provider.GetSellerAsync("AABSAR", default);
+
+        Assert.NotNull(seller);
+        Assert.Equal("اصفهان", seller.Address.City);
+        Assert.InRange(seller.Address.Location!.Lat, -90, 90);
+        Assert.InRange(seller.Address.Location.Lng, -180, 180);
+        Assert.Null(await provider.GetSellerAsync("another-seller", default));
+    }
+
+    [Fact]
+    public async Task Product_catalog_is_scoped_to_requested_seller()
+    {
+        var provider = new AabsarCommerceProvider(new FakeAabsarApi());
+
+        var page = await provider.GetProductsAsync(new(null, null, "another-seller", 1, 20), default);
+
+        Assert.Empty(page.Items);
+        Assert.Equal(0, page.TotalCount);
+        Assert.Equal(0, page.TotalPages);
     }
 
     private sealed class FakeAabsarApi : IAabsarApiClient

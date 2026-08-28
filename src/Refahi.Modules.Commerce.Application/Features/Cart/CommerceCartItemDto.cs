@@ -7,10 +7,16 @@ public sealed record CommerceCartItemDto(
     string ProductKey,
     string OfferKey, 
     string PurchaseOptionKey, 
-    string Title, 
-    string OfferTitle, 
+    string Title,
+    string SellerTitle,
+    string ProductTitle,
+    string? ProductImageUrl,
+    string OptionTitle,
+    string OfferTitle,
     int Quantity, 
-    long UnitPriceMinor
+    long UnitPriceMinor,
+    long OriginalUnitPriceMinor,
+    bool IsAvailable
 );
 
 

@@ -47,6 +47,7 @@ public sealed class CancelCommerceOrderCommandHandler(ICommerceRepository reposi
             x.Items.Select(i => new CommerceOrderItemDto(
                 i.Id, 
                 i.ProviderKey, 
+                i.SellerKey,
                 i.Title, 
                 i.OfferTitle, 
                 i.PurchaseOptionKey, 

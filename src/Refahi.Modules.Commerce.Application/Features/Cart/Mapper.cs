@@ -18,9 +18,15 @@ internal static class Mapper
                     x.OfferKey,
                     x.PurchaseOptionKey, 
                     x.Title, 
+                    x.SellerTitle,
+                    x.ProductTitle,
+                    x.ProductImageUrl,
+                    x.OptionTitle,
                     x.OfferTitle, 
                     x.Quantity, 
-                    x.ExpectedUnitPriceMinor)
+                    x.ExpectedUnitPriceMinor,
+                    x.OriginalUnitPriceMinor,
+                    x.IsAvailable)
                 ).ToArray(),
                 cart.Items.Sum(x => checked(x.ExpectedUnitPriceMinor * x.Quantity))
             );
