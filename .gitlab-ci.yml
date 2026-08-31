@@ -10,15 +10,16 @@ runner-smoke:
     - refahiplus-docker
 
   script:
-    - echo "=== GitLab Runner Smoke Test ==="
-    - echo "Project: $CI_PROJECT_PATH"
-    - echo "Branch: $CI_COMMIT_REF_NAME"
-    - echo "Commit: $CI_COMMIT_SHA"
-    - echo "Runner: $CI_RUNNER_DESCRIPTION"
-    - echo "=== Docker Client/Server ==="
-    - docker version
-    - echo "=== Docker Info ==="
-    - docker info
+    - |
+      echo "=== GitLab Runner Smoke Test ==="
+      echo "Project: $CI_PROJECT_PATH"
+      echo "Branch: $CI_COMMIT_REF_NAME"
+      echo "Commit: $CI_COMMIT_SHA"
+      echo "Runner: $CI_RUNNER_DESCRIPTION"
+      echo "=== Docker Client/Server ==="
+      docker version
+      echo "=== Docker Info ==="
+      docker info
 
   rules:
     - when: always
