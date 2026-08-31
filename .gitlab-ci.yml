@@ -5,70 +5,30 @@ stages:
 
 workflow:
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: always
-    - if: '$CI_COMMIT_BRANCH == "staging"'
-      when: always
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "staging" || $CI_COMMIT_BRANCH == "dev"'
       when: always
     - when: never
 
 variables:
-  # ----------------------------------------------------------
-  # Project
-  # ----------------------------------------------------------
   SOLUTION: "Refahi.Backend.slnx"
   API_CSPROJ: "src/Refahi.Api/Refahi.Api.csproj"
   SERVICE_NAME: "api"
+
   PUBLISH_DIR: "publish/api"
 
-  # ----------------------------------------------------------
-  # NuGet
-  # Direct access to api.nuget.org is blocked/unstable.
-  # IranServer was the fastest healthy mirror in our test.
-  # ----------------------------------------------------------
-  NUGET_SOURCE: "https://nuget.iranserver.com/repository/nuget/index.json"
-  NUGET_PACKAGES: ".nuget/packages"
-  NUGET_XMLDOC_MODE: "skip"
-
-  # ----------------------------------------------------------
-  # .NET
-  # ----------------------------------------------------------
-  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
-  DOTNET_NOLOGO: "true"
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
-
-  # ----------------------------------------------------------
-  # Docker / BuildKit
-  # Prevent attestation manifest issue encountered with
-  # the local GitLab Registry.
-  # ----------------------------------------------------------
-  BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
-
-
 default:
-  tags:
-    - refahiplus-docker
-
   cache:
     key: "nuget-${CI_PROJECT_ID}"
     paths:
-      - .nuget/packages/
-    policy: pull-push
-
-
-# ============================================================
-# BUILD / TEST / PUBLISH
-# ============================================================
+      - .nuget/packages
 
 build_publish:
   stage: build
 
-  image: registry.refahi.xyz/refahi-devops/ci-cache/dotnet-sdk:10.0
+  image: mcr.microsoft.com/dotnet/sdk:10.0
 
   services:
-    - name: postgres:16-alpine
-      alias: postgres
+    - postgres:16-alpine
 
   variables:
     POSTGRES_DB: "refahi_wallets_tests"
@@ -76,304 +36,75 @@ build_publish:
     POSTGRES_PASSWORD: "refahi"
 
     REFAHI_WALLETS_TEST_CONNECTION: "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
-
   script:
+    - echo "Branch=$CI_COMMIT_BRANCH"
+
     - |
-      set -eu
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        ENV="prod"
+      elif [ "$CI_COMMIT_BRANCH" = "staging" ]; then
+        ENV="stage"
+      elif [ "$CI_COMMIT_BRANCH" = "dev" ]; then
+        ENV="dev"
+      else
+        ENV="dev"
+      fi
+      echo "ENV=$ENV" > build.env
+      echo "SERVICE_NAME=$SERVICE_NAME" >> build.env
 
-      echo "========================================"
-      echo " RefahiPlus API Pipeline"
-      echo "========================================"
-
-      echo "Project : $CI_PROJECT_PATH"
-      echo "Branch  : $CI_COMMIT_BRANCH"
-      echo "Commit  : $CI_COMMIT_SHA"
-
-      echo ""
-      echo "=== Resolve Environment ==="
-
-      case "$CI_COMMIT_BRANCH" in
-        main)
-          ENV="prod"
-          ;;
-        staging)
-          ENV="stage"
-          ;;
-        dev)
-          ENV="dev"
-          ;;
-        *)
-          echo "ERROR: Unsupported branch: $CI_COMMIT_BRANCH"
-          exit 1
-          ;;
-      esac
-
+    - |
       BUILD_VERSION="${ENV}-${CI_PIPELINE_IID}-${CI_COMMIT_SHORT_SHA}"
+      echo "BUILD_VERSION=$BUILD_VERSION" >> build.env
 
-      echo "Environment   : $ENV"
-      echo "Build version : $BUILD_VERSION"
+    - dotnet restore "./$SOLUTION" --packages .nuget/packages
+    - dotnet build "./$SOLUTION" -c Release --no-restore
+    - dotnet test "./tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" -c Release --no-build --no-restore
 
-      printf 'ENV=%s\n' "$ENV" > build.env
-      printf 'SERVICE_NAME=%s\n' "$SERVICE_NAME" >> build.env
-      printf 'BUILD_VERSION=%s\n' "$BUILD_VERSION" >> build.env
-
-      echo ""
-      echo "=== .NET SDK ==="
-
-      dotnet --version
-
-      echo ""
-      echo "=== NuGet Source ==="
-
-      echo "$NUGET_SOURCE"
-
-      echo ""
-      echo "=== Restore ==="
-
-      time dotnet restore "./$SOLUTION" \
-        --source "$NUGET_SOURCE" \
-        --packages "$NUGET_PACKAGES"
-
-      echo ""
-      echo "=== Build Solution ==="
-
-      time dotnet build "./$SOLUTION" \
-        --configuration Release \
-        --no-restore
-
-      echo ""
-      echo "=== Wallets Tests ==="
-
-      time dotnet test \
-        "./tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" \
-        --configuration Release \
-        --no-build \
-        --no-restore
-
-      echo ""
-      echo "=== Publish Refahi.Api ==="
-
-      rm -rf "./$PUBLISH_DIR"
-      mkdir -p "./$PUBLISH_DIR"
-
-      time dotnet publish "./$API_CSPROJ" \
-        --configuration Release \
-        --no-build \
-        --no-restore \
-        --output "./$PUBLISH_DIR"
-
-      echo ""
-      echo "=== Validate Publish Output ==="
-
-      test -f "./$PUBLISH_DIR/Refahi.Api.dll"
-
-      du -sh "./$PUBLISH_DIR"
-
-      echo ""
-      echo "========================================"
-      echo " Build / Test / Publish succeeded"
-      echo "========================================"
+    - dotnet publish "./$API_CSPROJ" -c Release --no-build --output "./$PUBLISH_DIR"
 
   artifacts:
-    name: "refahi-api-${CI_COMMIT_SHORT_SHA}"
-
-    expire_in: 1 hour
-
+    expire_in: 1 day
     paths:
-      - publish/api/
-
+      - $PUBLISH_DIR
     reports:
       dotenv: build.env
-
-
-# ============================================================
-# DOCKER BUILD + PUSH
-#
-# Important:
-# The original project Dockerfile performs dotnet restore again.
-# We intentionally DO NOT use its build stage here.
-#
-# The application was already restored/built/published in the
-# previous job, so this job creates a runtime-only image.
-# ============================================================
 
 docker_build_push:
   stage: docker
 
-  image: registry.refahi.xyz/refahi-devops/ci-cache/docker:27
+  image: docker:29.7.2-cli
 
   needs:
     - job: build_publish
       artifacts: true
 
   variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
-
-  before_script:
-    - |
-      set -eu
-
-      echo "========================================"
-      echo " Container Registry"
-      echo "========================================"
-
-      echo "Registry : $CI_REGISTRY"
-      echo "Project  : $CI_REGISTRY_IMAGE"
-
-      echo "$CI_REGISTRY_PASSWORD" | \
-        docker login "$CI_REGISTRY" \
-          --username "$CI_REGISTRY_USER" \
-          --password-stdin
-
+    DOCKER_HOST: "unix:///var/run/docker.sock" 
   script:
-    - |
-      set -eu
-
-      echo ""
-      echo "=== Validate Build Variables ==="
-
-      if [ -z "${ENV:-}" ]; then
-        echo "ERROR: ENV was not received from build_publish."
-        exit 1
-      fi
-
-      if [ -z "${BUILD_VERSION:-}" ]; then
-        echo "ERROR: BUILD_VERSION was not received from build_publish."
-        exit 1
-      fi
-
-      IMAGE_ENV="$CI_REGISTRY_IMAGE:$ENV"
-      IMAGE_VER="$CI_REGISTRY_IMAGE:$BUILD_VERSION"
-
-      echo "Environment image : $IMAGE_ENV"
-      echo "Version image     : $IMAGE_VER"
-
-      echo ""
-      echo "=== Validate Published Application ==="
-
-      test -f "./$PUBLISH_DIR/Refahi.Api.dll"
-
-      du -sh "./$PUBLISH_DIR"
-
-      echo ""
-      echo "=== Create Runtime-only Dockerfile ==="
-
-      cat > "./$PUBLISH_DIR/Dockerfile.ci" <<'EOF'
-      FROM mcr.microsoft.com/dotnet/aspnet:10.0
-
-      WORKDIR /app
-
-      EXPOSE 8080
-
-      COPY . .
-
-      ENTRYPOINT ["dotnet", "Refahi.Api.dll"]
-      EOF
-
-      echo ""
-      echo "=== Docker Version ==="
-
-      docker version
-
-      echo ""
-      echo "=== Docker Build ==="
-
-      time docker build \
-        --provenance=false \
-        --file "./$PUBLISH_DIR/Dockerfile.ci" \
-        --tag "$IMAGE_ENV" \
-        --tag "$IMAGE_VER" \
-        "./$PUBLISH_DIR"
-
-      echo ""
-      echo "=== Push Versioned Image ==="
-
-      time docker push "$IMAGE_VER"
-
-      echo ""
-      echo "=== Push Environment Image ==="
-
-      time docker push "$IMAGE_ENV"
-
-      echo ""
-      echo "========================================"
-      echo " Docker image published successfully"
-      echo "========================================"
-
-      echo "Environment : $IMAGE_ENV"
-      echo "Version     : $IMAGE_VER"
-
-  after_script:
-    - |
-      echo ""
-      echo "=== Local Docker Cleanup ==="
-
-      if [ -n "${ENV:-}" ] && [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
-        docker image rm \
-          "$CI_REGISTRY_IMAGE:$ENV" \
-          >/dev/null 2>&1 || true
-      fi
-
-      if [ -n "${BUILD_VERSION:-}" ] && [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
-        docker image rm \
-          "$CI_REGISTRY_IMAGE:$BUILD_VERSION" \
-          >/dev/null 2>&1 || true
-      fi
-
-      docker logout "$CI_REGISTRY" >/dev/null 2>&1 || true
-
-
-# ============================================================
-# OPTIONAL DEPLOY AGENT NOTIFICATION
-#
-# This job runs only when both GitLab CI variables exist:
-#
-# DEPLOY_AGENT_URL
-# DEPLOY_AGENT_TOKEN
-# ============================================================
+    - docker version
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - export IMAGE_ENV="$CI_REGISTRY_IMAGE:$ENV"
+    - export IMAGE_VER="$CI_REGISTRY_IMAGE:$BUILD_VERSION"
+    - docker build -f ./src/Refahi.Api/Dockerfile -t "$IMAGE_ENV" -t "$IMAGE_VER" .
+    - docker push "$IMAGE_ENV"
+    - docker push "$IMAGE_VER"
 
 notify_deploy_agent:
   stage: notify
-
   image: curlimages/curl:8.6.0
-
   needs:
     - job: build_publish
       artifacts: true
-
     - job: docker_build_push
-
   rules:
     - if: '$DEPLOY_AGENT_URL && $DEPLOY_AGENT_TOKEN'
       when: on_success
-
     - when: never
-
   script:
     - |
-      set -eu
-
-      echo "========================================"
-      echo " Notify Deploy Agent"
-      echo "========================================"
-
-      echo "Service : $SERVICE_NAME"
-      echo "Env     : $ENV"
-      echo "Version : $BUILD_VERSION"
-
-      curl \
-        --fail \
-        --silent \
-        --show-error \
-        --request POST \
-        "$DEPLOY_AGENT_URL" \
-        --header "Content-Type: application/json" \
-        --header "Authorization: Bearer $DEPLOY_AGENT_TOKEN" \
-        --data "{
-          \"service\": \"$SERVICE_NAME\",
-          \"env\": \"$ENV\"
-        }" \
+      echo "Notify deploy-agent: service=$SERVICE_NAME env=$ENV"
+      curl -sS -X POST "$DEPLOY_AGENT_URL" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $DEPLOY_AGENT_TOKEN" \
+        --data "{\"service\":\"$SERVICE_NAME\",\"env\":\"$ENV\"}" \
         --max-time 180
-
-      echo ""
-      echo "Deploy agent notified successfully."
