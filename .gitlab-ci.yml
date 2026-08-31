@@ -1,65 +1,88 @@
 stages:
   - build
-  - image
-
-
-# ============================================================
-# Pipeline rules
-# Equivalent to the previous GitHub Actions triggers:
-#
-#   main    -> prod
-#   staging -> stage
-# ============================================================
+  - docker
+  - notify
 
 workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: always
     - when: never
 
+variables:
+  # ----------------------------------------------------------
+  # Project
+  # ----------------------------------------------------------
+  SOLUTION: "Refahi.Backend.slnx"
+  API_CSPROJ: "src/Refahi.Api/Refahi.Api.csproj"
+  SERVICE_NAME: "api"
+  PUBLISH_DIR: "publish/api"
 
-# ============================================================
-# Default Runner
-# ============================================================
+  # ----------------------------------------------------------
+  # NuGet
+  # Direct access to api.nuget.org is blocked/unstable.
+  # IranServer was the fastest healthy mirror in our test.
+  # ----------------------------------------------------------
+  NUGET_SOURCE: "https://nuget.iranserver.com/repository/nuget/index.json"
+  NUGET_PACKAGES: ".nuget/packages"
+  NUGET_XMLDOC_MODE: "skip"
+
+  # ----------------------------------------------------------
+  # .NET
+  # ----------------------------------------------------------
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+
+  # ----------------------------------------------------------
+  # Docker / BuildKit
+  # Prevent attestation manifest issue encountered with
+  # the local GitLab Registry.
+  # ----------------------------------------------------------
+  BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+
 
 default:
   tags:
     - refahiplus-docker
 
-
-# ============================================================
-# Global variables
-# ============================================================
-
-variables:
-  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
-  DOTNET_NOLOGO: "true"
-
-  # Persist NuGet packages on the GitLab Runner host.
-  # Runner already has /cache mounted.
-  NUGET_PACKAGES: "/cache/nuget"
-
-  # Prevent BuildKit provenance/attestation issue with
-  # the local GitLab Container Registry.
-  BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+  cache:
+    key: "nuget-${CI_PROJECT_ID}"
+    paths:
+      - .nuget/packages/
+    policy: pull-push
 
 
 # ============================================================
-# Stage 1
-# Restore -> Build -> Publish
+# BUILD / TEST / PUBLISH
 # ============================================================
 
-dotnet-build:
+build_publish:
   stage: build
 
-  image: mcr.microsoft.com/dotnet/sdk:10.0
+  image: registry.refahi.xyz/refahi-devops/ci-cache/dotnet-sdk:10.0
+
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+
+  variables:
+    POSTGRES_DB: "refahi_wallets_tests"
+    POSTGRES_USER: "refahi"
+    POSTGRES_PASSWORD: "refahi"
+
+    REFAHI_WALLETS_TEST_CONNECTION: "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
 
   script:
     - |
       set -eu
 
       echo "========================================"
-      echo " RefahiPlus API Build"
+      echo " RefahiPlus API Pipeline"
       echo "========================================"
 
       echo "Project : $CI_PROJECT_PATH"
@@ -67,109 +90,135 @@ dotnet-build:
       echo "Commit  : $CI_COMMIT_SHA"
 
       echo ""
+      echo "=== Resolve Environment ==="
+
+      case "$CI_COMMIT_BRANCH" in
+        main)
+          ENV="prod"
+          ;;
+        staging)
+          ENV="stage"
+          ;;
+        dev)
+          ENV="dev"
+          ;;
+        *)
+          echo "ERROR: Unsupported branch: $CI_COMMIT_BRANCH"
+          exit 1
+          ;;
+      esac
+
+      BUILD_VERSION="${ENV}-${CI_PIPELINE_IID}-${CI_COMMIT_SHORT_SHA}"
+
+      echo "Environment   : $ENV"
+      echo "Build version : $BUILD_VERSION"
+
+      printf 'ENV=%s\n' "$ENV" > build.env
+      printf 'SERVICE_NAME=%s\n' "$SERVICE_NAME" >> build.env
+      printf 'BUILD_VERSION=%s\n' "$BUILD_VERSION" >> build.env
+
+      echo ""
       echo "=== .NET SDK ==="
 
       dotnet --version
 
       echo ""
-      echo "=== Configure outbound proxy ==="
+      echo "=== NuGet Source ==="
 
-      if [ -z "${OUTBOUND_PROXY:-}" ]; then
-        echo "ERROR: OUTBOUND_PROXY GitLab CI variable is not configured."
-        exit 1
-      fi
-
-      #export HTTP_PROXY="$OUTBOUND_PROXY"
-      #export HTTPS_PROXY="$OUTBOUND_PROXY"
-      #export http_proxy="$OUTBOUND_PROXY"
-      #export https_proxy="$OUTBOUND_PROXY"
-
-      export NO_PROXY="localhost,127.0.0.1,git.refahi.xyz,registry.refahi.xyz"
-      export no_proxy="$NO_PROXY"
-
-      echo "Outbound proxy configured."
-
-      echo ""
-      echo "=== NuGet Sources ==="
-
-      dotnet nuget list source \
-	  --configfile ./NuGet.CI.Config
+      echo "$NUGET_SOURCE"
 
       echo ""
       echo "=== Restore ==="
 
-      dotnet restore \
-        ./Refahi.Backend.slnx \
-	 --configfile ./NuGet.CI.Config
+      time dotnet restore "./$SOLUTION" \
+        --source "$NUGET_SOURCE" \
+        --packages "$NUGET_PACKAGES"
 
       echo ""
       echo "=== Build Solution ==="
 
-      dotnet build \
-        ./Refahi.Backend.slnx \
+      time dotnet build "./$SOLUTION" \
         --configuration Release \
+        --no-restore
+
+      echo ""
+      echo "=== Wallets Tests ==="
+
+      time dotnet test \
+        "./tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" \
+        --configuration Release \
+        --no-build \
         --no-restore
 
       echo ""
       echo "=== Publish Refahi.Api ==="
 
-      rm -rf .publish/api
-      mkdir -p .publish/api
+      rm -rf "./$PUBLISH_DIR"
+      mkdir -p "./$PUBLISH_DIR"
 
-      dotnet publish \
-        ./src/Refahi.Api/Refahi.Api.csproj \
+      time dotnet publish "./$API_CSPROJ" \
         --configuration Release \
         --no-build \
         --no-restore \
-        --output "$CI_PROJECT_DIR/.publish/api"
+        --output "./$PUBLISH_DIR"
 
       echo ""
-      echo "=== Publish output ==="
+      echo "=== Validate Publish Output ==="
 
-      du -sh .publish/api
+      test -f "./$PUBLISH_DIR/Refahi.Api.dll"
+
+      du -sh "./$PUBLISH_DIR"
 
       echo ""
-      echo "=== Build completed successfully ==="
+      echo "========================================"
+      echo " Build / Test / Publish succeeded"
+      echo "========================================"
 
   artifacts:
-    name: "refahi-api-$CI_COMMIT_SHORT_SHA"
-    paths:
-      - .publish/api/
+    name: "refahi-api-${CI_COMMIT_SHORT_SHA}"
+
     expire_in: 1 hour
 
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    paths:
+      - publish/api/
+
+    reports:
+      dotenv: build.env
 
 
 # ============================================================
-# Stage 2
-# Build Runtime Docker Image -> Push Local Registry
+# DOCKER BUILD + PUSH
 #
 # Important:
-# We DO NOT execute dotnet restore/build inside Docker again.
-# The published artifact from the previous job is used directly.
+# The original project Dockerfile performs dotnet restore again.
+# We intentionally DO NOT use its build stage here.
+#
+# The application was already restored/built/published in the
+# previous job, so this job creates a runtime-only image.
 # ============================================================
 
-docker-image:
-  stage: image
+docker_build_push:
+  stage: docker
 
-  image: docker:29.7.2-cli
+  image: registry.refahi.xyz/refahi-devops/ci-cache/docker:27
 
   needs:
-    - job: dotnet-build
+    - job: build_publish
       artifacts: true
+
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"
 
   before_script:
     - |
       set -eu
 
       echo "========================================"
-      echo " GitLab Container Registry"
+      echo " Container Registry"
       echo "========================================"
 
       echo "Registry : $CI_REGISTRY"
-      echo "Image    : $CI_REGISTRY_IMAGE"
+      echo "Project  : $CI_REGISTRY_IMAGE"
 
       echo "$CI_REGISTRY_PASSWORD" | \
         docker login "$CI_REGISTRY" \
@@ -181,37 +230,35 @@ docker-image:
       set -eu
 
       echo ""
-      echo "=== Resolve Environment ==="
+      echo "=== Validate Build Variables ==="
 
-      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
-        ENV_TAG="prod"
-      elif [ "$CI_COMMIT_BRANCH" = "staging" ]; then
-        ENV_TAG="stage"
-      else
-        echo "Unsupported branch: $CI_COMMIT_BRANCH"
+      if [ -z "${ENV:-}" ]; then
+        echo "ERROR: ENV was not received from build_publish."
         exit 1
       fi
 
-      SHA_TAG="$CI_COMMIT_SHORT_SHA"
+      if [ -z "${BUILD_VERSION:-}" ]; then
+        echo "ERROR: BUILD_VERSION was not received from build_publish."
+        exit 1
+      fi
 
-      ENV_IMAGE="$CI_REGISTRY_IMAGE:$ENV_TAG"
-      SHA_IMAGE="$CI_REGISTRY_IMAGE:$SHA_TAG"
+      IMAGE_ENV="$CI_REGISTRY_IMAGE:$ENV"
+      IMAGE_VER="$CI_REGISTRY_IMAGE:$BUILD_VERSION"
 
-      echo "Environment : $ENV_TAG"
-      echo "SHA image   : $SHA_IMAGE"
-      echo "Env image   : $ENV_IMAGE"
+      echo "Environment image : $IMAGE_ENV"
+      echo "Version image     : $IMAGE_VER"
 
       echo ""
       echo "=== Validate Published Application ==="
 
-      test -f .publish/api/Refahi.Api.dll
+      test -f "./$PUBLISH_DIR/Refahi.Api.dll"
 
-      du -sh .publish/api
+      du -sh "./$PUBLISH_DIR"
 
       echo ""
-      echo "=== Create Runtime Dockerfile ==="
+      echo "=== Create Runtime-only Dockerfile ==="
 
-      cat > .publish/api/Dockerfile.ci <<'EOF'
+      cat > "./$PUBLISH_DIR/Dockerfile.ci" <<'EOF'
       FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
       WORKDIR /app
@@ -224,57 +271,109 @@ docker-image:
       EOF
 
       echo ""
-      echo "=== Docker Build ==="
+      echo "=== Docker Version ==="
 
-      docker build \
-        --provenance=false \
-        --file .publish/api/Dockerfile.ci \
-        --tag "$SHA_IMAGE" \
-        --tag "$ENV_IMAGE" \
-        .publish/api
+      docker version
 
       echo ""
-      echo "=== Push Immutable SHA Image ==="
+      echo "=== Docker Build ==="
 
-      docker push "$SHA_IMAGE"
+      time docker build \
+        --provenance=false \
+        --file "./$PUBLISH_DIR/Dockerfile.ci" \
+        --tag "$IMAGE_ENV" \
+        --tag "$IMAGE_VER" \
+        "./$PUBLISH_DIR"
+
+      echo ""
+      echo "=== Push Versioned Image ==="
+
+      time docker push "$IMAGE_VER"
 
       echo ""
       echo "=== Push Environment Image ==="
 
-      docker push "$ENV_IMAGE"
+      time docker push "$IMAGE_ENV"
 
       echo ""
       echo "========================================"
-      echo " Docker Image Published Successfully"
+      echo " Docker image published successfully"
       echo "========================================"
 
-      echo "Immutable : $SHA_IMAGE"
-      echo "Environment: $ENV_IMAGE"
+      echo "Environment : $IMAGE_ENV"
+      echo "Version     : $IMAGE_VER"
 
   after_script:
     - |
       echo ""
       echo "=== Local Docker Cleanup ==="
 
-      if [ -n "${CI_REGISTRY_IMAGE:-}" ] && \
-         [ -n "${CI_COMMIT_SHORT_SHA:-}" ]; then
-
+      if [ -n "${ENV:-}" ] && [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
         docker image rm \
-          "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+          "$CI_REGISTRY_IMAGE:$ENV" \
           >/dev/null 2>&1 || true
       fi
 
-      if [ "${CI_COMMIT_BRANCH:-}" = "main" ]; then
+      if [ -n "${BUILD_VERSION:-}" ] && [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
         docker image rm \
-          "$CI_REGISTRY_IMAGE:prod" \
-          >/dev/null 2>&1 || true
-
-      elif [ "${CI_COMMIT_BRANCH:-}" = "staging" ]; then
-        docker image rm \
-          "$CI_REGISTRY_IMAGE:stage" \
+          "$CI_REGISTRY_IMAGE:$BUILD_VERSION" \
           >/dev/null 2>&1 || true
       fi
+
+      docker logout "$CI_REGISTRY" >/dev/null 2>&1 || true
+
+
+# ============================================================
+# OPTIONAL DEPLOY AGENT NOTIFICATION
+#
+# This job runs only when both GitLab CI variables exist:
+#
+# DEPLOY_AGENT_URL
+# DEPLOY_AGENT_TOKEN
+# ============================================================
+
+notify_deploy_agent:
+  stage: notify
+
+  image: curlimages/curl:8.6.0
+
+  needs:
+    - job: build_publish
+      artifacts: true
+
+    - job: docker_build_push
 
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$DEPLOY_AGENT_URL && $DEPLOY_AGENT_TOKEN'
+      when: on_success
+
+    - when: never
+
+  script:
+    - |
+      set -eu
+
+      echo "========================================"
+      echo " Notify Deploy Agent"
+      echo "========================================"
+
+      echo "Service : $SERVICE_NAME"
+      echo "Env     : $ENV"
+      echo "Version : $BUILD_VERSION"
+
+      curl \
+        --fail \
+        --silent \
+        --show-error \
+        --request POST \
+        "$DEPLOY_AGENT_URL" \
+        --header "Content-Type: application/json" \
+        --header "Authorization: Bearer $DEPLOY_AGENT_TOKEN" \
+        --data "{
+          \"service\": \"$SERVICE_NAME\",
+          \"env\": \"$ENV\"
+        }" \
+        --max-time 180
+
+      echo ""
+      echo "Deploy agent notified successfully."
