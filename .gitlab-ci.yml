@@ -17,10 +17,14 @@ variables:
   PUBLISH_DIR: "publish/api"
 
 default:
+  tags:
+    - refahiplus-docker
+
   cache:
     key: "nuget-${CI_PROJECT_ID}"
     paths:
-      - .nuget/packages
+      - .nuget/packages/
+    policy: pull-push
 
 build_publish:
   stage: build
