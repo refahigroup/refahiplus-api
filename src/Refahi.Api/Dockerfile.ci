@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM registry.refahi.xyz/refahigroup/refahiplus/api/ci/aspnet:10.0
 
 WORKDIR /app
 
