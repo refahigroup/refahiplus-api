@@ -79,10 +79,10 @@ dotnet-build:
         exit 1
       fi
 
-      export HTTP_PROXY="$OUTBOUND_PROXY"
-      export HTTPS_PROXY="$OUTBOUND_PROXY"
-      export http_proxy="$OUTBOUND_PROXY"
-      export https_proxy="$OUTBOUND_PROXY"
+      #export HTTP_PROXY="$OUTBOUND_PROXY"
+      #export HTTPS_PROXY="$OUTBOUND_PROXY"
+      #export http_proxy="$OUTBOUND_PROXY"
+      #export https_proxy="$OUTBOUND_PROXY"
 
       export NO_PROXY="localhost,127.0.0.1,git.refahi.xyz,registry.refahi.xyz"
       export no_proxy="$NO_PROXY"
@@ -92,13 +92,15 @@ dotnet-build:
       echo ""
       echo "=== NuGet Sources ==="
 
-      dotnet nuget list source
+      dotnet nuget list source \
+	  --configfile ./NuGet.CI.Config
 
       echo ""
       echo "=== Restore ==="
 
       dotnet restore \
-        ./Refahi.Backend.slnx
+        ./Refahi.Backend.slnx \
+	 --configfile ./NuGet.CI.Config
 
       echo ""
       echo "=== Build Solution ==="
