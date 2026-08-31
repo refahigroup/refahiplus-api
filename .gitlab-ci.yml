@@ -1,49 +1,116 @@
-registry-smoke:
-  stage: registry
+stages:
+  - smoke
+  - registry
 
+default:
   image: docker:29.7.2-cli
 
   tags:
     - refahiplus-docker
 
+variables:
+  # Prevent BuildKit attestation/provenance manifests that currently
+  # cause "blob unknown to registry" with our GitLab Registry setup.
+  BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+
+
+# ------------------------------------------------------------
+# Runner / Docker Smoke Test
+# ------------------------------------------------------------
+
+runner-smoke:
+  stage: smoke
+
+  script:
+    - |
+      echo "=== GitLab Runner Smoke Test ==="
+      echo "Project: $CI_PROJECT_PATH"
+      echo "Branch: $CI_COMMIT_REF_NAME"
+      echo "Commit: $CI_COMMIT_SHA"
+      echo "Runner: $CI_RUNNER_DESCRIPTION"
+
+      echo ""
+      echo "=== Docker Client / Server ==="
+      docker version
+
+      echo ""
+      echo "=== Docker Host ==="
+      docker info
+
+  rules:
+    - when: always
+
+
+# ------------------------------------------------------------
+# Local GitLab Container Registry Smoke Test
+# ------------------------------------------------------------
+
+registry-smoke:
+  stage: registry
+
   variables:
     SMOKE_IMAGE: "$CI_REGISTRY_IMAGE:smoke-$CI_COMMIT_SHORT_SHA"
-    BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
 
   before_script:
     - |
       echo "=== Registry Information ==="
       echo "Registry: $CI_REGISTRY"
-      echo "Image: $CI_REGISTRY_IMAGE"
-      echo "Smoke image: $SMOKE_IMAGE"
+      echo "Registry Image: $CI_REGISTRY_IMAGE"
+      echo "Smoke Image: $SMOKE_IMAGE"
+
+      echo ""
+      echo "=== Registry Login ==="
 
       echo "$CI_REGISTRY_PASSWORD" | \
         docker login "$CI_REGISTRY" \
-        --username "$CI_REGISTRY_USER" \
-        --password-stdin
+          --username "$CI_REGISTRY_USER" \
+          --password-stdin
 
   script:
     - |
-      echo "=== Creating minimal smoke image ==="
+      set -eu
+
+      echo ""
+      echo "=== Creating Minimal Test Image ==="
 
       mkdir -p .ci-smoke
-      echo "RefahiPlus GitLab Registry Smoke Test" > .ci-smoke/message.txt
+
+      printf '%s\n' \
+        "RefahiPlus GitLab Registry Smoke Test" \
+        "Project: $CI_PROJECT_PATH" \
+        "Commit: $CI_COMMIT_SHA" \
+        > .ci-smoke/message.txt
 
       cat > .ci-smoke/Dockerfile <<'EOF'
       FROM scratch
       COPY message.txt /message.txt
       EOF
 
-      echo "=== Building ==="
+      echo ""
+      echo "=== Building Image ==="
 
       docker build \
+        --provenance=false \
         -f .ci-smoke/Dockerfile \
         -t "$SMOKE_IMAGE" \
         .ci-smoke
 
-      echo "=== Pushing ==="
+      echo ""
+      echo "=== Pushing Image ==="
 
       docker push "$SMOKE_IMAGE"
 
-      echo "=== Push succeeded ==="
-      echo "$SMOKE_IMAGE"
+      echo ""
+      echo "=== Registry Smoke Test Passed ==="
+      echo "Image: $SMOKE_IMAGE"
+
+  after_script:
+    - |
+      echo "=== Cleaning Local Smoke Image ==="
+
+      if [ -n "${SMOKE_IMAGE:-}" ]; then
+        docker image rm "$SMOKE_IMAGE" >/dev/null 2>&1 || true
+      fi
+
+  rules:
+    - when: on_success
