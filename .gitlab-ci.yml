@@ -1,5 +1,6 @@
 stages:
   - smoke
+  - registry
 
 runner-smoke:
   stage: smoke
@@ -16,10 +17,55 @@ runner-smoke:
       echo "Branch: $CI_COMMIT_REF_NAME"
       echo "Commit: $CI_COMMIT_SHA"
       echo "Runner: $CI_RUNNER_DESCRIPTION"
-      echo "=== Docker Client/Server ==="
-      docker version
-      echo "=== Docker Info ==="
-      docker info
 
-  rules:
-    - when: always
+      docker version
+
+registry-smoke:
+  stage: registry
+
+  image: docker:29.7.2-cli
+
+  tags:
+    - refahiplus-docker
+
+  variables:
+    SMOKE_IMAGE: "$CI_REGISTRY_IMAGE:smoke-$CI_COMMIT_SHORT_SHA"
+
+  before_script:
+    - |
+      echo "=== Registry Information ==="
+      echo "Registry: $CI_REGISTRY"
+      echo "Image: $CI_REGISTRY_IMAGE"
+      echo "Smoke image: $SMOKE_IMAGE"
+
+      echo "$CI_REGISTRY_PASSWORD" | \
+        docker login "$CI_REGISTRY" \
+        --username "$CI_REGISTRY_USER" \
+        --password-stdin
+
+  script:
+    - |
+      echo "=== Creating minimal smoke image ==="
+
+      mkdir -p .ci-smoke
+
+      echo "RefahiPlus GitLab Registry Smoke Test" > .ci-smoke/message.txt
+
+      cat > .ci-smoke/Dockerfile <<'EOF'
+      FROM scratch
+      COPY message.txt /message.txt
+      EOF
+
+      echo "=== Building ==="
+
+      docker build \
+        -f .ci-smoke/Dockerfile \
+        -t "$SMOKE_IMAGE" \
+        .ci-smoke
+
+      echo "=== Pushing ==="
+
+      docker push "$SMOKE_IMAGE"
+
+      echo "=== Push succeeded ==="
+      echo "$SMOKE_IMAGE"
