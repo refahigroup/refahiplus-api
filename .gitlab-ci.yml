@@ -225,7 +225,8 @@ docker_build_push:
       echo "=== Create Runtime Dockerfile ==="
 
       cat > "./$PUBLISH_DIR/Dockerfile.ci" <<'EOF'
-      FROM mcr.microsoft.com/dotnet/aspnet:10.0
+      FROM registry.refahi.xyz/refahigroup/refahiplus/api/ci/aspnet:10.0
+
 
       WORKDIR /app
 
