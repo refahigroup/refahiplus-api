@@ -1,65 +1,119 @@
 stages:
-  - smoke
-  - registry
+  - build
+  - image
+
+
+# ------------------------------------------------------------
+# Create pipelines only for the same branches that GitHub
+# Actions previously handled.
+# ------------------------------------------------------------
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "staging"'
+    - when: never
+
+
+# ------------------------------------------------------------
+# Global settings
+# ------------------------------------------------------------
 
 default:
-  image: docker:29.7.2-cli
-
   tags:
     - refahiplus-docker
 
+
 variables:
-  # Prevent BuildKit attestation/provenance manifests that currently
-  # cause "blob unknown to registry" with our GitLab Registry setup.
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "true"
+
+  # Workaround for GitLab Registry / BuildKit attestation issue.
   BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
 
 
 # ------------------------------------------------------------
-# Runner / Docker Smoke Test
+# .NET Build / Publish
+# Equivalent to:
+#   setup-dotnet
+#   dotnet restore
+#   dotnet build
+#   dotnet publish
 # ------------------------------------------------------------
 
-runner-smoke:
-  stage: smoke
+dotnet-build:
+  stage: build
+
+  image: mcr.microsoft.com/dotnet/sdk:9.0
 
   script:
     - |
-      echo "=== GitLab Runner Smoke Test ==="
+      set -eu
+
+      echo "=== RefahiPlus API Build ==="
       echo "Project: $CI_PROJECT_PATH"
-      echo "Branch: $CI_COMMIT_REF_NAME"
+      echo "Branch: $CI_COMMIT_BRANCH"
       echo "Commit: $CI_COMMIT_SHA"
-      echo "Runner: $CI_RUNNER_DESCRIPTION"
 
       echo ""
-      echo "=== Docker Client / Server ==="
-      docker version
+      echo "=== .NET Version ==="
+      dotnet --version
 
       echo ""
-      echo "=== Docker Host ==="
-      docker info
+      echo "=== Restore ==="
+      dotnet restore ./Refahi.Backend.slnx
+
+      echo ""
+      echo "=== Build Solution ==="
+      dotnet build \
+        ./Refahi.Backend.slnx \
+        --configuration Release
+
+      echo ""
+      echo "=== Publish Refahi.Api ==="
+      dotnet publish \
+        ./src/Refahi.Api/Refahi.Api.csproj \
+        --configuration Release \
+        --no-build
+
+      echo ""
+      echo "=== Build completed successfully ==="
+
+  artifacts:
+    paths:
+      - src/Refahi.Api/bin/Release/
+    expire_in: 1 hour
 
   rules:
-    - when: always
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
 
 
 # ------------------------------------------------------------
-# Local GitLab Container Registry Smoke Test
+# Docker Build / Push
+#
+# main    -> :prod
+# staging -> :stage
+#
+# Every build also gets an immutable commit tag.
 # ------------------------------------------------------------
 
-registry-smoke:
-  stage: registry
+docker-image:
+  stage: image
 
-  variables:
-    SMOKE_IMAGE: "$CI_REGISTRY_IMAGE:smoke-$CI_COMMIT_SHORT_SHA"
+  image: docker:29.7.2-cli
+
+  needs:
+    - job: dotnet-build
+      artifacts: true
 
   before_script:
     - |
-      echo "=== Registry Information ==="
-      echo "Registry: $CI_REGISTRY"
-      echo "Registry Image: $CI_REGISTRY_IMAGE"
-      echo "Smoke Image: $SMOKE_IMAGE"
+      set -eu
 
-      echo ""
-      echo "=== Registry Login ==="
+      echo "=== Container Registry Login ==="
+      echo "Registry: $CI_REGISTRY"
+      echo "Image: $CI_REGISTRY_IMAGE"
 
       echo "$CI_REGISTRY_PASSWORD" | \
         docker login "$CI_REGISTRY" \
@@ -70,47 +124,61 @@ registry-smoke:
     - |
       set -eu
 
-      echo ""
-      echo "=== Creating Minimal Test Image ==="
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        ENV_TAG="prod"
+      elif [ "$CI_COMMIT_BRANCH" = "staging" ]; then
+        ENV_TAG="stage"
+      else
+        echo "Unsupported branch: $CI_COMMIT_BRANCH"
+        exit 1
+      fi
 
-      mkdir -p .ci-smoke
+      SHA_TAG="$CI_COMMIT_SHORT_SHA"
 
-      printf '%s\n' \
-        "RefahiPlus GitLab Registry Smoke Test" \
-        "Project: $CI_PROJECT_PATH" \
-        "Commit: $CI_COMMIT_SHA" \
-        > .ci-smoke/message.txt
-
-      cat > .ci-smoke/Dockerfile <<'EOF'
-      FROM scratch
-      COPY message.txt /message.txt
-      EOF
+      ENV_IMAGE="$CI_REGISTRY_IMAGE:$ENV_TAG"
+      SHA_IMAGE="$CI_REGISTRY_IMAGE:$SHA_TAG"
 
       echo ""
-      echo "=== Building Image ==="
+      echo "=== Docker Build ==="
+      echo "Environment tag: $ENV_TAG"
+      echo "Environment image: $ENV_IMAGE"
+      echo "Immutable image: $SHA_IMAGE"
 
       docker build \
         --provenance=false \
-        -f .ci-smoke/Dockerfile \
-        -t "$SMOKE_IMAGE" \
-        .ci-smoke
+        -f ./src/Refahi.Api/Dockerfile \
+        -t "$ENV_IMAGE" \
+        -t "$SHA_IMAGE" \
+        .
 
       echo ""
-      echo "=== Pushing Image ==="
+      echo "=== Push immutable image ==="
 
-      docker push "$SMOKE_IMAGE"
+      docker push "$SHA_IMAGE"
 
       echo ""
-      echo "=== Registry Smoke Test Passed ==="
-      echo "Image: $SMOKE_IMAGE"
+      echo "=== Push environment image ==="
+
+      docker push "$ENV_IMAGE"
+
+      echo ""
+      echo "=== Docker image published successfully ==="
+      echo "$SHA_IMAGE"
+      echo "$ENV_IMAGE"
 
   after_script:
     - |
-      echo "=== Cleaning Local Smoke Image ==="
-
-      if [ -n "${SMOKE_IMAGE:-}" ]; then
-        docker image rm "$SMOKE_IMAGE" >/dev/null 2>&1 || true
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        ENV_TAG="prod"
+      else
+        ENV_TAG="stage"
       fi
 
+      docker image rm \
+        "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+        "$CI_REGISTRY_IMAGE:$ENV_TAG" \
+        >/dev/null 2>&1 || true
+
   rules:
-    - when: on_success
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
