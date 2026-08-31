@@ -3,10 +3,13 @@ stages:
   - image
 
 
-# ------------------------------------------------------------
-# Create pipelines only for the same branches that GitHub
-# Actions previously handled.
-# ------------------------------------------------------------
+# ============================================================
+# Pipeline rules
+# Equivalent to the previous GitHub Actions triggers:
+#
+#   main    -> prod
+#   staging -> stage
+# ============================================================
 
 workflow:
   rules:
@@ -15,31 +18,36 @@ workflow:
     - when: never
 
 
-# ------------------------------------------------------------
-# Global settings
-# ------------------------------------------------------------
+# ============================================================
+# Default Runner
+# ============================================================
 
 default:
   tags:
     - refahiplus-docker
 
 
+# ============================================================
+# Global variables
+# ============================================================
+
 variables:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "true"
 
-  # Workaround for GitLab Registry / BuildKit attestation issue.
+  # Persist NuGet packages on the GitLab Runner host.
+  # Runner already has /cache mounted.
+  NUGET_PACKAGES: "/cache/nuget"
+
+  # Prevent BuildKit provenance/attestation issue with
+  # the local GitLab Container Registry.
   BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
 
 
-# ------------------------------------------------------------
-# .NET Build / Publish
-# Equivalent to:
-#   setup-dotnet
-#   dotnet restore
-#   dotnet build
-#   dotnet publish
-# ------------------------------------------------------------
+# ============================================================
+# Stage 1
+# Restore -> Build -> Publish
+# ============================================================
 
 dotnet-build:
   stage: build
@@ -50,38 +58,82 @@ dotnet-build:
     - |
       set -eu
 
-      echo "=== RefahiPlus API Build ==="
-      echo "Project: $CI_PROJECT_PATH"
-      echo "Branch: $CI_COMMIT_BRANCH"
-      echo "Commit: $CI_COMMIT_SHA"
+      echo "========================================"
+      echo " RefahiPlus API Build"
+      echo "========================================"
+
+      echo "Project : $CI_PROJECT_PATH"
+      echo "Branch  : $CI_COMMIT_BRANCH"
+      echo "Commit  : $CI_COMMIT_SHA"
 
       echo ""
-      echo "=== .NET Version ==="
+      echo "=== .NET SDK ==="
+
       dotnet --version
 
       echo ""
+      echo "=== Configure outbound proxy ==="
+
+      if [ -z "${OUTBOUND_PROXY:-}" ]; then
+        echo "ERROR: OUTBOUND_PROXY GitLab CI variable is not configured."
+        exit 1
+      fi
+
+      export HTTP_PROXY="$OUTBOUND_PROXY"
+      export HTTPS_PROXY="$OUTBOUND_PROXY"
+      export http_proxy="$OUTBOUND_PROXY"
+      export https_proxy="$OUTBOUND_PROXY"
+
+      export NO_PROXY="localhost,127.0.0.1,git.refahi.xyz,registry.refahi.xyz"
+      export no_proxy="$NO_PROXY"
+
+      echo "Outbound proxy configured."
+
+      echo ""
+      echo "=== NuGet Sources ==="
+
+      dotnet nuget list source
+
+      echo ""
       echo "=== Restore ==="
-      dotnet restore ./Refahi.Backend.slnx
+
+      dotnet restore \
+        ./Refahi.Backend.slnx \
+        --disable-parallel
 
       echo ""
       echo "=== Build Solution ==="
+
       dotnet build \
         ./Refahi.Backend.slnx \
-        --configuration Release
+        --configuration Release \
+        --no-restore
 
       echo ""
       echo "=== Publish Refahi.Api ==="
+
+      rm -rf .publish/api
+      mkdir -p .publish/api
+
       dotnet publish \
         ./src/Refahi.Api/Refahi.Api.csproj \
         --configuration Release \
-        --no-build
+        --no-build \
+        --no-restore \
+        --output "$CI_PROJECT_DIR/.publish/api"
+
+      echo ""
+      echo "=== Publish output ==="
+
+      du -sh .publish/api
 
       echo ""
       echo "=== Build completed successfully ==="
 
   artifacts:
+    name: "refahi-api-$CI_COMMIT_SHORT_SHA"
     paths:
-      - src/Refahi.Api/bin/Release/
+      - .publish/api/
     expire_in: 1 hour
 
   rules:
@@ -89,14 +141,14 @@ dotnet-build:
     - if: '$CI_COMMIT_BRANCH == "staging"'
 
 
-# ------------------------------------------------------------
-# Docker Build / Push
+# ============================================================
+# Stage 2
+# Build Runtime Docker Image -> Push Local Registry
 #
-# main    -> :prod
-# staging -> :stage
-#
-# Every build also gets an immutable commit tag.
-# ------------------------------------------------------------
+# Important:
+# We DO NOT execute dotnet restore/build inside Docker again.
+# The published artifact from the previous job is used directly.
+# ============================================================
 
 docker-image:
   stage: image
@@ -111,9 +163,12 @@ docker-image:
     - |
       set -eu
 
-      echo "=== Container Registry Login ==="
-      echo "Registry: $CI_REGISTRY"
-      echo "Image: $CI_REGISTRY_IMAGE"
+      echo "========================================"
+      echo " GitLab Container Registry"
+      echo "========================================"
+
+      echo "Registry : $CI_REGISTRY"
+      echo "Image    : $CI_REGISTRY_IMAGE"
 
       echo "$CI_REGISTRY_PASSWORD" | \
         docker login "$CI_REGISTRY" \
@@ -123,6 +178,9 @@ docker-image:
   script:
     - |
       set -eu
+
+      echo ""
+      echo "=== Resolve Environment ==="
 
       if [ "$CI_COMMIT_BRANCH" = "main" ]; then
         ENV_TAG="prod"
@@ -138,46 +196,83 @@ docker-image:
       ENV_IMAGE="$CI_REGISTRY_IMAGE:$ENV_TAG"
       SHA_IMAGE="$CI_REGISTRY_IMAGE:$SHA_TAG"
 
+      echo "Environment : $ENV_TAG"
+      echo "SHA image   : $SHA_IMAGE"
+      echo "Env image   : $ENV_IMAGE"
+
+      echo ""
+      echo "=== Validate Published Application ==="
+
+      test -f .publish/api/Refahi.Api.dll
+
+      du -sh .publish/api
+
+      echo ""
+      echo "=== Create Runtime Dockerfile ==="
+
+      cat > .publish/api/Dockerfile.ci <<'EOF'
+      FROM mcr.microsoft.com/dotnet/aspnet:10.0
+
+      WORKDIR /app
+
+      EXPOSE 8080
+
+      COPY . .
+
+      ENTRYPOINT ["dotnet", "Refahi.Api.dll"]
+      EOF
+
       echo ""
       echo "=== Docker Build ==="
-      echo "Environment tag: $ENV_TAG"
-      echo "Environment image: $ENV_IMAGE"
-      echo "Immutable image: $SHA_IMAGE"
 
       docker build \
         --provenance=false \
-        -f ./src/Refahi.Api/Dockerfile \
-        -t "$ENV_IMAGE" \
-        -t "$SHA_IMAGE" \
-        .
+        --file .publish/api/Dockerfile.ci \
+        --tag "$SHA_IMAGE" \
+        --tag "$ENV_IMAGE" \
+        .publish/api
 
       echo ""
-      echo "=== Push immutable image ==="
+      echo "=== Push Immutable SHA Image ==="
 
       docker push "$SHA_IMAGE"
 
       echo ""
-      echo "=== Push environment image ==="
+      echo "=== Push Environment Image ==="
 
       docker push "$ENV_IMAGE"
 
       echo ""
-      echo "=== Docker image published successfully ==="
-      echo "$SHA_IMAGE"
-      echo "$ENV_IMAGE"
+      echo "========================================"
+      echo " Docker Image Published Successfully"
+      echo "========================================"
+
+      echo "Immutable : $SHA_IMAGE"
+      echo "Environment: $ENV_IMAGE"
 
   after_script:
     - |
-      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
-        ENV_TAG="prod"
-      else
-        ENV_TAG="stage"
+      echo ""
+      echo "=== Local Docker Cleanup ==="
+
+      if [ -n "${CI_REGISTRY_IMAGE:-}" ] && \
+         [ -n "${CI_COMMIT_SHORT_SHA:-}" ]; then
+
+        docker image rm \
+          "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+          >/dev/null 2>&1 || true
       fi
 
-      docker image rm \
-        "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
-        "$CI_REGISTRY_IMAGE:$ENV_TAG" \
-        >/dev/null 2>&1 || true
+      if [ "${CI_COMMIT_BRANCH:-}" = "main" ]; then
+        docker image rm \
+          "$CI_REGISTRY_IMAGE:prod" \
+          >/dev/null 2>&1 || true
+
+      elif [ "${CI_COMMIT_BRANCH:-}" = "staging" ]; then
+        docker image rm \
+          "$CI_REGISTRY_IMAGE:stage" \
+          >/dev/null 2>&1 || true
+      fi
 
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
