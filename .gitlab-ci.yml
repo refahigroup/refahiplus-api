@@ -46,10 +46,10 @@ default:
 build_publish:
   stage: build
 
-  image: registry.refahi.xyz/refahigroup/refahiplus/api/ci/dotnet-sdk:10.0
+  image: registry.refahi.xyz/platform/ci-images/dotnet-sdk:10.0
 
   services:
-    - name: registry.refahi.xyz/refahigroup/refahiplus/api/ci/postgres:16-alpine
+    - name: registry.refahi.xyz/platform/ci-images/postgres:16-alpine
       alias: postgres
 
   variables:
@@ -188,7 +188,7 @@ build_publish:
 docker_build_push:
   stage: docker
 
-  image: registry.refahi.xyz/refahigroup/refahiplus/api/ci/docker-cli:29.7.2
+  image: registry.refahi.xyz/platform/ci-images/docker-cli:29.7.2
 
   needs:
     - job: build_publish
@@ -225,7 +225,7 @@ docker_build_push:
       echo "=== Create Runtime Dockerfile ==="
 
       cat > "./$PUBLISH_DIR/Dockerfile.ci" <<'EOF'
-      FROM registry.refahi.xyz/refahigroup/refahiplus/api/ci/aspnet:10.0
+      FROM registry.refahi.xyz/platform/ci-images/aspnet:10.0
 
 
       WORKDIR /app
@@ -280,7 +280,7 @@ docker_build_push:
 notify_deploy_agent:
   stage: notify
 
-  image: registry.refahi.xyz/refahigroup/refahiplus/api/ci/curl:8.6.0
+  image: registry.refahi.xyz/platform/ci-images/curl:8.6.0
 
   needs:
     - job: build_publish
