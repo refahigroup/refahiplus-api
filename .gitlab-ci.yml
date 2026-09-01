@@ -43,6 +43,137 @@ default:
 # BUILD / TEST / PUBLISH
 # ============================================================
 
+build_publish:
+  stage: build
+
+  image: registry.refahi.xyz/platform/ci-images/dotnet-sdk:10.0
+
+  services:
+    - name: registry.refahi.xyz/platform/ci-images/postgres:16-alpine
+      alias: postgres
+
+  variables:
+    POSTGRES_DB: "refahi_wallets_tests"
+    POSTGRES_USER: "refahi"
+    POSTGRES_PASSWORD: "refahi"
+
+    ConnectionStrings__Default:
+      "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
+
+  script:
+    - |
+      set -eu
+
+      case "$CI_COMMIT_BRANCH" in
+        main)
+          ENV="prod"
+          ;;
+        staging)
+          ENV="stage"
+          ;;
+        dev)
+          ENV="dev"
+          ;;
+        *)
+          echo "Unsupported branch: $CI_COMMIT_BRANCH"
+          exit 1
+          ;;
+      esac
+
+      BUILD_VERSION="${ENV}-${CI_PIPELINE_IID}-${CI_COMMIT_SHORT_SHA}"
+
+      echo "ENV=$ENV" > build.env
+      echo "BUILD_VERSION=$BUILD_VERSION" >> build.env
+
+      echo "========================================"
+      echo " RefahiPlus API Build"
+      echo "========================================"
+      echo "Branch: $CI_COMMIT_BRANCH"
+      echo "Commit: $CI_COMMIT_SHA"
+      echo "Environment: $ENV"
+      echo "Version: $BUILD_VERSION"
+
+      echo ""
+      echo "=== .NET SDK ==="
+      dotnet --version
+
+      echo ""
+      echo "=== Create CI NuGet Config ==="
+
+      cat > NuGet.CI.Config <<EOF
+      <?xml version="1.0" encoding="utf-8"?>
+      <configuration>
+        <packageSources>
+          <clear />
+          <add key="Chabokan" value="${NUGET_SOURCE}" protocolVersion="3" />
+        </packageSources>
+      </configuration>
+      EOF
+
+      echo ""
+      echo "=== NuGet Sources ==="
+
+      dotnet nuget list source \
+        --configfile ./NuGet.CI.Config
+
+      echo ""
+      echo "=== Restore ==="
+
+      time dotnet restore "./$SOLUTION" \
+        --configfile ./NuGet.CI.Config \
+        --packages "$NUGET_PACKAGES"
+
+      echo ""
+      echo "=== Build ==="
+
+      time dotnet build "./$SOLUTION" \
+        -c Release \
+        --no-restore
+
+      echo ""
+      echo "=== Wallet Tests ==="
+
+      time dotnet test \
+        tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj \
+        -c Release \
+        --no-build \
+        --no-restore
+
+      echo ""
+      echo "=== Publish API ==="
+
+      rm -rf "./$PUBLISH_DIR"
+
+      time dotnet publish "./$API_CSPROJ" \
+        -c Release \
+        --no-build \
+        --no-restore \
+        -o "./$PUBLISH_DIR"
+
+      echo ""
+      echo "=== Validate Publish ==="
+
+      test -f "./$PUBLISH_DIR/Refahi.Api.dll"
+
+      du -sh "./$PUBLISH_DIR"
+
+      echo ""
+      echo "Build completed successfully."
+
+  artifacts:
+    expire_in: 1 hour
+
+    paths:
+      - publish/api/
+
+    reports:
+      dotenv: build.env
+
+
+# ============================================================
+# DOCKER BUILD + PUSH
+# ============================================================
+
 docker_build_push:
   stage: docker
 
@@ -88,8 +219,8 @@ docker_build_push:
       echo ""
       echo "=== Docker Build ==="
 
-      # DOCKER_AUTH_CONFIG is intentionally kept here.
-      # It provides read access to platform/ci-images.
+      # Runner-level DOCKER_AUTH_CONFIG remains active here
+      # so the shared ASP.NET runtime image can be pulled.
       time docker build \
         --provenance=false \
         --file "./$PUBLISH_DIR/Dockerfile.ci" \
@@ -100,12 +231,10 @@ docker_build_push:
       echo ""
       echo "=== Switch Registry Credentials ==="
 
-      # Runner-level DOCKER_AUTH_CONFIG contains the read-only
-      # credential for platform/ci-images.
-      # It must not be used for pushing application images.
+      # DOCKER_AUTH_CONFIG is read-only for platform/ci-images.
+      # Remove it before authenticating for application image push.
       unset DOCKER_AUTH_CONFIG
 
-      # Remove any stale Docker CLI credentials in the job container.
       rm -f /root/.docker/config.json
       mkdir -p /root/.docker
 
@@ -128,7 +257,6 @@ docker_build_push:
       echo "========================================"
       echo " Image published successfully"
       echo "========================================"
-
       echo "Environment : $IMAGE_ENV"
       echo "Version     : $IMAGE_VER"
 
@@ -137,92 +265,6 @@ docker_build_push:
       docker image rm \
         "$CI_REGISTRY_IMAGE:${ENV:-unused}" \
         "$CI_REGISTRY_IMAGE:${BUILD_VERSION:-unused}" \
-        >/dev/null 2>&1 || true
-
-# ============================================================
-# DOCKER BUILD + PUSH
-#
-# مهم:
-# این Job دیگر Dockerfile اصلی پروژه را استفاده نمی‌کند.
-# بنابراین داخل docker build هیچ dotnet restore انجام نمی‌شود.
-# ============================================================
-
-docker_build_push:
-  stage: docker
-
-  image: registry.refahi.xyz/platform/ci-images/docker-cli:29.7.2
-
-  needs:
-    - job: build_publish
-      artifacts: true
-
-  variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
-
-  script:
-    - |
-      set -eu
-
-      IMAGE_ENV="$CI_REGISTRY_IMAGE:$ENV"
-      IMAGE_VER="$CI_REGISTRY_IMAGE:$BUILD_VERSION"
-
-      echo "Environment image: $IMAGE_ENV"
-      echo "Version image: $IMAGE_VER"
-
-      echo ""
-      echo "=== Validate Publish Output ==="
-
-      test -f "./$PUBLISH_DIR/Refahi.Api.dll"
-
-      echo ""
-      echo "=== Create Runtime Dockerfile ==="
-
-      cat > "./$PUBLISH_DIR/Dockerfile.ci" <<'EOF'
-      FROM registry.refahi.xyz/platform/ci-images/aspnet:10.0
-
-
-      WORKDIR /app
-
-      EXPOSE 8080
-
-      COPY . .
-
-      ENTRYPOINT ["dotnet", "Refahi.Api.dll"]
-      EOF
-
-      echo ""
-      echo "=== Docker Build ==="
-
-      time docker build \
-        --provenance=false \
-        --file "./$PUBLISH_DIR/Dockerfile.ci" \
-        --tag "$IMAGE_ENV" \
-        --tag "$IMAGE_VER" \
-        "./$PUBLISH_DIR"
-
-      echo ""
-      echo "=== Push Environment Image ==="
-
-      time docker push "$IMAGE_ENV"
-
-      echo ""
-      echo "=== Push Version Image ==="
-
-      time docker push "$IMAGE_VER"
-
-      echo ""
-      echo "Images published:"
-      echo "$IMAGE_ENV"
-      echo "$IMAGE_VER"
-
-  after_script:
-    - |
-      docker image rm \
-        "$CI_REGISTRY_IMAGE:${ENV:-unused}" \
-        "$CI_REGISTRY_IMAGE:${BUILD_VERSION:-unused}" \
-        >/dev/null 2>&1 || true
-
-      docker logout "$CI_REGISTRY" \
         >/dev/null 2>&1 || true
 
 
