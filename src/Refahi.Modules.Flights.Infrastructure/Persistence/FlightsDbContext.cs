@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightAirportAgg;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg;
@@ -17,6 +18,9 @@ public sealed class FlightsDbContext : DbContext
 
     public DbSet<FlightAirport> FlightAirports => Set<FlightAirport>();
 
+    public DbSet<FlightSearchCity> FlightSearchCities => Set<FlightSearchCity>();
+    public DbSet<FlightSearchMembership> FlightSearchMemberships => Set<FlightSearchMembership>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -26,5 +30,7 @@ public sealed class FlightsDbContext : DbContext
         modelBuilder.ApplyConfiguration(new FlightBookingConfiguration());
         modelBuilder.ApplyConfiguration(new FlightOfferSnapshotConfiguration());
         modelBuilder.ApplyConfiguration(new FlightAirportConfiguration());
+        modelBuilder.ApplyConfiguration(new FlightSearchCityConfiguration());
+        modelBuilder.ApplyConfiguration(new FlightSearchMembershipConfiguration());
     }
 }

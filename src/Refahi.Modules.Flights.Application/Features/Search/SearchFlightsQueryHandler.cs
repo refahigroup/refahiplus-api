@@ -17,17 +17,17 @@ public sealed class SearchFlightsQueryHandler
 
     private readonly IFlightProviderFactory _providerFactory;
     private readonly IFlightOfferSnapshotRepository _offerSnapshotRepository;
-    private readonly IFlightAirportRepository _airportRepository;
+    private readonly IFlightLocationRepository _locationRepository;
 
     public SearchFlightsQueryHandler(
         IFlightProviderFactory providerFactory,
         IFlightOfferSnapshotRepository offerSnapshotRepository,
-        IFlightAirportRepository airportRepository
+        IFlightLocationRepository locationRepository
     )
     {
         _providerFactory = providerFactory;
         _offerSnapshotRepository = offerSnapshotRepository;
-        _airportRepository = airportRepository;
+        _locationRepository = locationRepository;
     }
 
     public async Task<SearchFlightsResponse> Handle(
@@ -35,13 +35,22 @@ public sealed class SearchFlightsQueryHandler
         CancellationToken cancellationToken
     )
     {
-        var routeAirports = await _airportRepository.GetByIataCodesAsync(
-            [request.Origin!, request.Destination!],
-            cancellationToken
-        );
-        var isDomestic =
-            routeAirports.Count == 2 && routeAirports.All(airport => airport.CountryCode == "IR");
-        var providerRequest = BuildProviderRequest(request, isDomestic);
+        var mode = request.IsDomestic ?? true;
+        var origin = await _locationRepository.ResolveAsync(mode, request.Origin!, request.OriginType, cancellationToken);
+        var destination = await _locationRepository.ResolveAsync(mode, request.Destination!, request.DestinationType, cancellationToken);
+        if (!request.IsDomestic.HasValue && (origin is null || destination is null))
+        {
+            mode = false;
+            origin = await _locationRepository.ResolveAsync(false, request.Origin!, request.OriginType, cancellationToken);
+            destination = await _locationRepository.ResolveAsync(false, request.Destination!, request.DestinationType, cancellationToken);
+        }
+        if (origin is null || destination is null)
+            throw InvalidRoute("مبدأ یا مقصد در فهرست مجاز نیست؛ لطفاً دوباره انتخاب کنید.");
+        if (origin.CityCode == destination.CityCode)
+            throw InvalidRoute("مبدأ و مقصد نمی‌توانند یک شهر باشند.");
+        if (!mode && origin.CountryCode == "IR" && destination.CountryCode == "IR")
+            throw InvalidRoute("برای مسیر بین دو شهر ایران، پرواز داخلی را انتخاب کنید.");
+        var providerRequest = BuildProviderRequest(request, mode, origin, destination);
         var provider = _providerFactory.GetDefaultProvider();
         var providerResponse = await provider.SearchAsync(providerRequest, cancellationToken);
 
@@ -83,13 +92,18 @@ public sealed class SearchFlightsQueryHandler
         return new SearchFlightsResponse(expiresAtUtc, publicOffers);
     }
 
+    private static FluentValidation.ValidationException InvalidRoute(string message) =>
+        new([new FluentValidation.Results.ValidationFailure("Route", message)]);
+
     private static FlightSearchRequest BuildProviderRequest(
         SearchFlightsQuery request,
-        bool isDomestic
+        bool isDomestic,
+        FlightLocation originLocation,
+        FlightLocation destinationLocation
     )
     {
-        var origin = request.Origin!.Trim().ToUpperInvariant();
-        var destination = request.Destination!.Trim().ToUpperInvariant();
+        var origin = originLocation.Code;
+        var destination = destinationLocation.Code;
         var airTripType = string.IsNullOrWhiteSpace(request.AirTripType)
             ? request.ReturnDate.HasValue
                 ? "RoundTrip"
@@ -98,7 +112,7 @@ public sealed class SearchFlightsQueryHandler
 
         var legs = new List<FlightSearchLeg>
         {
-            new(request.DepartureDate!.Value, origin, destination, "Airport", "Airport"),
+            new(request.DepartureDate!.Value, origin, destination, originLocation.Type, destinationLocation.Type),
         };
 
         if (request.ReturnDate.HasValue)
@@ -108,8 +122,8 @@ public sealed class SearchFlightsQueryHandler
                     request.ReturnDate.Value,
                     destination,
                     origin,
-                    "Airport",
-                    "Airport"
+                    destinationLocation.Type,
+                    originLocation.Type
                 )
             );
         }

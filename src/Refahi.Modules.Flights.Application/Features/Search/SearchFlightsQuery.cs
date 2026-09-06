@@ -16,7 +16,9 @@ public sealed record SearchFlightsQuery(
     bool? IsDomestic,
     int? MaxStopsQuantity,
     IReadOnlyCollection<string>? VendorExcludeCodes,
-    IReadOnlyCollection<string>? VendorPreferenceCodes
+    IReadOnlyCollection<string>? VendorPreferenceCodes,
+    string OriginType = "Airport",
+    string DestinationType = "Airport"
 ) : IRequest<SearchFlightsResponse>;
 
 public sealed record SearchFlightsResponse(

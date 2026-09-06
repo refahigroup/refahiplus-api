@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Refahi.Modules.Flights.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Refahi.Modules.Flights.Infrastructure.Persistence;
 namespace Refahi.Modules.Flights.Infrastructure.Migrations
 {
     [DbContext(typeof(FlightsDbContext))]
-    partial class FlightsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906194439_FlightSearchCatalogue")]
+    partial class FlightSearchCatalogue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -304,7 +307,8 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
 
                     b.Property<string>("ProviderFareSourceCode")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
                         .HasColumnName("provider_fare_source_code");
 
                     b.Property<string>("ProviderName")
@@ -716,7 +720,8 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
 
                             b1.Property<string>("ProviderFareId")
                                 .IsRequired()
-                                .HasColumnType("text")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
                                 .HasColumnName("provider_fare_id");
 
                             b1.Property<string>("ProviderTraceId")

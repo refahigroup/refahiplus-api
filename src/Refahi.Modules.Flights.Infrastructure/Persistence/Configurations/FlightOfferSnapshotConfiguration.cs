@@ -29,7 +29,7 @@ public sealed class FlightOfferSnapshotConfiguration : IEntityTypeConfiguration<
         builder
             .Property(offer => offer.ProviderFareSourceCode)
             .IsRequired()
-            .HasMaxLength(1000)
+            .HasColumnType("text")
             .HasColumnName("provider_fare_source_code");
 
         builder

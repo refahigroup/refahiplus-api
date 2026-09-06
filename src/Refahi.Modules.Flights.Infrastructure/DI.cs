@@ -31,6 +31,7 @@ public static class DI
         services.AddScoped<IFlightBookingRepository, FlightBookingRepository>();
         services.AddScoped<IFlightOfferSnapshotRepository, FlightOfferSnapshotRepository>();
         services.AddScoped<IFlightAirportRepository, FlightAirportRepository>();
+        services.AddScoped<IFlightLocationRepository, FlightLocationRepository>();
         services.AddScoped<FlightAirportDataSeeder>();
         services
             .UseSnappTripFlightProvider(configuration)
