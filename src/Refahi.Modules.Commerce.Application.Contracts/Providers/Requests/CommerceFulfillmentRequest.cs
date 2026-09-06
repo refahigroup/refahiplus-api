@@ -5,4 +5,8 @@ public sealed record CommerceFulfillmentRequest(
     string RecipientName, 
     string RecipientMobile,
     IReadOnlyList<CommerceFulfillmentLine> Lines
-);
+)
+{
+    public string? ReservationReference { get; init; }
+    public string? ReservationContext { get; init; }
+}

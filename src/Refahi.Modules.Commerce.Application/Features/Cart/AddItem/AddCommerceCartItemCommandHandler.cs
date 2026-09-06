@@ -5,11 +5,12 @@ using Refahi.Modules.Commerce.Domain;
 
 namespace Refahi.Modules.Commerce.Application.Features.Cart.AddItem;
 
-public sealed class AddCommerceCartItemCommandHandler(ICommerceRepository repository, ICommerceProviderFactory providers) :
+public sealed class AddCommerceCartItemCommandHandler(ICommerceRepository repository, ICommerceProviderFactory providers, Refahi.Modules.Commerce.Application.Contracts.Providers.ICommerceMutationLock gate) :
     IRequestHandler<AddCommerceCartItemCommand, CommerceCartDto>
 {
     public async Task<CommerceCartDto> Handle(AddCommerceCartItemCommand request, CancellationToken ct)
     {
+        await using var held = await gate.AcquireAsync(request.UserId, ct);
         var quote = await providers.GetRequired(request.ProviderKey)
                                    .QuoteAsync(new(request.ProductKey, request.OfferKey, request.PurchaseOptionKey, request.Quantity), ct);
 

@@ -21,13 +21,16 @@ public sealed class GetSellersEndpoint : IEndpoint
             async (
                 int? pageNumber,
                 int? pageSize,
+                string? providerKey,
+                string? locationCode,
+                string? categoryCode,
                 IMediator m,
                 CancellationToken ct
             ) => 
             {
                 var result = await m.Send(new GetCommerceSellersQuery(
                     pageNumber is > 0 ? pageNumber.Value : 1,
-                    pageSize is > 0 ? pageSize.Value : 24), ct);
+                    pageSize is > 0 ? pageSize.Value : 24, providerKey, locationCode, categoryCode), ct);
 
                 return Results.Ok(ApiResponseHelper.Success(result));
             })

@@ -10,7 +10,8 @@ public enum CommerceOrderStatus : short
     CancellationPending = 6,
     ManualReview = 7,
     Cancelled = 8,
-    Refunded = 9
+    Refunded = 9,
+    ReconciliationPending = 10
 }
 
 public enum ProviderFulfillmentStatus : short
@@ -21,7 +22,8 @@ public enum ProviderFulfillmentStatus : short
     CancellationPending = 4,
     Cancelled = 5,
     Failed = 6,
-    ManualReview = 7
+    ManualReview = 7,
+    AwaitingResult = 8
 }
 
 public enum ProviderOperationOutcome : short
@@ -151,6 +153,11 @@ public sealed class CommerceOrder
     public Guid UserId { get; private set; }
     public Guid? OrderId { get; private set; }
     public Guid? PaymentId { get; private set; }
+    public Guid? CheckoutSessionId { get; private set; }
+    public DateTimeOffset? PayableUntil { get; private set; }
+    public string? ReservationReference { get; private set; }
+    public string? ReservationContextProtected { get; private set; }
+    public string? CartSelectionProtected { get; private set; }
     public string IdempotencyKey { get; private set; } = string.Empty;
     public string RequestFingerprint { get; private set; } = string.Empty;
     public CommerceOrderStatus Status { get; private set; }
@@ -183,6 +190,9 @@ public sealed class CommerceOrder
     public void EnsureFingerprint(string fingerprint)
     { if (RequestFingerprint != fingerprint) throw new CommerceDomainException("کلید یکتایی با اطلاعات متفاوت استفاده شده است", "IDEMPOTENCY_PAYLOAD_MISMATCH"); }
     public void AttachOrder(Guid orderId) { OrderId = orderId; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void AttachSession(Guid sessionId, DateTimeOffset until, string? reference, string? context, string selection)
+    { CheckoutSessionId = sessionId; PayableUntil = until; ReservationReference = reference; ReservationContextProtected = context; CartSelectionProtected = selection; }
+    public void AwaitResult() { Status = CommerceOrderStatus.ReconciliationPending; UpdatedAt = DateTimeOffset.UtcNow; }
     public void QueueFulfillment(Guid? paymentId = null) { if (Status == CommerceOrderStatus.PendingPayment) Status = CommerceOrderStatus.FulfillmentPending; PaymentId ??= paymentId; UpdatedAt = DateTimeOffset.UtcNow; }
     public void BeginFulfillment() { if (Status is CommerceOrderStatus.FulfillmentPending or CommerceOrderStatus.Fulfilling) Status = CommerceOrderStatus.Fulfilling; UpdatedAt = DateTimeOffset.UtcNow; }
     public void Complete() { Status = CommerceOrderStatus.Completed; UpdatedAt = DateTimeOffset.UtcNow; }
@@ -195,7 +205,8 @@ public sealed class CommerceOrder
     {
         if (Status is not CommerceOrderStatus.Completed and not CommerceOrderStatus.Cancelled and not CommerceOrderStatus.Refunded)
             throw new CommerceDomainException("اطلاعات دریافت‌کننده در سفارش فعال قابل حذف نیست", "RECIPIENT_RETENTION_NOT_REACHED");
-        RecipientNameProtected = string.Empty; RecipientMobileProtected = string.Empty; UpdatedAt = DateTimeOffset.UtcNow;
+        RecipientNameProtected = string.Empty; RecipientMobileProtected = string.Empty;
+        ReservationContextProtected = null; CartSelectionProtected = null; UpdatedAt = DateTimeOffset.UtcNow;
     }
 }
 
@@ -237,6 +248,28 @@ public sealed class ProviderFulfillment
     public ProviderFulfillmentStatus Status { get; private set; }
     public string? ProviderOrderCode { get; private set; }
     public string? FailureReason { get; private set; }
+    public string? ProviderInvoiceId { get; private set; }
+    public string? ProviderPaymentId { get; private set; }
+    public string? DeliveryProtected { get; private set; }
+    public DateTimeOffset? ReconcileStartedAt { get; private set; }
+    public DateTimeOffset? NextCheckAt { get; private set; }
+    public int CheckCount { get; private set; }
+    public void RestartReconciliation()
+    {
+        if (Status != ProviderFulfillmentStatus.ManualReview)
+            throw new CommerceDomainException("استعلام مجدد در این وضعیت مجاز نیست", "INVALID_RECHECK");
+        ReconcileStartedAt = DateTimeOffset.UtcNow; NextCheckAt = DateTimeOffset.UtcNow; CheckCount = 0;
+        Status = ProviderFulfillmentStatus.AwaitingResult;
+    }
+    public void AwaitResult(string? invoice, string? payment)
+    {
+        ProviderInvoiceId = invoice ?? ProviderInvoiceId; ProviderPaymentId = payment ?? ProviderPaymentId;
+        ReconcileStartedAt ??= DateTimeOffset.UtcNow; CheckCount++;
+        NextCheckAt = DateTimeOffset.UtcNow.AddSeconds(Math.Min(60, 5 * Math.Pow(2, Math.Min(CheckCount, 4))));
+        Status = ProviderFulfillmentStatus.AwaitingResult;
+    }
+    public void SetDelivery(string value, string? invoice, string? payment)
+    { DeliveryProtected = value; ProviderInvoiceId = invoice; ProviderPaymentId = payment; NextCheckAt = null; }
     public IReadOnlyList<ProviderTicket> Tickets => _tickets.AsReadOnly();
     public IReadOnlyList<ProviderOperationAttempt> Attempts => _attempts.AsReadOnly();
     internal static ProviderFulfillment Create(Guid orderId, string providerKey) => new()

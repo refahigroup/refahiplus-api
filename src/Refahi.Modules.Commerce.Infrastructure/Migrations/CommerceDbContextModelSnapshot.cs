@@ -135,10 +135,94 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
                     b.ToTable("cart_items", "commerce");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Commerce.Domain.CommerceCatalogSnapshot", b =>
+                {
+                    b.Property<string>("AccountKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("AccountKey");
+
+                    b.ToTable("catalog_snapshots", "commerce");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Commerce.Domain.CommerceCheckoutSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CommerceOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset?>("PayableUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProviderKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("RequestProtected")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReservationProtected")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReservationReference")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "PayableUntil");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("checkout_sessions", "commerce");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Commerce.Domain.CommerceOrder", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CartSelectionProtected")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CheckoutSessionId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
@@ -151,6 +235,9 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
 
                     b.Property<Guid?>("OrderId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("PayableUntil")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("PaymentId")
                         .HasColumnType("uuid");
@@ -169,6 +256,12 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ReservationContextProtected")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReservationReference")
+                        .HasColumnType("text");
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
@@ -265,18 +358,50 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
                     b.ToTable("order_items", "commerce");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Commerce.Domain.CommerceProviderReceipt", b =>
+                {
+                    b.Property<string>("AccountKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OperationId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PayloadProtected")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("AccountKey", "OperationId");
+
+                    b.ToTable("provider_receipts", "commerce");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Commerce.Domain.ProviderFulfillment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("CheckCount")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("CommerceOrderId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("DeliveryProtected")
+                        .HasColumnType("text");
 
                     b.Property<string>("FailureReason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset?>("NextCheckAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProviderInvoiceId")
+                        .HasColumnType("text");
 
                     b.Property<string>("ProviderKey")
                         .IsRequired()
@@ -286,6 +411,12 @@ namespace Refahi.Modules.Commerce.Infrastructure.Migrations
                     b.Property<string>("ProviderOrderCode")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<string>("ProviderPaymentId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("ReconcileStartedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint");

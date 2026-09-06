@@ -22,6 +22,8 @@ public sealed class GetProductsEndpoint : IEndpoint
                 string? search, 
                 string? providerKey, 
                 string? sellerKey,
+                string? locationCode,
+                string? categoryCode,
                 int? pageNumber, 
                 int? pageSize, 
                 IMediator m, 
@@ -33,7 +35,9 @@ public sealed class GetProductsEndpoint : IEndpoint
                     providerKey,
                     sellerKey,
                     pageNumber is > 0 ? pageNumber.Value : 1,
-                    pageSize is > 0 ? pageSize.Value : 24
+                    pageSize is > 0 ? pageSize.Value : 24,
+                    locationCode,
+                    categoryCode
                 ), ct);
 
                 return Results.Ok(ApiResponseHelper.Success(result));

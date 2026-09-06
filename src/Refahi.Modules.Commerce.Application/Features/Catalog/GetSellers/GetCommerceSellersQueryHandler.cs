@@ -1,40 +1,76 @@
 using MediatR;
-using Refahi.Modules.Commerce.Application.Contracts;
 using Refahi.Modules.Commerce.Application.Contracts.Providers;
 using Refahi.Modules.Commerce.Application.Contracts.Providers.Dtos;
-using Refahi.Shared.Services.Cache;
-
 namespace Refahi.Modules.Commerce.Application.Features.Catalog.GetSellers;
 
-public sealed class GetCommerceSellersQueryHandler(ICommerceProviderFactory providers, ICacheService cache) :
-    IRequestHandler<GetCommerceSellersQuery, CommerceSellerPage>
+public sealed class GetCommerceSellersQueryHandler(ICommerceProviderFactory providers) : IRequestHandler<GetCommerceSellersQuery, CommerceSellerPage>
 {
     public async Task<CommerceSellerPage> Handle(GetCommerceSellersQuery request, CancellationToken ct)
     {
-        const string key = "commerce:catalog:sellers:v1";
+        var all = new List<CommerceSellerDto>(); 
+        var unavailable = new List<string>();
 
-        var cached = await cache.GetAsync<IReadOnlyList<CommerceSellerDto>>(key);
-        if (cached is null)
+        var enabledProviders = providers.GetEnabledProviders()
+                                        .Where(p => string.IsNullOrWhiteSpace(request.ProviderKey) || p.Key == request.ProviderKey);
+
+        foreach (var provider in enabledProviders)
         {
-            var batches = await Task.WhenAll(providers.GetEnabledProviders()
-                .Select(provider => provider.GetSellersAsync(ct)));
+            try
+            {
+                var sellers = await provider.GetSellersAsync(ct);
 
-            cached = batches
-                .SelectMany(items => items)
-                .Where(item => !string.IsNullOrWhiteSpace(item.ProviderKey)
-                               && !string.IsNullOrWhiteSpace(item.SellerKey))
-                .DistinctBy(item => (item.ProviderKey.Trim().ToLowerInvariant(), item.SellerKey.Trim().ToLowerInvariant()))
-                .OrderBy(item => item.Title, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(item => item.ProviderKey, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(item => item.SellerKey, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+                if (!string.IsNullOrWhiteSpace(request.LocationCode) || !string.IsNullOrWhiteSpace(request.CategoryCode))
+                {
+                    var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    for (var page = 1; page <= 1000; page++)
+                    {
+                        var products = await provider.GetProductsAsync(new(ProviderKey: provider.Key, PageNumber: page, PageSize: 100), ct);
 
-            await cache.SetAsync(key, cached, TimeSpan.FromMinutes(2));
+                        var list = products.Items.Where(p => 
+                            (string.IsNullOrWhiteSpace(request.LocationCode) || 
+                            p.LocationCode == request.LocationCode) &&
+                            (string.IsNullOrWhiteSpace(request.CategoryCode) || 
+                            p.ExternalCategoryCode == request.CategoryCode)
+                        );
+
+                        foreach (var p in list) 
+                            matched.Add(p.SellerKey);
+
+                        if (page >= products.TotalPages || products.Items.Count == 0) 
+                            break;
+                    }
+
+                    sellers = sellers.Where(x => matched.Contains(x.SellerKey))
+                                     .ToArray();
+                }
+
+                all.AddRange(sellers);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) 
+            { 
+                throw; 
+            }
+            catch 
+            { 
+                unavailable.Add(provider.Key); 
+            }
         }
+        var sorted = all.DistinctBy(x => (x.ProviderKey, x.SellerKey))
+                        .OrderBy(x => x.Title).ThenBy(x => x.ProviderKey)
+                        .ThenBy(x => x.SellerKey)
+                        .ToArray();
 
-        var pageNumber = Math.Max(1, request.PageNumber);
-        var pageSize = Math.Clamp(request.PageSize, 1, 100);
-        var items = cached.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToArray();
-        return new(items, pageNumber, pageSize, cached.Count);
+        var number = Math.Max(1, request.PageNumber); 
+        var size = Math.Clamp(request.PageSize, 1, 100);
+
+        return new(
+            sorted.Skip((number - 1) * size).Take(size).ToArray(), 
+            number, 
+            size, 
+            sorted.Length
+        ) 
+        { 
+            UnavailableProviders = unavailable 
+        };
     }
 }

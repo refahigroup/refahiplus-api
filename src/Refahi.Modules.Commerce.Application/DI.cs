@@ -16,9 +16,13 @@ public static class DI
 
         services.AddMediatR(assembly)
                 .AddValidatorsFromAssembly(assembly);
-        services.AddOptions<CommerceRuntimeOptions>().Bind(configuration.GetSection(CommerceRuntimeOptions.SectionName));
+        services.AddOptions<CommerceRuntimeOptions>().Bind(configuration.GetSection(CommerceRuntimeOptions.SectionName))
+            .Validate(x => x.RecipientRetentionDays is >= 1 and <= 3650 && x.ReconciliationMinutes is >= 1 and <= 1440,
+                "Commerce runtime options are invalid")
+            .ValidateOnStart();
 
         services.AddScoped<CommerceFulfillmentProcessor>();
+        services.AddScoped<Contracts.Providers.ICommercePricingService, Services.CommercePricingService>();
         services.AddScoped<IOrderCancellationParticipant, CommerceCancellationParticipant>();
 
         return services;

@@ -7,6 +7,7 @@ public interface ICommerceRepository
     Task DeleteCartAsync(CommerceCart cart, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
     Task<CommerceOrder?> GetOrderAsync(Guid id, CancellationToken ct = default);
+    Task<CommerceOrder?> GetFreshOrderAsync(Guid id, CancellationToken ct = default);
     Task<CommerceOrder?> GetOrderByOrderIdAsync(Guid orderId, CancellationToken ct = default);
     Task<CommerceOrder?> GetOrderByIdempotencyAsync(Guid userId, string key, CancellationToken ct = default);
     Task<CommerceOrder?> GetOrderByFulfillmentIdAsync(Guid fulfillmentId, CancellationToken ct = default);

@@ -7,4 +7,8 @@ public sealed record CommerceOrderDto(
     long TotalAmountMinor,
     IReadOnlyList<CommerceOrderItemDto> Items,
     IReadOnlyList<CommerceFulfillmentDto> Fulfillments
-);
+)
+{
+    public bool CanCancel { get; init; }
+    public DateTimeOffset? PayableUntil { get; init; }
+}

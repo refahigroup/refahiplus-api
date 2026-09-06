@@ -23,6 +23,12 @@ public sealed class CommerceRepository(CommerceDbContext db) : ICommerceReposito
     public Task<CommerceOrder?> GetOrderAsync(Guid id, CancellationToken ct = default) => 
         Query().SingleOrDefaultAsync(x => x.Id == id, ct);
 
+    public Task<CommerceOrder?> GetFreshOrderAsync(Guid id, CancellationToken ct = default)
+    {
+        db.ChangeTracker.Clear();
+        return Query().SingleOrDefaultAsync(x => x.Id == id, ct);
+    }
+
     public Task<CommerceOrder?> GetOrderByOrderIdAsync(Guid orderId, CancellationToken ct = default) => 
         Query().SingleOrDefaultAsync(x => x.OrderId == orderId, ct);
 
@@ -34,7 +40,8 @@ public sealed class CommerceRepository(CommerceDbContext db) : ICommerceReposito
 
     public async Task<IReadOnlyList<CommerceOrder>> GetPendingFulfillmentAsync(int take, CancellationToken ct = default)
     {
-        return await Query().Where(x => x.Status == CommerceOrderStatus.FulfillmentPending || x.Status == CommerceOrderStatus.Fulfilling || x.Status == CommerceOrderStatus.CompensationPending)
+        return await Query().Where(x => x.Status == CommerceOrderStatus.FulfillmentPending || x.Status == CommerceOrderStatus.Fulfilling || x.Status == CommerceOrderStatus.CompensationPending
+                            || x.Status == CommerceOrderStatus.ReconciliationPending && x.Fulfillments.Any(f => f.NextCheckAt <= DateTimeOffset.UtcNow))
                             .OrderBy(x => x.CreatedAt)
                             .Take(take)
                             .ToListAsync(ct);

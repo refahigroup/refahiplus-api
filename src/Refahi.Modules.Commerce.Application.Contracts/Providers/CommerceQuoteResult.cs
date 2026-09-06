@@ -17,4 +17,11 @@ public sealed record CommerceQuoteResult(
     long OriginalUnitPriceMinor,
     int? Capacity, 
     string ProviderPayloadJson
-);
+)
+{
+    public long? ProviderCostMinor { get; init; }
+    public long? MarkupMinor { get; init; }
+    public string? PricingVersion { get; init; }
+    public bool RequiresManifest { get; init; }
+    public bool RequiresIdentityNumber { get; init; }
+}

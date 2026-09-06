@@ -4,7 +4,7 @@ using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
 
 namespace Refahi.Modules.Commerce.Application.Features.Checkout;
 
-public sealed class CommerceOrderCancelledNotificationtHandler(ICommerceRepository repository) :
+public sealed class CommerceOrderCancelledNotificationtHandler(ICommerceRepository repository, Refahi.Modules.Commerce.Application.Contracts.Providers.ICommerceMutationLock gate) :
     INotificationHandler<OrderCancelledIntegrationEvent>, INotificationHandler<OrderRefundedIntegrationEvent>
 {
     public async Task Handle(OrderCancelledIntegrationEvent e, CancellationToken ct)
@@ -17,6 +17,8 @@ public sealed class CommerceOrderCancelledNotificationtHandler(ICommerceReposito
         if (value is null)
             return;
 
+        await using var held = await gate.AcquireAsync(value.Id, ct);
+        value = await repository.GetFreshOrderAsync(value.Id, ct) ?? throw new InvalidOperationException();
         value.MarkCancelled(e.PaymentAction == "Refunded");
 
         await repository.SaveChangesAsync(ct);
@@ -29,6 +31,8 @@ public sealed class CommerceOrderCancelledNotificationtHandler(ICommerceReposito
         if (value is null)
             return;
 
+        await using var held = await gate.AcquireAsync(value.Id, ct);
+        value = await repository.GetFreshOrderAsync(value.Id, ct) ?? throw new InvalidOperationException();
         value.MarkCancelled(true);
 
         await repository.SaveChangesAsync(ct);

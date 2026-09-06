@@ -24,17 +24,21 @@ public sealed class GetCommerceProductsQueryHandler(ICommerceProviderFactory pro
             : [providers.GetRequired(request.ProviderKey)];
 
         var all = new List<CommerceProductDto>();
+        var unavailable = new List<string>();
 
         foreach (var provider in enabled)
         {
+            try
+            {
             var key = $"commerce:catalog:all:{provider.Key}:{query.Search}:{query.SellerKey}";
-            var items = await cache.GetAsync<IReadOnlyList<CommerceProductDto>>(key);
+            var items = provider is ICommerceOfferProvider ? null : await cache.GetAsync<IReadOnlyList<CommerceProductDto>>(key);
             if (items is null)
             {
                 var collected = new List<CommerceProductDto>();
                 var providerPageNumber = 1;
                 while (true)
                 {
+                    if (providerPageNumber > 1000) throw new InvalidOperationException("سقف صفحه‌بندی کاتالوگ");
                     var providerPage = await provider.GetProductsAsync(
                         query with { ProviderKey = provider.Key, PageNumber = providerPageNumber, PageSize = 100 }, ct);
                     collected.AddRange(providerPage.Items);
@@ -48,9 +52,14 @@ public sealed class GetCommerceProductsQueryHandler(ICommerceProviderFactory pro
             }
 
             all.AddRange(items);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch { unavailable.Add(provider.Key); }
         }
 
         var ordered = all
+            .Where(item => string.IsNullOrWhiteSpace(request.LocationCode) || item.LocationCode == request.LocationCode)
+            .Where(item => string.IsNullOrWhiteSpace(request.CategoryCode) || item.ExternalCategoryCode == request.CategoryCode)
             .Where(item => string.IsNullOrWhiteSpace(query.SellerKey)
                            || item.SellerKey.Equals(query.SellerKey.Trim(), StringComparison.OrdinalIgnoreCase))
             .DistinctBy(item => (item.ProviderKey, item.ProductKey))
@@ -60,6 +69,6 @@ public sealed class GetCommerceProductsQueryHandler(ICommerceProviderFactory pro
             .ToArray();
 
         var pageItems = ordered.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize).ToArray();
-        return new(pageItems, query.PageNumber, query.PageSize, ordered.Length);
+        return new(pageItems, query.PageNumber, query.PageSize, ordered.Length) { UnavailableProviders = unavailable };
     }
 }

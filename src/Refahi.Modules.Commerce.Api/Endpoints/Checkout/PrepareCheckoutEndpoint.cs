@@ -35,7 +35,8 @@ public sealed class PrepareCheckoutEndpoint : IEndpoint
                 {
                     var result = await m.Send(new PrepareCommerceCheckoutCommand(
                         userId,
-                        body.IdempotencyKey
+                        body.IdempotencyKey,
+                        body.ProviderKey
                     ), ct);
 
                     return Results.Ok(ApiResponseHelper.Success(result));
@@ -50,5 +51,5 @@ public sealed class PrepareCheckoutEndpoint : IEndpoint
             .RequireAuthorization("UserOrAdmin");
     }
 
-    public sealed record PrepareCheckoutBody(string IdempotencyKey);
+    public sealed record PrepareCheckoutBody(string IdempotencyKey, string? ProviderKey = null);
 }

@@ -11,6 +11,8 @@ public sealed class GetCommerceProductQueryHandler(ICommerceProviderFactory prov
 {
     public async Task<CommerceProductDto?> Handle(GetCommerceProductQuery request, CancellationToken ct)
     {
+        var provider = providers.GetRequired(request.ProviderKey);
+        if (provider is ICommerceOfferProvider) return await provider.GetProductAsync(request.ProductKey, ct);
         var key = $"commerce:product:{request.ProviderKey}:{request.ProductKey}";
 
         var cached = await cache.GetAsync<CommerceProductDto>(key); 

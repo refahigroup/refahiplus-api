@@ -6,6 +6,7 @@ using Refahi.Modules.Commerce.Application.Contracts.Providers;
 using Refahi.Modules.Commerce.Domain;
 using Refahi.Modules.Commerce.Infrastructure.Persistence;
 using Refahi.Modules.Commerce.Infrastructure.Providers.Asbsar;
+using Refahi.Modules.Commerce.Infrastructure.Providers.TouristPanel;
 using Refahi.Modules.Commerce.Infrastructure.Workers;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
@@ -20,9 +21,16 @@ public static class DI
             x => x.MigrationsHistoryTable("__EFMigrationsHistory", CommerceDbContext.Schema)));
         services.AddDataProtection();
         services.AddScoped<ICommerceRepository, CommerceRepository>();
-        services.AddScoped<ICommerceSecretProtector, CommerceSecretProtector>();
-        services.AddScoped<ICommerceProviderFactory, CommerceProviderFactory>();
-        services.AddAabsarProvider(configuration);
+        services.AddScoped<ICommerceSessionRepository, CommerceSessionRepository>();
+        services.AddSingleton<ICommerceMutationLock>(
+            new PostgresCommerceMutationLock(configuration.GetConnectionString()));
+
+        services.AddScoped<ICommerceSecretProtector, CommerceSecretProtector>()
+                .AddScoped<ICommerceProviderFactory, CommerceProviderFactory>();
+
+        services.AddAabsarProvider(configuration)
+                .AddTouristPanelProvider(configuration);
+
         services.AddHostedService<CommerceFulfillmentWorker>();
         return services;
     }

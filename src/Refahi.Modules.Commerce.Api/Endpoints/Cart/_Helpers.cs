@@ -21,7 +21,7 @@ internal static class _Helpers
         Results.Conflict(new
         {
             Success = false,
-            Data = ex.Current,
+            Data = new { ex.Current.ProductKey, ex.Current.OfferKey, ex.Current.PurchaseOptionKey, ex.Current.UnitPriceMinor, ex.Current.Quantity },
             Message = "قیمت یا ظرفیت تغییر کرده است",
             StatusCode = StatusCodes.Status409Conflict
         });

@@ -1,10 +1,9 @@
 using MediatR;
-using Refahi.Modules.Commerce.Application.Contracts;
 using Refahi.Modules.Commerce.Domain;
 
 namespace Refahi.Modules.Commerce.Application.Features.Operations.GetOperation;
 
-public sealed class GetCommerceOperationsQueryHandler(ICommerceRepository repository, ICommerceSecretProtector secrets) :
+public sealed class GetCommerceOperationsQueryHandler(ICommerceRepository repository) :
     IRequestHandler<GetCommerceOperationsQuery, IReadOnlyList<CommerceOperationDto>>
 {
     public async Task<IReadOnlyList<CommerceOperationDto>> Handle(GetCommerceOperationsQuery request, CancellationToken ct)

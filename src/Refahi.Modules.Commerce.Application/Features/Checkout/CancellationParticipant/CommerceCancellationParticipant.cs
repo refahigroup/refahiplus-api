@@ -5,7 +5,7 @@ using Refahi.Modules.Orders.Application.Contracts.Cancellation;
 
 namespace Refahi.Modules.Commerce.Application.Features.Checkout.CancellationParticipant;
 
-public sealed class CommerceCancellationParticipant(ICommerceRepository repository, ICommerceProviderFactory providers)
+public sealed class CommerceCancellationParticipant(ICommerceRepository repository, ICommerceProviderFactory providers, ICommerceMutationLock gate)
     : IOrderCancellationParticipant
 {
     public string SourceModule => "Commerce";
@@ -16,6 +16,27 @@ public sealed class CommerceCancellationParticipant(ICommerceRepository reposito
 
         if (value is null)
             return new(false, "سفارش Commerce یافت نشد");
+
+        await using var held = await gate.AcquireAsync(value.Id, ct);
+        value = await repository.GetFreshOrderAsync(value.Id, ct);
+        if (value is null) return new(false, "سفارش Commerce یافت نشد");
+        if (value.Fulfillments.Any(x => x.Status is ProviderFulfillmentStatus.Processing or ProviderFulfillmentStatus.AwaitingResult or ProviderFulfillmentStatus.ManualReview
+            || x.Attempts.Any(a => a.Operation == "fulfill" && a.Outcome is ProviderOperationOutcome.Started or ProviderOperationOutcome.Ambiguous)))
+            return new(false, "تا مشخص‌شدن نتیجه صدور، لغو و بازگشت وجه ممکن نیست");
+        if (value.Fulfillments.Any(x => x.Status == ProviderFulfillmentStatus.Completed && !providers.GetRequired(x.ProviderKey).Capabilities.SupportsCancellation))
+            return new(false, "لغو خودکار بلیط صادرشده این پرووایدر پشتیبانی نمی‌شود");
+
+        if (!string.IsNullOrWhiteSpace(value.ReservationReference)
+            && value.Fulfillments.All(x => x.Status is ProviderFulfillmentStatus.Pending or ProviderFulfillmentStatus.Failed)
+            && value.PayableUntil > DateTimeOffset.UtcNow)
+        {
+            var reservation = providers.GetRequired(value.Items[0].ProviderKey) as ICommerceReservationProvider;
+            if (reservation is not null)
+            {
+                try { await reservation.ReleaseAsync(value.ReservationReference, ct); }
+                catch { return new(false, "آزادسازی رزرو هنوز تأیید نشده است"); }
+            }
+        }
 
         value.BeginCancellation();
 

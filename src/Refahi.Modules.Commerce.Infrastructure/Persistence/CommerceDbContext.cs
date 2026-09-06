@@ -13,10 +13,26 @@ public sealed class CommerceDbContext(DbContextOptions<CommerceDbContext> option
     public DbSet<ProviderFulfillment> Fulfillments => Set<ProviderFulfillment>();
     public DbSet<ProviderTicket> Tickets => Set<ProviderTicket>();
     public DbSet<ProviderOperationAttempt> OperationAttempts => Set<ProviderOperationAttempt>();
+    public DbSet<CommerceCheckoutSession> CheckoutSessions => Set<CommerceCheckoutSession>();
+    public DbSet<CommerceCatalogSnapshot> CatalogSnapshots => Set<CommerceCatalogSnapshot>();
+    public DbSet<CommerceProviderReceipt> ProviderReceipts => Set<CommerceProviderReceipt>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.HasDefaultSchema(Schema);
+        b.Entity<CommerceCheckoutSession>(x =>
+        {
+            x.ToTable("checkout_sessions"); x.HasKey(v => v.Id);
+            x.Property(v => v.Version).IsRowVersion();
+            x.Property(v => v.ProviderKey).HasMaxLength(80);
+            x.Property(v => v.IdempotencyKey).HasMaxLength(200);
+            x.HasIndex(v => new { v.UserId, v.IdempotencyKey }).IsUnique();
+            x.HasIndex(v => new { v.Status, v.PayableUntil });
+        });
+        b.Entity<CommerceCatalogSnapshot>(x =>
+        { x.ToTable("catalog_snapshots"); x.HasKey(v => v.AccountKey); x.Property(v => v.PayloadJson).HasColumnType("jsonb"); });
+        b.Entity<CommerceProviderReceipt>(x =>
+        { x.ToTable("provider_receipts"); x.HasKey(v => new { v.AccountKey, v.OperationId }); });
         b.Entity<CommerceCart>(x =>
         {
             x.ToTable("carts"); x.HasKey(v => v.Id); x.HasIndex(v => v.UserId).IsUnique();

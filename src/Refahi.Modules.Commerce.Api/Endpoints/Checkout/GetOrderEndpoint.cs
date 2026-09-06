@@ -32,6 +32,8 @@ public sealed class GetOrderEndpoint : IEndpoint
                     if (!_Helpers.TryUser(c, out var userId))
                         return _Helpers.Unauthorized();
 
+                    c.Response.Headers.CacheControl = "private, no-store";
+
                     var value = await m.Send(new GetCommerceOrderQuery(userId, _Helpers.Role(c), commerceOrderId, revealTickets), ct);
 
                     return value is null

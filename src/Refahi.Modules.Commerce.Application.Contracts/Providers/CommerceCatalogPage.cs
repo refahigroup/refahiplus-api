@@ -9,5 +9,6 @@ public sealed record CommerceCatalogPage(
     int TotalCount
 )
 {
+    public IReadOnlyList<string> UnavailableProviders { get; init; } = [];
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
 }

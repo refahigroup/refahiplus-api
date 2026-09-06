@@ -17,6 +17,12 @@ public sealed class ResolveOperationEndpoint : IEndpoint
         if (app is not IEndpointRouteBuilder routes)
             return;
 
+        routes.MapPost("/admin/fulfillments/{fulfillmentId:guid}/recheck", async (Guid fulfillmentId, IMediator m, CancellationToken ct) =>
+        {
+            await m.Send(new RecheckCommerceOperationCommand(fulfillmentId), ct);
+            return Results.Ok(ApiResponseHelper.Success(true));
+        }).WithName("Commerce.Admin.RecheckOperation").WithTags("Commerce.Admin").RequireAuthorization("AdminOnly");
+
         routes.MapPost(
             "/admin/fulfillments/{fulfillmentId:guid}/resolve",
             async (

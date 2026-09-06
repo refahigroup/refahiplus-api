@@ -5,7 +5,7 @@ using Refahi.Modules.Orders.Application.Contracts.Commands;
 
 namespace Refahi.Modules.Commerce.Application.Features.Order.CancelOrder;
 
-public sealed class CancelCommerceOrderCommandHandler(ICommerceRepository repository, ICommerceSecretProtector secrets, IMediator mediator) :
+public sealed class CancelCommerceOrderCommandHandler(ICommerceRepository repository, ICommerceSecretProtector secrets, IMediator mediator, Refahi.Modules.Commerce.Application.Contracts.Providers.ICommerceProviderFactory providers) :
     IRequestHandler<CancelCommerceOrderCommand, CommerceOrderDto>
 {
     public async Task<CommerceOrderDto> Handle(CancelCommerceOrderCommand request, CancellationToken ct)
@@ -28,7 +28,7 @@ public sealed class CancelCommerceOrderCommandHandler(ICommerceRepository reposi
         ), ct);
 
         value = await repository.GetOrderAsync(value.Id, ct) 
-            ?? value; return Map(value, false, secrets);
+            ?? value; return CommerceOrderMapper.Map(value, false, secrets, providers);
 
     }
 
@@ -38,37 +38,4 @@ public sealed class CancelCommerceOrderCommandHandler(ICommerceRepository reposi
             throw new UnauthorizedAccessException("دسترسی به این سفارش مجاز نیست"); 
     }
 
-    internal static CommerceOrderDto Map(CommerceOrder x, bool reveal, ICommerceSecretProtector secrets) => 
-        new( 
-            x.Id, 
-            x.OrderId,
-            x.Status.ToString(), 
-            x.TotalAmountMinor,
-            x.Items.Select(i => new CommerceOrderItemDto(
-                i.Id, 
-                i.ProviderKey, 
-                i.SellerKey,
-                i.Title, 
-                i.OfferTitle, 
-                i.PurchaseOptionKey, 
-                i.Quantity, 
-                i.UnitPriceMinor, 
-                i.CategoryCode)
-            ).ToArray(),
-            x.Fulfillments.Select(f => new CommerceFulfillmentDto(
-                f.Id, 
-                f.ProviderKey, 
-                f.Status.ToString(), 
-                f.ProviderOrderCode, 
-                f.FailureReason,
-                f.Tickets.Select(t => new CommerceTicketDto(
-                    t.Id, 
-                    t.IsChild, 
-                    reveal ? secrets.Unprotect(t.CodeProtected) : null)
-                ).ToArray()
-            )).ToArray()
-        );
 }
-
-
-

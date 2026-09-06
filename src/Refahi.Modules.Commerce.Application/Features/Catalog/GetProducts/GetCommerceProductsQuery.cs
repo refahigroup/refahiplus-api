@@ -8,6 +8,8 @@ public sealed record GetCommerceProductsQuery(
     string? ProviderKey, 
     string? SellerKey,
     int PageNumber = 1, 
-    int PageSize = 24
+    int PageSize = 24,
+    string? LocationCode = null,
+    string? CategoryCode = null
 ) : IRequest<CommerceCatalogPage>;
 
