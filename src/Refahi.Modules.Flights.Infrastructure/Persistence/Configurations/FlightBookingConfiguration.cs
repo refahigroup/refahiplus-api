@@ -210,7 +210,7 @@ public sealed class FlightBookingConfiguration : IEntityTypeConfiguration<Flight
 
                 fare.Property(item => item.ProviderFareId)
                     .IsRequired()
-                    .HasMaxLength(200)
+                    .HasColumnType("text")
                     .HasColumnName("provider_fare_id");
 
                 fare.Property(item => item.FareCaption)

@@ -101,6 +101,7 @@
     <Project Path="tests/Refahi.Modules.Flights.Tests/Refahi.Modules.Flights.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Hotels.Tests/Refahi.Modules.Hotels.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Identity.Tests/Refahi.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/Refahi.Modules.Media.Tests/Refahi.Modules.Media.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Orders.Tests/Refahi.Modules.Orders.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.PaymentGateway.Tests/Refahi.Modules.PaymentGateway.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Store.Tests/Refahi.Modules.Store.Tests.csproj" />

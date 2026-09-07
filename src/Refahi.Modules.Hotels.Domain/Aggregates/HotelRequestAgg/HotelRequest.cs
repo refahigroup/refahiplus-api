@@ -5,6 +5,8 @@ namespace Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
 
 public sealed class HotelRequest
 {
+    public const int CurrentPricingVersion = 2;
+
     private HotelRequest() { }
 
     public Guid Id { get; private set; }
@@ -29,6 +31,7 @@ public sealed class HotelRequest
     public string Currency { get; private set; } = "IRR";
     public string Breakdown { get; private set; } = "{}";
     public string? Fees { get; private set; }
+    public int PricingVersion { get; private set; }
 
     public string GuestInfoSnapshot { get; private set; } = "{}";
 
@@ -84,6 +87,7 @@ public sealed class HotelRequest
                 : currency.Trim().ToUpperInvariant(),
             Breakdown = NormalizeJson(breakdown),
             Fees = string.IsNullOrWhiteSpace(fees) ? null : NormalizeJson(fees),
+            PricingVersion = CurrentPricingVersion,
             GuestInfoSnapshot = NormalizeJson(guestInfoSnapshot),
             Status = HotelRequestStatus.Created,
             CreatedAt = nowUtc,

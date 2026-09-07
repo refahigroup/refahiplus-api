@@ -13,7 +13,7 @@ public sealed class BookingCreateResultDto
     public string BookingCode { get; set; } = default!;
 
     /// <summary>
-    /// قیمت نهایی (تومان)
+    /// قیمت Provider به ریال پس از تبدیل در مرز Provider
     /// </summary>
     public long Price { get; set; }
 

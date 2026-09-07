@@ -7,6 +7,6 @@ public class HotelSearchByHotelResultDto
     public string CityName { get; set; } = default!;
     public int Stars { get; set; }
     public string AccommodationType { get; set; } = default!;
-    public decimal MinCustomerPrice { get; set; }
+    public long MinCustomerPrice { get; set; }
     public string? ThumbnailUrl { get; set; }
 }

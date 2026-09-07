@@ -10,6 +10,9 @@ public class MediaStorageOptions
     /// <summary>آدرس عمومی مطلق برای بارگذاری فایل‌های رسانه</summary>
     public string LoadBaseUrl { get; set; } = string.Empty;
 
+    /// <summary>میزبان‌های عمومی فقط-خواندنی برای فایل‌های خارج از filesystem برنامه.</summary>
+    public string[] PublicReadBaseUrls { get; set; } = [];
+
     public long MaxImageSizeBytes { get; set; } = 10L * 1024 * 1024;
     public long MaxVideoSizeBytes { get; set; } = 200L * 1024 * 1024;
 }

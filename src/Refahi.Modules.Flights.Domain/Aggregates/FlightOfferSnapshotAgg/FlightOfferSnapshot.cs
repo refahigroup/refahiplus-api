@@ -4,6 +4,8 @@ namespace Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg;
 
 public sealed class FlightOfferSnapshot
 {
+    public const int CurrentPricingVersion = 2;
+
     private FlightOfferSnapshot()
     {
         Id = Guid.Empty;
@@ -23,6 +25,8 @@ public sealed class FlightOfferSnapshot
         string? providerSearchId,
         string? providerTraceId,
         long totalFareAmount,
+        long commissionAmount,
+        long customerPayableAmount,
         string currency,
         string publicOfferSnapshotJson,
         string? providerSnapshotJson,
@@ -44,6 +48,9 @@ public sealed class FlightOfferSnapshot
             ? null
             : providerTraceId.Trim();
         TotalFareAmount = totalFareAmount;
+        CommissionAmount = commissionAmount;
+        CustomerPayableAmount = customerPayableAmount;
+        PricingVersion = CurrentPricingVersion;
         Currency = Require(currency, "Currency is required.").ToUpperInvariant();
         PublicOfferSnapshotJson = Require(
             publicOfferSnapshotJson,
@@ -57,6 +64,22 @@ public sealed class FlightOfferSnapshot
 
         if (totalFareAmount <= 0)
             throw new DomainException("Offer amount must be greater than zero.");
+
+        if (commissionAmount < 0)
+            throw new DomainException("Offer commission cannot be negative.");
+
+        long calculatedPayable;
+        try
+        {
+            calculatedPayable = checked(totalFareAmount + commissionAmount);
+        }
+        catch (OverflowException)
+        {
+            throw new DomainException("Offer payable amount is invalid.");
+        }
+
+        if (customerPayableAmount != calculatedPayable)
+            throw new DomainException("Offer payable amount does not match pricing components.");
 
         if (Currency != "IRR")
             throw new DomainException("Only IRR flight offers are supported.");
@@ -72,6 +95,9 @@ public sealed class FlightOfferSnapshot
     public string? ProviderSearchId { get; private set; }
     public string? ProviderTraceId { get; private set; }
     public long TotalFareAmount { get; private set; }
+    public long CommissionAmount { get; private set; }
+    public long CustomerPayableAmount { get; private set; }
+    public int PricingVersion { get; private set; }
     public string Currency { get; private set; }
     public string PublicOfferSnapshotJson { get; private set; }
     public string? ProviderSnapshotJson { get; private set; }
@@ -85,6 +111,8 @@ public sealed class FlightOfferSnapshot
         string? providerSearchId,
         string? providerTraceId,
         long totalFareAmount,
+        long commissionAmount,
+        long customerPayableAmount,
         string currency,
         string publicOfferSnapshotJson,
         string? providerSnapshotJson,
@@ -100,6 +128,8 @@ public sealed class FlightOfferSnapshot
             providerSearchId,
             providerTraceId,
             totalFareAmount,
+            commissionAmount,
+            customerPayableAmount,
             currency,
             publicOfferSnapshotJson,
             providerSnapshotJson,

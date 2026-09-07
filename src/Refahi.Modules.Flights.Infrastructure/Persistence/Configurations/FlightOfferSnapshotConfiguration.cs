@@ -29,7 +29,7 @@ public sealed class FlightOfferSnapshotConfiguration : IEntityTypeConfiguration<
         builder
             .Property(offer => offer.ProviderFareSourceCode)
             .IsRequired()
-            .HasMaxLength(1000)
+            .HasColumnType("text")
             .HasColumnName("provider_fare_source_code");
 
         builder
@@ -46,6 +46,22 @@ public sealed class FlightOfferSnapshotConfiguration : IEntityTypeConfiguration<
             .Property(offer => offer.TotalFareAmount)
             .IsRequired()
             .HasColumnName("total_fare_amount");
+
+        builder
+            .Property(offer => offer.CommissionAmount)
+            .IsRequired()
+            .HasColumnName("commission_amount");
+
+        builder
+            .Property(offer => offer.CustomerPayableAmount)
+            .IsRequired()
+            .HasColumnName("customer_payable_amount");
+
+        builder
+            .Property(offer => offer.PricingVersion)
+            .IsRequired()
+            .HasDefaultValue(1)
+            .HasColumnName("pricing_version");
 
         builder
             .Property(offer => offer.Currency)

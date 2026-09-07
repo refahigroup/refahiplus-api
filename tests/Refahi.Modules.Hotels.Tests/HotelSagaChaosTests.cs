@@ -527,6 +527,12 @@ public sealed class HotelSagaChaosTests
 
     private sealed class FakeHotelProvider : IHotelProvider
     {
+        public Task<HotelRoomPriceQuoteDto> QuoteRoomPriceAsync(
+            HotelRoomPriceQuoteRequest request,
+            CancellationToken cancellationToken = default
+        ) => Task.FromResult(
+            new HotelRoomPriceQuoteDto(request.HotelId, request.RoomId, 1_000_000, "IRR")
+        );
         public Exception? CreateFailure { get; set; }
         public int ConfirmFailuresRemaining { get; set; }
         public string CancelStatus { get; set; } = "Cancelled";

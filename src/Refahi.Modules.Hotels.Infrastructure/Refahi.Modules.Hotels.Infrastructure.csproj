@@ -41,5 +41,6 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <InternalsVisibleTo Include="Refahi.Modules.Hotels.Tests" />
   </ItemGroup>
 </Project>

@@ -6,12 +6,12 @@ namespace Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs.Account;
 public sealed class AccountBalanceDto
 {
     /// <summary>
-    /// مبلغ موجود (تومان)
+    /// مبلغ موجود به ریال
     /// </summary>
     public long AvailableBalance { get; set; }
 
     /// <summary>
-    /// مبلغ قفل شده در رزروهای فعال (تومان)
+    /// مبلغ قفل شده در رزروهای فعال به ریال
     /// </summary>
     public long LockedBalance { get; set; }
 

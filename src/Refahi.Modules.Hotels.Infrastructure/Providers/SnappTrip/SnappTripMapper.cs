@@ -21,10 +21,18 @@ public static class SnappTripMapper
             return Enumerable.Empty<HotelSearchByHotelResultDto>();
         }
 
-        var minPrice = dto
-            .availability.Select(a => (decimal)a.pricing.price)
-            .DefaultIfEmpty(0m)
-            .Min();
+        var validPrices = dto
+            .availability.Where(a => a.pricing.original_sell_price > 0)
+            .Select(a => SnappTripHotelMoney.ToRials(
+                a.pricing.original_sell_price,
+                "اتاق"
+            ))
+            .ToList();
+
+        if (validPrices.Count == 0)
+            return Enumerable.Empty<HotelSearchByHotelResultDto>();
+
+        var minPrice = validPrices.Min();
 
         var firstAvailability = dto.availability.FirstOrDefault();
         var accommodationType = firstAvailability?.room.accommodation_type ?? string.Empty;
@@ -71,8 +79,8 @@ public static class SnappTripMapper
         return new BookingCreateResultDto
         {
             BookingCode = r.reservation_code,
-            Price = r.price,
-            Currency = "IRR", // SnappTrip ریال برمی‌گرداند؛ اگر بعداً لازم شد می‌توانیم تنظیم‌پذیرش کنیم
+            Price = SnappTripHotelMoney.ToRials(r.price, "رزرو"),
+            Currency = "IRR",
             LockedUntil = null, // Lock جداگانه با /booking/{code}/lock هندل می‌شود
         };
     }

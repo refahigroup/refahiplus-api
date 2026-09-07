@@ -22,6 +22,8 @@ public sealed class SearchFlightsEndpoint : IEndpoint
                 async (
                     [FromQuery] string? origin,
                     [FromQuery] string? destination,
+                    [FromQuery] string? originType,
+                    [FromQuery] string? destinationType,
                     [FromQuery] string? departureDate,
                     [FromQuery] string? returnDate,
                     [FromQuery] int? adult,
@@ -60,7 +62,9 @@ public sealed class SearchFlightsEndpoint : IEndpoint
                         isDomestic,
                         maxStopsQuantity,
                         vendorExcludeCodes,
-                        vendorPreferenceCodes
+                        vendorPreferenceCodes,
+                        originType ?? "Airport",
+                        destinationType ?? "Airport"
                     );
 
                     var result = await sender.Send(query, cancellationToken);

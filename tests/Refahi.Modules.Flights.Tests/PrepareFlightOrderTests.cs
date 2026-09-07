@@ -5,6 +5,7 @@ using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg.ValueObjects;
 using Refahi.Modules.Flights.Domain.Repositories;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
+using System.Text.Json;
 using Xunit;
 
 namespace Refahi.Modules.Flights.Tests;
@@ -28,7 +29,12 @@ public sealed class PrepareFlightOrderTests
 
         var repository = new InMemoryFlightBookingRepository(booking);
         var mediator = new CapturingMediator();
-        var handler = new PrepareFlightOrderCommandHandler(repository, mediator);
+        const string logoUrl = "https://media.example/airline-logos/flightaware_logos/IRA.png";
+        var handler = new PrepareFlightOrderCommandHandler(
+            repository,
+            mediator,
+            new StubAirlineLogoResolver(logoUrl)
+        );
 
         var result = await handler.Handle(
             new PrepareFlightOrderCommand(booking.Id.Value, booking.UserId, "User", "idem-1"),
@@ -44,6 +50,14 @@ public sealed class PrepareFlightOrderTests
         Assert.Equal(FlightBooking.CategoryCode, item.CategoryCode);
         Assert.Equal("flight", item.CategoryCode);
         Assert.Contains("flight", item.Tags!);
+        using var metadata = JsonDocument.Parse(item.MetadataJson!);
+        var presentation = metadata.RootElement.GetProperty("presentation");
+        Assert.Equal(1, presentation.GetProperty("version").GetInt32());
+        Assert.Equal("airline", presentation.GetProperty("type").GetString());
+        Assert.Equal(logoUrl, presentation.GetProperty("imageUrl").GetString());
+        Assert.Equal("Iran Air", presentation.GetProperty("imageAlt").GetString());
+        Assert.Equal("Iran Air", presentation.GetProperty("primaryText").GetString());
+        Assert.Equal("پرواز 1234", presentation.GetProperty("secondaryText").GetString());
         Assert.Equal(1_200_000, item.UnitPriceMinor);
         Assert.Equal(booking.Id.Value, result.BookingId);
         Assert.Equal(CapturingMediator.CreatedOrderId, result.OrderId);

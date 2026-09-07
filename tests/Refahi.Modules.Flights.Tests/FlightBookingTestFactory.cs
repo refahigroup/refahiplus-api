@@ -7,13 +7,13 @@ namespace Refahi.Modules.Flights.Tests;
 
 internal static class FlightBookingTestFactory
 {
-    public static FlightBooking CreateDraft(DateTime nowUtc)
+    public static FlightBooking CreateDraft(DateTime nowUtc, string providerFareId = "fare-1")
     {
         return FlightBooking.CreateDraft(
             FlightBookingId.New(),
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             new ProviderSnapshot("SnappTrip", "snapptrip", "اسنپ تریپ", "trace-1", "{}"),
-            new SelectedFareSnapshot("fare-1", "تهران به مشهد", "Economy", "Y", "{}", "trace-1"),
+            new SelectedFareSnapshot(providerFareId, "تهران به مشهد", "Economy", "Y", "{}", "trace-1"),
             new ContactInfo("09120000000", "user@example.com"),
             [
                 new Passenger(

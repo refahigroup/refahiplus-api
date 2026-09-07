@@ -6,6 +6,9 @@ public sealed class SearchFlightsQueryValidator : AbstractValidator<SearchFlight
 {
     public SearchFlightsQueryValidator()
     {
+        RuleFor(query => query.OriginType).Must(IsLocationType).WithMessage("نوع مبدأ معتبر نیست.");
+        RuleFor(query => query.DestinationType).Must(IsLocationType).WithMessage("نوع مقصد معتبر نیست.");
+
         RuleFor(query => query.Origin)
             .NotEmpty()
             .WithMessage("مبدأ پرواز الزامی است.")
@@ -68,4 +71,7 @@ public sealed class SearchFlightsQueryValidator : AbstractValidator<SearchFlight
             .When(query => query.MaxStopsQuantity.HasValue)
             .WithMessage("تعداد توقف معتبر نیست.");
     }
+    private static bool IsLocationType(string? value) =>
+        string.Equals(value, "Airport", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value, "City", StringComparison.OrdinalIgnoreCase);
 }

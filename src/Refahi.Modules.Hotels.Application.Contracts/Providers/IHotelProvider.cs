@@ -49,6 +49,11 @@ public interface IHotelProvider
         DateOnly to
     );
 
+    Task<HotelRoomPriceQuoteDto> QuoteRoomPriceAsync(
+        HotelRoomPriceQuoteRequest request,
+        CancellationToken cancellationToken = default
+    );
+
     /// <summary>
     /// دریافت نقدهای هتل
     /// </summary>

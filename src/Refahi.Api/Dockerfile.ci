@@ -1,0 +1,9 @@
+FROM registry.refahi.xyz/refahigroup/refahiplus/api/ci/aspnet:10.0
+
+WORKDIR /app
+
+EXPOSE 8080
+
+COPY .publish/api/ .
+
+ENTRYPOINT ["dotnet", "Refahi.Api.dll"]

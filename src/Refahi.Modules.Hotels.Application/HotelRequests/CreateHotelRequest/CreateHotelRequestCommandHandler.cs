@@ -1,5 +1,8 @@
+using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Refahi.Modules.Hotels.Application.Contracts.Providers;
+using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs;
 using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.CreateHotelRequest;
 using Refahi.Modules.Hotels.Domain.Abstraction.Repositories;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg;
@@ -14,15 +17,18 @@ public sealed class CreateHotelRequestCommandHandler
     private readonly IHotelRequestRepository _repository;
     private readonly IHotelBookingSagaRepository _sagaRepository;
     private readonly ILogger<CreateHotelRequestCommandHandler> _logger;
+    private readonly IHotelProviderFactory _providerFactory;
 
     public CreateHotelRequestCommandHandler(
         IHotelRequestRepository repository,
         IHotelBookingSagaRepository sagaRepository,
+        IHotelProviderFactory providerFactory,
         ILogger<CreateHotelRequestCommandHandler> logger
     )
     {
         _repository = repository;
         _sagaRepository = sagaRepository;
+        _providerFactory = providerFactory;
         _logger = logger;
     }
 
@@ -81,18 +87,75 @@ public sealed class CreateHotelRequestCommandHandler
             );
         }
 
+        var provider = ResolveProvider(request.ProviderName);
+        var quote = await provider.QuoteRoomPriceAsync(
+            new HotelRoomPriceQuoteRequest(
+                request.CityId,
+                request.ProviderHotelId,
+                request.ProviderRoomId,
+                request.CheckIn,
+                request.CheckOut,
+                request.Adults,
+                request.Children,
+                request.Rooms
+            ),
+            cancellationToken
+        );
+
+        if (
+            quote.HotelId != request.ProviderHotelId
+            || quote.RoomId != request.ProviderRoomId
+            || quote.OriginalPriceMinor <= 0
+            || !string.Equals(quote.Currency, "IRR", StringComparison.OrdinalIgnoreCase)
+        )
+            throw new InvalidOperationException("اطلاعات قیمت اتاق از تامین‌کننده معتبر نیست.");
+
+        if (quote.OriginalPriceMinor != request.ExpectedTotalPriceMinor)
+            throw new HotelPriceChangedException(quote.OriginalPriceMinor);
+
+        var searchCriteriaSnapshot = JsonSerializer.Serialize(
+            new
+            {
+                cityId = request.CityId,
+                checkIn = request.CheckIn.ToString("yyyy-MM-dd"),
+                checkOut = request.CheckOut.ToString("yyyy-MM-dd"),
+                adults = request.Adults,
+                children = request.Children,
+                rooms = request.Rooms,
+            }
+        );
+        var selectedRoomSnapshot = JsonSerializer.Serialize(
+            new
+            {
+                providerRoomId = request.ProviderRoomId,
+                boardType = request.BoardType,
+                originalPriceMinor = quote.OriginalPriceMinor,
+                currency = quote.Currency,
+            }
+        );
+        var breakdown = JsonSerializer.Serialize(
+            new
+            {
+                originalPriceMinor = quote.OriginalPriceMinor,
+                discountAmountMinor = 0,
+                finalAmountMinor = quote.OriginalPriceMinor,
+                currency = quote.Currency,
+                pricingVersion = HotelRequest.CurrentPricingVersion,
+            }
+        );
+
         var now = DateTime.UtcNow;
         var hotelRequest = HotelRequest.Create(
             request.UserId,
             request.ProviderName,
             request.ProviderHotelId,
             request.ProviderRoomId,
-            request.SearchCriteriaSnapshot,
+            searchCriteriaSnapshot,
             request.SelectedHotelSnapshot,
-            request.SelectedRoomSnapshot,
-            request.TotalPrice,
-            request.Currency,
-            request.Breakdown,
+            selectedRoomSnapshot,
+            quote.OriginalPriceMinor,
+            quote.Currency,
+            breakdown,
             request.Fees,
             request.GuestInfoSnapshot,
             now,
@@ -138,5 +201,12 @@ public sealed class CreateHotelRequestCommandHandler
             throw new InvalidOperationException("هدر Idempotency-Key الزامی است");
 
         return value.Trim();
+    }
+
+    private IHotelProvider ResolveProvider(string providerName)
+    {
+        return Enum.TryParse<HotelProviderType>(providerName, true, out var providerType)
+            ? _providerFactory.GetProvider(providerType)
+            : throw new InvalidOperationException("تامین‌کننده هتل معتبر نیست.");
     }
 }

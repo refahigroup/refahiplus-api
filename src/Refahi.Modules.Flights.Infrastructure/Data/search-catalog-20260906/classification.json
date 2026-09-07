@@ -1,0 +1,24 @@
+{
+  "version": "search-catalog-20260906",
+  "excluded": {
+    "IZM": "City aggregate in supplied catalogue",
+    "PAR": "City aggregate",
+    "MOW": "City aggregate",
+    "LON": "City aggregate",
+    "MIL": "City aggregate",
+    "YMQ": "City aggregate",
+    "ZJF": "Free zone, not an airport",
+    "XOZ": "Free zone, not an airport",
+    "XNB": "Bus station",
+    "YBZ": "Railway station",
+    "XPG": "Railway station",
+    "QGV": "Railway station",
+    "QQU": "Railway station",
+    "QQP": "Railway station",
+    "QQW": "Railway station",
+    "QQS": "Railway station",
+    "IMR": "Railway station",
+    "YMY": "Railway station"
+  },
+  "policy": "Other supplied aviation locations, including heliports, seaplane bases and military airfields, remain members. JSON identity fields take precedence, including YXU under LON/GB. Equal city and airport codes alone never imply an aggregate."
+}
