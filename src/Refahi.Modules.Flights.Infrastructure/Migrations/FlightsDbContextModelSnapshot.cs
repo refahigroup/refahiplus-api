@@ -292,6 +292,14 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                         .HasColumnType("character varying(3)")
                         .HasColumnName("currency");
 
+                    b.Property<long>("CommissionAmount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("commission_amount");
+
+                    b.Property<long>("CustomerPayableAmount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("customer_payable_amount");
+
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at_utc");
@@ -326,6 +334,12 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("provider_trace_id");
+
+                    b.Property<int>("PricingVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("pricing_version");
 
                     b.Property<string>("PublicOfferSnapshotJson")
                         .IsRequired()

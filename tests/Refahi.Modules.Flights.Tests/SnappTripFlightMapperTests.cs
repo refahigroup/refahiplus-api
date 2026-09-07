@@ -135,9 +135,10 @@ public sealed class SnappTripFlightMapperTests
                         FareType = "Public",
                         ItinTotalFare = new SnappTripItinTotalFare
                         {
-                            BaseFare = 1_000,
-                            TotalFare = 1_200,
-                            TotalTax = 200,
+                            BaseFare = 112_000_000,
+                            TotalFare = 112_042_200,
+                            TotalTax = 42_200,
+                            TotalCommission = 4_287_800,
                             Currency = "IRR",
                         },
                         PtcFareBreakdown =
@@ -188,8 +189,45 @@ public sealed class SnappTripFlightMapperTests
         Assert.Equal("SnappTrip", mapped.ProviderName);
         Assert.Equal("123", mapped.SearchId);
         Assert.Equal("fare-1", offer.ProviderFareSourceCode);
-        Assert.Equal(1_200, offer.TotalFare.TotalFare);
+        Assert.Equal(112_042_200, offer.TotalFare.TotalFare);
+        Assert.Equal(4_287_800, offer.TotalFare.TotalCommission);
+        Assert.Equal(116_330_000, offer.TotalFare.CustomerPayableAmountMinor);
         Assert.Equal("{\"masked\":true}", mapped.RawPayloadSnapshot);
         Assert.Equal("{\"masked\":true}", offer.RawPayloadSnapshot);
+    }
+
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(1, -1)]
+    [InlineData(long.MaxValue, 1)]
+    public void ToFlightResponse_RejectsInvalidOrOverflowingPayableAmount(
+        long totalFare,
+        long commission
+    )
+    {
+        var response = new SnappTripSearchResponse
+        {
+            Success = true,
+            PricedItineraries =
+            [
+                new SnappTripPricedItinerary
+                {
+                    FareSourceCode = "fare-1",
+                    AirItineraryPricingInfo = new SnappTripAirItineraryPricingInfo
+                    {
+                        ItinTotalFare = new SnappTripItinTotalFare
+                        {
+                            TotalFare = totalFare,
+                            TotalCommission = commission,
+                            Currency = "IRR",
+                        },
+                    },
+                },
+            ],
+        };
+
+        Assert.Throws<InvalidOperationException>(() =>
+            SnappTripFlightMapper.ToFlightResponse(response, maskedRawPayload: null)
+        );
     }
 }

@@ -97,7 +97,8 @@ public sealed record FlightMoney(
     long TotalTax,
     long TotalCommission,
     long ServiceTax,
-    string Currency
+    string Currency,
+    long CustomerPayableAmountMinor
 );
 
 public sealed record FlightBookRequest(

@@ -76,6 +76,8 @@ public sealed class SearchFlightsQueryHandler
                 providerOffer.SearchId,
                 providerOffer.ProviderTraceId ?? providerResponse.ProviderTraceId,
                 providerOffer.TotalFare.TotalFare,
+                providerOffer.TotalFare.TotalCommission,
+                providerOffer.TotalFare.CustomerPayableAmountMinor,
                 providerOffer.TotalFare.Currency,
                 publicSnapshotJson,
                 providerOffer.RawPayloadSnapshot ?? providerResponse.RawPayloadSnapshot,
@@ -160,6 +162,10 @@ public sealed class SearchFlightsQueryHandler
         if (
             string.IsNullOrWhiteSpace(offer.ProviderFareSourceCode)
             || offer.TotalFare.TotalFare <= 0
+            || offer.TotalFare.TotalCommission < 0
+            || offer.TotalFare.CustomerPayableAmountMinor <= 0
+            || offer.TotalFare.CustomerPayableAmountMinor
+                != checked(offer.TotalFare.TotalFare + offer.TotalFare.TotalCommission)
             || !string.Equals(offer.TotalFare.Currency, "IRR", StringComparison.OrdinalIgnoreCase)
         )
         {
@@ -252,7 +258,8 @@ public sealed class SearchFlightsQueryHandler
             money.TotalTax,
             money.TotalCommission,
             money.ServiceTax,
-            money.Currency
+            money.Currency,
+            money.CustomerPayableAmountMinor
         );
     }
 

@@ -78,5 +78,5 @@ public sealed class FlightFarePersistenceTests
 
     private static FlightOfferSnapshot Offer(string token, string fareCode, DateTime now) =>
         FlightOfferSnapshot.Create(token, "SnappTrip", fareCode, "search", "trace", 1_200_000,
-            "IRR", "{}", "{}", now, now.AddMinutes(20));
+            100_000, 1_300_000, "IRR", "{}", "{}", now, now.AddMinutes(20));
 }

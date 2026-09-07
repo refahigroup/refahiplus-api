@@ -288,6 +288,9 @@ internal static class SnappTripFlightMapper
     )
     {
         var totalFare = itinerary.AirItineraryPricingInfo?.ItinTotalFare;
+        var serviceAmount = totalFare?.TotalFare ?? 0;
+        var commissionAmount = totalFare?.TotalCommission ?? 0;
+        var customerPayableAmount = CheckedPayableAmount(serviceAmount, commissionAmount);
 
         return new FlightFareOffer(
             ProviderName,
@@ -302,7 +305,8 @@ internal static class SnappTripFlightMapper
                 totalFare?.TotalTax ?? 0,
                 totalFare?.TotalCommission ?? 0,
                 totalFare?.ServiceTax ?? 0,
-                totalFare?.Currency ?? "IRR"
+                totalFare?.Currency ?? "IRR",
+                customerPayableAmount
             ),
             itinerary.OriginDestinationOptions.Select(ToFlightOption).ToList(),
             itinerary
@@ -360,6 +364,8 @@ internal static class SnappTripFlightMapper
     )
     {
         var fare = breakdown.PassengerFare;
+        var serviceAmount = fare?.TotalFare ?? 0;
+        var commissionAmount = fare?.Commission ?? 0;
 
         return new FlightPassengerFareBreakdown(
             breakdown.PassengerTypeQuantity?.PassengerType,
@@ -370,9 +376,28 @@ internal static class SnappTripFlightMapper
                 0,
                 fare?.Commission ?? 0,
                 fare?.ServiceTax ?? 0,
-                fare?.Currency ?? "IRR"
+                fare?.Currency ?? "IRR",
+                CheckedPayableAmount(serviceAmount, commissionAmount)
             )
         );
+    }
+
+    private static long CheckedPayableAmount(long serviceAmount, long commissionAmount)
+    {
+        if (serviceAmount < 0 || commissionAmount < 0)
+            throw new InvalidOperationException("اطلاعات قیمت پرواز از تامین‌کننده معتبر نیست.");
+
+        try
+        {
+            return checked(serviceAmount + commissionAmount);
+        }
+        catch (OverflowException ex)
+        {
+            throw new InvalidOperationException(
+                "اطلاعات قیمت پرواز از تامین‌کننده معتبر نیست.",
+                ex
+            );
+        }
     }
 
     private static DateTime? ParseDateTime(string? value)

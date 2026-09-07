@@ -219,6 +219,12 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
 
+                    b.Property<int>("PricingVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("pricing_version");
+
                     b.Property<string>("ProviderBookingCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")

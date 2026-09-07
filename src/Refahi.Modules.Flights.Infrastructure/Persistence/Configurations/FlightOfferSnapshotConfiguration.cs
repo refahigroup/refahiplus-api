@@ -48,6 +48,22 @@ public sealed class FlightOfferSnapshotConfiguration : IEntityTypeConfiguration<
             .HasColumnName("total_fare_amount");
 
         builder
+            .Property(offer => offer.CommissionAmount)
+            .IsRequired()
+            .HasColumnName("commission_amount");
+
+        builder
+            .Property(offer => offer.CustomerPayableAmount)
+            .IsRequired()
+            .HasColumnName("customer_payable_amount");
+
+        builder
+            .Property(offer => offer.PricingVersion)
+            .IsRequired()
+            .HasDefaultValue(1)
+            .HasColumnName("pricing_version");
+
+        builder
             .Property(offer => offer.Currency)
             .IsRequired()
             .HasMaxLength(3)

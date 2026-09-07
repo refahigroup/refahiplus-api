@@ -6,7 +6,8 @@ public sealed record FlightMoneyDto(
     long TotalTax,
     long TotalCommission,
     long ServiceTax,
-    string Currency
+    string Currency,
+    long CustomerPayableAmountMinor
 );
 
 public sealed record FlightPassengerFareDto(

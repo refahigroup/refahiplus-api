@@ -38,8 +38,8 @@ public record GetAvailabilityByCityDto
 }
 
 public record AvailabilityByCitiesFilter(
-    int? MinPrice,
-    int? MaxPrice,
+    long? MinPrice,
+    long? MaxPrice,
     int? Adults,
     int? Children,
     int? AvailableRooms,
@@ -66,10 +66,10 @@ public record AvailabilityByCitiesHotel(
 public record AvailabilityByCitiesRoom(
     int Id,
     string Title,
-    int Price,
-    int? PriceOff,
+    long Price,
+    long? PriceOff,
     int? DiscountPercent,
-    int? ChildPrice,
-    int? ExtraBedPrice,
+    long? ChildPrice,
+    long? ExtraBedPrice,
     int? Children
 );

@@ -1,6 +1,7 @@
 using MediatR;
 using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.ValidateHotelRequestForOrder;
 using Refahi.Modules.Hotels.Domain.Abstraction.Repositories;
+using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.Enums;
 
 namespace Refahi.Modules.Hotels.Application.HotelRequests.ValidateHotelRequestForOrder;
@@ -28,6 +29,11 @@ public sealed class ValidateHotelRequestForOrderCommandHandler
             throw new UnauthorizedAccessException("دسترسی به این درخواست هتل مجاز نیست");
 
         var now = DateTime.UtcNow;
+        if (hotelRequest.PricingVersion != HotelRequest.CurrentPricingVersion)
+            throw new InvalidOperationException(
+                "قیمت این درخواست هتل منقضی شده است؛ لطفاً اتاق را دوباره انتخاب کنید"
+            );
+
         if (hotelRequest.Status == HotelRequestStatus.Created && hotelRequest.ExpireAt <= now)
         {
             hotelRequest.MarkExpired(now);

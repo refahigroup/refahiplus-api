@@ -9,8 +9,8 @@ public sealed record GetAvailabilityByCityQuery(
     int? Adults,
     int? Children,
     int? AvailableRooms,
-    int? MinPrice,
-    int? MaxPrice,
+    long? MinPrice,
+    long? MaxPrice,
     int[]? Stars,
     string[]? Accommodations
 ) : IRequest<GetAvailabilityByCityDto>;

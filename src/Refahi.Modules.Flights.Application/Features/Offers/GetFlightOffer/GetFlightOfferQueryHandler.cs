@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MediatR;
 using Refahi.Modules.Flights.Application.Features.Offers;
+using Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg;
 using Refahi.Modules.Flights.Domain.Repositories;
 
 namespace Refahi.Modules.Flights.Application.Features.Offers.GetFlightOffer;
@@ -27,7 +28,11 @@ public sealed class GetFlightOfferQueryHandler
             cancellationToken
         );
 
-        if (snapshot is null || snapshot.IsExpired(DateTime.UtcNow))
+        if (
+            snapshot is null
+            || snapshot.PricingVersion != FlightOfferSnapshot.CurrentPricingVersion
+            || snapshot.IsExpired(DateTime.UtcNow)
+        )
             return null;
 
         return JsonSerializer.Deserialize<FlightOfferDto>(

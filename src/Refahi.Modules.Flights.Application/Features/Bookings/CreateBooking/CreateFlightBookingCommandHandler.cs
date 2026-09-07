@@ -8,6 +8,7 @@ using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg.Entities;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg.Enums;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg.ValueObjects;
+using Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg;
 using Refahi.Modules.Flights.Domain.Repositories;
 
 namespace Refahi.Modules.Flights.Application.Features.Bookings.CreateBooking;
@@ -54,7 +55,11 @@ public sealed class CreateFlightBookingCommandHandler
             cancellationToken
         );
 
-        if (offerSnapshot is null || offerSnapshot.IsExpired(DateTime.UtcNow))
+        if (
+            offerSnapshot is null
+            || offerSnapshot.PricingVersion != FlightOfferSnapshot.CurrentPricingVersion
+            || offerSnapshot.IsExpired(DateTime.UtcNow)
+        )
             throw new InvalidOperationException("پیشنهاد پرواز یافت نشد یا منقضی شده است.");
 
         var publicOffer =
@@ -227,14 +232,15 @@ public sealed class CreateFlightBookingCommandHandler
             money.TotalTax >= 0 && baseFare + money.TotalTax <= money.TotalFare
                 ? money.TotalTax
                 : 0;
-        var fees = money.TotalFare - baseFare - taxes;
+        var serviceFees = money.TotalFare - baseFare - taxes;
+        var fees = checked(serviceFees + money.TotalCommission);
 
         return new FareBreakdown(
             new Money(baseFare, money.Currency),
             new Money(taxes, money.Currency),
             new Money(fees, money.Currency),
             Money.Zero(money.Currency),
-            new Money(money.TotalFare, money.Currency)
+            new Money(money.CustomerPayableAmountMinor, money.Currency)
         );
     }
 

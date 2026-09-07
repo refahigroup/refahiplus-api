@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.ConvertHotelRequestToOrder;
 using Refahi.Modules.Hotels.Domain.Abstraction.Repositories;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg;
+using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.Enums;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 
@@ -40,6 +41,12 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
             ?? throw new InvalidOperationException("درخواست هتل یافت نشد");
 
         var now = DateTime.UtcNow;
+
+        if (hotelRequest.PricingVersion != HotelRequest.CurrentPricingVersion)
+            throw new InvalidOperationException(
+                "قیمت این درخواست هتل منقضی شده است؛ لطفاً اتاق را دوباره انتخاب کنید"
+            );
+
         var saga = await _sagaRepository.GetByHotelRequestIdAsync(
             hotelRequest.Id,
             cancellationToken

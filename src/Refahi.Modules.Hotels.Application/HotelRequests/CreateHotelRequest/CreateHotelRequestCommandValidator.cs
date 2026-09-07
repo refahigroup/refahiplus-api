@@ -12,8 +12,15 @@ public sealed class CreateHotelRequestCommandValidator
         RuleFor(x => x.UserId).NotEmpty().WithMessage("کاربر الزامی است");
         RuleFor(x => x.ProviderHotelId).GreaterThan(0).WithMessage("شناسه هتل معتبر نیست");
         RuleFor(x => x.ProviderRoomId).GreaterThan(0).WithMessage("شناسه اتاق معتبر نیست");
-        RuleFor(x => x.TotalPrice).GreaterThan(0).WithMessage("مبلغ رزرو معتبر نیست");
-        RuleFor(x => x.Currency).NotEmpty().MaximumLength(3).WithMessage("واحد پول معتبر نیست");
+        RuleFor(x => x.CityId).GreaterThan(0).WithMessage("شناسه شهر معتبر نیست");
+        RuleFor(x => x.CheckOut).GreaterThan(x => x.CheckIn).WithMessage("بازه اقامت معتبر نیست");
+        RuleFor(x => x.Adults).GreaterThan(0).WithMessage("تعداد بزرگسالان معتبر نیست");
+        RuleFor(x => x.Children).GreaterThanOrEqualTo(0).WithMessage("تعداد کودکان معتبر نیست");
+        RuleFor(x => x.Rooms).GreaterThan(0).WithMessage("تعداد اتاق‌ها معتبر نیست");
+        RuleFor(x => x.BoardType).NotEmpty().WithMessage("نوع پذیرایی اتاق معتبر نیست");
+        RuleFor(x => x.ExpectedTotalPriceMinor)
+            .GreaterThan(0)
+            .WithMessage("مبلغ مورد انتظار رزرو معتبر نیست");
         RuleFor(x => x.IdempotencyKey)
             .NotEmpty()
             .MaximumLength(200)
@@ -23,7 +30,6 @@ public sealed class CreateHotelRequestCommandValidator
             .WithMessage("ساختار جست‌وجو معتبر نیست");
         RuleFor(x => x.SelectedHotelSnapshot).Must(BeJson).WithMessage("ساختار هتل معتبر نیست");
         RuleFor(x => x.SelectedRoomSnapshot).Must(BeJson).WithMessage("ساختار اتاق معتبر نیست");
-        RuleFor(x => x.Breakdown).Must(BeJson).WithMessage("ساختار قیمت معتبر نیست");
         RuleFor(x => x.Fees)
             .Must(x => string.IsNullOrWhiteSpace(x) || BeJson(x))
             .WithMessage("ساختار کارمزد معتبر نیست");

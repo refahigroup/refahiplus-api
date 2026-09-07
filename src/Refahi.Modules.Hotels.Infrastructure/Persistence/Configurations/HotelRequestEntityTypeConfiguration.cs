@@ -77,6 +77,12 @@ public sealed class HotelRequestEntityTypeConfiguration : IEntityTypeConfigurati
         builder.Property(r => r.Fees).HasColumnType("jsonb").HasColumnName("fees");
 
         builder
+            .Property(r => r.PricingVersion)
+            .IsRequired()
+            .HasDefaultValue(1)
+            .HasColumnName("pricing_version");
+
+        builder
             .Property(r => r.GuestInfoSnapshot)
             .IsRequired()
             .HasColumnType("jsonb")

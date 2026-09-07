@@ -41,9 +41,13 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 checkout = query.CheckOut.ToString("yyyy-MM-dd"),
                 adults = query.Adults ?? 0,
                 children = query.Children ?? 0,
-                available_rooms = 1,
-                min_price = 0,
-                max_price = 0,
+                available_rooms = query.AvailableRooms ?? 1,
+                min_price = query.MinPrice.HasValue
+                    ? SnappTripHotelMoney.ToProviderTomans(query.MinPrice.Value, "حداقل قیمت")
+                    : 0,
+                max_price = query.MaxPrice.HasValue
+                    ? SnappTripHotelMoney.ToProviderTomans(query.MaxPrice.Value, "حداکثر قیمت")
+                    : 0,
                 stars = new List<int>(),
                 accommodations = new List<string>(),
             };
@@ -51,15 +55,15 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             var response = await _apiClient.SearchCityAvailabilityAsync(request);
 
             // Map از SnappTripCityAvailabilityResponse به HotelSearchResultDto
-            return response.items.Select(x => new HotelSearchResultDto(
-                x.hotel.id,
-                x.hotel.title,
-                x.city_id,
-                x.hotel.stars,
-                x.room.price_off > 0 ? x.room.price_off : x.room.price
-            //Currency = "IRR",
-            //ThumbnailUrl = null // برای thumbnail بعداً می‌توانیم از galleries استفاده کنیم
-            ));
+            return response.items
+                .Where(x => SnappTripHotelMoney.TryToRials(x.room.price, out _))
+                .Select(x => new HotelSearchResultDto(
+                    x.hotel.id,
+                    x.hotel.title,
+                    x.city_id,
+                    x.hotel.stars,
+                    SnappTripHotelMoney.ToRials(x.room.price, "اتاق")
+                ));
         }
 
         // ---------------------------------------------------------
@@ -147,7 +151,10 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 var roomId = kv.Key;
                 var roomItem = kv.Value;
 
-                var price = pricingLookup.TryGetValue(roomId, out var pr) ? pr.price : 0;
+                if (!pricingLookup.TryGetValue(roomId, out var pr) || pr.original_sell_price <= 0)
+                    continue;
+
+                var price = SnappTripHotelMoney.ToRials(pr.original_sell_price, "اتاق");
 
                 var roomDto = new HotelRoomDto
                 {
@@ -350,8 +357,12 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 adults = query.Adults ?? 0,
                 children = query.Children ?? 0,
                 available_rooms = query.AvailableRooms ?? 1,
-                min_price = query.MinPrice ?? 0,
-                max_price = query.MaxPrice ?? 0,
+                min_price = query.MinPrice.HasValue
+                    ? SnappTripHotelMoney.ToProviderTomans(query.MinPrice.Value, "حداقل قیمت")
+                    : 0,
+                max_price = query.MaxPrice.HasValue
+                    ? SnappTripHotelMoney.ToProviderTomans(query.MaxPrice.Value, "حداکثر قیمت")
+                    : 0,
                 stars = query.Stars?.ToList() ?? new List<int>(),
                 accommodations = query.Accommodations?.ToList() ?? new List<string>(),
             };
@@ -364,7 +375,11 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
             // 3. Mapping response به Application DTO
             var availabilityItems = response
-                .items.Select(item => new AvailabilityByCitiesItem(
+                .items.Where(item =>
+                    item.room is not null
+                    && SnappTripHotelMoney.TryToRials(item.room.price, out _)
+                )
+                .Select(item => new AvailabilityByCitiesItem(
                     CityId: item.city_id,
                     Hotel: item.hotel != null
                         ? new AvailabilityByCitiesHotel(
@@ -383,11 +398,17 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                         ? new AvailabilityByCitiesRoom(
                             Id: item.room.id,
                             Title: item.room.title,
-                            Price: (int)item.room.price,
-                            PriceOff: (int?)item.room.price_off,
-                            DiscountPercent: item.room.discount_percent,
-                            ChildPrice: (int?)item.room.child_price,
-                            ExtraBedPrice: (int?)item.room.extra_bed_price,
+                            Price: SnappTripHotelMoney.ToRials(item.room.price, "اتاق"),
+                            PriceOff: null,
+                            DiscountPercent: null,
+                            ChildPrice: SnappTripHotelMoney.ToRialsWhenPositive(
+                                item.room.child_price,
+                                "کودک"
+                            ),
+                            ExtraBedPrice: SnappTripHotelMoney.ToRialsWhenPositive(
+                                item.room.extra_bed_price,
+                                "تخت اضافه"
+                            ),
                             Children: item.room.children
                         )
                         : null
@@ -396,8 +417,18 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
             // 4. تبدیل filter اطلاعات
             var filterDto = new AvailabilityByCitiesFilter(
-                MinPrice: response.filter?.min_price,
-                MaxPrice: response.filter?.max_price,
+                MinPrice: response.filter is null
+                    ? null
+                    : SnappTripHotelMoney.ToRialsWhenPositive(
+                        response.filter.min_price,
+                        "حداقل قیمت"
+                    ),
+                MaxPrice: response.filter is null
+                    ? null
+                    : SnappTripHotelMoney.ToRialsWhenPositive(
+                        response.filter.max_price,
+                        "حداکثر قیمت"
+                    ),
                 Adults: response.filter?.adults,
                 Children: response.filter?.children,
                 AvailableRooms: response.filter?.available_rooms,
@@ -515,7 +546,10 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                     {
                         Date = dt,
                         IsAvailable = d.availability > 0,
-                        PricePerNight = d.price,
+                        PricePerNight = SnappTripHotelMoney.ToRialsWhenPositive(
+                            d.original_sell_price,
+                            "هر شب اتاق"
+                        ),
                         RemainingRooms = d.availability,
                         UnavailabilityReason = d.availability > 0 ? null : "ناموجود",
                     };
@@ -526,6 +560,45 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             }
 
             return result;
+        }
+
+        public async Task<HotelRoomPriceQuoteDto> QuoteRoomPriceAsync(
+            HotelRoomPriceQuoteRequest quote,
+            CancellationToken cancellationToken = default
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var request = new SnappTripCityAvailabilityRequest
+            {
+                city_id = quote.CityId,
+                checkin = quote.CheckIn.ToString("yyyy-MM-dd"),
+                checkout = quote.CheckOut.ToString("yyyy-MM-dd"),
+                adults = quote.Adults,
+                children = quote.Children,
+                available_rooms = quote.Rooms,
+                min_price = 0,
+                max_price = 0,
+                stars = [],
+                accommodations = [],
+            };
+
+            var response = await _apiClient.SearchCityAvailabilityAsync(request);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var selected = response.items.FirstOrDefault(item =>
+                item.hotel.id == quote.HotelId && item.room.id == quote.RoomId
+            );
+
+            if (selected is null)
+                throw new InvalidOperationException("اتاق انتخاب‌شده دیگر در دسترس نیست.");
+
+            return new HotelRoomPriceQuoteDto(
+                quote.HotelId,
+                quote.RoomId,
+                SnappTripHotelMoney.ToRials(selected.room.price, "اتاق"),
+                "IRR"
+            );
         }
 
         public async Task<HotelReviewsDto> GetHotelReviewsAsync(
@@ -603,7 +676,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
             return new AccountBalanceDto
             {
-                AvailableBalance = balance,
+                AvailableBalance = SnappTripHotelMoney.ToRialsAllowZero(balance, "موجودی"),
                 LockedBalance = 0,
                 LastUpdated = DateTime.UtcNow,
                 Currency = "IRR",
