@@ -10,6 +10,7 @@ using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg.Enums;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg.ValueObjects;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg;
 using Refahi.Modules.Flights.Domain.Repositories;
+using Refahi.Modules.Flights.Application.Services.Airlines;
 
 namespace Refahi.Modules.Flights.Application.Features.Bookings.CreateBooking;
 
@@ -21,16 +22,22 @@ public sealed class CreateFlightBookingCommandHandler
     private readonly IFlightOfferSnapshotRepository _offerSnapshotRepository;
     private readonly IFlightBookingRepository _bookingRepository;
     private readonly IFlightProviderFactory _providerFactory;
+    private readonly IAirlineLogoResolver _airlineLogoResolver;
+    private readonly IFlightLocationRepository _locationRepository;
 
     public CreateFlightBookingCommandHandler(
         IFlightOfferSnapshotRepository offerSnapshotRepository,
         IFlightBookingRepository bookingRepository,
-        IFlightProviderFactory providerFactory
+        IFlightProviderFactory providerFactory,
+        IAirlineLogoResolver airlineLogoResolver,
+        IFlightLocationRepository locationRepository
     )
     {
         _offerSnapshotRepository = offerSnapshotRepository;
         _bookingRepository = bookingRepository;
         _providerFactory = providerFactory;
+        _airlineLogoResolver = airlineLogoResolver;
+        _locationRepository = locationRepository;
     }
 
     public async Task<FlightBookingDetailDto> Handle(
@@ -47,7 +54,7 @@ public sealed class CreateFlightBookingCommandHandler
         if (existing is not null)
         {
             EnsureOwner(existing, request.UserId);
-            return FlightBookingDtoMapper.ToDetailDto(existing);
+            return await ToDetailDtoAsync(existing, cancellationToken);
         }
 
         var offerSnapshot = await _offerSnapshotRepository.GetByTokenAsync(
@@ -146,13 +153,37 @@ public sealed class CreateFlightBookingCommandHandler
         if (duplicateProviderBooking is not null)
         {
             EnsureOwner(duplicateProviderBooking, request.UserId);
-            return FlightBookingDtoMapper.ToDetailDto(duplicateProviderBooking);
+            return await ToDetailDtoAsync(duplicateProviderBooking, cancellationToken);
         }
 
         await _bookingRepository.AddAsync(booking, cancellationToken);
         await _bookingRepository.SaveChangesAsync(cancellationToken);
 
-        return FlightBookingDtoMapper.ToDetailDto(booking);
+        return await ToDetailDtoAsync(booking, cancellationToken);
+    }
+
+    private async Task<FlightBookingDetailDto> ToDetailDtoAsync(
+        FlightBooking booking,
+        CancellationToken cancellationToken
+    )
+    {
+        var airlinePresentations = await _airlineLogoResolver.ResolvePresentationsAsync(
+            booking.Segments.Select(segment => segment.AirlineCode),
+            cancellationToken
+        );
+        var airportPresentations = await _locationRepository.GetAirportPresentationsAsync(
+            booking.Segments.SelectMany(segment => new[]
+            {
+                segment.OriginAirportCode,
+                segment.DestinationAirportCode,
+            }),
+            cancellationToken
+        );
+        return FlightBookingDtoMapper.ToDetailDto(
+            booking,
+            airlinePresentations,
+            airportPresentations
+        );
     }
 
     private IFlightProvider ResolveProvider(string providerName)

@@ -102,7 +102,12 @@ public sealed class FlightSearchCatalogueTests
         var db = fixture.Db;
         await new FlightAirportDataSeeder(db, NullLogger<FlightAirportDataSeeder>.Instance).SeedAsync();
         var provider = new RecordingProvider();
-        var handler = new SearchFlightsQueryHandler(provider, new FlightOfferSnapshotRepository(db), new FlightLocationRepository(db));
+        var handler = new SearchFlightsQueryHandler(
+            provider,
+            new FlightOfferSnapshotRepository(db),
+            new FlightLocationRepository(db),
+            new StubAirlineLogoResolver()
+        );
         var request = Query("IKA", "IST", false, "Airport", "City") with { ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(8)) };
         await handler.Handle(request, default);
         Assert.False(provider.Last!.IsDomestic);

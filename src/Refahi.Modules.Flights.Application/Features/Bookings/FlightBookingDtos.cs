@@ -21,7 +21,8 @@ public sealed record FlightBookingSegmentDto(
     string DestinationAirportCode,
     string DestinationCaption,
     DateTime DepartureAtUtc,
-    DateTime ArrivalAtUtc
+    DateTime ArrivalAtUtc,
+    string? AirlineLogoUrl = null
 );
 
 public sealed record FlightIssuedTicketDto(

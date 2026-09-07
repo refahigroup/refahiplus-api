@@ -16,6 +16,13 @@ public interface IMediaStorageService
 
     Task DeleteAsync(string storagePath, CancellationToken ct = default);
 
+    ValueTask<bool> ExistsAsync(string storagePath, CancellationToken ct = default);
+
+    Task<string?> ResolvePublicUrlAsync(
+        string storagePath,
+        CancellationToken ct = default
+    );
+
     string GetPublicUrl(string storagePath);
 }
 

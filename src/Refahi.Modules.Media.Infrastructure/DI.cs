@@ -38,7 +38,15 @@ public static class DI
         });
 
         services.AddScoped<IMediaAssetRepository, MediaAssetRepository>();
-        services.AddSingleton<IMediaStorageService, FileSystemMediaStorageService>();
+        services.AddHttpClient("MediaPublicRead", client =>
+            client.Timeout = TimeSpan.FromSeconds(3)
+        );
+        services.AddSingleton<IMediaStorageService>(provider =>
+            new FileSystemMediaStorageService(
+                provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaStorageOptions>>(),
+                provider.GetRequiredService<IHttpClientFactory>().CreateClient("MediaPublicRead")
+            )
+        );
         services.AddSingleton<IMediaContentValidator, MagicBytesContentValidator>();
 
         return services;

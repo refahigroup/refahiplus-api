@@ -5,6 +5,35 @@ namespace Refahi.Modules.Flights.Infrastructure.Persistence.Repositories;
 
 public sealed class FlightLocationRepository(FlightsDbContext db) : IFlightLocationRepository
 {
+    public async Task<IReadOnlyDictionary<string, FlightAirportPresentation>> GetAirportPresentationsAsync(
+        IEnumerable<string?> airportCodes,
+        CancellationToken ct
+    )
+    {
+        var codes = airportCodes
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Select(code => code!.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (codes.Length == 0)
+            return new Dictionary<string, FlightAirportPresentation>(StringComparer.OrdinalIgnoreCase);
+
+        var airports = await db.FlightAirports
+            .AsNoTracking()
+            .Where(airport => airport.IsActive && codes.Contains(airport.IataCode))
+            .Select(airport => new FlightAirportPresentation(
+                airport.IataCode,
+                airport.CityNameFa,
+                airport.AirportNameFa
+            ))
+            .ToListAsync(ct);
+
+        return airports.ToDictionary(
+            airport => airport.AirportCode,
+            StringComparer.OrdinalIgnoreCase
+        );
+    }
+
     // This is a deliberately bounded reference catalogue (40 cities per mode).
     // Materialize memberships before grouping so a text match/limit never changes airport counts.
     private async Task<List<Row>> ReadAsync(bool domestic, CancellationToken ct) =>
@@ -72,4 +101,3 @@ public sealed class FlightLocationRepository(FlightsDbContext db) : IFlightLocat
         string CountryCode, string CountryNameFa, string CountryNameEn, string AirportCode,
         string AirportNameFa, string AirportNameEn, int CityRank, int AirportRank);
 }
-

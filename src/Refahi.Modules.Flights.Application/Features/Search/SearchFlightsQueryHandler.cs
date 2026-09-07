@@ -6,6 +6,7 @@ using Refahi.Modules.Flights.Application.Contracts.Providers.DTOs;
 using Refahi.Modules.Flights.Application.Features.Offers;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg;
 using Refahi.Modules.Flights.Domain.Repositories;
+using Refahi.Modules.Flights.Application.Services.Airlines;
 
 namespace Refahi.Modules.Flights.Application.Features.Search;
 
@@ -18,16 +19,19 @@ public sealed class SearchFlightsQueryHandler
     private readonly IFlightProviderFactory _providerFactory;
     private readonly IFlightOfferSnapshotRepository _offerSnapshotRepository;
     private readonly IFlightLocationRepository _locationRepository;
+    private readonly IAirlineLogoResolver _airlineLogoResolver;
 
     public SearchFlightsQueryHandler(
         IFlightProviderFactory providerFactory,
         IFlightOfferSnapshotRepository offerSnapshotRepository,
-        IFlightLocationRepository locationRepository
+        IFlightLocationRepository locationRepository,
+        IAirlineLogoResolver airlineLogoResolver
     )
     {
         _providerFactory = providerFactory;
         _offerSnapshotRepository = offerSnapshotRepository;
         _locationRepository = locationRepository;
+        _airlineLogoResolver = airlineLogoResolver;
     }
 
     public async Task<SearchFlightsResponse> Handle(
@@ -60,13 +64,44 @@ public sealed class SearchFlightsQueryHandler
         var nowUtc = DateTime.UtcNow;
         var expiresAtUtc = nowUtc.Add(OfferTimeToLive);
         var publicOffers = new List<FlightOfferDto>();
+        var airlinePresentations = await _airlineLogoResolver.ResolvePresentationsAsync(
+            providerResponse.Offers.SelectMany(offer =>
+                new[] { offer.ValidatingAirlineCode }
+                    .Concat(offer.OriginDestinationOptions
+                        .SelectMany(option => option.FlightSegments)
+                        .SelectMany(segment => new[]
+                        {
+                            segment.MarketingAirlineCode,
+                            segment.OperatingAirlineCode,
+                        }))
+            ),
+            cancellationToken
+        );
+        var airportPresentations = await _locationRepository.GetAirportPresentationsAsync(
+            providerResponse.Offers.SelectMany(offer =>
+                offer.OriginDestinationOptions
+                    .SelectMany(option => option.FlightSegments)
+                    .SelectMany(segment => new[]
+                    {
+                        segment.DepartureAirportLocationCode,
+                        segment.ArrivalAirportLocationCode,
+                    })
+            ),
+            cancellationToken
+        );
 
         foreach (var providerOffer in providerResponse.Offers)
         {
             ValidateProviderOffer(providerOffer);
 
             var offerToken = CreateOfferToken();
-            var publicOffer = MapToPublicOffer(providerOffer, offerToken, expiresAtUtc);
+            var publicOffer = MapToPublicOffer(
+                providerOffer,
+                offerToken,
+                expiresAtUtc,
+                airlinePresentations,
+                airportPresentations
+            );
             var publicSnapshotJson = JsonSerializer.Serialize(publicOffer, JsonOptions);
 
             var snapshot = FlightOfferSnapshot.Create(
@@ -91,7 +126,12 @@ public sealed class SearchFlightsQueryHandler
 
         await _offerSnapshotRepository.SaveChangesAsync(cancellationToken);
 
-        return new SearchFlightsResponse(expiresAtUtc, publicOffers);
+        return new SearchFlightsResponse(
+            expiresAtUtc,
+            publicOffers,
+            origin.CityNameFa,
+            destination.CityNameFa
+        );
     }
 
     private static FluentValidation.ValidationException InvalidRoute(string message) =>
@@ -176,12 +216,14 @@ public sealed class SearchFlightsQueryHandler
     private static FlightOfferDto MapToPublicOffer(
         FlightFareOffer offer,
         string offerToken,
-        DateTime expiresAtUtc
+        DateTime expiresAtUtc,
+        IReadOnlyDictionary<string, AirlinePresentation> airlinePresentations,
+        IReadOnlyDictionary<string, FlightAirportPresentation> airportPresentations
     )
     {
         var segments = offer
             .OriginDestinationOptions.SelectMany(option => option.FlightSegments)
-            .Select(MapSegment)
+            .Select(segment => MapSegment(segment, airlinePresentations, airportPresentations))
             .ToList();
 
         var firstSegment = segments.FirstOrDefault();
@@ -204,7 +246,11 @@ public sealed class SearchFlightsQueryHandler
             firstSegment?.DepartureDateTime,
             lastSegment?.ArrivalDateTime,
             offer.ValidatingAirlineCode ?? firstSegment?.MarketingAirlineCode,
-            offer.ValidatingAirlineCaption ?? firstSegment?.MarketingAirlineCaption,
+            AirlineName(
+                airlinePresentations,
+                offer.ValidatingAirlineCode ?? firstSegment?.MarketingAirlineCode,
+                offer.ValidatingAirlineCaption ?? firstSegment?.MarketingAirlineCaption
+            ),
             firstSegment?.FlightNumber,
             firstSegment?.CabinClassCode,
             firstSegment?.CabinClassCaption,
@@ -215,24 +261,48 @@ public sealed class SearchFlightsQueryHandler
             firstProviderSegment?.Baggage,
             MapMoney(offer.TotalFare),
             segments,
-            offer.PassengerFareBreakdowns.Select(MapPassengerFare).ToList()
+            offer.PassengerFareBreakdowns.Select(MapPassengerFare).ToList(),
+            AirlineLogo(
+                airlinePresentations,
+                offer.ValidatingAirlineCode ?? firstSegment?.MarketingAirlineCode
+            )
         );
     }
 
-    private static FlightSegmentDto MapSegment(FlightSegmentOffer segment)
+    private static FlightSegmentDto MapSegment(
+        FlightSegmentOffer segment,
+        IReadOnlyDictionary<string, AirlinePresentation> airlinePresentations,
+        IReadOnlyDictionary<string, FlightAirportPresentation> airportPresentations
+    )
     {
         return new FlightSegmentDto(
             segment.DepartureAirportLocationCode,
-            segment.DepartureAirportCaption,
+            AirportCaption(
+                airportPresentations,
+                segment.DepartureAirportLocationCode,
+                segment.DepartureAirportCaption
+            ),
             segment.ArrivalAirportLocationCode,
-            segment.ArrivalAirportCaption,
+            AirportCaption(
+                airportPresentations,
+                segment.ArrivalAirportLocationCode,
+                segment.ArrivalAirportCaption
+            ),
             segment.DepartureDateTime,
             segment.ArrivalDateTime,
             segment.FlightNumber,
             segment.MarketingAirlineCode,
-            segment.MarketingAirlineCaption,
+            AirlineName(
+                airlinePresentations,
+                segment.MarketingAirlineCode,
+                segment.MarketingAirlineCaption
+            ),
             segment.OperatingAirlineCode,
-            segment.OperatingAirlineCaption,
+            AirlineName(
+                airlinePresentations,
+                segment.OperatingAirlineCode,
+                segment.OperatingAirlineCaption
+            ),
             segment.CabinClassCode,
             segment.CabinClassCaption,
             segment.ResBookDesigCode,
@@ -241,8 +311,62 @@ public sealed class SearchFlightsQueryHandler
             segment.StopQuantity,
             segment.Baggage,
             segment.IsCharter,
-            segment.IsReturn
+            segment.IsReturn,
+            AirlineLogo(airlinePresentations, segment.MarketingAirlineCode),
+            AirlineLogo(airlinePresentations, segment.OperatingAirlineCode)
         );
+    }
+
+    private static string? AirlineLogo(
+        IReadOnlyDictionary<string, AirlinePresentation> presentations,
+        string? airlineCode
+    )
+    {
+        if (string.IsNullOrWhiteSpace(airlineCode))
+            return null;
+
+        return presentations.GetValueOrDefault(airlineCode.Trim().ToUpperInvariant())?.LogoUrl;
+    }
+
+    private static string? AirlineName(
+        IReadOnlyDictionary<string, AirlinePresentation> presentations,
+        string? airlineCode,
+        string? providerCaption
+    )
+    {
+        if (
+            !string.IsNullOrWhiteSpace(providerCaption)
+            && !string.Equals(providerCaption.Trim(), airlineCode?.Trim(), StringComparison.OrdinalIgnoreCase)
+        )
+            return providerCaption.Trim();
+
+        if (string.IsNullOrWhiteSpace(airlineCode))
+            return null;
+
+        return presentations
+            .GetValueOrDefault(airlineCode.Trim().ToUpperInvariant())
+            ?.Name;
+    }
+
+    private static string? AirportCaption(
+        IReadOnlyDictionary<string, FlightAirportPresentation> presentations,
+        string airportCode,
+        string? providerCaption
+    )
+    {
+        if (presentations.TryGetValue(airportCode.Trim(), out var presentation))
+            return string.Equals(
+                presentation.CityNameFa,
+                presentation.AirportNameFa,
+                StringComparison.OrdinalIgnoreCase
+            )
+                ? presentation.CityNameFa
+                : $"{presentation.CityNameFa}، {presentation.AirportNameFa}";
+
+        return !string.IsNullOrWhiteSpace(providerCaption)
+               && !string.Equals(providerCaption.Trim(), airportCode.Trim(), StringComparison.OrdinalIgnoreCase)
+            ? providerCaption.Trim()
+            : null;
     }
 
     private static FlightPassengerFareDto MapPassengerFare(FlightPassengerFareBreakdown fare)

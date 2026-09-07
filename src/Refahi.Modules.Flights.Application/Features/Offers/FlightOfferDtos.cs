@@ -36,7 +36,9 @@ public sealed record FlightSegmentDto(
     int? StopQuantity,
     string? Baggage,
     bool? IsCharter,
-    bool? IsReturn
+    bool? IsReturn,
+    string? MarketingAirlineLogoUrl = null,
+    string? OperatingAirlineLogoUrl = null
 );
 
 public sealed record FlightOfferDto(
@@ -61,5 +63,6 @@ public sealed record FlightOfferDto(
     string? Baggage,
     FlightMoneyDto TotalFare,
     IReadOnlyCollection<FlightSegmentDto> Segments,
-    IReadOnlyCollection<FlightPassengerFareDto> PassengerFares
+    IReadOnlyCollection<FlightPassengerFareDto> PassengerFares,
+    string? AirlineLogoUrl = null
 );

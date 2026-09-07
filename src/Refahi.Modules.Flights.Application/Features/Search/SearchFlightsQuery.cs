@@ -23,5 +23,7 @@ public sealed record SearchFlightsQuery(
 
 public sealed record SearchFlightsResponse(
     DateTime OffersExpireAtUtc,
-    IReadOnlyCollection<FlightOfferDto> Offers
+    IReadOnlyCollection<FlightOfferDto> Offers,
+    string? OriginCityName = null,
+    string? DestinationCityName = null
 );

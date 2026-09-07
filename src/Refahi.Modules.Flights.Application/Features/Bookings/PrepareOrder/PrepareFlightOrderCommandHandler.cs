@@ -7,6 +7,7 @@ using Refahi.Modules.Flights.Domain.Aggregates.FlightBookingAgg.ValueObjects;
 using Refahi.Modules.Flights.Domain.Repositories;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
+using Refahi.Modules.Flights.Application.Services.Airlines;
 
 namespace Refahi.Modules.Flights.Application.Features.Bookings.PrepareOrder;
 
@@ -17,14 +18,17 @@ public sealed class PrepareFlightOrderCommandHandler
 
     private readonly IFlightBookingRepository _bookingRepository;
     private readonly IMediator _mediator;
+    private readonly IAirlineLogoResolver _airlineLogoResolver;
 
     public PrepareFlightOrderCommandHandler(
         IFlightBookingRepository bookingRepository,
-        IMediator mediator
+        IMediator mediator,
+        IAirlineLogoResolver airlineLogoResolver
     )
     {
         _bookingRepository = bookingRepository;
         _mediator = mediator;
+        _airlineLogoResolver = airlineLogoResolver;
     }
 
     public async Task<PrepareFlightOrderResponse> Handle(
@@ -106,6 +110,23 @@ public sealed class PrepareFlightOrderCommandHandler
             );
         }
 
+        var orderedSegments = booking.Segments.OrderBy(segment => segment.Sequence).ToList();
+        var firstSegment = orderedSegments.First();
+        var lastSegment = orderedSegments.Last();
+        var airlinePresentations = await _airlineLogoResolver.ResolvePresentationsAsync(
+            [firstSegment.AirlineCode],
+            cancellationToken
+        );
+        var airlinePresentation = airlinePresentations.GetValueOrDefault(
+            firstSegment.AirlineCode.Trim().ToUpperInvariant()
+        );
+        var airlineName = !string.Equals(
+            firstSegment.AirlineName.Trim(),
+            firstSegment.AirlineCode.Trim(),
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? firstSegment.AirlineName
+            : airlinePresentation?.Name ?? "شرکت هواپیمایی نامشخص";
         var metadataJson = JsonSerializer.Serialize(
             new
             {
@@ -116,16 +137,19 @@ public sealed class PrepareFlightOrderCommandHandler
                 tracking_code = booking.ProviderBooking.ProviderBookingCaption,
                 provider_trace_id = booking.ProviderBooking.ProviderTraceId
                     ?? booking.Provider.ProviderTraceId,
-                origin = booking
-                    .Segments.OrderBy(segment => segment.Sequence)
-                    .First()
-                    .OriginAirportCode,
-                destination = booking
-                    .Segments.OrderBy(segment => segment.Sequence)
-                    .Last()
-                    .DestinationAirportCode,
+                origin = firstSegment.OriginAirportCode,
+                destination = lastSegment.DestinationAirportCode,
                 passenger_count = booking.Passengers.Count,
                 expires_at_utc = booking.ExpiresAtUtc,
+                presentation = new
+                {
+                    version = 1,
+                    type = "airline",
+                    imageUrl = airlinePresentation?.LogoUrl,
+                    imageAlt = airlineName,
+                    primaryText = airlineName,
+                    secondaryText = $"پرواز {firstSegment.FlightNumber}",
+                },
             },
             JsonOptions
         );
