@@ -10,6 +10,13 @@
     <Project Path="src/Refahi.Modules.Charge.Domain/Refahi.Modules.Charge.Domain.csproj" Id="204b9a73-5671-4da4-a5c2-92bb5ba665f0" />
     <Project Path="src/Refahi.Modules.Charge.Infrastructure/Refahi.Modules.Charge.Infrastructure.csproj" Id="2dcad94f-358a-499e-86ba-d1727d29b345" />
   </Folder>
+  <Folder Name="/01_Modules/Commerce/">
+    <Project Path="src/Refahi.Modules.Commerce.Api/Refahi.Modules.Commerce.Api.csproj" Id="b957cca7-7ecb-4e6c-aec4-8d1ca5ab319f" />
+    <Project Path="src/Refahi.Modules.Commerce.Application.Contracts/Refahi.Modules.Commerce.Application.Contracts.csproj" Id="13360e95-eb04-4b45-b65f-8c31691f63b6" />
+    <Project Path="src/Refahi.Modules.Commerce.Application/Refahi.Modules.Commerce.Application.csproj" Id="bcffd21f-9b0d-4031-9ab6-f83db0d41fb8" />
+    <Project Path="src/Refahi.Modules.Commerce.Domain/Refahi.Modules.Commerce.Domain.csproj" />
+    <Project Path="src/Refahi.Modules.Commerce.Infrastructure/Refahi.Modules.Commerce.Infrastructure.csproj" Id="f524376b-8421-4972-a920-4488a503e5a3" />
+  </Folder>
   <Folder Name="/01_Modules/Flights/">
     <Project Path="src/Refahi.Modules.Flights.Api/Refahi.Modules.Flights.Api.csproj" />
     <Project Path="src/Refahi.Modules.Flights.Application.Contracts/Refahi.Modules.Flights.Application.Contracts.csproj" />
@@ -58,9 +65,7 @@
     <Project Path="src/Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj" Id="d2727290-9cd6-44c3-8d26-79e6577bb6d9" />
     <Project Path="src/Refahi.Modules.References.Application/Refahi.Modules.References.Application.csproj" Id="b52022b2-4bc1-4aad-9030-7a9ee6843fe1" />
     <Project Path="src/Refahi.Modules.References.Domain/Refahi.Modules.References.Domain.csproj" Id="1b0c64b9-1651-4ac8-a8a5-7cd2533ced74" />
-    <Project Path="src/Refahi.Modules.References.Infrastructure/Refahi.Modules.References.Infrastructure.csproj">
-      <Build Solution="Debug|*" Project="false" />
-    </Project>
+    <Project Path="src/Refahi.Modules.References.Infrastructure/Refahi.Modules.References.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/01_Modules/Store/">
     <Project Path="src/Refahi.Modules.Store.Api/Refahi.Modules.Store.Api.csproj" Id="b56fb814-6674-44fc-a494-bd1a7e2a7b9e" />
@@ -92,6 +97,7 @@
   </Folder>
   <Folder Name="/02_Tests/">
     <Project Path="tests/Refahi.Modules.Charge.Tests/Refahi.Modules.Charge.Tests.csproj" />
+    <Project Path="tests/Refahi.Modules.Commerce.Tests/Refahi.Modules.Commerce.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Flights.Tests/Refahi.Modules.Flights.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Hotels.Tests/Refahi.Modules.Hotels.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Identity.Tests/Refahi.Modules.Identity.Tests.csproj" />

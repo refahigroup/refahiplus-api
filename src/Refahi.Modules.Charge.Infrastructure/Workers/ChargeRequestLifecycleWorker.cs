@@ -72,7 +72,8 @@ public sealed class ChargeRequestLifecycleWorker : BackgroundService
                             new CancelOrderCommand(
                                 request.OrderId.Value,
                                 "مهلت پرداخت سفارش شارژ به پایان رسیده است",
-                                $"charge-expire-{request.Id:N}"
+                                $"charge-expire-{request.Id:N}",
+                                CallerRole: "System"
                             ),
                             ct
                         );

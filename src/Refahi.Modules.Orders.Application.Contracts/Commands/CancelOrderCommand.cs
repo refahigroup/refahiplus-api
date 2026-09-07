@@ -9,7 +9,9 @@ public sealed record CancelOrderCommand(
     Guid OrderId,
     string? Reason,
     string IdempotencyKey,
-    Guid? VoucherRefundOverrideId = null
+    Guid? VoucherRefundOverrideId = null,
+    Guid? CallerUserId = null,
+    string CallerRole = ""
 ) : IRequest<CancelOrderResponse>;
 
 public sealed record CancelOrderResponse(Guid OrderId, string Status, string PaymentAction);

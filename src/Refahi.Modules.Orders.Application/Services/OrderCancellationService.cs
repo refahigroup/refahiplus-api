@@ -1,8 +1,10 @@
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
+using Refahi.Modules.Orders.Application.Contracts.Cancellation;
 using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
 using Refahi.Modules.Orders.Domain.Aggregates;
 using Refahi.Modules.Orders.Domain.Enums;
+using Refahi.Modules.Orders.Domain.Exceptions;
 using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Store.Application.Contracts.Vouchers;
 using Refahi.Modules.Wallets.Application.Contracts;
@@ -14,9 +16,15 @@ namespace Refahi.Modules.Orders.Application.Services;
 public sealed class OrderCancellationService(
     IOrderRepository orderRepository,
     IMediator mediator,
-    IPublisher publisher
+    IPublisher publisher,
+    IEnumerable<IOrderCancellationParticipant> cancellationParticipants
 )
 {
+    public OrderCancellationService(IOrderRepository orderRepository, IMediator mediator, IPublisher publisher)
+        : this(orderRepository, mediator, publisher, Array.Empty<IOrderCancellationParticipant>())
+    {
+    }
+
     public Task<CancelOrderResponse> CancelAsync(
         Order order,
         string? reason,
@@ -33,6 +41,17 @@ public sealed class OrderCancellationService(
         var normalizedReason = string.IsNullOrWhiteSpace(reason)
             ? "لغو سفارش و بازگشت وجه"
             : reason.Trim();
+
+        var participant = cancellationParticipants.FirstOrDefault(x =>
+            x.SourceModule.Equals(order.SourceModule, StringComparison.OrdinalIgnoreCase));
+        if (participant is not null && order.Status is not OrderStatus.Cancelled and not OrderStatus.Refunded)
+        {
+            var preparation = await participant.PrepareAsync(new OrderCancellationContext(
+                order.Id, order.UserId, order.SourceModule, order.SourceReferenceId,
+                order.ReferenceType, order.PaymentState.ToString(), normalizedReason), ct);
+            if (!preparation.CanContinue)
+                throw new OrderStateConflictException(preparation.Message ?? "لغو سرویس مبدا هنوز تکمیل نشده است");
+        }
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Refunded)
         {
             var completedAction = order.PaymentState switch

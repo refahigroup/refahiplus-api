@@ -76,7 +76,8 @@ public sealed class ChargeRefundProcessor
                 new CancelOrderCommand(
                     request.OrderId.Value,
                     request.RefundReason!,
-                    request.RefundIdempotencyKey!
+                    request.RefundIdempotencyKey!,
+                    CallerRole: "System"
                 ),
                 ct
             );

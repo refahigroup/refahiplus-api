@@ -754,7 +754,8 @@ public sealed class OverrideRedeemedVoucherRefundHandler(
                     value.OrderId,
                     value.Reason,
                     $"voucher-refund-override-{value.Id:N}",
-                    value.Id
+                    value.Id,
+                    CallerRole: "System"
                 ),
                 ct
             );

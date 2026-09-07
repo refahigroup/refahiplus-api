@@ -357,7 +357,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         try
         {
             var cancelResult = await _mediator.Send(
-                new CancelOrderCommand(orderId, reason, $"hotel-saga-compensation-{saga.SagaId:N}"),
+                new CancelOrderCommand(orderId, reason, $"hotel-saga-compensation-{saga.SagaId:N}", CallerRole: "System"),
                 cancellationToken
             );
 

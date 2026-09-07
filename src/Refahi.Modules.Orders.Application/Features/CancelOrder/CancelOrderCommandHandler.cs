@@ -18,6 +18,11 @@ public sealed class CancelOrderCommandHandler(
             await orderRepository.GetByIdWithItemsAsync(request.OrderId, ct)
             ?? throw new InvalidOperationException("سفارش یافت نشد");
 
+        if (!string.Equals(request.CallerRole, "Admin", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(request.CallerRole, "System", StringComparison.OrdinalIgnoreCase)
+            && request.CallerUserId != order.UserId)
+            throw new UnauthorizedAccessException("دسترسی به لغو این سفارش مجاز نیست");
+
         return await cancellationService.CancelAsync(
             order,
             request.Reason,

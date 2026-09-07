@@ -14,6 +14,21 @@ namespace Refahi.Modules.Orders.Tests;
 public sealed class CancelOrderCommandHandlerTests
 {
     [Fact]
+    public async Task User_cannot_cancel_another_users_order()
+    {
+        var order = CreatePaidOrder();
+        var repository = new FakeOrderRepository(order);
+        var mediator = new RefundMediator(CommandStatus.Completed);
+        var handler = CreateHandler(repository, mediator);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => handler.Handle(
+            new CancelOrderCommand(order.Id, "لغو", "user-key", CallerUserId: Guid.NewGuid(), CallerRole: "User"), default));
+
+        Assert.Equal(0, mediator.WalletRefundSendCount);
+        Assert.Equal(PaymentState.Paid, order.PaymentState);
+    }
+
+    [Fact]
     public async Task In_progress_wallet_refund_does_not_mark_order_as_refunded()
     {
         var order = CreatePaidOrder();
@@ -23,7 +38,7 @@ public sealed class CancelOrderCommandHandlerTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(
-                new CancelOrderCommand(order.Id, "provider failure", "refund-key"),
+                new CancelOrderCommand(order.Id, "provider failure", "refund-key", CallerRole: "System"),
                 default
             )
         );
@@ -44,7 +59,7 @@ public sealed class CancelOrderCommandHandlerTests
         var handler = CreateHandler(repository, mediator);
 
         var response = await handler.Handle(
-            new CancelOrderCommand(order.Id, "provider failure", "refund-key"),
+            new CancelOrderCommand(order.Id, "provider failure", "refund-key", CallerRole: "System"),
             default
         );
 
@@ -62,7 +77,7 @@ public sealed class CancelOrderCommandHandlerTests
         var repository = new FakeOrderRepository(order);
         var mediator = new RefundMediator(CommandStatus.Completed);
         var handler = CreateHandler(repository, mediator);
-        var command = new CancelOrderCommand(order.Id, "provider failure", "refund-key");
+        var command = new CancelOrderCommand(order.Id, "provider failure", "refund-key", CallerRole: "System");
 
         await handler.Handle(command, default);
         var repeated = await handler.Handle(command, default);
@@ -82,7 +97,7 @@ public sealed class CancelOrderCommandHandlerTests
         var handler = CreateHandler(repository, mediator);
 
         var ex = await Assert.ThrowsAsync<VoucherApplicationException>(() =>
-            handler.Handle(new CancelOrderCommand(order.Id, "بازگشت وجه", "refund-key"), default)
+            handler.Handle(new CancelOrderCommand(order.Id, "بازگشت وجه", "refund-key", CallerRole: "System"), default)
         );
 
         Assert.Equal("REDEEMED_VOUCHER_REFUND_REQUIRES_OVERRIDE", ex.Code);

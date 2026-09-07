@@ -893,7 +893,8 @@ public sealed class CancelInPersonOrderHandler(
             new CancelOrderCommand(
                 order.Id,
                 "لغو فروش حضوری",
-                $"store-in-person-cancel:{order.Id:N}:{request.IdempotencyKey.Trim()}"
+                $"store-in-person-cancel:{order.Id:N}:{request.IdempotencyKey.Trim()}",
+                CallerRole: "System"
             ),
             ct
         );
