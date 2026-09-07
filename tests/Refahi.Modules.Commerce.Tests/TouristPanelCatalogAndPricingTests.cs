@@ -39,12 +39,12 @@ public sealed class TouristPanelCatalogAndPricingTests
         Assert.False(new TouristPanelOptions { SalesEnabled = true, SettlementConfirmed = true, BuyPriceConfirmed = true,
             PaymentMethod = 100, BankGateway = 0, AllowedPriceCategoryIds = [Guid.NewGuid().ToString()], DeliveryHosts = ["tickets.test"], PricingVersion = "v1" }.IsSaleConfigured);
     }
-    [Theory] [InlineData(false)] [InlineData(true)]
-    public async Task Catalog_reads_past_short_pages_and_publishes_only_after_empty_page(bool duplicate)
+    [Fact]
+    public async Task Catalog_reads_past_short_pages_and_publishes_after_empty_page()
     {
         await using var db = new CommerceDbContext(new DbContextOptionsBuilder<CommerceDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
         var options = new TouristPanelOptions { CatalogPageSize = 20, CatalogMaxPages = 5 };
-        var id = Guid.NewGuid().ToString(); var second = duplicate ? id : Guid.NewGuid().ToString(); var seller = Guid.NewGuid().ToString();
+        var id = Guid.NewGuid().ToString(); var second = Guid.NewGuid().ToString(); var seller = Guid.NewGuid().ToString();
         var transport = new Transport(r =>
         {
             if (r.Path.EndsWith("connect/token")) return Json("{\"access_token\":\"token\",\"expires_in\":3600,\"token_type\":\"Bearer\"}");
@@ -52,16 +52,41 @@ public sealed class TouristPanelCatalogAndPricingTests
             return Json(page == "3" ? "[]" : JsonSerializer.Serialize(new[] { new { id = page == "1" ? id : second, supplyChainHojreId = seller } }));
         });
         var catalog = new TouristPanelCatalog(db, Client(transport, options), Options.Create(options));
-        if (duplicate)
-        {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => catalog.RefreshAsync(default)); Assert.Empty(db.CatalogSnapshots);
-        }
-        else
-        {
-            await catalog.RefreshAsync(default); Assert.Equal(2, (await catalog.ReadAsync(default)).Count);
-            Assert.Equal(3, transport.Requests.Count(x => x.Path.EndsWith("/programs")));
-            await catalog.RefreshAsync(default); Assert.Equal(3, transport.Requests.Count(x => x.Path.EndsWith("/programs")));
-        }
+        await catalog.RefreshAsync(default); Assert.Equal(2, (await catalog.ReadAsync(default)).Count);
+        Assert.Equal(3, transport.Requests.Count(x => x.Path.EndsWith("/programs")));
+        await catalog.RefreshAsync(default); Assert.Equal(3, transport.Requests.Count(x => x.Path.EndsWith("/programs")));
+    }
+    [Fact]
+    public async Task Catalog_treats_a_fully_repeated_page_as_end_of_catalog()
+    {
+        await using var db = new CommerceDbContext(new DbContextOptionsBuilder<CommerceDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        var options = new TouristPanelOptions { CatalogPageSize = 20, CatalogMaxPages = 5 };
+        var id = Guid.NewGuid().ToString(); var seller = Guid.NewGuid().ToString();
+        var payload = JsonSerializer.Serialize(new[] { new { id, supplyChainHojreId = seller } });
+        var transport = new Transport(r => r.Path.EndsWith("connect/token")
+            ? Json("{\"access_token\":\"token\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
+            : Json(payload));
+        var catalog = new TouristPanelCatalog(db, Client(transport, options), Options.Create(options));
+
+        await catalog.RefreshAsync(default);
+
+        Assert.Single(await catalog.ReadAsync(default));
+        Assert.Equal(2, transport.Requests.Count(x => x.Path.EndsWith("/programs")));
+    }
+    [Fact]
+    public async Task Catalog_rejects_duplicate_ids_inside_one_page()
+    {
+        await using var db = new CommerceDbContext(new DbContextOptionsBuilder<CommerceDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        var options = new TouristPanelOptions { CatalogPageSize = 20, CatalogMaxPages = 5 };
+        var id = Guid.NewGuid().ToString(); var seller = Guid.NewGuid().ToString();
+        var payload = JsonSerializer.Serialize(new[] { new { id, supplyChainHojreId = seller }, new { id, supplyChainHojreId = seller } });
+        var transport = new Transport(r => r.Path.EndsWith("connect/token")
+            ? Json("{\"access_token\":\"token\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
+            : Json(payload));
+        var catalog = new TouristPanelCatalog(db, Client(transport, options), Options.Create(options));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => catalog.RefreshAsync(default));
+        Assert.Empty(db.CatalogSnapshots);
     }
     [Fact]
     public async Task Failed_refresh_preserves_last_successful_snapshot()

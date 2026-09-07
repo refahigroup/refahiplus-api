@@ -33,6 +33,7 @@ public sealed class TouristPanelCatalog(CommerceDbContext db, TouristPanelClient
 
         var rows = new List<TpProgramListDto>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        HashSet<string>? previousPageIds = null;
 
         for (var page = 1; page <= options.Value.CatalogMaxPages; page++)
         {
@@ -40,35 +41,53 @@ public sealed class TouristPanelCatalog(CommerceDbContext db, TouristPanelClient
 
             if (batch.Count == 0)
             {
-                var json = JsonSerializer.Serialize(rows, TouristPanelClient.Json);
-
-                if (existing is null) 
-                    db.CatalogSnapshots.Add(CommerceCatalogSnapshot.Create(options.Value.AccountKey, json));
-                else 
-                    existing.Publish(json);
-
-                await db.SaveChangesAsync(ct);
-
+                await PublishAsync(existing, rows, ct);
                 return;
             }
 
+            var pageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var row in batch)
             {
                 if (
                     !Guid.TryParse(row.Id, out var id) || 
                     id == Guid.Empty || 
                     !Guid.TryParse(row.SupplyChainHojreId, out var seller) || 
-                    seller == Guid.Empty || !seen.Add(id.ToString())
+                    seller == Guid.Empty || !pageIds.Add(id.ToString())
                 )
                 {
                     throw new InvalidOperationException("صفحه تکراری یا شناسه نامعتبر در کاتالوگ توریست‌پنل");
                 }
-
-                rows.Add(row);
             }
+
+            // TouristPanel currently ignores page/take and repeats the complete result set.
+            // A fully repeated consecutive page is therefore its end-of-catalog signal.
+            if (previousPageIds is not null && pageIds.SetEquals(previousPageIds))
+            {
+                await PublishAsync(existing, rows, ct);
+                return;
+            }
+
+            if (pageIds.Overlaps(seen))
+                throw new InvalidOperationException("هم‌پوشانی نامعتبر صفحات کاتالوگ توریست‌پنل");
+
+            rows.AddRange(batch);
+            seen.UnionWith(pageIds);
+            previousPageIds = pageIds;
         }
 
         throw new InvalidOperationException("همگام‌سازی کاتالوگ از سقف صفحات عبور کرد");
+    }
+
+    private async Task PublishAsync(CommerceCatalogSnapshot? existing, IReadOnlyList<TpProgramListDto> rows, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(rows, TouristPanelClient.Json);
+
+        if (existing is null)
+            db.CatalogSnapshots.Add(CommerceCatalogSnapshot.Create(options.Value.AccountKey, json));
+        else
+            existing.Publish(json);
+
+        await db.SaveChangesAsync(ct);
     }
 }
 
