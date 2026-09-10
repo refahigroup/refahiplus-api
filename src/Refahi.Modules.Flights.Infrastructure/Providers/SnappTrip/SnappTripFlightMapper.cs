@@ -86,13 +86,21 @@ internal static class SnappTripFlightMapper
 
     public static FlightSearchResponse ToFlightResponse(
         SnappTripSearchResponse response,
-        string? maskedRawPayload
+        string? maskedRawPayload,
+        decimal charterCommissionPercent
     )
     {
         var searchId = response.SearchId?.ToString();
         var offers = response
             .PricedItineraries.Where(item => !string.IsNullOrWhiteSpace(item.FareSourceCode))
-            .Select(item => ToFlightFareOffer(item, searchId, maskedRawPayload))
+            .Select(item =>
+                ToFlightFareOffer(
+                    item,
+                    searchId,
+                    maskedRawPayload,
+                    charterCommissionPercent
+                )
+            )
             .ToList();
 
         return new FlightSearchResponse(
@@ -284,13 +292,25 @@ internal static class SnappTripFlightMapper
     private static FlightFareOffer ToFlightFareOffer(
         SnappTripPricedItinerary itinerary,
         string? searchId,
-        string? maskedRawPayload
+        string? maskedRawPayload,
+        decimal charterCommissionPercent
     )
     {
         var totalFare = itinerary.AirItineraryPricingInfo?.ItinTotalFare;
         var serviceAmount = totalFare?.TotalFare ?? 0;
-        var commissionAmount = totalFare?.TotalCommission ?? 0;
+        var isCharter = itinerary
+            .OriginDestinationOptions.SelectMany(option => option.FlightSegments)
+            .Any(segment => segment.IsCharter == true);
+        var commissionAmount = isCharter
+            ? CalculatePercentage(serviceAmount, charterCommissionPercent)
+            : totalFare?.TotalCommission ?? 0;
         var customerPayableAmount = CheckedPayableAmount(serviceAmount, commissionAmount);
+        var passengerFareBreakdowns = itinerary.AirItineraryPricingInfo?.PtcFareBreakdown ?? [];
+        var mappedPassengerFares = isCharter
+            ? ToCharterPassengerFareBreakdowns(passengerFareBreakdowns, commissionAmount)
+            : passengerFareBreakdowns
+                .Select(breakdown => ToPassengerFareBreakdown(breakdown))
+                .ToList();
 
         return new FlightFareOffer(
             ProviderName,
@@ -303,16 +323,13 @@ internal static class SnappTripFlightMapper
                 totalFare?.BaseFare ?? 0,
                 totalFare?.TotalFare ?? 0,
                 totalFare?.TotalTax ?? 0,
-                totalFare?.TotalCommission ?? 0,
+                commissionAmount,
                 totalFare?.ServiceTax ?? 0,
                 totalFare?.Currency ?? "IRR",
                 customerPayableAmount
             ),
             itinerary.OriginDestinationOptions.Select(ToFlightOption).ToList(),
-            itinerary
-                .AirItineraryPricingInfo?.PtcFareBreakdown.Select(ToPassengerFareBreakdown)
-                .ToList()
-                ?? new List<FlightPassengerFareBreakdown>(),
+            mappedPassengerFares,
             itinerary.AirItineraryPricingInfo?.FareType,
             RawPayloadSnapshot: maskedRawPayload
         );
@@ -360,12 +377,13 @@ internal static class SnappTripFlightMapper
     }
 
     private static FlightPassengerFareBreakdown ToPassengerFareBreakdown(
-        SnappTripPtcFareBreakdown breakdown
+        SnappTripPtcFareBreakdown breakdown,
+        long? commissionOverride = null
     )
     {
         var fare = breakdown.PassengerFare;
         var serviceAmount = fare?.TotalFare ?? 0;
-        var commissionAmount = fare?.Commission ?? 0;
+        var commissionAmount = commissionOverride ?? fare?.Commission ?? 0;
 
         return new FlightPassengerFareBreakdown(
             breakdown.PassengerTypeQuantity?.PassengerType,
@@ -374,7 +392,7 @@ internal static class SnappTripFlightMapper
                 fare?.BaseFare ?? 0,
                 fare?.TotalFare ?? 0,
                 0,
-                fare?.Commission ?? 0,
+                commissionAmount,
                 fare?.ServiceTax ?? 0,
                 fare?.Currency ?? "IRR",
                 CheckedPayableAmount(serviceAmount, commissionAmount)
@@ -382,10 +400,96 @@ internal static class SnappTripFlightMapper
         );
     }
 
+    private static IReadOnlyCollection<FlightPassengerFareBreakdown> ToCharterPassengerFareBreakdowns(
+        IReadOnlyList<SnappTripPtcFareBreakdown> breakdowns,
+        long totalCommissionAmount
+    )
+    {
+        if (breakdowns.Count == 0)
+            return [];
+
+        var weights = breakdowns
+            .Select((breakdown, index) => new
+            {
+                Index = index,
+                Amount = breakdown.PassengerFare?.TotalFare ?? 0,
+            })
+            .ToList();
+
+        if (weights.Any(item => item.Amount < 0))
+            throw InvalidProviderPricing();
+
+        var totalWeight = weights.Sum(item => (decimal)item.Amount);
+        if (totalWeight <= 0)
+        {
+            if (totalCommissionAmount > 0)
+                throw InvalidProviderPricing();
+
+            return breakdowns
+                .Select(breakdown => ToPassengerFareBreakdown(breakdown, 0))
+                .ToList();
+        }
+
+        var allocations = new long[breakdowns.Count];
+        var fractions = new List<(int Index, decimal Fraction)>(breakdowns.Count);
+        long allocatedAmount = 0;
+
+        foreach (var weight in weights)
+        {
+            var exactShare = totalCommissionAmount * ((decimal)weight.Amount / totalWeight);
+            var floorShare = checked((long)decimal.Floor(exactShare));
+            allocations[weight.Index] = floorShare;
+            allocatedAmount = checked(allocatedAmount + floorShare);
+            fractions.Add((weight.Index, exactShare - floorShare));
+        }
+
+        var remainder = totalCommissionAmount - allocatedAmount;
+        foreach (
+            var allocation in fractions
+                .OrderByDescending(item => item.Fraction)
+                .ThenBy(item => item.Index)
+                .Take(checked((int)remainder))
+        )
+        {
+            allocations[allocation.Index] = checked(allocations[allocation.Index] + 1);
+        }
+
+        return breakdowns
+            .Select((breakdown, index) =>
+                ToPassengerFareBreakdown(breakdown, allocations[index])
+            )
+            .ToList();
+    }
+
+    private static long CalculatePercentage(long amount, decimal percent)
+    {
+        if (
+            amount < 0
+            || percent is < 0m or > 100m
+            || decimal.Round(percent, 2) != percent
+        )
+            throw InvalidProviderPricing();
+
+        try
+        {
+            return checked(
+                (long)Math.Round(
+                    amount * percent / 100m,
+                    0,
+                    MidpointRounding.AwayFromZero
+                )
+            );
+        }
+        catch (OverflowException ex)
+        {
+            throw InvalidProviderPricing(ex);
+        }
+    }
+
     private static long CheckedPayableAmount(long serviceAmount, long commissionAmount)
     {
         if (serviceAmount < 0 || commissionAmount < 0)
-            throw new InvalidOperationException("اطلاعات قیمت پرواز از تامین‌کننده معتبر نیست.");
+            throw InvalidProviderPricing();
 
         try
         {
@@ -393,12 +497,12 @@ internal static class SnappTripFlightMapper
         }
         catch (OverflowException ex)
         {
-            throw new InvalidOperationException(
-                "اطلاعات قیمت پرواز از تامین‌کننده معتبر نیست.",
-                ex
-            );
+            throw InvalidProviderPricing(ex);
         }
     }
+
+    private static InvalidOperationException InvalidProviderPricing(Exception? inner = null) =>
+        new("اطلاعات قیمت پرواز از تامین‌کننده معتبر نیست.", inner);
 
     private static DateTime? ParseDateTime(string? value)
     {

@@ -27,10 +27,15 @@ public sealed class FlightCitySandboxTests
         var options = Options.Create(new SnappTripFlightOptions
         {
             BaseUrl = Environment.GetEnvironmentVariable("FLIGHT_SANDBOX_BASE_URL")!,
-            ApiKey = Environment.GetEnvironmentVariable("FLIGHT_SANDBOX_API_KEY")!
+            ApiKey = Environment.GetEnvironmentVariable("FLIGHT_SANDBOX_API_KEY")!,
+            CharterCommissionPercent = 5m
         });
         var api = new SnappTripFlightApiClient(http, NullLogger<SnappTripFlightApiClient>.Instance, options);
-        var provider = new SnappTripFlightProvider(api, NullLogger<SnappTripFlightProvider>.Instance);
+        var provider = new SnappTripFlightProvider(
+            api,
+            NullLogger<SnappTripFlightProvider>.Instance,
+            options
+        );
         var response = await provider.SearchAsync(new FlightSearchRequest(1, 0, 0, false,
             [new FlightSearchLeg(DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)), "IKA", "IST", "Airport", "City")],
             new FlightTravelPreference("Economy", "OneWay")));

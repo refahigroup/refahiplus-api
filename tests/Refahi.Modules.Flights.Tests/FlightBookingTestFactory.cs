@@ -7,7 +7,11 @@ namespace Refahi.Modules.Flights.Tests;
 
 internal static class FlightBookingTestFactory
 {
-    public static FlightBooking CreateDraft(DateTime nowUtc, string providerFareId = "fare-1")
+    public static FlightBooking CreateDraft(
+        DateTime nowUtc,
+        string providerFareId = "fare-1",
+        long commissionAmount = 0
+    )
     {
         return FlightBooking.CreateDraft(
             FlightBookingId.New(),
@@ -44,9 +48,9 @@ internal static class FlightBookingTestFactory
             new FareBreakdown(
                 new Money(1_000_000),
                 new Money(200_000),
+                new Money(commissionAmount),
                 Money.Zero(),
-                Money.Zero(),
-                new Money(1_200_000)
+                new Money(checked(1_200_000 + commissionAmount))
             ),
             "booking-idempotency-key",
             nowUtc,

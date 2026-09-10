@@ -8,6 +8,8 @@ public sealed class SnappTripFlightOptions
 
     public string ApiKey { get; set; } = string.Empty;
 
+    public decimal? CharterCommissionPercent { get; set; }
+
     public int TimeoutSeconds { get; set; } = 20;
 
     public int RetryCount { get; set; } = 3;

@@ -7,14 +7,15 @@ namespace Refahi.Modules.Flights.Tests;
 public sealed class FlightOfferSnapshotPricingTests
 {
     [Fact]
-    public void Create_AcceptsZeroCommissionAndPersistsPricingVersionTwo()
+    public void Create_AcceptsZeroCommissionAndPersistsCurrentPricingVersion()
     {
         var snapshot = Create(1_200_000, 0, 1_200_000, "IRR");
 
         Assert.Equal(1_200_000, snapshot.TotalFareAmount);
         Assert.Equal(0, snapshot.CommissionAmount);
         Assert.Equal(1_200_000, snapshot.CustomerPayableAmount);
-        Assert.Equal(FlightOfferSnapshot.CurrentPricingVersion, snapshot.PricingVersion);
+        Assert.Equal(3, FlightOfferSnapshot.CurrentPricingVersion);
+        Assert.Equal(3, snapshot.PricingVersion);
     }
 
     [Fact]

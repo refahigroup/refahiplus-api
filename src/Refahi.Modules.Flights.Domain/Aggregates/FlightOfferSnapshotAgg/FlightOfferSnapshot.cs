@@ -4,7 +4,7 @@ namespace Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg;
 
 public sealed class FlightOfferSnapshot
 {
-    public const int CurrentPricingVersion = 2;
+    public const int CurrentPricingVersion = 3;
 
     private FlightOfferSnapshot()
     {

@@ -16,9 +16,17 @@ internal static class DI
         IConfiguration configuration
     )
     {
-        services.Configure<SnappTripFlightOptions>(
-            configuration.GetSection("Flights:Providers:SnappTrip")
-        );
+        services
+            .AddOptions<SnappTripFlightOptions>()
+            .Bind(configuration.GetSection("Flights:Providers:SnappTrip"))
+            .Validate(
+                options =>
+                    options.CharterCommissionPercent is decimal percentage
+                    && percentage is >= 0m and <= 100m
+                    && decimal.Round(percentage, 2) == percentage,
+                "Flights:Providers:SnappTrip:CharterCommissionPercent must be configured between 0 and 100 with at most two decimal places."
+            )
+            .ValidateOnStart();
 
         services.PostConfigure<SnappTripFlightOptions>(options =>
         {
