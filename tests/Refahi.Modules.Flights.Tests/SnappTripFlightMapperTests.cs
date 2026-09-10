@@ -8,6 +8,39 @@ namespace Refahi.Modules.Flights.Tests;
 public sealed class SnappTripFlightMapperTests
 {
     [Fact]
+    public void ToSnappTripRequest_NormalizesBookingEnumsAndOptionalValues()
+    {
+        var request = new FlightBookRequest(
+            "fare-1",
+            "+989121234567",
+            "passenger@example.com",
+            [
+                new FlightBookPassenger(
+                    " ir ",
+                    " 0154721621 ",
+                    " Ali ",
+                    " Karimi ",
+                    "Male",
+                    new DateOnly(1990, 4, 1),
+                    "Adult",
+                    new FlightPassportInfo(" ir ", null, null, " ")
+                ),
+            ]
+        );
+
+        var passenger = Assert.Single(SnappTripFlightMapper.ToSnappTripRequest(request).Passengers);
+
+        Assert.Equal("IR", passenger.NationalityCode);
+        Assert.Equal("0154721621", passenger.NationalId);
+        Assert.Equal("Ali", passenger.FirstName);
+        Assert.Equal("Karimi", passenger.LastName);
+        Assert.Equal("MALE", passenger.Gender);
+        Assert.Equal("ADULT", passenger.PassengerType);
+        Assert.Equal("IR", passenger.PassportInfo?.CountryCode);
+        Assert.Null(passenger.PassportInfo?.Number);
+    }
+
+    [Fact]
     public void ToSnappTripRequest_PreservesPassengerUpperBoundary()
     {
         var request = new FlightSearchRequest(

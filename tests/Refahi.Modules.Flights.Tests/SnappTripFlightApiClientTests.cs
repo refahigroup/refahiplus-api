@@ -6,12 +6,66 @@ using Microsoft.Extensions.Options;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Api;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Config;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Contract;
+using Refahi.Modules.Flights.Application.Contracts.Providers;
 using Xunit;
 
 namespace Refahi.Modules.Flights.Tests;
 
 public sealed class SnappTripFlightApiClientTests
 {
+    [Fact]
+    public async Task BookAsync_OmitsOptionalNullValues()
+    {
+        var handler = new CapturingHandler("{\"bookId\":\"book-1\"}");
+        using var httpClient = new HttpClient(handler);
+        var client = CreateClient(httpClient);
+        var request = new SnappTripBookRequest
+        {
+            FareSourceCode = "fare-1",
+            PhoneNumber = "+989121234567",
+            Email = "passenger@example.com",
+            Passengers =
+            [
+                new SnappTripBookPassenger
+                {
+                    NationalityCode = "IR",
+                    NationalId = "0154721621",
+                    FirstName = "Ali",
+                    LastName = "Karimi",
+                    Gender = "MALE",
+                    Birthday = "1990-04-01",
+                    PassengerType = "ADULT",
+                    PassportInfo = null,
+                },
+            ],
+        };
+
+        await client.BookAsync(request, CancellationToken.None);
+
+        Assert.DoesNotContain("passportInfo", handler.Body);
+        Assert.Contains("\"gender\":\"MALE\"", handler.Body);
+        Assert.Contains("\"passengerType\":\"ADULT\"", handler.Body);
+    }
+
+    [Fact]
+    public async Task BookAsync_OnProviderValidationError_ThrowsTypedSafeException()
+    {
+        var handler = new CapturingHandler(
+            "{\"detail\":\"sensitive provider validation detail\"}",
+            HttpStatusCode.BadRequest
+        );
+        using var httpClient = new HttpClient(handler);
+        var client = CreateClient(httpClient);
+
+        var exception = await Assert.ThrowsAsync<FlightProviderException>(() =>
+            client.BookAsync(new SnappTripBookRequest(), CancellationToken.None)
+        );
+
+        Assert.Equal((int)HttpStatusCode.BadRequest, exception.HttpStatusCode);
+        Assert.Equal("book", exception.Operation);
+        Assert.DoesNotContain("sensitive", exception.Message);
+    }
+
     [Fact]
     public async Task SearchAsync_SendsCurlCompatibleRequest()
     {
@@ -69,7 +123,28 @@ public sealed class SnappTripFlightApiClientTests
         Assert.Contains("\"maxStopsQuantity\":\"ALL\"", handler.Body);
     }
 
-    private sealed class CapturingHandler : HttpMessageHandler
+    private static SnappTripFlightApiClient CreateClient(HttpClient httpClient)
+    {
+        var options = Options.Create(
+            new SnappTripFlightOptions
+            {
+                BaseUrl = "https://b2bapiv2.snapptrip.com/flight",
+                ApiBasePath = "api/v1",
+                ApiKey = "test-api-key",
+            }
+        );
+
+        return new SnappTripFlightApiClient(
+            httpClient,
+            NullLogger<SnappTripFlightApiClient>.Instance,
+            options
+        );
+    }
+
+    private sealed class CapturingHandler(
+        string responseBody = "{\"success\":true}",
+        HttpStatusCode responseStatusCode = HttpStatusCode.OK
+    ) : HttpMessageHandler
     {
         public HttpMethod? Method { get; private set; }
 
@@ -101,10 +176,10 @@ public sealed class SnappTripFlightApiClientTests
                 ? string.Empty
                 : await request.Content.ReadAsStringAsync(cancellationToken);
 
-            return new HttpResponseMessage(HttpStatusCode.OK)
+            return new HttpResponseMessage(responseStatusCode)
             {
                 Content = new StringContent(
-                    "{\"success\":true}",
+                    responseBody,
                     Encoding.UTF8,
                     "application/json"
                 ),

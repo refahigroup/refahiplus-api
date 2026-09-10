@@ -58,8 +58,11 @@ internal sealed class FlightBookingPassengerInputValidator
 
         RuleFor(passenger => passenger.Gender)
             .NotEmpty()
-            .MaximumLength(20)
-            .WithMessage("جنسیت مسافر الزامی است.");
+            .Must(value =>
+                value.Equals("Male", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("Female", StringComparison.OrdinalIgnoreCase)
+            )
+            .WithMessage("جنسیت مسافر معتبر نیست.");
 
         RuleFor(passenger => passenger.PassengerType)
             .NotEmpty()
