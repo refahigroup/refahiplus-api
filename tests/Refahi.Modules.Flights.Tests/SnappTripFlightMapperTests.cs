@@ -182,7 +182,8 @@ public sealed class SnappTripFlightMapperTests
 
         var mapped = SnappTripFlightMapper.ToFlightResponse(
             response,
-            maskedRawPayload: "{\"masked\":true}"
+            maskedRawPayload: "{\"masked\":true}",
+            charterCommissionPercent: 5m
         );
 
         var offer = Assert.Single(mapped.Offers);
@@ -194,6 +195,83 @@ public sealed class SnappTripFlightMapperTests
         Assert.Equal(116_330_000, offer.TotalFare.CustomerPayableAmountMinor);
         Assert.Equal("{\"masked\":true}", mapped.RawPayloadSnapshot);
         Assert.Equal("{\"masked\":true}", offer.RawPayloadSnapshot);
+    }
+
+    [Fact]
+    public void ToFlightResponse_UsesConfiguredCommissionForOfferWithAnyCharterSegment()
+    {
+        var response = SearchResponse(
+            totalFare: 100,
+            providerCommission: 99,
+            segments:
+            [
+                new SnappTripFlightSegment { IsCharter = false },
+                new SnappTripFlightSegment { IsCharter = true },
+            ],
+            passengerFares:
+            [
+                PassengerFare("Adult", 50, 40),
+                PassengerFare("Child", 50, 30),
+            ]
+        );
+
+        var mapped = SnappTripFlightMapper.ToFlightResponse(
+            response,
+            maskedRawPayload: "{\"totalCommission\":99}",
+            charterCommissionPercent: 5m
+        );
+
+        var offer = Assert.Single(mapped.Offers);
+        Assert.Equal(5, offer.TotalFare.TotalCommission);
+        Assert.Equal(105, offer.TotalFare.CustomerPayableAmountMinor);
+        Assert.Equal(5, offer.PassengerFareBreakdowns.Sum(item => item.Fare.TotalCommission));
+        Assert.Equal(3, offer.PassengerFareBreakdowns.ElementAt(0).Fare.TotalCommission);
+        Assert.Equal(53, offer.PassengerFareBreakdowns.ElementAt(0).Fare.CustomerPayableAmountMinor);
+        Assert.Equal(2, offer.PassengerFareBreakdowns.ElementAt(1).Fare.TotalCommission);
+        Assert.Equal(52, offer.PassengerFareBreakdowns.ElementAt(1).Fare.CustomerPayableAmountMinor);
+        Assert.Equal("{\"totalCommission\":99}", offer.RawPayloadSnapshot);
+    }
+
+    [Fact]
+    public void ToFlightResponse_RoundsCharterCommissionAwayFromZero()
+    {
+        var response = SearchResponse(
+            totalFare: 10,
+            providerCommission: 99,
+            segments: [new SnappTripFlightSegment { IsCharter = true }],
+            passengerFares: []
+        );
+
+        var offer = Assert.Single(
+            SnappTripFlightMapper.ToFlightResponse(response, null, 5m).Offers
+        );
+
+        Assert.Equal(1, offer.TotalFare.TotalCommission);
+        Assert.Equal(11, offer.TotalFare.CustomerPayableAmountMinor);
+        Assert.Empty(offer.PassengerFareBreakdowns);
+    }
+
+    [Fact]
+    public void ToFlightResponse_PreservesProviderCommissionWhenAllSegmentsAreNonCharter()
+    {
+        var response = SearchResponse(
+            totalFare: 100,
+            providerCommission: 7,
+            segments:
+            [
+                new SnappTripFlightSegment { IsCharter = false },
+                new SnappTripFlightSegment { IsCharter = null },
+            ],
+            passengerFares: [PassengerFare("Adult", 100, 7)]
+        );
+
+        var offer = Assert.Single(
+            SnappTripFlightMapper.ToFlightResponse(response, null, 5m).Offers
+        );
+
+        Assert.Equal(7, offer.TotalFare.TotalCommission);
+        Assert.Equal(107, offer.TotalFare.CustomerPayableAmountMinor);
+        Assert.Equal(7, Assert.Single(offer.PassengerFareBreakdowns).Fare.TotalCommission);
     }
 
     [Theory]
@@ -227,7 +305,66 @@ public sealed class SnappTripFlightMapperTests
         };
 
         Assert.Throws<InvalidOperationException>(() =>
-            SnappTripFlightMapper.ToFlightResponse(response, maskedRawPayload: null)
+            SnappTripFlightMapper.ToFlightResponse(
+                response,
+                maskedRawPayload: null,
+                charterCommissionPercent: 5m
+            )
         );
     }
+
+    private static SnappTripSearchResponse SearchResponse(
+        long totalFare,
+        long providerCommission,
+        IReadOnlyCollection<SnappTripFlightSegment> segments,
+        IReadOnlyCollection<SnappTripPtcFareBreakdown> passengerFares
+    ) =>
+        new()
+        {
+            Success = true,
+            PricedItineraries =
+            [
+                new SnappTripPricedItinerary
+                {
+                    FareSourceCode = "fare-1",
+                    AirItineraryPricingInfo = new SnappTripAirItineraryPricingInfo
+                    {
+                        ItinTotalFare = new SnappTripItinTotalFare
+                        {
+                            TotalFare = totalFare,
+                            TotalCommission = providerCommission,
+                            Currency = "IRR",
+                        },
+                        PtcFareBreakdown = passengerFares.ToList(),
+                    },
+                    OriginDestinationOptions =
+                    [
+                        new SnappTripOriginDestinationOption
+                        {
+                            FlightSegments = segments.ToList(),
+                        },
+                    ],
+                },
+            ],
+        };
+
+    private static SnappTripPtcFareBreakdown PassengerFare(
+        string passengerType,
+        long totalFare,
+        long providerCommission
+    ) =>
+        new()
+        {
+            PassengerTypeQuantity = new SnappTripPassengerTypeQuantity
+            {
+                PassengerType = passengerType,
+                Quantity = 1,
+            },
+            PassengerFare = new SnappTripPassengerFare
+            {
+                TotalFare = totalFare,
+                Commission = providerCommission,
+                Currency = "IRR",
+            },
+        };
 }

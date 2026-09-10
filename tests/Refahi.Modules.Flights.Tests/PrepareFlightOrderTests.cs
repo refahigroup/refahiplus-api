@@ -65,6 +65,30 @@ public sealed class PrepareFlightOrderTests
         Assert.Equal(1, repository.SaveChangesCount);
     }
 
+    [Fact]
+    public async Task Handle_UsesPayableAmountIncludingCharterCommission()
+    {
+        var now = DateTime.UtcNow;
+        var booking = FlightBookingTestFactory.CreateDraft(now, commissionAmount: 60_000);
+        booking.MarkProviderBooked(
+            new ProviderBookingSnapshot("book-1", "track-1", now.AddMinutes(1)),
+            now.AddMinutes(1)
+        );
+        var mediator = new CapturingMediator();
+        var handler = new PrepareFlightOrderCommandHandler(
+            new InMemoryFlightBookingRepository(booking),
+            mediator,
+            new StubAirlineLogoResolver(null)
+        );
+
+        await handler.Handle(
+            new PrepareFlightOrderCommand(booking.Id.Value, booking.UserId, "User", "idem-1"),
+            CancellationToken.None
+        );
+
+        Assert.Equal(1_260_000, Assert.Single(mediator.CreateOrderCommand!.Items).UnitPriceMinor);
+    }
+
     private sealed class InMemoryFlightBookingRepository : IFlightBookingRepository
     {
         private readonly FlightBooking _booking;
@@ -163,7 +187,11 @@ public sealed class PrepareFlightOrderTests
         private CreateOrderResponse Capture(CreateOrderCommand command)
         {
             CreateOrderCommand = command;
-            return new CreateOrderResponse(CreatedOrderId, "ORD-FLIGHT-1", 1_200_000);
+            return new CreateOrderResponse(
+                CreatedOrderId,
+                "ORD-FLIGHT-1",
+                command.Items.Sum(item => checked(item.UnitPriceMinor * item.Quantity))
+            );
         }
     }
 }

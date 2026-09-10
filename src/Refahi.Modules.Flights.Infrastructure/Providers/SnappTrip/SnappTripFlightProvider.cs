@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Refahi.Modules.Flights.Application.Contracts.Providers;
 using Refahi.Modules.Flights.Application.Contracts.Providers.DTOs;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Api;
+using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Config;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Logging;
 
 namespace Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip;
@@ -10,14 +12,21 @@ internal sealed class SnappTripFlightProvider : IFlightProvider
 {
     private readonly SnappTripFlightApiClient _apiClient;
     private readonly ILogger<SnappTripFlightProvider> _logger;
+    private readonly decimal _charterCommissionPercent;
 
     public SnappTripFlightProvider(
         SnappTripFlightApiClient apiClient,
-        ILogger<SnappTripFlightProvider> logger
+        ILogger<SnappTripFlightProvider> logger,
+        IOptions<SnappTripFlightOptions> options
     )
     {
         _apiClient = apiClient;
         _logger = logger;
+        _charterCommissionPercent =
+            options.Value.CharterCommissionPercent
+            ?? throw new InvalidOperationException(
+                "SnappTrip charter commission percent is not configured."
+            );
     }
 
     public async Task<FlightSearchResponse> SearchAsync(
@@ -38,7 +47,11 @@ internal sealed class SnappTripFlightProvider : IFlightProvider
             cancellationToken
         );
 
-        return SnappTripFlightMapper.ToFlightResponse(response.Data, response.MaskedRawPayload);
+        return SnappTripFlightMapper.ToFlightResponse(
+            response.Data,
+            response.MaskedRawPayload,
+            _charterCommissionPercent
+        );
     }
 
     public async Task<FlightBookResponse> BookAsync(
