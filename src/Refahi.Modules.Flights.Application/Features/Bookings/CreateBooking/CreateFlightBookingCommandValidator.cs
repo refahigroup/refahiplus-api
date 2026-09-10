@@ -82,11 +82,24 @@ internal sealed class FlightBookingPassengerInputValidator
             .Length(2, 3)
             .WithMessage("کد ملیت مسافر معتبر نیست.");
 
-        RuleFor(passenger => passenger)
-            .Must(passenger =>
-                !string.IsNullOrWhiteSpace(passenger.NationalCode)
-                || !string.IsNullOrWhiteSpace(passenger.Passport?.Number)
-            )
-            .WithMessage("کد ملی یا شماره گذرنامه مسافر الزامی است.");
+        RuleFor(passenger => passenger.NationalCode)
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .WithMessage("کد ملی برای مسافر ایرانی الزامی است.")
+            .Matches("^[0-9]{10}$")
+            .WithMessage("کد ملی مسافر باید ۱۰ رقم باشد.")
+            .When(passenger => IsIranianNationality(passenger.NationalityCode));
+
+        RuleFor(passenger => passenger.Passport)
+            .Must(passport => !string.IsNullOrWhiteSpace(passport?.Number))
+            .WithMessage("شماره گذرنامه برای مسافر غیرایرانی الزامی است.")
+            .When(passenger => !IsIranianNationality(passenger.NationalityCode));
+    }
+
+    private static bool IsIranianNationality(string? nationalityCode)
+    {
+        var normalized = nationalityCode?.Trim();
+        return string.Equals(normalized, "IR", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "IRN", StringComparison.OrdinalIgnoreCase);
     }
 }
