@@ -1,8 +1,10 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Refahi.Modules.Flights.Application.Contracts.Providers;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Config;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Contract;
 using Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Logging;
@@ -11,7 +13,12 @@ namespace Refahi.Modules.Flights.Infrastructure.Providers.SnappTrip.Api;
 
 internal sealed class SnappTripFlightApiClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        // SnappTrip's OpenAPI contract marks these fields as optional, not nullable.
+        // Sending explicit JSON null values causes request validation to fail with HTTP 400.
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<SnappTripFlightApiClient> _logger;
@@ -101,7 +108,7 @@ internal sealed class SnappTripFlightApiClient
 
         using var httpRequest = CreateRequest(HttpMethod.Get, url);
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
-        return await ReadResponseAsync<T>(response, url, cancellationToken);
+        return await ReadResponseAsync<T>(response, url, GetOperationName(path), cancellationToken);
     }
 
     private async Task<SnappTripFlightApiResult<T>> PostAsync<T>(
@@ -127,7 +134,7 @@ internal sealed class SnappTripFlightApiClient
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
 
-        return await ReadResponseAsync<T>(response, url, cancellationToken);
+        return await ReadResponseAsync<T>(response, url, GetOperationName(path), cancellationToken);
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
@@ -149,6 +156,7 @@ internal sealed class SnappTripFlightApiClient
     private async Task<SnappTripFlightApiResult<T>> ReadResponseAsync<T>(
         HttpResponseMessage response,
         string url,
+        string operation,
         CancellationToken cancellationToken
     )
     {
@@ -164,8 +172,12 @@ internal sealed class SnappTripFlightApiClient
                 maskedRaw
             );
 
-            throw new InvalidOperationException(
-                $"SnappTrip Flight error calling {url}. Status={(int)response.StatusCode}."
+            throw new FlightProviderException(
+                GetPublicErrorMessage(response.StatusCode, operation),
+                providerName: "SnappTrip",
+                operation,
+                httpStatusCode: (int)response.StatusCode,
+                retryable: (int)response.StatusCode >= 500
             );
         }
 
@@ -193,6 +205,23 @@ internal sealed class SnappTripFlightApiClient
             _options.ApiBasePath.Trim('/'),
             path.Trim('/')
         );
+    }
+
+    private static string GetOperationName(string path) =>
+        path.Trim('/').Split('/').FirstOrDefault() ?? "unknown";
+
+    private static string GetPublicErrorMessage(
+        System.Net.HttpStatusCode statusCode,
+        string operation
+    )
+    {
+        if (statusCode == System.Net.HttpStatusCode.BadRequest && operation == "book")
+            return "اطلاعات رزرو توسط تامین‌کننده پرواز پذیرفته نشد.";
+
+        if (statusCode is System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.Gone)
+            return "پیشنهاد پرواز دیگر در دسترس نیست؛ لطفاً دوباره جستجو کنید.";
+
+        return "سرویس تامین‌کننده پرواز موقتاً در دسترس نیست.";
     }
 }
 

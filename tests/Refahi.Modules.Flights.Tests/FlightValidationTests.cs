@@ -1,10 +1,73 @@
 using Refahi.Modules.Flights.Application.Features.Search;
+using Refahi.Modules.Flights.Application.Features.Bookings.CreateBooking;
 using Xunit;
 
 namespace Refahi.Modules.Flights.Tests;
 
 public sealed class FlightValidationTests
 {
+    [Theory]
+    [InlineData("IR")]
+    [InlineData(" ir ")]
+    [InlineData("IRN")]
+    public void CreateBookingValidator_RequiresNationalCodeForIranianPassenger(
+        string nationalityCode
+    )
+    {
+        var validator = new CreateFlightBookingCommandValidator();
+        var command = CreateBookingCommand(
+            nationalityCode,
+            nationalCode: null,
+            passport: new FlightBookingPassportInput(
+                "IR",
+                new DateOnly(2020, 1, 1),
+                new DateOnly(2030, 1, 1),
+                "A12345678"
+            )
+        );
+
+        var result = validator.Validate(command);
+
+        Assert.Contains(
+            result.Errors,
+            error => error.ErrorMessage == "کد ملی برای مسافر ایرانی الزامی است."
+        );
+    }
+
+    [Fact]
+    public void CreateBookingValidator_AcceptsIranianPassengerWithNationalCodeAndPassport()
+    {
+        var validator = new CreateFlightBookingCommandValidator();
+        var command = CreateBookingCommand(
+            "IR",
+            nationalCode: "0154721621",
+            passport: new FlightBookingPassportInput(
+                "IR",
+                new DateOnly(2020, 1, 1),
+                new DateOnly(2030, 1, 1),
+                "A12345678"
+            )
+        );
+
+        var result = validator.Validate(command);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void CreateBookingValidator_RequiresPassportForNonIranianPassenger()
+    {
+        var validator = new CreateFlightBookingCommandValidator();
+        var command = CreateBookingCommand("DE", nationalCode: null, passport: null);
+
+        var result = validator.Validate(command);
+
+        Assert.Contains(
+            result.Errors,
+            error => error.ErrorMessage == "شماره گذرنامه برای مسافر غیرایرانی الزامی است."
+        );
+    }
+
     [Fact]
     public void SearchFlightsQueryValidator_AcceptsPassengerUpperBoundary()
     {
@@ -84,5 +147,29 @@ public sealed class FlightValidationTests
             MaxStopsQuantity: null,
             VendorExcludeCodes: null,
             VendorPreferenceCodes: null
+        );
+
+    private static CreateFlightBookingCommand CreateBookingCommand(
+        string nationalityCode,
+        string? nationalCode,
+        FlightBookingPassportInput? passport
+    ) =>
+        new(
+            Guid.NewGuid(),
+            "offer-token",
+            new FlightBookingContactInput("09123456789", "passenger@example.com"),
+            [
+                new FlightBookingPassengerInput(
+                    "Ali",
+                    "Karimi",
+                    "Male",
+                    "Adult",
+                    new DateOnly(1990, 4, 1),
+                    nationalityCode,
+                    nationalCode,
+                    passport
+                ),
+            ],
+            "idempotency-key"
         );
 }

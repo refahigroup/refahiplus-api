@@ -125,26 +125,30 @@ internal static class SnappTripFlightMapper
             Passengers = request
                 .Passengers.Select(passenger => new SnappTripBookPassenger
                 {
-                    NationalityCode = passenger.NationalityCode,
-                    NationalId = passenger.NationalId,
-                    FirstName = passenger.FirstName,
-                    LastName = passenger.LastName,
-                    Gender = passenger.Gender,
+                    NationalityCode = passenger.NationalityCode.Trim().ToUpperInvariant(),
+                    NationalId = NormalizeOptional(passenger.NationalId),
+                    FirstName = passenger.FirstName.Trim(),
+                    LastName = passenger.LastName.Trim(),
+                    Gender = passenger.Gender.Trim().ToUpperInvariant(),
                     Birthday = passenger.Birthday.ToString("yyyy-MM-dd"),
-                    PassengerType = passenger.PassengerType,
+                    PassengerType = passenger.PassengerType.Trim().ToUpperInvariant(),
                     PassportInfo = passenger.PassportInfo is null
                         ? null
                         : new SnappTripPassportInfo
                         {
-                            CountryCode = passenger.PassportInfo.CountryCode,
+                            CountryCode = NormalizeOptional(passenger.PassportInfo.CountryCode)
+                                ?.ToUpperInvariant(),
                             IssueDate = passenger.PassportInfo.IssueDate?.ToString("yyyy-MM-dd"),
                             ExpireDate = passenger.PassportInfo.ExpireDate?.ToString("yyyy-MM-dd"),
-                            Number = passenger.PassportInfo.Number,
+                            Number = NormalizeOptional(passenger.PassportInfo.Number),
                         },
                 })
                 .ToList(),
         };
     }
+
+    private static string? NormalizeOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     public static FlightBookResponse ToFlightResponse(
         SnappTripBookResponse response,

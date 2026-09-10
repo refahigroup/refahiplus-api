@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using FluentValidation;
 using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
+using Refahi.Modules.Flights.Application.Contracts.Providers;
 using Refahi.Modules.Commerce.Domain;
 using Refahi.Modules.Orders.Domain.Exceptions;
 using Refahi.Modules.References.Domain.Exceptions;
@@ -32,6 +33,18 @@ public sealed class ApiExceptionMiddleware
         {
             _logger.LogWarning(ex, "Validation error occurred");
             await HandleValidationExceptionAsync(context, ex);
+        }
+        catch (FlightProviderException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Flight provider call failed. Provider={Provider}, Operation={Operation}, StatusCode={StatusCode}, Retryable={Retryable}",
+                ex.ProviderName,
+                ex.Operation,
+                ex.HttpStatusCode,
+                ex.Retryable
+            );
+            await HandleFlightProviderExceptionAsync(context, ex);
         }
         catch (StoreDomainException ex)
         {
@@ -128,6 +141,26 @@ public sealed class ApiExceptionMiddleware
         context.Response.StatusCode = (int)HttpStatusCode.Conflict;
         var response = ApiResponseHelper.Error(message, statusCode: (int)HttpStatusCode.Conflict);
         return context.Response.WriteAsJsonAsync(response);
+    }
+
+    private static Task HandleFlightProviderExceptionAsync(
+        HttpContext context,
+        FlightProviderException exception
+    )
+    {
+        var statusCode = exception.HttpStatusCode switch
+        {
+            (int)HttpStatusCode.BadRequest => StatusCodes.Status400BadRequest,
+            (int)HttpStatusCode.Conflict or (int)HttpStatusCode.Gone =>
+                StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status502BadGateway,
+        };
+
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = statusCode;
+        return context.Response.WriteAsJsonAsync(
+            ApiResponseHelper.Error(exception.Message, statusCode: statusCode)
+        );
     }
 
     /// <summary>
