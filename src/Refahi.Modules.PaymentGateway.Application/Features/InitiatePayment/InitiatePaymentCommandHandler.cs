@@ -74,12 +74,13 @@ public class InitiatePaymentCommandHandler
         var sessionId = Guid.NewGuid();
 
         _logger.LogInformation(
-            "PaymentGateway: Initiating session {SessionId} for User={UserId} Wallet={WalletId} Amount={Amount} Provider={Provider}",
+            "PaymentGateway: Initiating session {SessionId} for User={UserId} Wallet={WalletId} Amount={Amount} Provider={Provider} ProviderCallbackUrl={ProviderCallbackUrl}",
             sessionId,
             command.UserId,
             command.WalletId,
             command.AmountMinor,
-            command.Provider
+            command.Provider,
+            command.ProviderCallbackUrl
         );
 
         var session = PaymentGatewaySession.Create(
