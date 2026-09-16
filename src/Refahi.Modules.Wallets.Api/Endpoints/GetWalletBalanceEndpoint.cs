@@ -18,8 +18,10 @@ public class GetWalletBalanceEndpoint : IEndpoint
         routes
             .MapGet(
                 "/{walletId:guid}/balance",
-                async ([FromRoute] Guid walletId, IMediator mediator, CancellationToken ct) =>
+                async ([FromRoute] Guid walletId, HttpContext context, IMediator mediator, CancellationToken ct) =>
                 {
+                    if (!await WalletEndpointAuthorization.CanAccessWalletAsync(context, mediator, walletId, ct))
+                        return Results.Forbid();
                     var balance = await mediator.Send(new GetWalletBalanceQuery(walletId), ct);
 
                     if (balance is null)

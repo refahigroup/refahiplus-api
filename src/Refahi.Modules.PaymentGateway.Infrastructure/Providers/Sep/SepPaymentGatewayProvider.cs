@@ -13,7 +13,7 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep;
 /// <summary>
 /// SEP (Saman Electronic Payment) implementation of IPaymentGatewayProvider.
 /// </summary>
-public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
+public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider, IRecoverablePaymentGatewayProvider
 {
     private readonly SepApiClient _apiClient;
     private readonly SepOptions _options;
@@ -46,17 +46,16 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
             var response = await _apiClient.RequestTokenAsync(sepRequest, ct);
 
             if (response.Status == 1 && !string.IsNullOrEmpty(response.Token))
-                return new GetTokenResult(true, response.Token);
+                return new GetTokenResult(true, response.Token, ProviderAttemptId: response.Token);
 
             return new GetTokenResult(
-                false,
-                null,
-                $"SEP token request failed. Status={response.Status} ErrorCode={response.ErrorCode} Error={response.ErrorDesc}"
+                false, null,
+                ErrorMessage: $"SEP token request failed. Status={response.Status} ErrorCode={response.ErrorCode} Error={response.ErrorDesc}"
             );
         }
         catch (Exception ex)
         {
-            return new GetTokenResult(false, null, ex.Message);
+            return new GetTokenResult(false, null, ErrorMessage: ex.Message, IsOutcomeUnknown: true);
         }
     }
 
@@ -74,7 +73,7 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
         {
             var sepRequest = new SepVerifyRequest
             {
-                RefNum = request.RefNum,
+                RefNum = request.ProviderTransactionId,
                 TerminalNumber = long.Parse(_options.TerminalId),
             };
 
@@ -88,7 +87,13 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
                 && verifiedAmount == request.ExpectedAmountMinor
             )
             {
-                return new VerifyResult(true, verifiedAmount, response.ResultCode);
+                return new VerifyResult(
+                    FundingProviderOutcome.VerifiedSuccess,
+                    response.TransactionDetail.RefNum ?? request.ProviderTransactionId,
+                    verifiedAmount,
+                    "IRR",
+                    request.SessionReference,
+                    response.ResultCode);
             }
 
             var description = BuildVerifyFailureDescription(
@@ -97,13 +102,37 @@ public class SepPaymentGatewayProvider : IReversiblePaymentGatewayProvider
                 verifiedAmount
             );
 
-            return new VerifyResult(false, verifiedAmount, response.ResultCode, description);
+            var outcome = response.ResultCode switch
+            {
+                -2 or -6 or 5 => FundingProviderOutcome.DefinitiveFailure,
+                2 => FundingProviderOutcome.Pending,
+                _ when response.ResultCode == 0 => FundingProviderOutcome.DefinitiveFailure,
+                _ => FundingProviderOutcome.Unknown,
+            };
+            return new VerifyResult(outcome,
+                response.TransactionDetail?.RefNum ?? request.ProviderTransactionId,
+                response.TransactionDetail is null ? null : verifiedAmount,
+                response.TransactionDetail is null ? null : "IRR",
+                request.SessionReference,
+                response.ResultCode,
+                description);
         }
         catch (Exception ex)
         {
-            return new VerifyResult(false, 0, -99, ex.Message);
+            return new VerifyResult(FundingProviderOutcome.Unknown,
+                request.ProviderTransactionId, null, null, null, -99, ex.Message);
         }
     }
+
+    public Task<VerifyResult> InquireAsync(
+        FundingInquiryRequest request,
+        CancellationToken ct = default) =>
+        VerifyAsync(new VerifyRequest(
+            request.ProviderTransactionId,
+            request.ProviderAttemptId,
+            request.SessionReference,
+            request.ExpectedAmountMinor,
+            request.ExpectedCurrency), ct);
 
     public async Task<ReverseResult> ReverseAsync(
         ReverseRequest request,

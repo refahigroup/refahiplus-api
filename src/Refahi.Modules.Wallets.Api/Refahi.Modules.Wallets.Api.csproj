@@ -12,4 +12,7 @@
     <ProjectReference Include="..\Refahi.Modules.Wallets.Application.Contracts\Refahi.Modules.Wallets.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Wallets.Infrastructure\Refahi.Modules.Wallets.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Refahi.Modules.Wallets.Tests" />
+  </ItemGroup>
 </Project>

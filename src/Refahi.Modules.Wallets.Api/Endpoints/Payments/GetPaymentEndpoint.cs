@@ -28,6 +28,7 @@ public sealed class GetPaymentEndpoint : IEndpoint
                 "/payments/{paymentId:guid}",
                 async (
                     [FromRoute] Guid paymentId,
+                    HttpContext context,
                     [FromServices] ISender mediator,
                     CancellationToken ct
                 ) =>
@@ -36,6 +37,13 @@ public sealed class GetPaymentEndpoint : IEndpoint
                     {
                         var query = new GetPaymentQuery(paymentId);
                         var result = await mediator.Send(query, ct);
+
+                        if (result.Data is not null && !await WalletEndpointAuthorization.CanAccessAllWalletsAsync(
+                            context,
+                            mediator,
+                            result.Data.Allocations.Select(x => x.WalletId),
+                            ct))
+                            return Results.Forbid();
 
                         return result.Status == CommandStatus.Completed
                             ? Results.Ok(result.Data)

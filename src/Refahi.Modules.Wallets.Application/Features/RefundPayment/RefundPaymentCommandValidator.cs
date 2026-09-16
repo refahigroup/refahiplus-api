@@ -7,17 +7,22 @@ public sealed class RefundPaymentCommandValidator : AbstractValidator<RefundPaym
 {
     public RefundPaymentCommandValidator()
     {
-        RuleFor(x => x.PaymentId).NotEmpty().WithMessage("Payment ID is required.");
+        RuleFor(x => x.PaymentId).NotEmpty().WithMessage("شناسه پرداخت الزامی است.");
 
         RuleFor(x => x.IdempotencyKey)
             .NotEmpty()
-            .WithMessage("Idempotency key is required.")
+            .WithMessage("کلید تکرارپذیری الزامی است.")
             .MaximumLength(256)
-            .WithMessage("Idempotency key must not exceed 256 characters.");
+            .WithMessage("کلید تکرارپذیری نباید بیش از ۲۵۶ نویسه باشد.");
 
         RuleFor(x => x.Reason)
             .MaximumLength(2000)
             .When(x => !string.IsNullOrEmpty(x.Reason))
-            .WithMessage("Reason must not exceed 2000 characters.");
+            .WithMessage("دلیل بازپرداخت نباید بیش از ۲۰۰۰ نویسه باشد.");
+
+        RuleFor(x => x.AmountMinor)
+            .GreaterThan(0)
+            .When(x => x.AmountMinor.HasValue)
+            .WithMessage("مبلغ بازپرداخت باید بیشتر از صفر باشد.");
     }
 }

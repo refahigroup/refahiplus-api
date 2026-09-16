@@ -66,6 +66,7 @@ public class RebuildBalancesBatchEndpoint : IEndpoint
                     }
                 }
             )
+            .RequireAuthorization("AdminOnly")
             .WithName("RebuildBalancesBatch")
             .WithTags("Admin", "Wallets")
             .Produces<BatchRebuildResponse>(StatusCodes.Status200OK)

@@ -50,6 +50,21 @@ public static class DI
         services.AddHostedService<PaymentIntegrityAuditWorker>(
             sp => new PaymentIntegrityAuditWorker(
                 connectionString,
+                new WalletReservationOptions
+                {
+                    ExpirationMinutes = Math.Max(1, configuration.GetValue<int>(
+                        "Wallets:Reservations:ExpirationMinutes",
+                        30
+                    )),
+                    AuditIntervalMinutes = Math.Max(1, configuration.GetValue<int>(
+                        "Wallets:Reservations:AuditIntervalMinutes",
+                        60
+                    )),
+                    ReleaseBatchSize = Math.Max(1, configuration.GetValue<int>(
+                        "Wallets:Reservations:ReleaseBatchSize",
+                        100
+                    )),
+                },
                 sp.GetRequiredService<ILogger<PaymentIntegrityAuditWorker>>()
             )
         );

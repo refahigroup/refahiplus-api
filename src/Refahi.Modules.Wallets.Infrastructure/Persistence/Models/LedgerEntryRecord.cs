@@ -10,6 +10,8 @@ public sealed class LedgerEntryRecord
     public short OperationType { get; set; }
     public short EntryType { get; set; }
     public long AmountMinor { get; set; }
+    public long AvailableDeltaMinor { get; set; }
+    public long PendingDeltaMinor { get; set; }
     public string Currency { get; set; } = null!;
     public DateTimeOffset EffectiveAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

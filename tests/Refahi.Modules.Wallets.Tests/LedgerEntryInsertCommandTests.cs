@@ -14,6 +14,8 @@ public sealed class LedgerEntryInsertCommandTests
         "operation_type",
         "entry_type",
         "amount_minor",
+        "available_delta_minor",
+        "pending_delta_minor",
         "currency",
         "effective_at",
         "created_at",
@@ -52,6 +54,8 @@ public sealed class LedgerEntryInsertCommandTests
             operationType,
             entryType,
             100,
+            -100,
+            100,
             "IRR",
             DateTimeOffset.UtcNow,
             DateTimeOffset.UtcNow,
@@ -65,5 +69,7 @@ public sealed class LedgerEntryInsertCommandTests
         Assert.Null(parameters.RelatedEntryId);
         Assert.Equal((short)operationType, parameters.OperationType);
         Assert.Equal((short)entryType, parameters.EntryType);
+        Assert.Equal(-100, parameters.AvailableDeltaMinor);
+        Assert.Equal(100, parameters.PendingDeltaMinor);
     }
 }

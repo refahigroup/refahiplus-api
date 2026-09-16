@@ -23,6 +23,8 @@ public sealed class LedgerEntry
     public OperationType OperationType { get; }
     public EntryType EntryType { get; }
     public Money Money { get; }
+    public long AvailableDeltaMinor { get; }
+    public long PendingDeltaMinor { get; }
 
     /// <summary>
     /// Amount in minor units (compatibility property).
@@ -53,6 +55,7 @@ public sealed class LedgerEntry
         OperationType operationType,
         EntryType entryType,
         Money money,
+        BalanceEffect balanceEffect,
         Guid? relatedEntryId = null,
         RelationType relationType = RelationType.None,
         string? externalReference = null,
@@ -65,6 +68,8 @@ public sealed class LedgerEntry
         OperationType = operationType;
         EntryType = entryType;
         Money = money ?? throw new ArgumentNullException(nameof(money));
+        AvailableDeltaMinor = balanceEffect.AvailableDeltaMinor;
+        PendingDeltaMinor = balanceEffect.PendingDeltaMinor;
         EffectiveAt = DateTimeOffset.UtcNow;
         CreatedAt = DateTimeOffset.UtcNow;
 
@@ -89,6 +94,7 @@ public sealed class LedgerEntry
         string currency,
         DateTimeOffset effectiveAt,
         DateTimeOffset createdAt,
+        BalanceEffect balanceEffect,
         Guid? relatedEntryId = null,
         RelationType relationType = RelationType.None,
         string? externalReference = null,
@@ -104,6 +110,8 @@ public sealed class LedgerEntry
         OperationType = operationType;
         EntryType = entryType;
         Money = ValueObjects.Money.Of(amountMinor, Wallet.NormalizeCurrency(currency));
+        AvailableDeltaMinor = balanceEffect.AvailableDeltaMinor;
+        PendingDeltaMinor = balanceEffect.PendingDeltaMinor;
         EffectiveAt = effectiveAt;
         CreatedAt = createdAt;
 

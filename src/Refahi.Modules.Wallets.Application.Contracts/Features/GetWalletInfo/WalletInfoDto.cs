@@ -8,6 +8,7 @@ namespace Refahi.Modules.Wallets.Application.Contracts.Features.GetWalletInfo;
 /// </summary>
 public sealed record WalletInfoDto(
     Guid WalletId,
+    Guid OwnerId,
     short WalletType,
     short Status,
     string Currency,

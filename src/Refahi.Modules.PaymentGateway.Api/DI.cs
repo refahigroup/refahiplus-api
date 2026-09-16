@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Refahi.Modules.PaymentGateway.Application;
 using Refahi.Modules.PaymentGateway.Infrastructure;
 using Refahi.Shared.Presentation;
+using System.Threading.RateLimiting;
 
 namespace Refahi.Modules.PaymentGateway.Api;
 
@@ -18,6 +19,17 @@ public static class DI
     {
         services.RegisterApplication(configuration);
         services.RegisterInfrastructure(configuration);
+        var permitLimit = configuration.GetValue("PaymentGateway:CallbackPermitLimit", 60);
+        var windowSeconds = configuration.GetValue("PaymentGateway:CallbackWindowSeconds", 60);
+        services.AddRateLimiter(options => options.AddPolicy("FundingCallbacks", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = Math.Max(1, permitLimit),
+                    Window = TimeSpan.FromSeconds(Math.Max(1, windowSeconds)),
+                    QueueLimit = 0,
+                })));
 
         return services;
     }
@@ -52,6 +64,9 @@ public static class DI
             }
         }
 
-        group.MapGet("/ping", () => Results.Ok(new { module = "PaymentGateway Module" }));
+        group.MapGet("/ping", () => Results.Ok(ApiResponseHelper.Success(
+                new { module = "PaymentGateway Module" })))
+            .WithName("PaymentGateway.Ping")
+            .WithTags("PaymentGateway");
     }
 }

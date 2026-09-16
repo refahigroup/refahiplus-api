@@ -149,8 +149,8 @@ from wallets.wallet_balances where wallet_id=@WalletId for update",
             new CommandDefinition(
                 @"
 insert into wallets.ledger_entries
-(ledger_entry_id,wallet_id,operation_id,operation_type,entry_type,amount_minor,currency,effective_at,created_at,related_entry_id,relation_type,external_reference,metadata)
-values (@ReleaseId,@WalletId,@OperationId,4,4,@AmountMinor,@Currency,@Now,@Now,@HoldId,3,@ExternalReference,cast(@Metadata as jsonb));
+(ledger_entry_id,wallet_id,operation_id,operation_type,entry_type,amount_minor,available_delta_minor,pending_delta_minor,currency,effective_at,created_at,related_entry_id,relation_type,external_reference,metadata)
+values (@ReleaseId,@WalletId,@OperationId,4,4,@AmountMinor,@AmountMinor,-@AmountMinor,@Currency,@Now,@Now,@HoldId,3,@ExternalReference,cast(@Metadata as jsonb));
 update wallets.payment_intents set status=3,released_at=@Now where intent_id=@IntentId;",
                 new
                 {
@@ -176,13 +176,8 @@ update wallets.payment_intents set status=3,released_at=@Now where intent_id=@In
             new CommandDefinition(
                 @"
 select
- coalesce(sum(amount_minor) filter(where operation_type=1),0)
- - coalesce(sum(amount_minor) filter(where operation_type=2),0)
- + coalesce(sum(amount_minor) filter(where operation_type=4),0)
- + coalesce(sum(amount_minor) filter(where operation_type=5),0) as AvailableMinor,
- coalesce(sum(amount_minor) filter(where operation_type=2),0)
- - coalesce(sum(amount_minor) filter(where operation_type=3),0)
- - coalesce(sum(amount_minor) filter(where operation_type=4),0) as PendingMinor
+ coalesce(sum(available_delta_minor),0) as AvailableMinor,
+ coalesce(sum(pending_delta_minor),0) as PendingMinor
 from wallets.ledger_entries where wallet_id=@WalletId",
                 new { hold.WalletId },
                 transaction,

@@ -9,27 +9,28 @@ using Refahi.Modules.Orders.Domain.Exceptions;
 using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CapturePaymentIntent;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CreatePaymentIntent;
+using Refahi.Modules.Wallets.Application.Contracts.Usecases;
 
 namespace Refahi.Modules.Orders.Application.Features.PayOrder;
 
 public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderResponse>
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IMediator _mediator;
+    private readonly IWalletPaymentExecutor _walletPaymentExecutor;
     private readonly ILogger<PayOrderCommandHandler> _logger;
     private readonly IOrderMutationLock _mutationLock;
     private readonly OrderCancellationService _cancellationService;
 
     public PayOrderCommandHandler(
         IOrderRepository orderRepository,
-        IMediator mediator,
+        IWalletPaymentExecutor walletPaymentExecutor,
         ILogger<PayOrderCommandHandler> logger,
         IOrderMutationLock mutationLock,
         OrderCancellationService cancellationService
     )
     {
         _orderRepository = orderRepository;
-        _mediator = mediator;
+        _walletPaymentExecutor = walletPaymentExecutor;
         _logger = logger;
         _mutationLock = mutationLock;
         _cancellationService = cancellationService;
@@ -106,11 +107,10 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
             // Step 1: Reserve via Wallet (CreatePaymentIntent)
             var categoryCodesForIntent = order
                 .Items.Select(i => i.CategoryCode)
-                .Where(c => !string.IsNullOrWhiteSpace(c))
                 .Distinct()
                 .ToList();
 
-            var intentResult = await _mediator.Send(
+            var intentResult = await _walletPaymentExecutor.ReserveAsync(
                 new CreatePaymentIntentCommand(
                     OrderId: order.Id,
                     AmountMinor: order.FinalAmountMinor,
@@ -129,7 +129,8 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
                             x.AmountMinor,
                             x.Purpose
                         ))
-                        .ToList()
+                        .ToList(),
+                    PayerOwnerId: order.UserId
                 ),
                 cancellationToken
             );
@@ -154,7 +155,7 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
         }
 
         // Step 2: Capture via Wallet (CapturePaymentIntent)
-        var captureResult = await _mediator.Send(
+        var captureResult = await _walletPaymentExecutor.CaptureAsync(
             new CapturePaymentIntentCommand(
                 IntentId: paymentIntentId,
                 IdempotencyKey: $"order-capture-{order.Id:N}"

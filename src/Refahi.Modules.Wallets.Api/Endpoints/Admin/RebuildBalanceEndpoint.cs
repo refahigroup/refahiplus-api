@@ -67,6 +67,7 @@ public class RebuildBalanceEndpoint : IEndpoint
                     }
                 }
             )
+            .RequireAuthorization("AdminOnly")
             .WithName("RebuildBalance")
             .WithTags("Admin", "Wallets")
             .Produces<RebuildBalanceResponse>(StatusCodes.Status200OK)

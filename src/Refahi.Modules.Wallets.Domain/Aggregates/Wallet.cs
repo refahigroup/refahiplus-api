@@ -68,8 +68,18 @@ public sealed class Wallet : EntityBase
 
         // Prefix match: AllowedCategoryCode="store" allows "store.clothing"
         // Exact or sub-prefix: AllowedCategoryCode="store.clothing" only allows "store.clothing"
-        return categoryCode.StartsWith(AllowedCategoryCode, StringComparison.OrdinalIgnoreCase)
-            || AllowedCategoryCode.StartsWith(categoryCode, StringComparison.OrdinalIgnoreCase);
+        return IsCategoryWithin(categoryCode, AllowedCategoryCode);
+    }
+
+    public static bool IsCategoryWithin(string requestedCategoryCode, string allowedCategoryCode)
+    {
+        if (string.IsNullOrWhiteSpace(requestedCategoryCode) || string.IsNullOrWhiteSpace(allowedCategoryCode))
+            return false;
+
+        var requested = requestedCategoryCode.Trim();
+        var allowed = allowedCategoryCode.Trim().TrimEnd('.');
+        return requested.Equals(allowed, StringComparison.OrdinalIgnoreCase)
+            || requested.StartsWith(allowed + ".", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Returns true if the contract has not expired.</summary>
@@ -98,6 +108,7 @@ public sealed class Wallet : EntityBase
             operationType: OperationType.TopUp,
             entryType: EntryType.Credit,
             money: money,
+            balanceEffect: BalanceEffect.TopUp(amountMinor),
             externalReference: externalReference,
             metadataJson: metadataJson
         );

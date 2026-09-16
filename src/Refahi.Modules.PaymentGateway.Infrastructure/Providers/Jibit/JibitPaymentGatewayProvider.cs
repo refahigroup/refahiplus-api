@@ -25,7 +25,7 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit;
 ///   backend can identify the session without a DB lookup by purchaseId.
 ///   e.g. https://api.refahi.xyz/api/payment-gateway/callback/jibit/{sessionId}
 /// </summary>
-public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
+public class JibitPaymentGatewayProvider : IRecoverablePaymentGatewayProvider
 {
     private readonly JibitApiClient _apiClient;
     private readonly JibitOptions _options;
@@ -86,7 +86,7 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
                     firstError.Code,
                     firstError.Message
                 );
-                return new GetTokenResult(false, null, $"خطای جیبیت: {firstError.Message}");
+                return new GetTokenResult(false, null, ErrorMessage: $"خطای جیبیت: {firstError.Message}");
             }
 
             if (
@@ -97,7 +97,7 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
                 _logger.LogWarning(
                     "Jibit: CreatePurchase succeeded but pspSwitchingUrl or purchaseId is empty."
                 );
-                return new GetTokenResult(false, null, "آدرس صفحه پرداخت جیبیت دریافت نشد.");
+                return new GetTokenResult(false, null, ErrorMessage: "آدرس صفحه پرداخت جیبیت دریافت نشد.");
             }
 
             _logger.LogInformation(
@@ -105,14 +105,17 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
                 response.PurchaseId
             );
 
-            // We store only the pspSwitchingUrl as the "token".
-            // The purchaseId comes back from Jibit's callback directly.
-            return new GetTokenResult(true, response.PspSwitchingUrl);
+            return new GetTokenResult(
+                true,
+                response.PspSwitchingUrl,
+                ProviderAttemptId: response.PurchaseId,
+                ProviderTransactionId: response.PurchaseId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Jibit: Exception during CreatePurchase.");
-            return new GetTokenResult(false, null, ex.Message);
+            return new GetTokenResult(
+                false, null, ErrorMessage: ex.Message, IsOutcomeUnknown: true);
         }
     }
 
@@ -134,18 +137,16 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
         {
             _logger.LogInformation(
                 "Jibit: Verifying purchase. PurchaseId={PurchaseId}",
-                request.RefNum
+                request.ProviderTransactionId
             );
 
-            var response = await _apiClient.VerifyPurchaseAsync(request.RefNum, ct);
+            var response = await _apiClient.VerifyPurchaseAsync(request.ProviderTransactionId, ct);
 
-            if (response.Status?.Equals("SUCCESSFUL", StringComparison.OrdinalIgnoreCase) == true)
+            if (response.Status is not null &&
+                (response.Status.Equals("SUCCESSFUL", StringComparison.OrdinalIgnoreCase)
+                    || response.Status.Equals("ALREADY_VERIFIED", StringComparison.OrdinalIgnoreCase)))
             {
-                _logger.LogInformation(
-                    "Jibit: Purchase verified successfully. PurchaseId={PurchaseId}",
-                    request.RefNum
-                );
-                return new VerifyResult(true, request.ExpectedAmountMinor, 0);
+                return await ReadAuthoritativePurchaseAsync(request, ct);
             }
 
             var errorCode = response.Errors?.FirstOrDefault()?.Code ?? response.Status ?? "UNKNOWN";
@@ -153,21 +154,97 @@ public class JibitPaymentGatewayProvider : IPaymentGatewayProvider
 
             _logger.LogWarning(
                 "Jibit: Verification failed. PurchaseId={PurchaseId} Status={Status}",
-                request.RefNum,
+                request.ProviderTransactionId,
                 response.Status
             );
 
-            return new VerifyResult(false, 0, GetJibitStatusCode(response.Status), description);
+            var outcome = response.Status?.ToUpperInvariant() switch
+            {
+                "FAILED" or "PURCHASE_NOT_FOUND" or "EXPIRED" =>
+                    FundingProviderOutcome.DefinitiveFailure,
+                "UNKNOWN" => FundingProviderOutcome.Unknown,
+                _ => FundingProviderOutcome.Pending,
+            };
+            return new VerifyResult(outcome, request.ProviderTransactionId, null, null, null,
+                GetJibitStatusCode(response.Status), description);
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
                 "Jibit: Exception during VerifyPurchase. PurchaseId={PurchaseId}",
-                request.RefNum
+                request.ProviderTransactionId
             );
-            return new VerifyResult(false, 0, -99, ex.Message);
+            return new VerifyResult(FundingProviderOutcome.Unknown,
+                request.ProviderTransactionId, null, null, null, -99, ex.Message);
         }
+    }
+
+    public async Task<VerifyResult> InquireAsync(
+        FundingInquiryRequest request,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var detail = await _apiClient.FindPurchaseAsync(
+                request.ProviderTransactionId, request.SessionReference, ct);
+            var expectedPurchaseId = request.ProviderTransactionId
+                ?? detail?.PurchaseIdStr ?? detail?.PurchaseId?.ToString() ?? string.Empty;
+            return MapPurchaseDetail(
+                detail,
+                expectedPurchaseId,
+                request.SessionReference);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Jibit: Purchase inquiry failed. PurchaseId={PurchaseId}",
+                request.ProviderTransactionId);
+            return new VerifyResult(FundingProviderOutcome.Unknown,
+                request.ProviderTransactionId, null, null, null, -99, ex.Message);
+        }
+    }
+
+    private async Task<VerifyResult> ReadAuthoritativePurchaseAsync(
+        VerifyRequest request,
+        CancellationToken ct)
+    {
+        var detail = await _apiClient.GetPurchaseAsync(request.ProviderTransactionId, ct);
+        return MapPurchaseDetail(detail, request.ProviderTransactionId, request.SessionReference);
+    }
+
+    private static VerifyResult MapPurchaseDetail(
+        JibitPurchaseDetail? detail,
+        string expectedPurchaseId,
+        string expectedClientReference)
+    {
+        if (detail is null)
+            return new VerifyResult(FundingProviderOutcome.Unknown, expectedPurchaseId,
+                null, null, null, -99, "جزئیات authoritative خرید جیبیت در دسترس نیست.");
+
+        var actualId = detail.PurchaseIdStr ?? detail.PurchaseId?.ToString();
+        var state = detail.State?.ToUpperInvariant();
+        var outcome = state switch
+        {
+            "SUCCESS" or "SUCCESSFUL" or "MANUALLY_SUCCESS" =>
+                FundingProviderOutcome.VerifiedSuccess,
+            "FAILED" or "EXPIRED" or "REVERSED" =>
+                FundingProviderOutcome.DefinitiveFailure,
+            "READY_TO_VERIFY" or "CREATED" or "IN_PROGRESS" =>
+                FundingProviderOutcome.Pending,
+            _ => FundingProviderOutcome.Unknown,
+        };
+
+        if (!string.Equals(actualId, expectedPurchaseId, StringComparison.Ordinal)
+            || !string.Equals(detail.ClientReferenceNumber, expectedClientReference,
+                StringComparison.Ordinal))
+        {
+            outcome = FundingProviderOutcome.DefinitiveFailure;
+        }
+
+        return new VerifyResult(outcome, actualId, detail.Amount, detail.Currency,
+            detail.ClientReferenceNumber, outcome == FundingProviderOutcome.VerifiedSuccess ? 0 : -1,
+            outcome == FundingProviderOutcome.VerifiedSuccess ? null : $"Jibit purchase state: {state ?? "UNKNOWN"}.");
     }
 
     private static int GetJibitStatusCode(string? status) =>

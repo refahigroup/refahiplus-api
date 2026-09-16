@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Refahi.Modules.PaymentGateway.Api.Models;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Exceptions;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.InitiatePayment;
@@ -31,6 +32,7 @@ public class InitiatePaymentEndpoint : IEndpoint
                     InitiatePaymentRequestBody body,
                     HttpContext httpContext,
                     IConfiguration configuration,
+                    IHostEnvironment environment,
                     IMediator mediator,
                     CancellationToken ct
                 ) =>
@@ -50,8 +52,11 @@ public class InitiatePaymentEndpoint : IEndpoint
                         req.Scheme,
                         req.Host.Value,
                         req.Headers["X-Forwarded-Proto"].ToString(),
-                        req.Headers["X-Forwarded-Host"].ToString()
+                        req.Headers["X-Forwarded-Host"].ToString(),
+                        allowRequestFallback: environment.IsDevelopment()
                     );
+
+                    var idempotencyKey = req.Headers["Idempotency-Key"].ToString();
 
                     var command = new InitiatePaymentCommand(
                         UserId: userId,
@@ -62,7 +67,8 @@ public class InitiatePaymentEndpoint : IEndpoint
                         ProviderCallbackUrl: providerCallbackUrl,
                         ReturnBaseUrl: body.ReturnBaseUrl,
                         SucceededCallbackUrl: body.SucceededCallbackUrl,
-                        FailedCallbackUrl: body.FailedCallbackUrl
+                        FailedCallbackUrl: body.FailedCallbackUrl,
+                        IdempotencyKey: idempotencyKey
                     );
 
                     try
@@ -84,6 +90,10 @@ public class InitiatePaymentEndpoint : IEndpoint
                     catch (PaymentTokenRequestFailedException ex)
                     {
                         return Results.BadRequest(ApiResponseHelper.Error(ex.Message));
+                    }
+                    catch (FundingIdempotencyConflictException ex)
+                    {
+                        return Results.Conflict(ApiResponseHelper.Error(ex.Message, statusCode: 409));
                     }
                 }
             )

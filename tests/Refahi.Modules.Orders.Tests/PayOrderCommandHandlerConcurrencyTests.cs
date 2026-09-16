@@ -9,6 +9,9 @@ using Refahi.Modules.Orders.Domain.Repositories;
 using Refahi.Modules.Wallets.Application.Contracts;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CapturePaymentIntent;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CreatePaymentIntent;
+using Refahi.Modules.Wallets.Application.Contracts.Features.RefundPayment;
+using Refahi.Modules.Wallets.Application.Contracts.Features.ReleasePaymentIntent;
+using Refahi.Modules.Wallets.Application.Contracts.Usecases;
 
 namespace Refahi.Modules.Orders.Tests;
 
@@ -102,7 +105,9 @@ public sealed class PayOrderCommandHandlerConcurrencyTests
         }
     }
 
-    private sealed class PaymentMediator(Guid orderId, Guid walletId, long amountMinor) : IMediator
+    private sealed class PaymentMediator(Guid orderId, Guid walletId, long amountMinor)
+        : IMediator,
+            IWalletPaymentExecutor
     {
         private readonly Guid _intentId = Guid.NewGuid();
         private readonly Guid _paymentId = Guid.NewGuid();
@@ -166,6 +171,26 @@ public sealed class PayOrderCommandHandlerConcurrencyTests
                 )
             );
         }
+
+        public Task<CommandResponse<CreatePaymentIntentResponse>> ReserveAsync(
+            CreatePaymentIntentCommand command,
+            CancellationToken ct
+        ) => Task.FromResult(CreateIntent(command));
+
+        public Task<CommandResponse<CapturePaymentIntentResponse>> CaptureAsync(
+            CapturePaymentIntentCommand command,
+            CancellationToken ct
+        ) => Task.FromResult(Capture(command));
+
+        public Task<CommandResponse<ReleasePaymentIntentResponse>> ReleaseAsync(
+            ReleasePaymentIntentCommand command,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
+
+        public Task<CommandResponse<RefundPaymentResponse>> RefundAsync(
+            RefundPaymentCommand command,
+            CancellationToken ct
+        ) => throw new NotSupportedException();
 
         public Task<object?> Send(object request, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();

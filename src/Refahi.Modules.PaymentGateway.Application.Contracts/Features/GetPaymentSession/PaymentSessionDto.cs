@@ -13,5 +13,8 @@ public sealed record PaymentSessionDto(
     DateTimeOffset? CompletedAt,
     Guid? TopUpLedgerEntryId,
     int? ProviderResultCode,
-    string? ProviderResultDescription
+    string? ProviderResultDescription,
+    Guid WalletId,
+    FundingReversalStatus ReversalStatus,
+    string? ReversalDescription
 );

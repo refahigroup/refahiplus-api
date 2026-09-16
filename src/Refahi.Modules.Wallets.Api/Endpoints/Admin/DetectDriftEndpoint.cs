@@ -55,6 +55,7 @@ public class DetectDriftEndpoint : IEndpoint
                     }
                 }
             )
+            .RequireAuthorization("AdminOnly")
             .WithName("DetectDrift")
             .WithTags("Wallets", "Admin")
             .Produces<DriftReportResponse>(StatusCodes.Status200OK)

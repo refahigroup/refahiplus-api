@@ -45,7 +45,7 @@ public sealed class TopUpOrgCreditCommandHandler
 
         if (
             walletInfo.ContractExpiresAt.HasValue
-            && walletInfo.ContractExpiresAt < DateTimeOffset.UtcNow
+            && walletInfo.ContractExpiresAt <= DateTimeOffset.UtcNow
         )
             throw new WalletOperationNotAllowedException(
                 request.WalletId,

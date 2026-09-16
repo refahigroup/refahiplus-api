@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Refahi.Modules.Wallets.Application.Contracts;
 using Refahi.Modules.Wallets.Application.Contracts.Exceptions;
 using Refahi.Modules.Wallets.Application.Contracts.Features.CreatePaymentIntent;
@@ -25,14 +26,17 @@ public sealed class CreatePaymentIntentApplicationService
 {
     private readonly IPaymentAtomicWriter _atomicWriter;
     private readonly IWalletReadRepository _walletReadRepo;
+    private readonly ILogger<CreatePaymentIntentApplicationService> _logger;
 
     public CreatePaymentIntentApplicationService(
         IPaymentAtomicWriter atomicWriter,
-        IWalletReadRepository walletReadRepo
+        IWalletReadRepository walletReadRepo,
+        ILogger<CreatePaymentIntentApplicationService> logger
     )
     {
         _atomicWriter = atomicWriter;
         _walletReadRepo = walletReadRepo;
+        _logger = logger;
     }
 
     public async Task<CommandResponse<CreatePaymentIntentResponse>> CreateIntentAsync(
@@ -60,6 +64,9 @@ public sealed class CreatePaymentIntentApplicationService
                     $"Allocation amount must be positive: {alloc.WalletId}"
                 );
         }
+
+        if (command.Allocations.Select(x => x.WalletId).Distinct().Count() != command.Allocations.Count)
+            throw new InvalidOperationException("هر کیف پول فقط یک بار می‌تواند در تخصیص پرداخت باشد.");
 
         var postings = command.Postings ?? Array.Empty<PaymentPostingRequest>();
         foreach (var posting in postings)
@@ -112,13 +119,26 @@ public sealed class CreatePaymentIntentApplicationService
                 await _walletReadRepo.GetByIdAsync(alloc.WalletId, ct)
                 ?? throw new WalletNotFoundException(alloc.WalletId);
 
+            if (command.PayerOwnerId.HasValue && walletInfo.OwnerId != command.PayerOwnerId.Value)
+            {
+                _logger.LogWarning(
+                    "Wallet funding ownership rejected. WalletId={WalletId} PaymentIntentOrderId={OrderId}",
+                    alloc.WalletId,
+                    command.OrderId
+                );
+                throw new WalletOperationNotAllowedException(
+                    alloc.WalletId,
+                    "استفاده از کیف پول متعلق به پرداخت‌کننده نیست."
+                );
+            }
+
             if (walletInfo.WalletType != (short)WalletType.OrgCredit)
                 continue;
 
             // Contract expiry check
             if (
                 walletInfo.ContractExpiresAt.HasValue
-                && walletInfo.ContractExpiresAt < DateTimeOffset.UtcNow
+                && walletInfo.ContractExpiresAt <= DateTimeOffset.UtcNow
             )
                 throw new WalletOperationNotAllowedException(
                     alloc.WalletId,
@@ -126,22 +146,27 @@ public sealed class CreatePaymentIntentApplicationService
                 );
 
             // Category restriction check
-            if (
-                walletInfo.AllowedCategoryCode is not null
-                && command.OrderItemCategoryCode?.Count > 0
-            )
+            if (walletInfo.AllowedCategoryCode is not null)
             {
                 var allowed = walletInfo.AllowedCategoryCode;
-                bool allMatch = command.OrderItemCategoryCode.All(code =>
-                    code.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)
-                    || allowed.StartsWith(code, StringComparison.OrdinalIgnoreCase)
-                );
+                bool allMatch = command.OrderItemCategoryCode is { Count: > 0 }
+                    && command.OrderItemCategoryCode.All(code =>
+                        !string.IsNullOrWhiteSpace(code)
+                        && Wallet.IsCategoryWithin(code, allowed)
+                    );
 
                 if (!allMatch)
+                {
+                    _logger.LogWarning(
+                        "Organization credit policy rejected. WalletId={WalletId} PaymentIntentOrderId={OrderId}",
+                        alloc.WalletId,
+                        command.OrderId
+                    );
                     throw new WalletOperationNotAllowedException(
                         alloc.WalletId,
                         "این کیف پول سازمانی برای دسته‌بندی کالاهای سفارش مجاز نیست."
                     );
+                }
             }
         }
 
@@ -167,7 +192,9 @@ public sealed class CreatePaymentIntentApplicationService
                     x.AmountMinor,
                     x.Purpose.Trim()
                 ))
-                .ToList()
+                .ToList(),
+            payerOwnerId: command.PayerOwnerId,
+            categoryCodes: command.OrderItemCategoryCode
         );
 
         // 6) Interpret outcome and build response

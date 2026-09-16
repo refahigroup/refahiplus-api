@@ -36,6 +36,7 @@ public sealed class RefundPaymentApplicationService
             idempotencyKey: command.IdempotencyKey,
             reason: command.Reason,
             metadataJson: command.MetadataJson,
+            amountMinor: command.AmountMinor,
             ct: ct
         );
 

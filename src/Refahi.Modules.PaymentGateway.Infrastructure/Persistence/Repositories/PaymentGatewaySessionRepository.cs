@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Refahi.Modules.PaymentGateway.Application.Contracts.Exceptions;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
 using Refahi.Modules.PaymentGateway.Domain.Aggregates;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
@@ -28,6 +30,14 @@ public class PaymentGatewaySessionRepository : IPaymentGatewaySessionRepository
         return await _context.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
     }
 
+    public Task<PaymentGatewaySession?> GetByInitiationKeyAsync(
+        Guid userId,
+        string idempotencyKey,
+        CancellationToken ct = default) =>
+        _context.Sessions.FirstOrDefaultAsync(
+            s => s.UserId == userId && s.InitiationIdempotencyKey == idempotencyKey,
+            ct);
+
     public async Task<IReadOnlyList<PaymentGatewaySession>> GetByUserAsync(
         Guid userId,
         int take,
@@ -43,15 +53,106 @@ public class PaymentGatewaySessionRepository : IPaymentGatewaySessionRepository
         return await query.OrderByDescending(s => s.InitiatedAt).Take(take).ToListAsync(ct);
     }
 
-    public async Task AddAsync(PaymentGatewaySession session, CancellationToken ct = default)
+    public async Task<bool> TryAddAsync(PaymentGatewaySession session, CancellationToken ct = default)
     {
-        await _context.Sessions.AddAsync(session, ct);
-        await _context.SaveChangesAsync(ct);
+        try
+        {
+            await _context.Sessions.AddAsync(session, ct);
+            await _context.SaveChangesAsync(ct);
+            return true;
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex, "uq_pg_sessions_user_idempotency"))
+        {
+            _context.ChangeTracker.Clear();
+            return false;
+        }
+    }
+
+    public async Task<bool> TryClaimAsync(
+        Guid sessionId,
+        IReadOnlyCollection<PaymentSessionStatus> allowedStatuses,
+        DateTimeOffset now,
+        DateTimeOffset leaseUntil,
+        CancellationToken ct = default)
+    {
+        var statuses = allowedStatuses.ToArray();
+        var affected = await _context.Sessions
+            .Where(s => s.Id == sessionId
+                && statuses.Contains(s.Status)
+                && (s.Status != PaymentSessionStatus.Processing
+                    || s.ProcessingLeaseUntil == null
+                    || s.ProcessingLeaseUntil <= now))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.Status, PaymentSessionStatus.Processing)
+                .SetProperty(s => s.ProcessingLeaseUntil, leaseUntil)
+                .SetProperty(s => s.Version, s => s.Version + 1), ct);
+        _context.ChangeTracker.Clear();
+        return affected == 1;
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetRecoveryCandidatesAsync(
+        DateTimeOffset now,
+        int batchSize,
+        CancellationToken ct = default) =>
+        await _context.Sessions.AsNoTracking()
+            .Where(s =>
+                (s.Status == PaymentSessionStatus.PendingRecovery
+                    && (s.NextRecoveryAt == null || s.NextRecoveryAt <= now))
+                || (s.Status == PaymentSessionStatus.Processing
+                    && s.ProcessingLeaseUntil != null && s.ProcessingLeaseUntil <= now)
+                || (s.Status == PaymentSessionStatus.TokenReceived && s.ExpiresAt <= now))
+            .OrderBy(s => s.NextRecoveryAt ?? s.ProcessingLeaseUntil)
+            .Select(s => s.Id)
+            .Take(batchSize)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Guid>> GetReversalCandidatesAsync(
+        DateTimeOffset now,
+        int batchSize,
+        CancellationToken ct = default) =>
+        await _context.Sessions.AsNoTracking()
+            .Where(s => (s.ReversalStatus == FundingReversalStatus.Required
+                    || s.ReversalStatus == FundingReversalStatus.Failed)
+                && (s.NextReversalAt == null || s.NextReversalAt <= now))
+            .OrderBy(s => s.NextReversalAt)
+            .Select(s => s.Id)
+            .Take(batchSize)
+            .ToListAsync(ct);
+
+    public async Task<bool> TryClaimReversalAsync(
+        Guid sessionId,
+        CancellationToken ct = default)
+    {
+        var affected = await _context.Sessions
+            .Where(s => s.Id == sessionId &&
+                (s.ReversalStatus == FundingReversalStatus.Required
+                    || s.ReversalStatus == FundingReversalStatus.Failed))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.ReversalStatus, FundingReversalStatus.Pending)
+                .SetProperty(s => s.Version, s => s.Version + 1), ct);
+        _context.ChangeTracker.Clear();
+        return affected == 1;
     }
 
     public async Task UpdateAsync(PaymentGatewaySession session, CancellationToken ct = default)
     {
+        session.AdvanceVersion();
         _context.Sessions.Update(session);
-        await _context.SaveChangesAsync(ct);
+        try
+        {
+            await _context.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex, "uq_pg_sessions_provider_transaction"))
+        {
+            _context.ChangeTracker.Clear();
+            throw new ProviderTransactionAlreadyClaimedException();
+        }
     }
+
+    private static bool IsUniqueViolation(DbUpdateException ex, string constraintName) =>
+        ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: var actual
+        } && string.Equals(actual, constraintName, StringComparison.Ordinal);
 }

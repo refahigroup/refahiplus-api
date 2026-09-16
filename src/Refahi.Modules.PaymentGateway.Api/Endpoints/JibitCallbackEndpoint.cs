@@ -4,6 +4,8 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.ProcessCallback;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
 using Refahi.Shared.Presentation;
@@ -47,9 +49,12 @@ public class JibitCallbackEndpoint : IEndpoint
                     var amountStr = form["amount"].ToString();
 
                     // Serialize raw form data for audit logging
-                    var rawJson = JsonSerializer.Serialize(
-                        form.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString())
-                    );
+                    var rawJson = JsonSerializer.Serialize(new
+                    {
+                        purchaseId,
+                        status,
+                        amount = amountStr,
+                    });
 
                     if (string.IsNullOrWhiteSpace(purchaseId))
                     {
@@ -71,7 +76,12 @@ public class JibitCallbackEndpoint : IEndpoint
                         ResNum: sessionId.ToString(), // our session ID
                         TraceNo: null,
                         SecurePan: null,
-                        RawCallbackJson: rawJson
+                        RawCallbackJson: rawJson,
+                        AmountMinor: long.TryParse(amountStr, NumberStyles.Integer,
+                            CultureInfo.InvariantCulture, out var amount) ? amount : null,
+                        AmountParseFailed: !string.IsNullOrWhiteSpace(amountStr)
+                            && !long.TryParse(amountStr, NumberStyles.Integer,
+                                CultureInfo.InvariantCulture, out _)
                     );
 
                     var response = await mediator.Send(command, ct);
@@ -83,6 +93,9 @@ public class JibitCallbackEndpoint : IEndpoint
             // ⚠️ No authentication — this is called by Jibit's server
             .WithName("PaymentGateway.JibitCallback")
             .WithTags("PaymentGateway")
+            .RequireRateLimiting("FundingCallbacks")
+            .WithMetadata(new RequestSizeLimitAttribute(65_536))
+            .WithMetadata(new RequestFormLimitsAttribute { ValueLengthLimit = 4096, KeyLengthLimit = 128 })
             .ExcludeFromDescription();
     }
 }

@@ -86,6 +86,12 @@ public class WalletsDbContext : DbContext
                 .HasColumnName("entry_type")
                 .HasColumnType("smallint")
                 .IsRequired();
+            b.Property(x => x.AvailableDeltaMinor)
+                .HasColumnName("available_delta_minor")
+                .IsRequired();
+            b.Property(x => x.PendingDeltaMinor)
+                .HasColumnName("pending_delta_minor")
+                .IsRequired();
 
             // Value Object: Money (owned entity approach)
             b.OwnsOne(

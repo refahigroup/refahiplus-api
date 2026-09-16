@@ -57,9 +57,44 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("initiated_at");
 
+                    b.Property<string>("InitiationIdempotencyKey")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("initiation_idempotency_key");
+
+                    b.Property<string>("InitiationRequestHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("initiation_request_hash");
+
+                    b.Property<short?>("InitiationRequestHashVersion")
+                        .HasColumnType("smallint")
+                        .HasColumnName("initiation_request_hash_version");
+
+                    b.Property<DateTimeOffset?>("LastRecoveryAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_recovery_at");
+
+                    b.Property<DateTimeOffset?>("NextRecoveryAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_recovery_at");
+
+                    b.Property<DateTimeOffset?>("NextReversalAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_reversal_at");
+
+                    b.Property<DateTimeOffset?>("ProcessingLeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processing_lease_until");
+
                     b.Property<short>("Provider")
                         .HasColumnType("smallint")
                         .HasColumnName("provider");
+
+                    b.Property<string>("ProviderAttemptId")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("provider_attempt_id");
 
                     b.Property<string>("ProviderRawCallbackJson")
                         .HasColumnType("jsonb")
@@ -94,11 +129,33 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("provider_trace_no");
 
+                    b.Property<string>("ProviderTransactionId")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("provider_transaction_id");
+
+                    b.Property<int>("RecoveryAttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("recovery_attempt_count");
+
                     b.Property<string>("ReturnBaseUrl")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("return_base_url");
+
+                    b.Property<int>("ReversalAttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("reversal_attempt_count");
+
+                    b.Property<string>("ReversalDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reversal_description");
+
+                    b.Property<short>("ReversalStatus")
+                        .HasColumnType("smallint")
+                        .HasColumnName("reversal_status");
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint")
@@ -117,6 +174,11 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
                     b.Property<Guid>("WalletId")
                         .HasColumnType("uuid")
                         .HasColumnName("wallet_id");
@@ -129,10 +191,49 @@ namespace Refahi.Modules.PaymentGateway.Infrastructure.Migrations
                     b.HasIndex("Status")
                         .HasDatabaseName("idx_pg_sessions_status");
 
+                    b.HasIndex("TopUpLedgerEntryId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_pg_sessions_topup_ledger")
+                        .HasFilter("topup_ledger_entry_id IS NOT NULL");
+
                     b.HasIndex("UserId")
                         .HasDatabaseName("idx_pg_sessions_user");
 
-                    b.ToTable("sessions", "payment_gateway");
+                    b.HasIndex("Provider", "ProviderAttemptId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_pg_sessions_provider_attempt")
+                        .HasFilter("provider_attempt_id IS NOT NULL");
+
+                    b.HasIndex("Provider", "ProviderTransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_pg_sessions_provider_transaction")
+                        .HasFilter("provider_transaction_id IS NOT NULL");
+
+                    b.HasIndex("ReversalStatus", "NextReversalAt")
+                        .HasDatabaseName("idx_pg_sessions_reversal");
+
+                    b.HasIndex("Status", "NextRecoveryAt")
+                        .HasDatabaseName("idx_pg_sessions_recovery");
+
+                    b.HasIndex("UserId", "InitiationIdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_pg_sessions_user_idempotency")
+                        .HasFilter("initiation_idempotency_key IS NOT NULL");
+
+                    b.ToTable("sessions", "payment_gateway", t =>
+                        {
+                            t.HasCheckConstraint("ck_pg_sessions_amount_positive", "amount_minor > 0");
+
+                            t.HasCheckConstraint("ck_pg_sessions_currency", "length(currency) = 3");
+
+                            t.HasCheckConstraint("ck_pg_sessions_initiation_hash_pair", "(initiation_request_hash IS NULL) = (initiation_request_hash_version IS NULL)");
+
+                            t.HasCheckConstraint("ck_pg_sessions_provider", "provider IN (1, 2)");
+
+                            t.HasCheckConstraint("ck_pg_sessions_reversal_status", "reversal_status BETWEEN 0 AND 5");
+
+                            t.HasCheckConstraint("ck_pg_sessions_status", "status BETWEEN 1 AND 9");
+                        });
                 });
 #pragma warning restore 612, 618
         }

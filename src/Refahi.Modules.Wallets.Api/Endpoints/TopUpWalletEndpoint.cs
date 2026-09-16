@@ -84,7 +84,7 @@ public class TopUpWalletEndpoint : IEndpoint
                     }
                 }
             )
-            .RequireAuthorization()
+            .RequireAuthorization("AdminOnly")
             .WithName("TopUpWallet")
             .WithTags("Wallets")
             .Produces(StatusCodes.Status200OK)

@@ -30,6 +30,10 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("ledger_entry_id");
 
+                    b.Property<long>("AvailableDeltaMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("available_delta_minor");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -57,6 +61,10 @@ namespace Refahi.Modules.Wallets.Infrastructure.Migrations
                     b.Property<short>("OperationType")
                         .HasColumnType("smallint")
                         .HasColumnName("operation_type");
+
+                    b.Property<long>("PendingDeltaMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("pending_delta_minor");
 
                     b.Property<Guid?>("RelatedEntryId")
                         .HasColumnType("uuid")

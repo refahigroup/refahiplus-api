@@ -21,10 +21,13 @@ public class GetWalletTransactionsEndpoint : IEndpoint
                 async (
                     [FromRoute] Guid walletId,
                     [FromQuery] int? take,
+                    HttpContext context,
                     IMediator mediator,
                     CancellationToken ct
                 ) =>
                 {
+                    if (!await WalletEndpointAuthorization.CanAccessWalletAsync(context, mediator, walletId, ct))
+                        return Results.Forbid();
                     if (!take.HasValue || take == 0)
                         take = 20;
 

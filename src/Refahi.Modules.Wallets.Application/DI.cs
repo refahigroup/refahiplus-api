@@ -20,6 +20,7 @@ public static class DI
 
         // Application Services (use case orchestration)
         services.AddScoped<IWalletTopUpUsecase, WalletTopUpApplicationService>();
+        services.AddScoped<IWalletPaymentExecutor, WalletPaymentExecutor>();
         services.AddScoped<CreatePaymentIntentApplicationService>();
         services.AddScoped<CapturePaymentIntentApplicationService>();
         services.AddScoped<ReleasePaymentIntentApplicationService>();

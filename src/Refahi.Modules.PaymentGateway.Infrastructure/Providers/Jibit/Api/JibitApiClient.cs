@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -83,6 +84,39 @@ public class JibitApiClient
             isRetry: false,
             ct
         );
+    }
+
+    public async Task<JibitPurchaseDetail?> GetPurchaseAsync(
+        string purchaseId,
+        CancellationToken ct)
+        => await FindPurchaseAsync(purchaseId, null, ct);
+
+    public async Task<JibitPurchaseDetail?> FindPurchaseAsync(
+        string? purchaseId,
+        string? clientReferenceNumber,
+        CancellationToken ct)
+    {
+        await EnsureTokenAsync(ct);
+        if (string.IsNullOrWhiteSpace(purchaseId) &&
+            string.IsNullOrWhiteSpace(clientReferenceNumber))
+            throw new ArgumentException("شناسه خرید یا مرجع مشتری برای استعلام جیبیت الزامی است.");
+        var criteria = Uri.EscapeDataString(
+            System.Text.Json.JsonSerializer.Serialize(new
+            {
+                purchaseId = long.TryParse(purchaseId, out var numericId) ? numericId : (long?)null,
+                clientReferenceNumber,
+                size = 2,
+                page = 1,
+            }));
+        var page = await SendGetWithBearerAsync<JibitPurchasePage>(
+            $"/purchases?criteria={criteria}", isRetry: false, ct);
+        return page.Elements?.SingleOrDefault(x =>
+            (!string.IsNullOrWhiteSpace(purchaseId) &&
+                (string.Equals(x.PurchaseIdStr, purchaseId, StringComparison.Ordinal)
+                 || (x.PurchaseId.HasValue && x.PurchaseId.Value.ToString() == purchaseId)))
+            || (!string.IsNullOrWhiteSpace(clientReferenceNumber) &&
+                string.Equals(x.ClientReferenceNumber, clientReferenceNumber,
+                    StringComparison.Ordinal)));
     }
 
     // ─────────────────────────────────────────────────────────

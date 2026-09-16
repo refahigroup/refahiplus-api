@@ -13,7 +13,8 @@ public static class PaymentGatewayCallbackUrlBuilder
         string requestScheme,
         string requestHost,
         string? forwardedProto = null,
-        string? forwardedHost = null
+        string? forwardedHost = null,
+        bool allowRequestFallback = true
     )
     {
         var providerSlug = provider.ToString().ToLowerInvariant();
@@ -22,7 +23,8 @@ public static class PaymentGatewayCallbackUrlBuilder
             requestScheme,
             requestHost,
             forwardedProto,
-            forwardedHost
+            forwardedHost,
+            allowRequestFallback
         );
         return $"{baseUrl.TrimEnd('/')}{CallbackPathPrefix}/{providerSlug}";
     }
@@ -32,11 +34,16 @@ public static class PaymentGatewayCallbackUrlBuilder
         string requestScheme,
         string requestHost,
         string? forwardedProto,
-        string? forwardedHost
+        string? forwardedHost,
+        bool allowRequestFallback
     )
     {
         if (!string.IsNullOrWhiteSpace(publicBaseUrl))
             return publicBaseUrl.Trim();
+
+        if (!allowRequestFallback)
+            throw new InvalidOperationException(
+                "PaymentGateway:PublicBaseUrl برای محیط غیرتوسعه الزامی است.");
 
         var host = FirstHeaderValue(forwardedHost);
         if (string.IsNullOrWhiteSpace(host))

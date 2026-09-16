@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Features.ProcessCallback;
 using Refahi.Modules.PaymentGateway.Domain.Enums;
 using Refahi.Shared.Presentation;
@@ -41,6 +42,8 @@ public class PaymentCallbackEndpoint : IEndpoint
                         )
                     )
                         return Results.BadRequest($"درگاه پرداخت '{provider}' پشتیبانی نمی‌شود.");
+                    if (providerType != PaymentGatewayProviderType.Sep)
+                        return Results.BadRequest("این مسیر callback فقط برای SEP مجاز است.");
 
                     // SEP sends a form POST — read form fields
                     var form = await request.ReadFormAsync(ct);
@@ -64,9 +67,16 @@ public class PaymentCallbackEndpoint : IEndpoint
                     var token = ReadFormValue(form, "Token");
 
                     // Serialize raw form data for audit logging
-                    var rawJson = JsonSerializer.Serialize(
-                        form.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString())
-                    );
+                    var rawJson = JsonSerializer.Serialize(new Dictionary<string, string?>
+                    {
+                        ["State"] = state,
+                        ["Status"] = status,
+                        ["RefNum"] = refNum,
+                        ["ResNum"] = resNum,
+                        ["TraceNo"] = traceNo,
+                        ["Rrn"] = rrn,
+                        ["Amount"] = amount?.ToString(CultureInfo.InvariantCulture),
+                    });
 
                     if (string.IsNullOrWhiteSpace(resNum))
                     {
@@ -105,6 +115,9 @@ public class PaymentCallbackEndpoint : IEndpoint
             // ⚠️ No authentication — this is called by the payment provider's server
             .WithName("PaymentGateway.Callback")
             .WithTags("PaymentGateway")
+            .RequireRateLimiting("FundingCallbacks")
+            .WithMetadata(new RequestSizeLimitAttribute(65_536))
+            .WithMetadata(new RequestFormLimitsAttribute { ValueLengthLimit = 4096, KeyLengthLimit = 128 })
             .ExcludeFromDescription(); // Hide from Swagger (external-facing only)
     }
 

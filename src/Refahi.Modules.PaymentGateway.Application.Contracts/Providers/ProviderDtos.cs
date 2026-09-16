@@ -1,3 +1,5 @@
+using Refahi.Modules.PaymentGateway.Domain.Enums;
+
 namespace Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
 
 public sealed record GetTokenRequest(
@@ -9,16 +11,40 @@ public sealed record GetTokenRequest(
     string? CellNumber = null
 );
 
-public sealed record GetTokenResult(bool IsSuccess, string? Token, string? ErrorMessage = null);
+public sealed record GetTokenResult(
+    bool IsSuccess,
+    string? Token,
+    string? ProviderAttemptId = null,
+    string? ProviderTransactionId = null,
+    string? ErrorMessage = null,
+    bool IsOutcomeUnknown = false);
 
-public sealed record VerifyRequest(string RefNum, long ExpectedAmountMinor);
+public sealed record VerifyRequest(
+    string ProviderTransactionId,
+    string ProviderAttemptId,
+    string SessionReference,
+    long ExpectedAmountMinor,
+    string ExpectedCurrency);
 
 public sealed record VerifyResult(
-    bool IsSuccess,
-    long VerifiedAmountMinor,
+    FundingProviderOutcome Outcome,
+    string? ProviderTransactionId,
+    long? VerifiedAmountMinor,
+    string? VerifiedCurrency,
+    string? ClientReference,
     int ResultCode,
     string? ErrorMessage = null
-);
+)
+{
+    public bool IsSuccess => Outcome == FundingProviderOutcome.VerifiedSuccess;
+}
+
+public sealed record FundingInquiryRequest(
+    string? ProviderAttemptId,
+    string? ProviderTransactionId,
+    string SessionReference,
+    long ExpectedAmountMinor,
+    string ExpectedCurrency);
 
 public sealed record ReverseRequest(string RefNum);
 

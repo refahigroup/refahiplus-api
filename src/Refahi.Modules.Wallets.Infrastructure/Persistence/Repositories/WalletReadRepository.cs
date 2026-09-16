@@ -156,15 +156,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
                     NULLIF(substring(le.external_reference from 'order:([0-9a-fA-F-]{36})'), '')::uuid AS OrderId,
                     NULLIF(substring(le.external_reference from 'payment:([0-9a-fA-F-]{36})'), '')::uuid AS PaymentId,
                     pp.sequence AS PostingSequence,
-                    SUM(CASE
-                        WHEN le.entry_type = 1 THEN le.amount_minor
-                        WHEN le.entry_type = 2 AND le.operation_type = 3
-                             AND le.metadata ->> 'purpose' IS NULL THEN 0
-                        WHEN le.entry_type = 2 THEN -le.amount_minor
-                        WHEN le.entry_type = 3 THEN -le.amount_minor
-                        WHEN le.entry_type = 4 THEN le.amount_minor
-                        ELSE 0
-                    END) OVER (
+                    SUM(le.available_delta_minor) OVER (
                         PARTITION BY le.wallet_id
                         ORDER BY le.created_at,
                             CASE le.entry_type WHEN 1 THEN 0 WHEN 2 THEN 1 ELSE 2 END,
@@ -243,6 +235,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
 
         var rows = await conn.QueryAsync<(
             Guid WalletId,
+            Guid OwnerId,
             short WalletType,
             string Currency,
             long AvailableMinor,
@@ -301,6 +294,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
 
         var row = await conn.QuerySingleOrDefaultAsync<(
             Guid WalletId,
+            Guid OwnerId,
             short WalletType,
             short Status,
             string Currency,
@@ -308,7 +302,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
             DateTimeOffset? ContractExpiresAt
         )>(
             """
-            SELECT wallet_id, wallet_type, status, currency, allowed_category_code, contract_expires_at
+            SELECT wallet_id, "OwnerId", wallet_type, status, currency, allowed_category_code, contract_expires_at
             FROM wallets.wallets
             WHERE wallet_id = @WalletId
             """,
@@ -320,6 +314,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
 
         return new WalletInfoDto(
             WalletId: row.WalletId,
+            OwnerId: row.OwnerId,
             WalletType: row.WalletType,
             Status: row.Status,
             Currency: row.Currency,

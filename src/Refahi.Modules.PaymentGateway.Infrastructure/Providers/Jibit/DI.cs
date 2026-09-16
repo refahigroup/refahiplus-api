@@ -47,13 +47,6 @@ internal static class DI
     {
         var opts = sp.GetRequiredService<IOptionsMonitor<JibitOptions>>().CurrentValue;
 
-        var retry = HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .WaitAndRetryAsync(
-                retryCount: opts.RetryCount,
-                sleepDurationProvider: _ => TimeSpan.FromMilliseconds(opts.RetryDelayMilliseconds)
-            );
-
         var circuitBreaker = HttpPolicyExtensions
             .HandleTransientHttpError()
             .CircuitBreakerAsync(
@@ -65,6 +58,7 @@ internal static class DI
             TimeSpan.FromSeconds(opts.TimeoutSeconds)
         );
 
-        return Policy.WrapAsync(retry, circuitBreaker, timeout);
+        // CreatePurchase is not proven idempotent. Do not apply transport retries to this client.
+        return Policy.WrapAsync(circuitBreaker, timeout);
     }
 }

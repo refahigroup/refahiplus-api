@@ -27,5 +27,6 @@ public sealed record InitiatePaymentCommand(
     /// </summary>
     string ReturnBaseUrl,
     string? SucceededCallbackUrl = null,
-    string? FailedCallbackUrl = null
+    string? FailedCallbackUrl = null,
+    string? IdempotencyKey = null
 ) : IRequest<InitiatePaymentResponse>;

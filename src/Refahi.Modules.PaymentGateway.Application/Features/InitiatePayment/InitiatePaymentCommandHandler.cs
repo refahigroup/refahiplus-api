@@ -11,6 +11,7 @@ using Refahi.Modules.PaymentGateway.Application.Contracts.Providers;
 using Refahi.Modules.PaymentGateway.Application.Contracts.Repositories;
 using Refahi.Modules.PaymentGateway.Domain.Aggregates;
 using Refahi.Modules.Wallets.Application.Contracts.Repositories;
+using Refahi.Modules.Wallets.Application.Contracts;
 using Refahi.Shared.Monetary;
 
 namespace Refahi.Modules.PaymentGateway.Application.Features.InitiatePayment;
@@ -41,15 +42,23 @@ public class InitiatePaymentCommandHandler
         CancellationToken ct
     )
     {
-        var ownerWallets = await _walletReadRepository.GetByOwnerIdAsync(command.UserId, ct);
-        var wallet = ownerWallets.SingleOrDefault(w => w.WalletId == command.WalletId);
-        if (wallet is null)
+        var wallet = await _walletReadRepository.GetByIdAsync(command.WalletId, ct);
+        if (wallet is null || wallet.OwnerId != command.UserId)
         {
             throw new ValidationException([
                 new FluentValidation.Results.ValidationFailure(
                     nameof(command.WalletId),
                     "کیف‌پول انتخاب‌شده متعلق به کاربر جاری نیست."
                 ),
+            ]);
+        }
+
+        if (wallet.WalletType != WalletTypeValues.User)
+        {
+            throw new ValidationException([
+                new FluentValidation.Results.ValidationFailure(
+                    nameof(command.WalletId),
+                    "شارژ بانکی فقط برای کیف‌پول شخصی رفاهی مجاز است.")
             ]);
         }
 
@@ -70,6 +79,13 @@ public class InitiatePaymentCommandHandler
                 ),
             ]);
         }
+
+        var idempotencyKey = command.IdempotencyKey!.Trim();
+        var requestHash = FundingInitiationHasher.Compute(command);
+        var existing = await _sessionRepository.GetByInitiationKeyAsync(
+            command.UserId, idempotencyKey, ct);
+        if (existing is not null)
+            return await ReturnExistingAsync(existing, requestHash, ct);
 
         var sessionId = Guid.NewGuid();
 
@@ -92,10 +108,19 @@ public class InitiatePaymentCommandHandler
             provider: command.Provider,
             returnBaseUrl: command.ReturnBaseUrl,
             succeededCallbackUrl: command.SucceededCallbackUrl,
-            failedCallbackUrl: command.FailedCallbackUrl
+            failedCallbackUrl: command.FailedCallbackUrl,
+            initiationIdempotencyKey: idempotencyKey,
+            initiationRequestHash: requestHash,
+            initiationRequestHashVersion: FundingInitiationHasher.Version
         );
 
-        await _sessionRepository.AddAsync(session, ct);
+        if (!await _sessionRepository.TryAddAsync(session, ct))
+        {
+            existing = await _sessionRepository.GetByInitiationKeyAsync(
+                command.UserId, idempotencyKey, ct)
+                ?? throw new InvalidOperationException("جلسه تکراری قابل بازیابی نیست.");
+            return await ReturnExistingAsync(existing, requestHash, ct);
+        }
 
         var provider = _providerFactory.GetProvider(command.Provider);
 
@@ -108,7 +133,8 @@ public class InitiatePaymentCommandHandler
             ct
         );
 
-        if (!tokenResult.IsSuccess || string.IsNullOrEmpty(tokenResult.Token))
+        if (!tokenResult.IsSuccess || string.IsNullOrEmpty(tokenResult.Token)
+            || string.IsNullOrWhiteSpace(tokenResult.ProviderAttemptId))
         {
             _logger.LogWarning(
                 "PaymentGateway: Token request failed for Session={SessionId}. Error={Error}",
@@ -116,10 +142,13 @@ public class InitiatePaymentCommandHandler
                 tokenResult.ErrorMessage
             );
 
-            session.MarkAsFailed(
-                null,
-                tokenResult.ErrorMessage ?? "خطا در دریافت توکن از درگاه پرداخت"
-            );
+            if (tokenResult.IsOutcomeUnknown)
+                session.MarkPendingRecovery(null,
+                    tokenResult.ErrorMessage ?? "نتیجه ایجاد درخواست درگاه نامشخص است.",
+                    DateTimeOffset.UtcNow.AddMinutes(1));
+            else
+                session.MarkAsFailed(null,
+                    tokenResult.ErrorMessage ?? "خطا در دریافت توکن از درگاه پرداخت");
             await _sessionRepository.UpdateAsync(session, ct);
 
             throw new PaymentTokenRequestFailedException(
@@ -127,7 +156,10 @@ public class InitiatePaymentCommandHandler
             );
         }
 
-        session.MarkAsTokenReceived(tokenResult.Token);
+        session.MarkAsTokenReceived(
+            tokenResult.Token,
+            tokenResult.ProviderAttemptId,
+            tokenResult.ProviderTransactionId);
         await _sessionRepository.UpdateAsync(session, ct);
 
         var gatewayRedirectUrl = provider.BuildRedirectUrl(tokenResult.Token);
@@ -139,5 +171,33 @@ public class InitiatePaymentCommandHandler
         );
 
         return new InitiatePaymentResponse(sessionId, gatewayRedirectUrl);
+    }
+
+    private async Task<InitiatePaymentResponse> ReturnExistingAsync(
+        PaymentGatewaySession session,
+        string requestHash,
+        CancellationToken ct)
+    {
+        if (!session.HasEquivalentInitiation(requestHash, FundingInitiationHasher.Version))
+            throw new FundingIdempotencyConflictException();
+
+        for (var attempt = 0; attempt < 40 && session.Status ==
+            Domain.Enums.PaymentSessionStatus.Initiated; attempt++)
+        {
+            await Task.Delay(50, ct);
+            session = await _sessionRepository.GetByIdAsync(session.Id, ct) ?? session;
+        }
+
+        if (!string.IsNullOrWhiteSpace(session.ProviderToken))
+        {
+            var provider = _providerFactory.GetProvider(session.Provider);
+            return new InitiatePaymentResponse(
+                session.Id, provider.BuildRedirectUrl(session.ProviderToken));
+        }
+
+        throw new PaymentTokenRequestFailedException(
+            session.Status == Domain.Enums.PaymentSessionStatus.PendingRecovery
+                ? "نتیجه ایجاد درخواست درگاه در حال بررسی است."
+                : "درخواست درگاه با این کلید تکرار تکمیل نشده است.");
     }
 }

@@ -43,7 +43,10 @@ public sealed class GetMyPaymentSessionsQueryHandler
                 CompletedAt: session.CompletedAt,
                 TopUpLedgerEntryId: session.TopUpLedgerEntryId,
                 ProviderResultCode: session.ProviderResultCode,
-                ProviderResultDescription: session.ProviderResultDescription
+                ProviderResultDescription: session.ProviderResultDescription,
+                WalletId: session.WalletId,
+                ReversalStatus: session.ReversalStatus,
+                ReversalDescription: session.ReversalDescription
             ))
             .ToList();
     }

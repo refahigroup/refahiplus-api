@@ -45,10 +45,31 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         string? metadataJson,
         Guid? destinationWalletId,
         CancellationToken ct,
-        IReadOnlyList<PaymentPostingInput>? postings = null
+        IReadOnlyList<PaymentPostingInput>? postings = null,
+        Guid? payerOwnerId = null,
+        IReadOnlyList<string?>? categoryCodes = null
     )
     {
         postings ??= Array.Empty<PaymentPostingInput>();
+        if (totalAmountMinor <= 0
+            || allocations.Count == 0
+            || allocations.Any(x => x.AmountMinor <= 0)
+            || allocations.Sum(x => x.AmountMinor) != totalAmountMinor
+            || allocations.Select(x => x.WalletId).Distinct().Count() != allocations.Count)
+            throw new InvalidOperationException("طرح تخصیص پرداخت معتبر نیست.");
+
+        var requestHash = CanonicalRequestHasher.HashPaymentIntent(
+            orderId,
+            totalAmountMinor,
+            currency,
+            payerOwnerId,
+            destinationWalletId,
+            allocations,
+            postings,
+            categoryCodes,
+            metadataJson
+        );
+
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
@@ -68,12 +89,41 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
 
         if (existing is not null)
         {
+            if (existing.RequestHash is not null)
+            {
+                if (existing.RequestHashVersion != CanonicalRequestHasher.PaymentIntentVersion
+                    || !existing.RequestHash.SequenceEqual(requestHash))
+                    throw new IdempotencyKeyConflictException();
+
+                var canonicalCachedIntent = await LoadIntentWithAllocations(conn, tx, existing.IntentId, ct);
+                await tx.CommitAsync(ct);
+                return new CreateIntentAtomicResult(
+                    CreateIntentOutcome.CreatedCached,
+                    canonicalCachedIntent.IntentId,
+                    canonicalCachedIntent.OrderId,
+                    canonicalCachedIntent.AmountMinor,
+                    canonicalCachedIntent.Currency,
+                    canonicalCachedIntent.Allocations,
+                    canonicalCachedIntent.CreatedAt
+                );
+            }
+
+            // Historical rows have no self-contained request identity. Retain the
+            // conservative structural equivalence checks from the hardening pass.
+            // Payer and eligibility context were not persisted historically, so a
+            // retry carrying either context cannot be proven equivalent.
+            if (payerOwnerId.HasValue || categoryCodes is not null)
+                throw new IdempotencyKeyConflictException();
             // Intent already created - return cached
             var cachedIntent = await LoadIntentWithAllocations(conn, tx, existing.IntentId, ct);
-            if (cachedIntent.DestinationWalletId != destinationWalletId)
-                throw new InvalidOperationException(
-                    "کیف مقصد با درخواست اولیه پرداخت مطابقت ندارد."
-                );
+            if (
+                cachedIntent.AmountMinor != totalAmountMinor
+                || !string.Equals(cachedIntent.Currency, currency, StringComparison.Ordinal)
+                || cachedIntent.DestinationWalletId != destinationWalletId
+                || !string.Equals(cachedIntent.MetadataJson, metadataJson, StringComparison.Ordinal)
+                || !AllocationPlansMatch(cachedIntent.Allocations, allocations)
+            )
+                throw new IdempotencyKeyConflictException();
             var cachedPostings = (
                 await conn.QueryAsync<PostingRow>(
                     new CommandDefinition(
@@ -85,9 +135,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 )
             ).ToList();
             if (!PostingPlansMatch(cachedPostings, postings))
-                throw new InvalidOperationException(
-                    "طرح ثبت‌های مالی با درخواست اولیه پرداخت مطابقت ندارد."
-                );
+                throw new IdempotencyKeyConflictException();
             await tx.CommitAsync(ct);
 
             return new CreateIntentAtomicResult(
@@ -206,6 +254,24 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 );
         }
 
+        if (destinationWalletId.HasValue)
+        {
+            var destination = await conn.QuerySingleOrDefaultAsync<WalletRow>(
+                new CommandDefinition(
+                    Sql.WalletSelectForValidation,
+                    new { WalletId = destinationWalletId.Value },
+                    tx,
+                    cancellationToken: ct
+                )
+            ) ?? throw new WalletNotFoundException(destinationWalletId.Value);
+            if ((WalletStatus)destination.Status != WalletStatus.Active)
+                throw new WalletOperationNotAllowedException(((WalletStatus)destination.Status).ToString());
+            if ((WalletType)destination.WalletType != WalletType.Provider)
+                throw new WalletOperationNotAllowedException(destinationWalletId.Value, "کیف مقصد باید از نوع Provider باشد.");
+            if (!string.Equals(destination.Currency, currency, StringComparison.Ordinal))
+                throw new WalletCurrencyMismatchException(destination.Currency, currency);
+        }
+
         // 4) Insert payment_intents record
         await conn.ExecuteAsync(
             new CommandDefinition(
@@ -221,6 +287,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     CreatedAt = now,
                     DestinationWalletId = destinationWalletId,
                     MetadataJson = metadataJson,
+                    RequestHash = requestHash,
+                    RequestHashVersion = CanonicalRequestHasher.PaymentIntentVersion,
                 },
                 tx,
                 cancellationToken: ct
@@ -264,6 +332,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     operationId,
                     OperationType.Reserve,
                     EntryType.Hold,
+                    allocation.AmountMinor,
+                    -allocation.AmountMinor,
                     allocation.AmountMinor,
                     currency,
                     now,
@@ -366,6 +436,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             intent.AmountMinor,
             intent.Currency,
             intent.DestinationWalletId,
+            intent.MetadataJson,
             allocations.Select(a => new AllocationOutput(a.WalletId, a.AmountMinor)).ToList(),
             ToDateTimeOffset(intent.CreatedAt)
         );
@@ -594,6 +665,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     OperationType.Payment,
                     EntryType.Debit,
                     allocation.AmountMinor,
+                    0,
+                    -allocation.AmountMinor,
                     intent.Currency,
                     now,
                     now,
@@ -661,6 +734,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     OperationType.Payment,
                     EntryType.Credit,
                     intent.AmountMinor,
+                    intent.AmountMinor,
+                    0,
                     intent.Currency,
                     now,
                     now,
@@ -715,6 +790,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     OperationType.Payment,
                     entryType,
                     posting.AmountMinor,
+                    posting.Direction == 1 ? posting.AmountMinor : -posting.AmountMinor,
+                    0,
                     intent.Currency,
                     now,
                     now,
@@ -971,11 +1048,13 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     OperationType.Release,
                     EntryType.ReleaseHold,
                     allocation.AmountMinor,
+                    allocation.AmountMinor,
+                    -allocation.AmountMinor,
                     intent.Currency,
                     now,
                     now,
-                    relatedEntryId: null,
-                    RelationType.None,
+                    relatedEntryId: allocation.HoldLedgerEntryId,
+                    RelationType.Reversal,
                     $"order:{intent.OrderId}|intent:{intentId}",
                     intent.MetadataJson
                 ),
@@ -1036,14 +1115,15 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
     }
 
     // ================================================================
-    // REFUND PAYMENT (FULL REFUND)
+    // REFUND PAYMENT (FULL OR PARTIAL)
     // ================================================================
     public async Task<RefundPaymentAtomicResult> ExecuteRefundPaymentAsync(
         Guid paymentId,
         string idempotencyKey,
         string? reason,
         string? metadataJson,
-        CancellationToken ct
+        CancellationToken ct,
+        long? amountMinor = null
     )
     {
         await using var conn = new NpgsqlConnection(_connectionString);
@@ -1053,7 +1133,49 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         var now = DateTimeOffset.UtcNow;
         var refundId = Guid.NewGuid();
 
-        // 1) Resolve idempotency (refund-level operation idempotency)
+        var payment = await conn.QuerySingleOrDefaultAsync<PaymentWithStatusRow>(
+            new CommandDefinition(
+                Sql.PaymentSelectWithStatus,
+                new { PaymentId = paymentId },
+                tx,
+                cancellationToken: ct
+            )
+        );
+        if (payment is null)
+            throw new PaymentNotFoundException(paymentId);
+        if ((PaymentStatus)payment.Status != PaymentStatus.Completed)
+            throw new PaymentNotRefundableException(paymentId, "payment not completed");
+
+        var refundAmount = amountMinor ?? payment.AmountMinor;
+        if (refundAmount <= 0)
+            throw new PaymentNotRefundableException(paymentId, "refund amount must be positive");
+        var requestHash = CanonicalRequestHasher.HashRefund(
+            paymentId,
+            refundAmount,
+            reason,
+            metadataJson
+        );
+
+        // 1) Claim or load refund idempotency. ON CONFLICT makes concurrent
+        // duplicates converge on one durable record instead of surfacing a unique violation.
+        await conn.ExecuteAsync(
+            new CommandDefinition(
+                Sql.RefundOperationIdempotencyInsert,
+                new
+                {
+                    IdempotencyId = Guid.NewGuid(),
+                    PaymentId = paymentId,
+                    IdempotencyKey = idempotencyKey,
+                    Status = (short)1,
+                    RequestHash = requestHash,
+                    RequestHashVersion = CanonicalRequestHasher.RefundVersion,
+                    CreatedAt = now,
+                },
+                tx,
+                cancellationToken: ct
+            )
+        );
+
         var existingIdem = await conn.QuerySingleOrDefaultAsync<RefundOperationIdempotencyRow>(
             new CommandDefinition(
                 Sql.RefundOperationIdempotencySelect,
@@ -1063,84 +1185,43 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             )
         );
 
-        if (existingIdem is not null)
+        if (existingIdem is null)
+            throw new InvalidOperationException("رکورد تکرارپذیری بازپرداخت ایجاد نشد.");
+
+        if (existingIdem.RequestHash is null)
         {
-            // 2) If completed → return cached result
-            if (existingIdem.Status == 2) // Completed
-            {
-                var cachedRefund = await LoadRefundWithAllocations(
-                    conn,
-                    tx,
-                    existingIdem.ResultRefundId!.Value,
-                    ct
-                );
-                await tx.CommitAsync(ct);
-
-                return new RefundPaymentAtomicResult(
-                    Outcome: RefundPaymentOutcome.RefundedCached,
-                    RefundId: cachedRefund.RefundId,
-                    PaymentId: paymentId,
-                    OrderId: cachedRefund.OrderId,
-                    AmountMinor: cachedRefund.AmountMinor,
-                    Currency: cachedRefund.Currency,
-                    Allocations: cachedRefund.Allocations,
-                    CompletedAt: cachedRefund.CompletedAt
-                );
-            }
-
-            // 3) If pending and not leader → return IN_PROGRESS
-            // (try-lock will be attempted below to determine leadership)
+            if (existingIdem.Status != 2 || !existingIdem.ResultRefundId.HasValue)
+                throw new IdempotencyKeyConflictException();
         }
-        else
+        else if (existingIdem.RequestHashVersion != CanonicalRequestHasher.RefundVersion
+            || !existingIdem.RequestHash.SequenceEqual(requestHash))
+            throw new IdempotencyKeyConflictException();
+
+        if (existingIdem.Status == 2)
         {
-            // Insert pending idempotency record
-            await conn.ExecuteAsync(
-                new CommandDefinition(
-                    Sql.RefundOperationIdempotencyInsert,
-                    new
-                    {
-                        IdempotencyId = Guid.NewGuid(),
-                        PaymentId = paymentId,
-                        IdempotencyKey = idempotencyKey,
-                        Status = (short)1, // Pending
-                        CreatedAt = now,
-                    },
-                    tx,
-                    cancellationToken: ct
-                )
+            var cachedRefund = await LoadRefundWithAllocations(
+                conn,
+                tx,
+                existingIdem.ResultRefundId!.Value,
+                ct
             );
-        }
+            if (existingIdem.RequestHash is null
+                && (cachedRefund.AmountMinor != refundAmount
+                    || !string.Equals(cachedRefund.Reason, reason, StringComparison.Ordinal)
+                    || !JsonValuesEqual(cachedRefund.MetadataJson, metadataJson)))
+                throw new IdempotencyKeyConflictException();
+            await tx.CommitAsync(ct);
 
-        // 4) Load payment and verify status is COMPLETED
-        var payment = await conn.QuerySingleOrDefaultAsync<PaymentWithStatusRow>(
-            new CommandDefinition(
-                Sql.PaymentSelectWithStatus,
-                new { PaymentId = paymentId },
-                tx,
-                cancellationToken: ct
-            )
-        );
-
-        if (payment is null)
-            throw new PaymentNotFoundException(paymentId);
-
-        if ((PaymentStatus)payment.Status != PaymentStatus.Completed)
-            throw new PaymentNotRefundableException(paymentId, "payment not completed");
-
-        // Check if already refunded (by looking for existing refund record)
-        var existingRefund = await conn.QuerySingleOrDefaultAsync<Guid?>(
-            new CommandDefinition(
-                Sql.RefundSelectByPayment,
-                new { PaymentId = paymentId },
-                tx,
-                cancellationToken: ct
-            )
-        );
-
-        if (existingRefund.HasValue)
-        {
-            // Payment already refunded with different idempotency key
-            throw new PaymentAlreadyRefundedException(paymentId);
+            return new RefundPaymentAtomicResult(
+                RefundPaymentOutcome.RefundedCached,
+                cachedRefund.RefundId,
+                paymentId,
+                cachedRefund.OrderId,
+                cachedRefund.AmountMinor,
+                cachedRefund.Currency,
+                cachedRefund.Allocations,
+                cachedRefund.CompletedAt
+            );
         }
 
         // Load payment allocations (these define how refund will be distributed)
@@ -1207,6 +1288,39 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             }
         }
 
+        // Wallet locks serialize all refunds for the same payment because every
+        // captured payment has at least one funding allocation. The committed sum
+        // is therefore checked and changed inside the same transaction.
+        var alreadyRefunded = await conn.ExecuteScalarAsync<long>(
+            new CommandDefinition(
+                Sql.CompletedRefundTotal,
+                new { PaymentId = paymentId },
+                tx,
+                cancellationToken: ct
+            )
+        );
+        if (refundAmount > payment.AmountMinor - alreadyRefunded)
+            throw new PaymentNotRefundableException(paymentId, "refund amount exceeds remaining captured amount");
+        var cumulativeRefund = checked(alreadyRefunded + refundAmount);
+
+        var priorSourceAmounts = (await conn.QueryAsync<PreviousAllocationRow>(
+            new CommandDefinition(
+                Sql.CompletedRefundAllocationsByWallet,
+                new { PaymentId = paymentId },
+                tx,
+                cancellationToken: ct
+            )
+        )).ToDictionary(x => x.StableId, x => x.AmountMinor);
+        var sourceTargets = CumulativeAllocationCalculator.Calculate(
+            payment.AmountMinor,
+            cumulativeRefund,
+            allocations.Select(x => new CumulativeAllocationCalculator.Item(
+                x.WalletId,
+                x.AmountMinor,
+                priorSourceAmounts.GetValueOrDefault(x.WalletId)
+            )).ToList()
+        ).ToDictionary(x => x.StableId);
+
         // 6) Create refund record
         await conn.ExecuteAsync(
             new CommandDefinition(
@@ -1217,7 +1331,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     PaymentId = paymentId,
                     OrderId = payment.OrderId,
                     Status = (short)RefundStatus.Completed,
-                    AmountMinor = payment.AmountMinor,
+                    AmountMinor = refundAmount,
                     Currency = payment.Currency,
                     Reason = reason,
                     CreatedAt = now,
@@ -1241,7 +1355,9 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     Guid.NewGuid(),
                     OperationType.Refund,
                     EntryType.Debit,
-                    payment.AmountMinor,
+                    refundAmount,
+                    -refundAmount,
+                    0,
                     payment.Currency,
                     now,
                     now,
@@ -1258,7 +1374,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     new
                     {
                         WalletId = payment.DestinationWalletId.Value,
-                        AmountMinor = payment.AmountMinor,
+                        AmountMinor = refundAmount,
                         LastLedgerEntryId = destinationRefundEntryId,
                         UpdatedAt = now,
                     },
@@ -1270,18 +1386,34 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 throw new InsufficientFundsException(
                     payment.DestinationWalletId.Value,
                     0,
-                    payment.AmountMinor
+                    refundAmount
                 );
         }
 
+        var priorPostingAmounts = (await conn.QueryAsync<PreviousAllocationRow>(
+            new CommandDefinition(
+                Sql.CompletedRefundReversalsByRelatedEntry,
+                new { PaymentId = paymentId },
+                tx,
+                cancellationToken: ct
+            )
+        )).ToDictionary(x => x.StableId, x => x.AmountMinor);
+        var postingIncrements = CalculatePostingReversals(
+            payment.AmountMinor,
+            cumulativeRefund,
+            postings,
+            priorPostingAmounts
+        );
         var reversePostingBalanceDeltas =
             new Dictionary<Guid, (long Delta, Guid LastLedgerEntryId)>();
         foreach (
             var posting in postings
+                .Where(x => postingIncrements.GetValueOrDefault(x.LedgerEntryId) > 0)
                 .OrderBy(x => x.Direction == 2 ? 0 : 1)
-                .ThenByDescending(x => x.Sequence)
+                .ThenBy(x => x.LedgerEntryId)
         )
         {
+            var reversalAmount = postingIncrements[posting.LedgerEntryId];
             var ledgerEntryId = Guid.NewGuid();
             var reverseEntryType = posting.Direction == 1 ? EntryType.Debit : EntryType.Credit;
             var postingMetadata = JsonSerializer.Serialize(
@@ -1296,7 +1428,9 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     refundId,
                     OperationType.Refund,
                     reverseEntryType,
-                    posting.AmountMinor,
+                    reversalAmount,
+                    posting.Direction == 1 ? -reversalAmount : reversalAmount,
+                    0,
                     payment.Currency,
                     now,
                     now,
@@ -1308,7 +1442,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 ct
             );
 
-            var delta = posting.Direction == 1 ? -posting.AmountMinor : posting.AmountMinor;
+            var delta = posting.Direction == 1 ? -reversalAmount : reversalAmount;
             var current = reversePostingBalanceDeltas.GetValueOrDefault(posting.WalletId);
             reversePostingBalanceDeltas[posting.WalletId] = (current.Delta + delta, ledgerEntryId);
         }
@@ -1337,8 +1471,11 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         var refundAllocations = new List<RefundAllocationOutput>();
         var sequence = 0;
 
-        foreach (var allocation in allocations)
+        foreach (var allocation in allocations.OrderBy(x => x.WalletId))
         {
+            var allocationAmount = sourceTargets[allocation.WalletId].Increment;
+            if (allocationAmount == 0)
+                continue;
             var ledgerEntryId = Guid.NewGuid();
             var operationId = Guid.NewGuid();
 
@@ -1352,7 +1489,9 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     operationId,
                     OperationType.Refund,
                     EntryType.Credit,
-                    allocation.AmountMinor,
+                    allocationAmount,
+                    allocationAmount,
+                    0,
                     payment.Currency,
                     now,
                     now,
@@ -1371,7 +1510,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     new
                     {
                         WalletId = allocation.WalletId,
-                        AmountMinor = allocation.AmountMinor,
+                        AmountMinor = allocationAmount,
                         LastLedgerEntryId = ledgerEntryId,
                         UpdatedAt = now,
                     },
@@ -1389,7 +1528,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                         AllocationId = Guid.NewGuid(),
                         RefundId = refundId,
                         WalletId = allocation.WalletId,
-                        AmountMinor = allocation.AmountMinor,
+                        AmountMinor = allocationAmount,
                         Sequence = sequence++,
                         LedgerEntryId = ledgerEntryId,
                     },
@@ -1401,7 +1540,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             refundAllocations.Add(
                 new RefundAllocationOutput(
                     allocation.WalletId,
-                    allocation.AmountMinor,
+                    allocationAmount,
                     ledgerEntryId
                 )
             );
@@ -1430,7 +1569,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             RefundId: refundId,
             PaymentId: paymentId,
             OrderId: payment.OrderId,
-            AmountMinor: payment.AmountMinor,
+            AmountMinor: refundAmount,
             Currency: payment.Currency,
             Allocations: refundAllocations,
             CompletedAt: now
@@ -1533,6 +1672,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             refund.OrderId,
             refund.AmountMinor,
             refund.Currency,
+            refund.Reason,
+            refund.MetadataJson,
             allocations
                 .Select(a => new RefundAllocationOutput(a.WalletId, a.AmountMinor, a.LedgerEntryId))
                 .ToList(),
@@ -1550,6 +1691,62 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         };
 
         return new DateTimeOffset(utcValue);
+    }
+
+    private static Dictionary<Guid, long> CalculatePostingReversals(
+        long paymentAmount,
+        long cumulativeRefund,
+        IReadOnlyList<PaymentPostingRow> postings,
+        IReadOnlyDictionary<Guid, long> previouslyReversed
+    )
+    {
+        if (postings.Count == 0)
+            return new Dictionary<Guid, long>();
+
+        var debits = postings.Where(x => x.Direction == 2).ToList();
+        var credits = postings.Where(x => x.Direction == 1).ToList();
+        var originalDebitTotal = debits.Sum(x => x.AmountMinor);
+        var originalCreditTotal = credits.Sum(x => x.AmountMinor);
+        if (originalCreditTotal - originalDebitTotal != paymentAmount)
+            throw new InvalidOperationException("طرح ثبت‌های مالی پرداخت تراز نیست.");
+
+        var targetDebitTotal = (long)((System.Numerics.BigInteger)cumulativeRefund
+            * originalDebitTotal / paymentAmount);
+        var targetCreditTotal = checked(cumulativeRefund + targetDebitTotal);
+        var result = new Dictionary<Guid, long>();
+
+        AddDirection(debits, originalDebitTotal, targetDebitTotal);
+        AddDirection(credits, originalCreditTotal, targetCreditTotal);
+        return result;
+
+        void AddDirection(List<PaymentPostingRow> direction, long originalTotal, long targetTotal)
+        {
+            if (direction.Count == 0)
+            {
+                if (targetTotal != 0)
+                    throw new InvalidOperationException("ثبت مالی لازم برای بازپرداخت وجود ندارد.");
+                return;
+            }
+
+            foreach (var allocation in CumulativeAllocationCalculator.Calculate(
+                originalTotal,
+                targetTotal,
+                direction.Select(x => new CumulativeAllocationCalculator.Item(
+                    x.LedgerEntryId,
+                    x.AmountMinor,
+                    previouslyReversed.GetValueOrDefault(x.LedgerEntryId)
+                )).ToList()))
+                result[allocation.StableId] = allocation.Increment;
+        }
+    }
+
+    private static bool JsonValuesEqual(string? left, string? right)
+    {
+        if (left is null || right is null)
+            return left is null && right is null;
+        using var leftDocument = JsonDocument.Parse(left);
+        using var rightDocument = JsonDocument.Parse(right);
+        return JsonElement.DeepEquals(leftDocument.RootElement, rightDocument.RootElement);
     }
 
     private static Task<int> InsertLedgerEntryAsync(
@@ -1589,10 +1786,23 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         return true;
     }
 
+    private static bool AllocationPlansMatch(
+        IReadOnlyList<AllocationOutput> stored,
+        IReadOnlyList<AllocationInput> requested
+    ) => stored.OrderBy(x => x.WalletId)
+        .SequenceEqual(
+            requested.OrderBy(x => x.WalletId)
+                .Select(x => new AllocationOutput(x.WalletId, x.AmountMinor))
+        );
+
     // ================================================================
     // RECORD TYPES (Internal DTOs)
     // ================================================================
-    private sealed record IntentIdempotencyRow(Guid IntentId);
+    private sealed record IntentIdempotencyRow(
+        Guid IntentId,
+        byte[]? RequestHash,
+        short? RequestHashVersion
+    );
 
     private sealed record IntentRow(
         Guid IntentId,
@@ -1600,6 +1810,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         long AmountMinor,
         string Currency,
         Guid? DestinationWalletId,
+        string? MetadataJson,
         DateTime CreatedAt
     );
 
@@ -1619,7 +1830,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
 
     private sealed record IntentOperationIdempotencyRow(short Status, Guid? ResultPaymentId);
 
-    private sealed record AllocationRow(Guid WalletId, long AmountMinor);
+    private sealed record AllocationRow(Guid WalletId, long AmountMinor, Guid? HoldLedgerEntryId);
 
     private sealed record PostingRow(
         Guid WalletId,
@@ -1635,11 +1846,12 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         long AmountMinor,
         string Currency,
         Guid? DestinationWalletId,
+        string? MetadataJson,
         List<AllocationOutput> Allocations,
         DateTimeOffset CreatedAt
     );
 
-    private sealed record WalletRow(Guid WalletId, string Currency, short Status);
+    private sealed record WalletRow(Guid WalletId, string Currency, short Status, short WalletType);
 
     private sealed record BalanceRow(long AvailableMinor, long PendingMinor);
 
@@ -1682,13 +1894,22 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         DateTimeOffset CompletedAt
     );
 
-    private sealed record RefundOperationIdempotencyRow(short Status, Guid? ResultRefundId);
+    private sealed record RefundOperationIdempotencyRow(
+        short Status,
+        Guid? ResultRefundId,
+        byte[]? RequestHash,
+        short? RequestHashVersion
+    );
+
+    private sealed record PreviousAllocationRow(Guid StableId, long AmountMinor);
 
     private sealed record RefundRow(
         Guid RefundId,
         Guid OrderId,
         long AmountMinor,
         string Currency,
+        string? Reason,
+        string? MetadataJson,
         DateTime CompletedAt
     );
 
@@ -1699,6 +1920,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         Guid OrderId,
         long AmountMinor,
         string Currency,
+        string? Reason,
+        string? MetadataJson,
         List<RefundAllocationOutput> Allocations,
         DateTimeOffset CompletedAt
     );
@@ -1714,6 +1937,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         public const string IntentIdempotencySelect =
             @"
 select intent_id as IntentId
+     , request_hash as RequestHash
+     , request_hash_version as RequestHashVersion
 from wallets.payment_intents
 where order_id = @OrderId and idempotency_key = @IdempotencyKey;
 ";
@@ -1721,22 +1946,30 @@ where order_id = @OrderId and idempotency_key = @IdempotencyKey;
         public const string IntentSelect =
             @"
 select intent_id as IntentId, order_id as OrderId, amount_minor as AmountMinor, 
-       currency as Currency, destination_wallet_id as DestinationWalletId, created_at as CreatedAt
+       currency as Currency, destination_wallet_id as DestinationWalletId, metadata as MetadataJson,
+       created_at as CreatedAt
 from wallets.payment_intents
 where intent_id = @IntentId;
 ";
 
         public const string AllocationsSelectByIntent =
             @"
-select wallet_id as WalletId, amount_minor as AmountMinor
-from wallets.payment_intent_allocations
-where intent_id = @IntentId
-order by sequence;
+select a.wallet_id as WalletId, a.amount_minor as AmountMinor,
+       (select le.ledger_entry_id
+        from wallets.ledger_entries le
+        where le.wallet_id = a.wallet_id
+          and le.external_reference = 'intent:' || a.intent_id::text
+          and le.operation_type = 2 and le.entry_type = 3
+        order by le.created_at, le.ledger_entry_id
+        limit 1) as HoldLedgerEntryId
+from wallets.payment_intent_allocations a
+where a.intent_id = @IntentId
+order by a.sequence;
 ";
 
         public const string WalletSelectForValidation =
             @"
-select wallet_id as WalletId, currency as Currency, status as Status
+select wallet_id as WalletId, currency as Currency, status as Status, wallet_type as WalletType
 from wallets.wallets
 where wallet_id = @WalletId;
 ";
@@ -1750,9 +1983,9 @@ where wallet_id = @WalletId;
 
         public const string IntentInsert =
             @"
-insert into wallets.payment_intents (intent_id, order_id, idempotency_key, status, amount_minor, currency, destination_wallet_id, created_at, metadata)
+insert into wallets.payment_intents (intent_id, order_id, idempotency_key, status, amount_minor, currency, destination_wallet_id, created_at, metadata, request_hash, request_hash_version)
 values (@IntentId, @OrderId, @IdempotencyKey, @Status, @AmountMinor, @Currency, @DestinationWalletId, @CreatedAt, 
-        case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end);
+        case when @MetadataJson is null then null else cast(@MetadataJson as jsonb) end, @RequestHash, @RequestHashVersion);
 ";
 
         public const string AllocationInsert =
@@ -1812,7 +2045,8 @@ where intent_id = @IntentId and idempotency_key = @IdempotencyKey and operation_
             @"
 insert into wallets.intent_operation_idempotency
 (idempotency_id, intent_id, idempotency_key, operation_type, status, created_at)
-values (@IdempotencyId, @IntentId, @IdempotencyKey, @OperationType, @Status, @CreatedAt);
+values (@IdempotencyId, @IntentId, @IdempotencyKey, @OperationType, @Status, @CreatedAt)
+on conflict (intent_id, idempotency_key, operation_type) do nothing;
 ";
 
         public const string IntentOperationIdempotencyComplete =
@@ -1944,7 +2178,8 @@ where intent_id = @IntentId;
         // ================================================================
         public const string RefundOperationIdempotencySelect =
             @"
-select status as Status, result_refund_id as ResultRefundId
+select status as Status, result_refund_id as ResultRefundId, request_hash as RequestHash,
+       request_hash_version as RequestHashVersion
 from wallets.refund_operation_idempotency
 where payment_id = @PaymentId and idempotency_key = @IdempotencyKey;
 ";
@@ -1952,8 +2187,9 @@ where payment_id = @PaymentId and idempotency_key = @IdempotencyKey;
         public const string RefundOperationIdempotencyInsert =
             @"
 insert into wallets.refund_operation_idempotency
-(idempotency_id, payment_id, idempotency_key, status, created_at)
-values (@IdempotencyId, @PaymentId, @IdempotencyKey, @Status, @CreatedAt);
+(idempotency_id, payment_id, idempotency_key, status, request_hash, request_hash_version, created_at)
+values (@IdempotencyId, @PaymentId, @IdempotencyKey, @Status, @RequestHash, @RequestHashVersion, @CreatedAt)
+on conflict (payment_id, idempotency_key) do nothing;
 ";
 
         public const string RefundOperationIdempotencyComplete =
@@ -1972,11 +2208,30 @@ from wallets.payments
 where payment_id = @PaymentId;
 ";
 
-        public const string RefundSelectByPayment =
+        public const string CompletedRefundTotal =
             @"
-select refund_id as RefundId
+select coalesce(sum(amount_minor), 0)::bigint
 from wallets.refunds
-where payment_id = @PaymentId;
+where payment_id = @PaymentId and status = 1;
+";
+
+        public const string CompletedRefundAllocationsByWallet =
+            @"
+select ra.wallet_id as StableId, sum(ra.amount_minor)::bigint as AmountMinor
+from wallets.refund_allocations ra
+join wallets.refunds r on r.refund_id = ra.refund_id
+where r.payment_id = @PaymentId and r.status = 1
+group by ra.wallet_id;
+";
+
+        public const string CompletedRefundReversalsByRelatedEntry =
+            @"
+select le.related_entry_id as StableId, sum(le.amount_minor)::bigint as AmountMinor
+from wallets.ledger_entries le
+join wallets.payment_postings pp on pp.ledger_entry_id = le.related_entry_id
+where pp.payment_id = @PaymentId
+  and le.operation_type = 5 and le.relation_type = 1
+group by le.related_entry_id;
 ";
 
         public const string RefundInsert =
@@ -2014,7 +2269,7 @@ values (@AllocationId, @RefundId, @WalletId, @AmountMinor, @Sequence, @LedgerEnt
         public const string RefundSelect =
             @"
 select refund_id as RefundId, order_id as OrderId, amount_minor as AmountMinor,
-       currency as Currency, completed_at as CompletedAt
+       currency as Currency, reason as Reason, metadata as MetadataJson, completed_at as CompletedAt
 from wallets.refunds
 where refund_id = @RefundId;
 ";

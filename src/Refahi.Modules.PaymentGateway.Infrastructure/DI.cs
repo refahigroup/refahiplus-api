@@ -11,6 +11,7 @@ using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Jibit;
 using Refahi.Modules.PaymentGateway.Infrastructure.Providers.Sep;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
+using Refahi.Modules.PaymentGateway.Infrastructure.Workers;
 
 namespace Refahi.Modules.PaymentGateway.Infrastructure;
 
@@ -42,6 +43,7 @@ public static class DI
         );
 
         services.AddScoped<IPaymentGatewayProviderFactory, PaymentGatewayProviderFactory>();
+        services.AddHostedService<FundingRecoveryWorker>();
 
         return services;
     }

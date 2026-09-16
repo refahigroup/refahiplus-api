@@ -57,7 +57,7 @@ public sealed class BalanceRebuilder : IBalanceRebuilder
             afterRow.AvailableMinor,
             afterRow.PendingMinor,
             afterRow.Version,
-            afterRow.UpdatedAt
+            ToDateTimeOffset(afterRow.UpdatedAt)
         );
 
         await tx.CommitAsync(ct);
@@ -197,7 +197,7 @@ public sealed class BalanceRebuilder : IBalanceRebuilder
         );
 
         return row is not null
-            ? new BalanceSnapshot(row.AvailableMinor, row.PendingMinor, row.Version, row.UpdatedAt)
+            ? new BalanceSnapshot(row.AvailableMinor, row.PendingMinor, row.Version, ToDateTimeOffset(row.UpdatedAt))
             : new BalanceSnapshot(0, 0, 0, DateTimeOffset.MinValue); // Empty wallet
     }
 
@@ -221,7 +221,8 @@ public sealed class BalanceRebuilder : IBalanceRebuilder
         if (string.IsNullOrEmpty(currency))
             throw new InvalidOperationException($"Wallet {walletId} not found");
 
-        // Aggregate ledger by operation_type
+        // Sum the explicit accounting effects. Business operation labels are not
+        // accounting semantics and must never be interpreted here.
         var aggregates = await conn.QueryAsync<LedgerAggregateRow>(
             new CommandDefinition(
                 Sql.AggregateByOperationType,
@@ -231,39 +232,12 @@ public sealed class BalanceRebuilder : IBalanceRebuilder
             )
         );
 
-        var lookup = aggregates.ToDictionary(x => x.OperationType, x => x.TotalAmount);
-
-        long available = 0;
-        long pending = 0;
-
-        // Apply operation type rules deterministically
-        // TopUp (1): available += amount
-        if (lookup.TryGetValue(1, out var topUp))
-            available += topUp;
-
-        // Reserve (2): available -= amount, pending += amount
-        if (lookup.TryGetValue(2, out var reserve))
-        {
-            available -= reserve;
-            pending += reserve;
-        }
-
-        // Payment (3): pending -= amount
-        if (lookup.TryGetValue(3, out var payment))
-            pending -= payment;
-
-        // Release (4): available += amount, pending -= amount
-        if (lookup.TryGetValue(4, out var release))
-        {
-            available += release;
-            pending -= release;
-        }
-
-        // Refund (5): available += amount
-        if (lookup.TryGetValue(5, out var refund))
-            available += refund;
-
-        return new ComputedBalance(currency, available, pending);
+        var aggregate = aggregates.Single();
+        return new ComputedBalance(
+            currency,
+            aggregate.AvailableDeltaMinor,
+            aggregate.PendingDeltaMinor
+        );
     }
 
     private async Task<BalanceRow> UpsertBalanceAsync(
@@ -345,10 +319,10 @@ where wallet_id = @WalletId;
 
         public const string AggregateByOperationType =
             @"
-select operation_type as OperationType, sum(amount_minor) as TotalAmount
+select coalesce(sum(available_delta_minor), 0)::bigint as AvailableDeltaMinor,
+       coalesce(sum(pending_delta_minor), 0)::bigint as PendingDeltaMinor
 from wallets.ledger_entries
-where wallet_id = @WalletId
-group by operation_type;
+where wallet_id = @WalletId;
 ";
 
         public const string UpsertBalance =
@@ -375,10 +349,14 @@ set
         long AvailableMinor,
         long PendingMinor,
         long Version,
-        DateTimeOffset UpdatedAt
+        DateTime UpdatedAt
+    );
+
+    private static DateTimeOffset ToDateTimeOffset(DateTime value) => new(
+        value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(value, DateTimeKind.Utc) : value.ToUniversalTime()
     );
 
     private record ComputedBalance(string Currency, long AvailableMinor, long PendingMinor);
 
-    private record LedgerAggregateRow(short OperationType, long TotalAmount);
+    private record LedgerAggregateRow(long AvailableDeltaMinor, long PendingDeltaMinor);
 }

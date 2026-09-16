@@ -108,6 +108,39 @@ public sealed class JibitVerifyResponse
     public List<JibitError>? Errors { get; set; }
 }
 
+public sealed class JibitPurchasePage
+{
+    [JsonPropertyName("elements")]
+    public List<JibitPurchaseDetail>? Elements { get; set; }
+}
+
+public sealed class JibitPurchaseDetail
+{
+    [JsonPropertyName("purchaseIdStr")]
+    public string? PurchaseIdStr { get; set; }
+
+    [JsonPropertyName("purchaseId")]
+    public long? PurchaseId { get; set; }
+
+    [JsonPropertyName("amount")]
+    public long? Amount { get; set; }
+
+    [JsonPropertyName("currency")]
+    public string? Currency { get; set; }
+
+    [JsonPropertyName("state")]
+    public string? State { get; set; }
+
+    [JsonPropertyName("clientReferenceNumber")]
+    public string? ClientReferenceNumber { get; set; }
+
+    [JsonPropertyName("pspReferenceNumber")]
+    public string? PspReferenceNumber { get; set; }
+
+    [JsonPropertyName("pspTraceNumber")]
+    public string? PspTraceNumber { get; set; }
+}
+
 /// <summary>
 /// خطای API جیبیت
 /// </summary>

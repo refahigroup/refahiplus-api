@@ -28,6 +28,7 @@ public sealed class GetPaymentIntentEndpoint : IEndpoint
                 "/payments/intents/{intentId:guid}",
                 async (
                     [FromRoute] Guid intentId,
+                    HttpContext context,
                     [FromServices] ISender mediator,
                     CancellationToken ct
                 ) =>
@@ -36,6 +37,13 @@ public sealed class GetPaymentIntentEndpoint : IEndpoint
                     {
                         var query = new GetPaymentIntentQuery(intentId);
                         var result = await mediator.Send(query, ct);
+
+                        if (result.Data is not null && !await WalletEndpointAuthorization.CanAccessAllWalletsAsync(
+                            context,
+                            mediator,
+                            result.Data.Allocations.Select(x => x.WalletId),
+                            ct))
+                            return Results.Forbid();
 
                         return result.Status == CommandStatus.Completed
                             ? Results.Ok(result.Data)

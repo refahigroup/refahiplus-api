@@ -45,14 +45,6 @@ internal static class DI
     {
         var opts = sp.GetRequiredService<IOptionsMonitor<SepOptions>>().CurrentValue;
 
-        // Retry برای خطاهای موقت HTTP
-        var retry = HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .WaitAndRetryAsync(
-                retryCount: opts.RetryCount,
-                sleepDurationProvider: _ => TimeSpan.FromMilliseconds(opts.RetryDelayMilliseconds)
-            );
-
         // Circuit Breaker
         var circuitBreaker = HttpPolicyExtensions
             .HandleTransientHttpError()
@@ -66,6 +58,7 @@ internal static class DI
             TimeSpan.FromSeconds(opts.TimeoutSeconds)
         );
 
-        return Policy.WrapAsync(retry, circuitBreaker, timeout);
+        // Token creation is not proven idempotent. Ambiguous calls are recovered, not retried.
+        return Policy.WrapAsync(circuitBreaker, timeout);
     }
 }

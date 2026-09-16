@@ -30,5 +30,6 @@ public sealed record ProcessCallbackCommand(
     long? WageMinor = null,
     long? AffectiveAmountMinor = null,
     string? HashedCardNumber = null,
-    string? Token = null
+    string? Token = null,
+    bool IsRecovery = false
 ) : IRequest<ProcessCallbackResponse>;

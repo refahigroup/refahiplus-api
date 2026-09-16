@@ -16,9 +16,10 @@ public sealed record CreatePaymentIntentCommand(
     List<AllocationRequest> Allocations,
     string IdempotencyKey,
     string? MetadataJson = null,
-    IReadOnlyList<string>? OrderItemCategoryCode = null,
+    IReadOnlyList<string?>? OrderItemCategoryCode = null,
     Guid? DestinationWalletId = null,
-    IReadOnlyList<PaymentPostingRequest>? Postings = null
+    IReadOnlyList<PaymentPostingRequest>? Postings = null,
+    Guid? PayerOwnerId = null
 ) : IRequest<CommandResponse<CreatePaymentIntentResponse>>;
 
 public sealed record PaymentPostingRequest(

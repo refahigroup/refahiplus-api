@@ -119,7 +119,7 @@ public sealed class StoreInPersonFinancialPlannerTests
         private WalletInfoDto GetSystemWallet(Guid walletId)
         {
             RequestedSystemWalletIds.Add(walletId);
-            return new WalletInfoDto(walletId, 1, 1, "IRR", null, null);
+            return new WalletInfoDto(walletId, Guid.Empty, 1, 1, "IRR", null, null);
         }
 
         public Task<object?> Send(object request, CancellationToken cancellationToken = default) =>

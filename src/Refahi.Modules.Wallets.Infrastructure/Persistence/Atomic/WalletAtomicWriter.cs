@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -319,7 +320,7 @@ public sealed class WalletAtomicWriter : IWalletAtomicWriter
             new[]
             {
                 walletId.ToString("D"),
-                amountMinor.ToString(),
+                amountMinor.ToString(CultureInfo.InvariantCulture),
                 currency,
                 metadataJson ?? string.Empty,
                 externalReference ?? string.Empty,
@@ -447,6 +448,8 @@ insert into wallets.ledger_entries (
   operation_type,
   entry_type,
   amount_minor,
+  available_delta_minor,
+  pending_delta_minor,
   currency,
   effective_at,
   created_at,
@@ -462,6 +465,8 @@ values (
   @OperationType,
   @EntryType,
   @AmountMinor,
+  @AmountMinor,
+  0,
   @Currency,
   @EffectiveAt,
   @CreatedAt,

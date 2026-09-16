@@ -66,7 +66,7 @@ public class SepPaymentGatewayProviderTests
                 : "{}"
         );
 
-        var result = await provider.VerifyAsync(new VerifyRequest("ref-1", 1000));
+        var result = await provider.VerifyAsync(new VerifyRequest("ref-1", "token", "session", 1000, "IRR"));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1000, result.VerifiedAmountMinor);
@@ -82,7 +82,7 @@ public class SepPaymentGatewayProviderTests
                 : "{}"
         );
 
-        var result = await provider.VerifyAsync(new VerifyRequest("ref-1", 1000));
+        var result = await provider.VerifyAsync(new VerifyRequest("ref-1", "token", "session", 1000, "IRR"));
 
         Assert.False(result.IsSuccess);
         Assert.Equal(900, result.VerifiedAmountMinor);
@@ -111,7 +111,7 @@ public class SepPaymentGatewayProviderTests
                 : "{}"
         );
 
-        var result = await provider.VerifyAsync(new VerifyRequest("ref-1", 1000));
+        var result = await provider.VerifyAsync(new VerifyRequest("ref-1", "token", "session", 1000, "IRR"));
 
         Assert.False(result.IsSuccess);
         Assert.Equal(resultCode, result.ResultCode);

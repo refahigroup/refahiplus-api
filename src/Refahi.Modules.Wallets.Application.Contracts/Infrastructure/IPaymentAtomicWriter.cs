@@ -40,7 +40,9 @@ public interface IPaymentAtomicWriter
         string? metadataJson,
         Guid? destinationWalletId,
         CancellationToken ct,
-        IReadOnlyList<PaymentPostingInput>? postings = null
+        IReadOnlyList<PaymentPostingInput>? postings = null,
+        Guid? payerOwnerId = null,
+        IReadOnlyList<string?>? categoryCodes = null
     );
 
     /// <summary>
@@ -84,11 +86,11 @@ public interface IPaymentAtomicWriter
     );
 
     /// <summary>
-    /// Atomically refund a payment (full refund only).
+    /// Atomically refund all or part of a payment.
     ///
     /// Validates:
     /// - Payment exists and is Completed
-    /// - Payment not already refunded
+    /// - Cumulative completed refunds do not exceed the captured amount
     /// - Currency matches allocations
     ///
     /// Multi-wallet operation:
@@ -103,7 +105,8 @@ public interface IPaymentAtomicWriter
         string idempotencyKey,
         string? reason,
         string? metadataJson,
-        CancellationToken ct
+        CancellationToken ct,
+        long? amountMinor = null
     );
 }
 
