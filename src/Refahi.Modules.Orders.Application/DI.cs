@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refahi.Modules.Orders.Application.Services;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Refahi.Modules.Orders.Application;
 
@@ -19,6 +20,7 @@ public static class DI
 
         services.AddScoped<IOrderCreationGateway, OrderCreationGateway>();
         services.AddScoped<OrderCancellationService>();
+        services.TryAddSingleton(TimeProvider.System);
 
         //services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BuildingBlocks.ValidationBehavior<,>));
 

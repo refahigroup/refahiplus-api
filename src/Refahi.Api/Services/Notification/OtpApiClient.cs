@@ -64,8 +64,7 @@ public class OtpApiClient
                 }
 
                 _logger.LogInformation(
-                    "OTP generated successfully. ReferenceCode={ReferenceCode}, ExpiresAt={ExpiresAt}",
-                    result.ReferenceCode,
+                    "OTP generated successfully. ExpiresAt={ExpiresAt}",
                     result.ExpiresAt
                 );
 
@@ -107,10 +106,7 @@ public class OtpApiClient
     {
         try
         {
-            _logger.LogDebug(
-                "Sending OTP validate request for ReferenceCode={ReferenceCode}",
-                request.ReferenceCode
-            );
+            _logger.LogDebug("Sending OTP validate request");
 
             var response = await _httpClient.PostAsJsonAsync(
                 "/V1/Otp/Validate",
@@ -135,8 +131,7 @@ public class OtpApiClient
                 }
 
                 _logger.LogInformation(
-                    "OTP validation completed. ReferenceCode={ReferenceCode}, IsValid={IsValid}, AttemptsRemaining={AttemptsRemaining}",
-                    request.ReferenceCode,
+                    "OTP validation completed. IsValid={IsValid}, AttemptsRemaining={AttemptsRemaining}",
                     result.IsValid,
                     result.AttemptsRemaining
                 );
@@ -155,8 +150,7 @@ public class OtpApiClient
                 if (result is not null)
                 {
                     _logger.LogWarning(
-                        "OTP validation failed. ReferenceCode={ReferenceCode}, Message={Message}",
-                        request.ReferenceCode,
+                        "OTP validation failed. Message={Message}",
                         result.Message
                     );
 
@@ -220,12 +214,9 @@ public class OtpApiClient
         }
         catch (JsonException)
         {
-            // If error response cannot be parsed, log raw content
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError(
-                "OTP API returned error. StatusCode={StatusCode}, Content={Content}",
-                response.StatusCode,
-                content
+                "OTP API returned an unparseable error. StatusCode={StatusCode}",
+                response.StatusCode
             );
         }
     }

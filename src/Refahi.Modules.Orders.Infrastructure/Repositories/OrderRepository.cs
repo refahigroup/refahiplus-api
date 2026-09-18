@@ -50,6 +50,23 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey, ct);
     }
 
+    public async Task<Order?> GetBySourceIdentityWithItemsAsync(
+        string referenceType,
+        Guid sourceReferenceId,
+        CancellationToken ct = default
+    )
+    {
+        return await _context
+            .Orders.AsNoTracking()
+            .Include(o => o.Items)
+            .Include(o => o.PaymentPostings)
+            .SingleOrDefaultAsync(
+                o => o.ReferenceType == referenceType
+                    && o.SourceReferenceId == sourceReferenceId,
+                ct
+            );
+    }
+
     public async Task<List<Order>> GetByUserIdAsync(
         Guid userId,
         int page,

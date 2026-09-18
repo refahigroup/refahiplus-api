@@ -8,6 +8,8 @@ using Refahi.Modules.References.Domain.Exceptions;
 using Refahi.Modules.Store.Application.Contracts.Vouchers;
 using Refahi.Modules.Store.Domain.Exceptions;
 using Refahi.Modules.SupplyChain.Domain.Exceptions;
+using Refahi.Modules.CreditPayments.Domain;
+using Refahi.Modules.CreditPayments.Application;
 using Refahi.Shared.Presentation;
 
 namespace Refahi.Api.Middlewares;
@@ -91,6 +93,20 @@ public sealed class ApiExceptionMiddleware
         catch (SupplyChainDomainException ex)
         {
             _logger.LogWarning(ex, "SupplyChain domain rule violation");
+            await HandleDomainExceptionAsync(context, ex.Message);
+        }
+        catch (CreditPaymentsApplicationException ex)
+        {
+            var status = ex.StatusCode;
+            _logger.LogWarning("CreditPayments application error. Code={Code}", ex.Code);
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = status;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message,
+                new Dictionary<string, string[]> { ["code"] = [ex.Code] }, status));
+        }
+        catch (CreditPaymentsDomainException ex)
+        {
+            _logger.LogWarning("CreditPayments domain rule violation: {Message}", ex.Message);
             await HandleDomainExceptionAsync(context, ex.Message);
         }
         catch (DomainException ex)

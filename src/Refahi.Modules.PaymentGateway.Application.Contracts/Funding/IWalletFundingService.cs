@@ -17,7 +17,26 @@ public interface IWalletFundingService
         Guid userId,
         Guid fundingSessionId,
         CancellationToken ct = default);
+    Task<CreateWalletFundingResult> CreateBoundAsync(
+        CreateBoundWalletFundingRequest request,
+        CancellationToken ct = default);
+    Task<WalletFundingStatus?> GetStatusByClientReferenceAsync(
+        Guid userId,
+        string clientReference,
+        CancellationToken ct = default);
 }
+
+/// <summary>
+/// Provider-neutral top-up request for trusted bounded contexts. Provider selection
+/// and callback construction remain owned by WalletFunding.
+/// </summary>
+public sealed record CreateBoundWalletFundingRequest(
+    Guid UserId,
+    Guid WalletId,
+    long AmountMinor,
+    string Currency,
+    string ReturnUrl,
+    string ClientReference);
 
 public sealed record CreateWalletFundingRequest(
     Guid UserId,
@@ -39,4 +58,6 @@ public sealed record WalletFundingStatus(
     long AmountMinor,
     string Currency,
     string Status,
-    Guid? WalletLedgerEntryId);
+    Guid? WalletLedgerEntryId,
+    Guid UserId = default,
+    string ClientReference = "");

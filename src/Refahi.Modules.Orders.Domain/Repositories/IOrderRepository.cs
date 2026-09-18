@@ -11,6 +11,11 @@ public interface IOrderRepository
         string idempotencyKey,
         CancellationToken ct = default
     );
+    Task<Order?> GetBySourceIdentityWithItemsAsync(
+        string referenceType,
+        Guid sourceReferenceId,
+        CancellationToken ct = default
+    ) => Task.FromResult<Order?>(null);
     Task<List<Order>> GetByUserIdAsync(
         Guid userId,
         int page,

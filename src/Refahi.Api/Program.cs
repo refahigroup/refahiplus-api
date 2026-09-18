@@ -59,12 +59,15 @@ builder.Services.AddCors(options =>
         WebAppCorsPolicy,
         policy =>
         {
-            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
         }
     );
 });
 builder.Services.AddSwaggerGen(options =>
 {
+    // The modular API intentionally has repeated request type names (for example VersionRequest).
+    // Fully-qualified IDs keep document generation deterministic across all modules.
+    options.CustomSchemaIds(type => (type.FullName ?? type.Name).Replace('+', '.'));
     options.SwaggerDoc(
         "v1",
         new OpenApiInfo
@@ -142,6 +145,19 @@ app.UseCors(WebAppCorsPolicy);
 // Add global exception handling middleware (first after the CORS boundary)
 app.UseApiExceptionMiddleware();
 
+// Checkout responses carry customer authentication and financial state and must never be cached.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/credit-payments/v1/checkout"))
+    {
+        context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+        context.Response.Headers.Pragma = "no-cache";
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    }
+
+    await next();
+});
+
 //// Add response wrapping middleware
 //// Add response wrapping middleware (wrap API JSON responses)
 //// Registered after exception middleware to ensure errors are handled first
@@ -152,20 +168,19 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-//if (app.Environment.IsDevelopment())
-//{
-app.UseSwagger(c =>
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
-    c.RouteTemplate = "api/swagger/{documentName}/swagger.json";
-});
+    app.UseSwagger(c =>
+    {
+        c.RouteTemplate = "api/swagger/{documentName}/swagger.json";
+    });
 
-app.UseSwaggerUI(options =>
-{
-    options.RoutePrefix = "api/swagger";
-    options.SwaggerEndpoint("v1/swagger.json", "Refahi API v1");
-});
-
-//}
+    app.UseSwaggerUI(options =>
+    {
+        options.RoutePrefix = "api/swagger";
+        options.SwaggerEndpoint("v1/swagger.json", "Refahi API v1");
+    });
+}
 
 app.MapGet(
     "/api/health",
@@ -176,6 +191,11 @@ app.MapGet(
 
         return Results.Ok(new { status = "healthy", ver = fvi.FileVersion });
     }
+);
+app.MapGet("/api/health/live", () => Results.Ok(new { status = "healthy" }));
+app.MapHealthChecks(
+    "/api/health/ready",
+    new HealthCheckOptions { Predicate = registration => registration.Tags.Contains("readiness") }
 );
 app.MapHealthChecks(
     "/api/health/eniac",
@@ -211,3 +231,5 @@ app.UseReferencesModule("/api/references")
 //}
 
 app.Run();
+
+public partial class Program;

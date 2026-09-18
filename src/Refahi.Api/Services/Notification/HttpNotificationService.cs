@@ -44,11 +44,10 @@ public class HttpNotificationService : INotificationService
             var response = await _otpApiClient.GenerateAsync(request, cancellationToken);
 
             _logger.LogInformation(
-                "OTP sent via external API. Receipt={Receipt}, Type={Type}, Purpose={Purpose}, ReferenceCode={ReferenceCode}, ExpiresAt={ExpiresAt}",
+                "OTP sent via external API. Receipt={Receipt}, Type={Type}, Purpose={Purpose}, ExpiresAt={ExpiresAt}",
                 MaskReceipt(receipt),
                 type,
                 otpType,
-                response.ReferenceCode,
                 response.ExpiresAt
             );
 
@@ -88,8 +87,7 @@ public class HttpNotificationService : INotificationService
             if (!response.IsValid)
             {
                 _logger.LogWarning(
-                    "OTP validation failed. ReferenceCode={ReferenceCode}, Message={Message}, AttemptsRemaining={AttemptsRemaining}",
-                    referenceCode,
+                    "OTP validation failed. Message={Message}, AttemptsRemaining={AttemptsRemaining}",
                     response.Message,
                     response.AttemptsRemaining
                 );
@@ -103,10 +101,7 @@ public class HttpNotificationService : INotificationService
                 || string.IsNullOrEmpty(response.DestinationType)
             )
             {
-                _logger.LogWarning(
-                    "OTP validated successfully but destination info missing. ReferenceCode={ReferenceCode}",
-                    referenceCode
-                );
+                _logger.LogWarning("OTP validated successfully but destination info is missing");
 
                 return new OtpValidationResult(true);
             }
@@ -114,8 +109,7 @@ public class HttpNotificationService : INotificationService
             var receiptType = ParseReceiptType(response.DestinationType);
 
             _logger.LogInformation(
-                "OTP validated successfully via external API. ReferenceCode={ReferenceCode}, Receipt={Receipt}, Type={Type}",
-                referenceCode,
+                "OTP validated successfully via external API. Receipt={Receipt}, Type={Type}",
                 MaskReceipt(response.Destination),
                 receiptType
             );
@@ -124,11 +118,7 @@ public class HttpNotificationService : INotificationService
         }
         catch (OtpApiException ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to validate OTP via external API. ReferenceCode={ReferenceCode}",
-                referenceCode
-            );
+            _logger.LogError(ex, "Failed to validate OTP via external API");
 
             // Return invalid result instead of throwing (validation failed gracefully)
             return new OtpValidationResult(false);

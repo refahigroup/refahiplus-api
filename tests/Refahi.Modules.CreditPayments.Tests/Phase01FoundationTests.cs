@@ -42,7 +42,7 @@ public sealed class Phase01FoundationTests
     }
 
     [Fact]
-    public void DbContext_uses_the_dedicated_schema_and_has_no_business_tables()
+    public void DbContext_uses_the_dedicated_schema_and_approved_phase10_tables()
     {
         var options = new DbContextOptionsBuilder<CreditPaymentsDbContext>()
             .UseNpgsql("Host=localhost;Database=refahi;Username=test;Password=test")
@@ -50,11 +50,24 @@ public sealed class Phase01FoundationTests
         using var context = new CreditPaymentsDbContext(options);
 
         Assert.Equal("credit_payments", context.Model.GetDefaultSchema());
-        Assert.Empty(context.Model.GetEntityTypes());
+        var tables = context.Model.GetEntityTypes().Select(x => x.GetTableName()).ToHashSet();
+        Assert.Contains("merchants", tables);
+        Assert.Contains("terminals", tables);
+        Assert.Contains("terminal_credentials", tables);
+        Assert.Contains("gateway_payments", tables);
+        Assert.Contains("idempotency_records", tables);
+        Assert.Contains("checkout_sessions", tables);
+        Assert.Contains("checkout_otp_challenges", tables);
+        Assert.Contains("payment_attempts", tables);
+        Assert.Contains("funding_continuations", tables);
+        Assert.Contains("refunds", tables);
+        Assert.Contains("webhook_events", tables);
+        Assert.Contains("outbox_messages", tables);
+        Assert.Contains("webhook_deliveries", tables);
     }
 
     [Fact]
-    public void Api_prefix_is_reserved_without_mapping_business_routes()
+    public void Api_prefix_remains_stable()
     {
         Assert.Equal("/api/credit-payments/v1", DI.ApiPrefix);
     }
@@ -76,6 +89,18 @@ public sealed class Phase01FoundationTests
             .Assembly.GetReferencedAssemblies(), reference =>
             reference.Name is "Refahi.Modules.CreditPayments.Infrastructure"
                 or "Refahi.Modules.CreditPayments.Api");
+    }
+
+    [Fact]
+    public void Application_has_only_the_approved_cross_module_contract_dependencies()
+    {
+        var references=typeof(Refahi.Modules.CreditPayments.Application.DI).Assembly.GetReferencedAssemblies().Select(x=>x.Name??string.Empty).ToArray();
+        Assert.Contains("Refahi.Modules.SupplyChain.Application.Contracts",references);
+        Assert.Contains("Refahi.Modules.Identity.Application.Contracts",references);
+        Assert.Contains("Refahi.Modules.Orders.Application.Contracts",references);
+        Assert.Contains("Refahi.Modules.PaymentGateway.Application.Contracts",references);
+        Assert.Contains("Refahi.Modules.Wallets.Application.Contracts",references);
+        Assert.DoesNotContain(references,x=>x.Contains("SupplyChain.Domain")||x.Contains("SupplyChain.Infrastructure")||x.Contains("Wallets.Domain")||x.Contains("Wallets.Infrastructure")||x.Contains("Orders.Domain")||x.Contains("Orders.Infrastructure")||x.Contains("PaymentGateway.Domain")||x.Contains("PaymentGateway.Infrastructure")||x.Contains("Identity.Domain")||x.Contains("Identity.Infrastructure")||x.Contains("Settlement"));
     }
 
     [Fact]

@@ -44,7 +44,7 @@ public class InMemoryNotificationService : INotificationService
         {
             _logger.LogWarning(
                 "OTP rate limit exceeded for {Receipt}. {Count} OTPs sent in last {Window} minutes",
-                receipt,
+                MaskReceipt(receipt),
                 recentSends,
                 _rateLimitWindow.TotalMinutes
             );
@@ -79,16 +79,12 @@ public class InMemoryNotificationService : INotificationService
 
         // Audit log
         _logger.LogInformation(
-            "OTP sent. ReferenceCode={ReferenceCode}, Receipt={Receipt}, Type={Type}, OtpType={OtpType}, ExpiresAt={ExpiresAt}",
-            referenceCode,
+            "OTP sent. Receipt={Receipt}, Type={Type}, OtpType={OtpType}, ExpiresAt={ExpiresAt}",
             MaskReceipt(receipt),
             type,
             otpType,
             entry.ExpiresAt
         );
-
-        // Development log (for testing - shows actual OTP)
-        _logger.LogDebug("OTP Code for {Receipt}: {Code}", MaskReceipt(receipt), otpCode);
 
         // TODO: In production, send actual SMS/Email here
 
@@ -104,10 +100,7 @@ public class InMemoryNotificationService : INotificationService
     {
         if (!_otpStore.TryGetValue(referenceCode, out var entry))
         {
-            _logger.LogWarning(
-                "OTP validation failed. Reference code not found: {ReferenceCode}",
-                referenceCode
-            );
+            _logger.LogWarning("OTP validation failed. Reference code not found");
             return Task.FromResult(new OtpValidationResult(false));
         }
 
@@ -116,8 +109,7 @@ public class InMemoryNotificationService : INotificationService
         {
             _otpStore.TryRemove(referenceCode, out _);
             _logger.LogWarning(
-                "OTP validation failed. Reference code expired: {ReferenceCode}, Receipt={Receipt}",
-                referenceCode,
+                "OTP validation failed. Reference code expired. Receipt={Receipt}",
                 MaskReceipt(entry.Receipt)
             );
             return Task.FromResult(new OtpValidationResult(false));
@@ -127,8 +119,7 @@ public class InMemoryNotificationService : INotificationService
         if (entry.IsUsed)
         {
             _logger.LogWarning(
-                "OTP validation failed. Reference code already used: {ReferenceCode}, Receipt={Receipt}",
-                referenceCode,
+                "OTP validation failed. Reference code already used. Receipt={Receipt}",
                 MaskReceipt(entry.Receipt)
             );
             return Task.FromResult(new OtpValidationResult(false));
@@ -140,9 +131,8 @@ public class InMemoryNotificationService : INotificationService
         {
             _otpStore.TryRemove(referenceCode, out _);
             _logger.LogWarning(
-                "OTP validation failed. Max attempts ({MaxAttempts}) exceeded: {ReferenceCode}, Receipt={Receipt}",
+                "OTP validation failed. Max attempts ({MaxAttempts}) exceeded. Receipt={Receipt}",
                 _maxValidationAttempts,
-                referenceCode,
                 MaskReceipt(entry.Receipt)
             );
             return Task.FromResult(new OtpValidationResult(false));
@@ -152,8 +142,7 @@ public class InMemoryNotificationService : INotificationService
         if (entry.OtpType != otpType)
         {
             _logger.LogWarning(
-                "OTP validation failed. Type mismatch: {ReferenceCode}, Expected={Expected}, Actual={Actual}",
-                referenceCode,
+                "OTP validation failed. Type mismatch. Expected={Expected}, Actual={Actual}",
                 entry.OtpType,
                 otpType
             );
@@ -164,8 +153,7 @@ public class InMemoryNotificationService : INotificationService
         if (entry.OtpCode != otp)
         {
             _logger.LogWarning(
-                "OTP validation failed. Invalid code: {ReferenceCode}, Receipt={Receipt}, Attempts={Attempts}/{MaxAttempts}",
-                referenceCode,
+                "OTP validation failed. Invalid code. Receipt={Receipt}, Attempts={Attempts}/{MaxAttempts}",
                 MaskReceipt(entry.Receipt),
                 entry.ValidationAttempts,
                 _maxValidationAttempts
@@ -178,8 +166,7 @@ public class InMemoryNotificationService : INotificationService
 
         // Audit log - successful validation
         _logger.LogInformation(
-            "OTP validated successfully. ReferenceCode={ReferenceCode}, Receipt={Receipt}, Type={Type}",
-            referenceCode,
+            "OTP validated successfully. Receipt={Receipt}, Type={Type}",
             MaskReceipt(entry.Receipt),
             entry.ReceiptType
         );

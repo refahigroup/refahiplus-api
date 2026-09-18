@@ -7,11 +7,19 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
     <PackageReference Include="MediatR" Version="11.1.0" />
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Refahi.Modules.CreditPayments.Application.Contracts\Refahi.Modules.CreditPayments.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.CreditPayments.Domain\Refahi.Modules.CreditPayments.Domain.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Identity.Application.Contracts\Refahi.Modules.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.PaymentGateway.Application.Contracts\Refahi.Modules.PaymentGateway.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.SupplyChain.Application.Contracts\Refahi.Modules.SupplyChain.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Wallets.Application.Contracts\Refahi.Modules.Wallets.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
   </ItemGroup>
 </Project>

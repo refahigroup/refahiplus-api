@@ -2,6 +2,7 @@ namespace Refahi.Modules.PaymentGateway.Application.Contracts.Configuration;
 
 public sealed class FundingSafetyOptions
 {
+    public string DefaultProvider { get; set; } = "Sep";
     public string PublicBaseUrl { get; set; } = string.Empty;
     public string[] AllowedReturnHosts { get; set; } = [];
     public bool AllowRelativeReturnUrls { get; set; } = true;

@@ -7,5 +7,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Refahi.Modules.Identity.Domain\Refahi.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
   </ItemGroup>
 </Project>
