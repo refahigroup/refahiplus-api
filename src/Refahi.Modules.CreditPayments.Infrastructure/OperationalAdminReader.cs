@@ -10,6 +10,24 @@ namespace Refahi.Modules.CreditPayments.Infrastructure;
 public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvider clock,
     IOptions<SettlementIntegrationOptions> settlement):ICreditPaymentsAdminReader
 {
+    public async Task<PagedAdminResult<MerchantDto>> SearchMerchantsAsync(SearchAdminMerchantsQuery r,CancellationToken ct)
+    {
+        var (page,size)=Page(r.Page,r.PageSize);var q=db.Merchants.AsNoTracking();
+        if(r.MerchantId is not null)q=q.Where(x=>x.Id==r.MerchantId);if(r.SupplierId is not null)q=q.Where(x=>x.SupplierId==r.SupplierId);
+        if(Enum.TryParse<MerchantStatus>(r.Status,true,out var status))q=q.Where(x=>x.Status==status);
+        var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).ToListAsync(ct);
+        return new(rows.Select(x=>new MerchantDto(x.Id,x.SupplierId,x.DisplayName,(short)x.Status,x.CreatedAt,x.UpdatedAt,x.Version)).ToArray(),page,size,total);
+    }
+
+    public async Task<PagedAdminResult<TerminalDto>> SearchTerminalsAsync(SearchAdminTerminalsQuery r,CancellationToken ct)
+    {
+        var (page,size)=Page(r.Page,r.PageSize);var q=db.Terminals.AsNoTracking().Include(x=>x.ReturnUrls).Include(x=>x.WebhookEndpoint).AsQueryable();
+        if(r.TerminalId is not null)q=q.Where(x=>x.Id==r.TerminalId);if(r.MerchantId is not null)q=q.Where(x=>x.MerchantId==r.MerchantId);
+        if(Enum.TryParse<TerminalStatus>(r.Status,true,out var status))q=q.Where(x=>x.Status==status);
+        var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).ToListAsync(ct);
+        return new(rows.Select(Terminal).ToArray(),page,size,total);
+    }
+
     public async Task<PagedAdminResult<AdminPaymentSummaryDto>> SearchPaymentsAsync(SearchAdminPaymentsQuery r,CancellationToken ct)
     {
         var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.PaymentId is not null);
@@ -40,6 +58,7 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
         var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.RefundId is not null);
         var q=db.Refunds.AsNoTracking().Where(x=>x.CreatedAt>=from&&x.CreatedAt<=to);
         if(r.RefundId is not null)q=q.Where(x=>x.Id==r.RefundId);if(r.PaymentId is not null)q=q.Where(x=>x.GatewayPaymentId==r.PaymentId);if(r.TerminalId is not null)q=q.Where(x=>x.TerminalId==r.TerminalId);
+        if(r.MerchantId is not null)q=q.Where(x=>db.GatewayPayments.Any(p=>p.Id==x.GatewayPaymentId&&p.MerchantId==r.MerchantId));
         if(Enum.TryParse<RefundStatus>(r.Status,true,out var status))q=q.Where(x=>x.Status==status);
         var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).ToListAsync(ct);
         return new(rows.Select(Refund).ToArray(),page,size,total);
@@ -51,6 +70,7 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
         var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.EntityId is not null);var q=db.AuditRecords.AsNoTracking().Where(x=>x.OccurredAt>=from&&x.OccurredAt<=to);
         if(!string.IsNullOrWhiteSpace(r.EntityType))q=q.Where(x=>x.EntityType==r.EntityType);if(r.EntityId is not null)q=q.Where(x=>x.EntityId==r.EntityId);
         if(!string.IsNullOrWhiteSpace(r.Action))q=q.Where(x=>x.Action==r.Action);if(!string.IsNullOrWhiteSpace(r.Actor))q=q.Where(x=>x.ActorId==r.Actor);
+        if(r.MerchantId is not null)q=q.Where(x=>x.MerchantId==r.MerchantId);if(r.TerminalId is not null)q=q.Where(x=>x.TerminalId==r.TerminalId);
         var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.OccurredAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).Select(x=>new AdminAuditDto(x.Id,x.Action,x.EntityType,x.EntityId,x.ActorId,x.MerchantId,x.TerminalId,x.MerchantOrderId,x.OccurredAt)).ToListAsync(ct);
         return new(rows,page,size,total);
     }
@@ -59,6 +79,8 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
     {
         var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.ResourceId is not null);var q=db.RiskDecisions.AsNoTracking().Where(x=>x.OccurredAt>=from&&x.OccurredAt<=to);
         if(r.ResourceId is not null)q=q.Where(x=>x.ResourceId==r.ResourceId);if(!string.IsNullOrWhiteSpace(r.RuleCode))q=q.Where(x=>x.RuleCode==r.RuleCode);
+        if(!string.IsNullOrWhiteSpace(r.OperationType))q=q.Where(x=>x.OperationType==r.OperationType);if(Enum.TryParse<RiskDecision>(r.Decision,true,out var decision))q=q.Where(x=>x.Decision==decision);
+        if(r.MerchantId is not null)q=q.Where(x=>x.MerchantId==r.MerchantId);if(r.TerminalId is not null)q=q.Where(x=>x.TerminalId==r.TerminalId);if(r.CustomerId is not null)q=q.Where(x=>x.CustomerId==r.CustomerId);
         var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.OccurredAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).ToListAsync(ct);
         return new(rows.Select(x=>new RiskDecisionDto(x.Id,x.OperationType,x.MerchantId,x.TerminalId,x.CustomerId,x.ResourceId,x.RuleCode,x.Decision.ToString().ToLowerInvariant(),x.CurrentValue,x.LimitValue,x.OccurredAt,x.CorrelationId)).ToArray(),page,size,total);
     }
@@ -68,7 +90,24 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
     {
         var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.EventId is not null);var q=db.WebhookDeliveries.AsNoTracking().Where(x=>x.CreatedAt>=from&&x.CreatedAt<=to);
         if(r.EventId is not null)q=q.Where(x=>x.WebhookEventId==r.EventId);if(Enum.TryParse<WebhookDeliveryStatus>(r.Status,true,out var status))q=q.Where(x=>x.Status==status);
-        var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).ToListAsync(ct);return new(rows.Select(Delivery).ToArray(),page,size,total);
+        var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).ToListAsync(ct);
+        var eventIds=rows.Select(x=>x.WebhookEventId).Distinct().ToArray();
+        var events=await db.WebhookEvents.AsNoTracking().Where(x=>eventIds.Contains(x.Id)).ToDictionaryAsync(x=>x.Id,ct);
+        return new(rows.Select(x=>events.TryGetValue(x.WebhookEventId,out var e)?Delivery(x,e):Delivery(x)).ToArray(),page,size,total);
+    }
+    public async Task<PagedAdminResult<AdminIntegrationEventDto>> SearchIntegrationEventsAsync(SearchAdminIntegrationEventsQuery r,CancellationToken ct)
+    {
+        var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.EventId is not null);
+        var q=db.IntegrationEvents.AsNoTracking().Where(x=>x.OccurredAt>=from&&x.OccurredAt<=to);
+        if(r.EventId is not null)q=q.Where(x=>x.Id==r.EventId);
+        if(r.AggregateId is not null)q=q.Where(x=>x.AggregateId==r.AggregateId);
+        if(!string.IsNullOrWhiteSpace(r.EventType))q=q.Where(x=>x.EventType==r.EventType.Trim());
+        if(Enum.TryParse<CreditPaymentIntegrationEventStatus>(r.Status,true,out var status))q=q.Where(x=>x.Status==status);
+        var total=await q.LongCountAsync(ct);
+        var rows=await q.OrderByDescending(x=>x.OccurredAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size)
+            .Select(x=>new AdminIntegrationEventDto(x.Id,x.EventType,x.AggregateType,x.AggregateId,x.OccurredAt,
+                x.Status.ToString().ToLowerInvariant(),x.RetryCount,x.NextRetryAt,x.PublishedAt,x.LastFailureCode)).ToListAsync(ct);
+        return new(rows,page,size,total);
     }
     public async Task<PagedAdminResult<AdminCredentialMetadataDto>> ListCredentialsAsync(ListAdminCredentialMetadataQuery r,CancellationToken ct)
     {
@@ -114,4 +153,7 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
     private static AdminRefundDto Refund(Refund x)=>new(x.Id,x.GatewayPaymentId,x.TerminalId,x.Status.ToString().ToLowerInvariant(),x.AmountMinor,x.Currency,x.MerchantRefundReference,x.NormalizedFailureCode,x.WalletRefundId,x.CreatedAt,x.CompletedAt,x.RetryCount);
     private static AdminWebhookEventDto Event(WebhookEvent x)=>new(x.Id,x.EventType,x.EventVersion,x.MerchantId,x.TerminalId,x.AggregateType,x.AggregateId,x.OccurredAt);
     private static AdminWebhookDeliveryDto Delivery(WebhookDelivery x)=>new(x.Id,x.WebhookEventId,x.Status.ToString().ToLowerInvariant(),x.AttemptCount,x.ManualResendCount,x.NextAttemptAt,x.LastAttemptAt,x.DeliveredAt,x.LastHttpStatusCode,x.LastFailureCode);
+    private static AdminWebhookDeliveryDto Delivery(WebhookDelivery x,WebhookEvent e)=>new(x.Id,x.WebhookEventId,x.Status.ToString().ToLowerInvariant(),x.AttemptCount,x.ManualResendCount,x.NextAttemptAt,x.LastAttemptAt,x.DeliveredAt,x.LastHttpStatusCode,x.LastFailureCode,e.EventType,e.AggregateType,e.AggregateId);
+    private static TerminalDto Terminal(Terminal x)=>new(x.Id,x.MerchantId,x.Name,(short)x.Status,x.ApprovedCategoryCode,x.MinPaymentAmountMinor,x.MaxPaymentAmountMinor,
+        x.ReturnUrls.Select(y=>new ReturnUrlDto(y.Id,y.CanonicalUrl,y.CreatedAt)).ToArray(),x.WebhookEndpoint is null?null:new WebhookDto(x.WebhookEndpoint.Id,x.WebhookEndpoint.Url,(short)x.WebhookEndpoint.Status,x.WebhookEndpoint.SigningSecretVersion,x.WebhookEndpoint.CreatedAt,x.WebhookEndpoint.UpdatedAt),x.CreatedAt,x.UpdatedAt,x.Version);
 }

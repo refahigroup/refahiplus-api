@@ -36,6 +36,21 @@ public sealed record CreditPaymentsProductionReadinessDto(
 public sealed record GetCreditPaymentsProductionReadinessQuery
     : IRequest<CreditPaymentsProductionReadinessDto>;
 
+public sealed record CreditPaymentsGovernanceStatusDto(
+    bool FinanceApprovalConfigured,
+    bool MerchantPaymentPolicyConfigured,
+    bool RiskConfigured,
+    bool ReconciliationEnabled,
+    bool AutoRemediationEnabled,
+    bool WebhookDeliveryEnabled,
+    bool IntegrationPublicationEnabled,
+    string SettlementLaunchMode,
+    bool HostedCheckoutRequired,
+    bool FinancialExecutionEnabled);
+
+public sealed record GetCreditPaymentsGovernanceStatusQuery
+    : IRequest<CreditPaymentsGovernanceStatusDto>;
+
 public interface ICreditPaymentsProductionReadinessChecker
 {
     Task<CreditPaymentsProductionReadinessDto> CheckAsync(CancellationToken cancellationToken);

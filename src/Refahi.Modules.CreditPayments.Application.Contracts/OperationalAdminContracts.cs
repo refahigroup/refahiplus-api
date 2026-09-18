@@ -19,7 +19,11 @@ public sealed record AdminRefundDto(Guid RefundId,Guid PaymentId,Guid TerminalId
 public sealed record AdminWebhookEventDto(Guid EventId,string EventType,int Version,Guid MerchantId,Guid TerminalId,
     string AggregateType,Guid AggregateId,DateTimeOffset OccurredAt);
 public sealed record AdminWebhookDeliveryDto(Guid DeliveryId,Guid EventId,string Status,int AttemptCount,int ManualResendCount,
-    DateTimeOffset? NextAttemptAt,DateTimeOffset? LastAttemptAt,DateTimeOffset? DeliveredAt,int? LastHttpStatusCode,string? LastFailureCode);
+    DateTimeOffset? NextAttemptAt,DateTimeOffset? LastAttemptAt,DateTimeOffset? DeliveredAt,int? LastHttpStatusCode,string? LastFailureCode,
+    string? EventType=null,string? AggregateType=null,Guid? AggregateId=null);
+public sealed record AdminIntegrationEventDto(Guid EventId,string EventType,string AggregateType,Guid AggregateId,
+    DateTimeOffset OccurredAt,string Status,int RetryCount,DateTimeOffset? NextRetryAt,
+    DateTimeOffset? PublishedAt,string? LastFailureCode);
 public sealed record AdminPaymentDetailsDto(AdminPaymentSummaryDto Payment,IReadOnlyList<AdminAttemptDto> Attempts,
     IReadOnlyList<AdminFundingDto> FundingContinuations,AdminTerminationDto? Termination,
     IReadOnlyList<AdminRefundDto> Refunds,IReadOnlyList<AdminWebhookEventDto> WebhookEvents,
@@ -34,23 +38,34 @@ public sealed record AdminOperationalSummaryDto(long ProcessingPayments,long Pen
     DateTimeOffset? OldestReconciliationFindingAt=null,ReconciliationRunDto? LastReconciliationRun=null,
     long UnpublishedIntegrationEvents=0,bool IntegrationPublicationEnabled=false);
 
+public sealed record SearchAdminMerchantsQuery(Guid? MerchantId,Guid? SupplierId,string? Status,int Page,int PageSize)
+    :IRequest<PagedAdminResult<MerchantDto>>;
+public sealed record SearchAdminTerminalsQuery(Guid? TerminalId,Guid? MerchantId,string? Status,int Page,int PageSize)
+    :IRequest<PagedAdminResult<TerminalDto>>;
+
 public sealed record SearchAdminPaymentsQuery(Guid? PaymentId,Guid? MerchantId,Guid? TerminalId,string? MerchantOrderId,
     string? Status,Guid? CustomerId,DateTimeOffset? From,DateTimeOffset? To,int Page,int PageSize):IRequest<PagedAdminResult<AdminPaymentSummaryDto>>;
 public sealed record GetAdminPaymentDetailsQuery(Guid PaymentId):IRequest<AdminPaymentDetailsDto?>;
-public sealed record SearchAdminRefundsQuery(Guid? RefundId,Guid? PaymentId,Guid? TerminalId,string? Status,
+public sealed record SearchAdminRefundsQuery(Guid? RefundId,Guid? PaymentId,Guid? TerminalId,Guid? MerchantId,string? Status,
     DateTimeOffset? From,DateTimeOffset? To,int Page,int PageSize):IRequest<PagedAdminResult<AdminRefundDto>>;
 public sealed record GetAdminRefundQuery(Guid RefundId):IRequest<AdminRefundDto?>;
 public sealed record SearchAdminAuditQuery(string? EntityType,Guid? EntityId,string? Action,string? Actor,
-    DateTimeOffset? From,DateTimeOffset? To,int Page,int PageSize):IRequest<PagedAdminResult<AdminAuditDto>>;
+    Guid? MerchantId,Guid? TerminalId,DateTimeOffset? From,DateTimeOffset? To,int Page,int PageSize)
+    :IRequest<PagedAdminResult<AdminAuditDto>>;
 public sealed record GetAdminWebhookEventQuery(Guid EventId):IRequest<AdminWebhookEventDto?>;
 public sealed record SearchAdminWebhookDeliveriesQuery(string? Status,Guid? EventId,DateTimeOffset? From,
     DateTimeOffset? To,int Page,int PageSize):IRequest<PagedAdminResult<AdminWebhookDeliveryDto>>;
+public sealed record SearchAdminIntegrationEventsQuery(Guid? EventId,string? Status,string? EventType,
+    Guid? AggregateId,DateTimeOffset? From,DateTimeOffset? To,int Page,int PageSize)
+    :IRequest<PagedAdminResult<AdminIntegrationEventDto>>;
 public sealed record ListAdminCredentialMetadataQuery(Guid TerminalId,int Page,int PageSize):IRequest<PagedAdminResult<AdminCredentialMetadataDto>>;
 public sealed record GetAdminOperationalSummaryQuery:IRequest<AdminOperationalSummaryDto>;
 public sealed record RequestAdminRecoveryCommand(string ResourceType,Guid ResourceId,string? ActorId):IRequest<string>;
 
 public interface ICreditPaymentsAdminReader
 {
+    Task<PagedAdminResult<MerchantDto>> SearchMerchantsAsync(SearchAdminMerchantsQuery query,CancellationToken ct);
+    Task<PagedAdminResult<TerminalDto>> SearchTerminalsAsync(SearchAdminTerminalsQuery query,CancellationToken ct);
     Task<PagedAdminResult<AdminPaymentSummaryDto>> SearchPaymentsAsync(SearchAdminPaymentsQuery query,CancellationToken ct);
     Task<AdminPaymentDetailsDto?> GetPaymentAsync(Guid id,CancellationToken ct);
     Task<PagedAdminResult<AdminRefundDto>> SearchRefundsAsync(SearchAdminRefundsQuery query,CancellationToken ct);
@@ -59,6 +74,7 @@ public interface ICreditPaymentsAdminReader
     Task<PagedAdminResult<RiskDecisionDto>> SearchRiskAsync(SearchRiskDecisionsQuery query,CancellationToken ct);
     Task<AdminWebhookEventDto?> GetWebhookEventAsync(Guid id,CancellationToken ct);
     Task<PagedAdminResult<AdminWebhookDeliveryDto>> SearchWebhookDeliveriesAsync(SearchAdminWebhookDeliveriesQuery query,CancellationToken ct);
+    Task<PagedAdminResult<AdminIntegrationEventDto>> SearchIntegrationEventsAsync(SearchAdminIntegrationEventsQuery query,CancellationToken ct);
     Task<PagedAdminResult<AdminCredentialMetadataDto>> ListCredentialsAsync(ListAdminCredentialMetadataQuery query,CancellationToken ct);
     Task<AdminOperationalSummaryDto> GetSummaryAsync(CancellationToken ct);
     Task<AdminRecoveryTarget?> GetRecoveryTargetAsync(string resourceType,Guid resourceId,CancellationToken ct);

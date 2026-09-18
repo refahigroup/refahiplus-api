@@ -31,5 +31,6 @@ public sealed record RiskDecisionDto(Guid DecisionId, string OperationType, Guid
     Guid? TerminalId, Guid? CustomerId, Guid ResourceId, string RuleCode, string Decision,
     long? CurrentValue, long? LimitValue, DateTimeOffset OccurredAt, string? CorrelationId);
 
-public sealed record SearchRiskDecisionsQuery(Guid? ResourceId, string? RuleCode,
+public sealed record SearchRiskDecisionsQuery(Guid? ResourceId, string? RuleCode, string? OperationType,
+    string? Decision, Guid? MerchantId, Guid? TerminalId, Guid? CustomerId,
     DateTimeOffset? From, DateTimeOffset? To, int Page, int PageSize) : IRequest<PagedAdminResult<RiskDecisionDto>>;
