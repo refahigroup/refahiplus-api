@@ -3,13 +3,20 @@ namespace Refahi.Modules.CreditPayments.Domain;
 public interface ICreditPaymentsRepository
 {
     Task<Merchant?> GetMerchantAsync(Guid id, bool tracking, CancellationToken ct);
-    Task<Merchant?> GetMerchantBySupplierAsync(Guid supplierId, CancellationToken ct);
+    Task<Merchant?> GetMerchantByNationalIdAsync(MerchantEntityType entityType, string nationalId, bool tracking, CancellationToken ct);
+    Task<bool> TryCreateMerchantAsync(Merchant merchant, CancellationToken ct);
     Task<Terminal?> GetTerminalAsync(Guid id, bool tracking, CancellationToken ct);
     Task<TerminalCredential?> GetCredentialAsync(Guid id, bool tracking, CancellationToken ct);
     Task<(TerminalCredential Credential, Terminal Terminal, Merchant Merchant)?> GetAuthenticationGraphAsync(string clientId, CancellationToken ct);
     void Add(Merchant merchant);
+    void Add(Terminal terminal);
+    void Add(TerminalReturnUrl returnUrl);
+    void Add(TerminalCredential credential);
+    void Add(WebhookEndpoint webhook);
     void AddAudit(AuditRecord audit);
     Task SaveChangesAsync(CancellationToken ct);
+    Task<bool> TrySaveManagementChangesAsync(CancellationToken ct);
+    Task<bool> TrySaveTerminalCreationAsync(CancellationToken ct);
     Task RecordAuthenticationFailureAsync(string action,Guid? credentialId,Guid? terminalId,
         DateTimeOffset now,CancellationToken ct)=>Task.CompletedTask;
 }

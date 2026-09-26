@@ -139,11 +139,14 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 
 var app = builder.Build();
 
-// CORS must run before response wrapping so browser preflight requests can short-circuit cleanly.
-app.UseCors(WebAppCorsPolicy);
-
-// Add global exception handling middleware (first after the CORS boundary)
+// Add global exception handling before route/policy evaluation.
 app.UseApiExceptionMiddleware();
+
+app.UseRouting();
+
+// CORS runs after routing so the dedicated checkout endpoint policy is honored,
+// and before response wrapping so preflight requests can short-circuit cleanly.
+app.UseCors(WebAppCorsPolicy);
 
 // Checkout responses carry customer authentication and financial state and must never be cached.
 app.Use(async (context, next) =>
@@ -163,7 +166,6 @@ app.Use(async (context, next) =>
 //// Registered after exception middleware to ensure errors are handled first
 app.UseResponseWrappingMiddleware();
 
-app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

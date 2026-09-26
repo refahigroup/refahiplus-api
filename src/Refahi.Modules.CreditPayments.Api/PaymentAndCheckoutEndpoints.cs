@@ -110,38 +110,46 @@ public sealed class CheckoutEndpoints : IEndpoint
         routes.MapGet("/checkout/{token}", Get)
             .WithName("CreditPayments.GetCheckout")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.CheckoutLookupRateLimitPolicy);
         routes.MapPost("/checkout/{token}/otp/send", SendOtp)
             .WithName("CreditPayments.SendCheckoutOtp")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.OtpSendRateLimitPolicy);
         routes.MapPost("/checkout/{token}/otp/verify", VerifyOtp)
             .WithName("CreditPayments.VerifyCheckoutOtp")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.OtpVerifyRateLimitPolicy);
         routes.MapPost("/checkout/{token}/funding/evaluate", EvaluateFunding)
             .WithName("CreditPayments.EvaluateCheckoutFunding")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.FundingEvaluationRateLimitPolicy)
             .Produces<ApiResponse<CheckoutFundingEvaluationDto>>(StatusCodes.Status200OK);
         routes.MapPost("/checkout/{token}/funding/start", StartFunding)
             .WithName("CreditPayments.StartCheckoutFunding")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.FundingStartRateLimitPolicy)
             .Produces<ApiResponse<CheckoutFundingContinuationDto>>(StatusCodes.Status200OK);
         routes.MapPost("/checkout/{token}/funding/reconcile", ReconcileFunding)
             .WithName("CreditPayments.ReconcileCheckoutFunding")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.FundingReconcileRateLimitPolicy)
             .Produces<ApiResponse<CheckoutFundingContinuationDto>>(StatusCodes.Status200OK);
         routes.MapPost("/checkout/{token}/confirm", ConfirmPayment)
             .WithName("CreditPayments.ConfirmCheckoutPayment")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.PaymentConfirmRateLimitPolicy)
             .Produces<ApiResponse<CheckoutPaymentExecutionDto>>(StatusCodes.Status200OK);
         routes.MapPost("/checkout/{token}/cancel",CancelPayment)
             .WithName("CreditPayments.CancelCheckoutPayment")
             .WithTags("CreditPayments.Checkout")
+            .RequireCors(DI.CheckoutCorsPolicy)
             .RequireRateLimiting(DI.PaymentConfirmRateLimitPolicy)
             .Produces<ApiResponse<CheckoutPaymentExecutionDto>>(StatusCodes.Status200OK)
             .Produces<ApiResponse<CheckoutPaymentExecutionDto>>(StatusCodes.Status202Accepted);

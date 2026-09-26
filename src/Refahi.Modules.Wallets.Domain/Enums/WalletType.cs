@@ -9,4 +9,5 @@ public enum WalletType : short
     User = 2, // REFAHI — personal wallet
     Provider = 3,
     OrgCredit = 4, // ORG_CREDIT — organisation credit wallet
+    Merchant = 5,
 }

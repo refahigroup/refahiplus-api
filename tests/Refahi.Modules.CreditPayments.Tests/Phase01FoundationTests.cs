@@ -95,7 +95,7 @@ public sealed class Phase01FoundationTests
     public void Application_has_only_the_approved_cross_module_contract_dependencies()
     {
         var references=typeof(Refahi.Modules.CreditPayments.Application.DI).Assembly.GetReferencedAssemblies().Select(x=>x.Name??string.Empty).ToArray();
-        Assert.Contains("Refahi.Modules.SupplyChain.Application.Contracts",references);
+        Assert.DoesNotContain("Refahi.Modules.SupplyChain.Application.Contracts",references);
         Assert.Contains("Refahi.Modules.Identity.Application.Contracts",references);
         Assert.Contains("Refahi.Modules.Orders.Application.Contracts",references);
         Assert.Contains("Refahi.Modules.PaymentGateway.Application.Contracts",references);

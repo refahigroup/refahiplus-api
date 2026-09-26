@@ -7,4 +7,5 @@ public static class WalletTypeValues
     public const short User = 2;
     public const short Provider = 3;
     public const short OrgCredit = 4;
+    public const short Merchant = 5;
 }

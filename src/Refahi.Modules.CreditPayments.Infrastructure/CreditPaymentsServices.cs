@@ -10,7 +10,14 @@ namespace Refahi.Modules.CreditPayments.Infrastructure;
 public sealed class CreditPaymentsRepository(CreditPaymentsDbContext db):ICreditPaymentsRepository,IGatewayPaymentRepository,ICheckoutRepository,IFundingContinuationRepository,IPaymentExecutionRepository,IPaymentTerminationRepository,IRefundRepository,IWebhookOperationsRepository
 {
     public Task<Merchant?> GetMerchantAsync(Guid id,bool tracking,CancellationToken ct)=>Query(db.Merchants,tracking).Include(x=>x.Terminals).SingleOrDefaultAsync(x=>x.Id==id,ct);
-    public Task<Merchant?> GetMerchantBySupplierAsync(Guid supplierId,CancellationToken ct)=>db.Merchants.AsNoTracking().SingleOrDefaultAsync(x=>x.SupplierId==supplierId,ct);
+    public Task<Merchant?> GetMerchantByNationalIdAsync(MerchantEntityType entityType,string nationalId,bool tracking,CancellationToken ct)=>Query(db.Merchants,tracking).SingleOrDefaultAsync(x=>x.EntityType==entityType&&x.NationalId==nationalId,ct);
+    public async Task<bool> TryCreateMerchantAsync(Merchant merchant,CancellationToken ct)
+    {
+        db.Merchants.Add(merchant);
+        try { await db.SaveChangesAsync(ct); return true; }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        { db.Entry(merchant).State=EntityState.Detached; return false; }
+    }
     public Task<Terminal?> GetTerminalAsync(Guid id,bool tracking,CancellationToken ct)=>Query(db.Terminals,tracking).Include(x=>x.ReturnUrls).Include(x=>x.Credentials).Include(x=>x.WebhookEndpoint).SingleOrDefaultAsync(x=>x.Id==id,ct);
     public Task<TerminalCredential?> GetCredentialAsync(Guid id,bool tracking,CancellationToken ct)=>Query(db.TerminalCredentials,tracking).SingleOrDefaultAsync(x=>x.Id==id,ct);
     public async Task<(TerminalCredential Credential,Terminal Terminal,Merchant Merchant)?> GetAuthenticationGraphAsync(string clientId,CancellationToken ct){var credential=await db.TerminalCredentials.SingleOrDefaultAsync(x=>x.ClientId==clientId,ct);if(credential is null)return null;var terminal=await db.Terminals.SingleOrDefaultAsync(x=>x.Id==credential.TerminalId,ct);if(terminal is null)return null;var merchant=await db.Merchants.SingleOrDefaultAsync(x=>x.Id==terminal.MerchantId,ct);return merchant is null?null:(credential,terminal,merchant);}
@@ -197,8 +204,7 @@ public sealed class CreditPaymentsRepository(CreditPaymentsDbContext db):ICredit
             session.Complete(now);
             attempt.MarkSucceeded(walletIntentId,walletPaymentId,now);
             WebhookEventFactory.AddPayment(db,payment,WebhookEventTypes.PaymentSucceeded,paidAt,now);
-            var merchant=await db.Merchants.SingleAsync(x=>x.Id==payment.MerchantId,ct);
-            var integrationEvent=SettlementIntegrationEventFactory.Captured(payment,merchant.SupplierId,now);
+            var integrationEvent=SettlementIntegrationEventFactory.Captured(payment,now);
             db.IntegrationEvents.Add(integrationEvent);
             db.AuditRecords.Add(AuditRecord.Create("settlement-integration.fact-created",
                 "IntegrationEvent",integrationEvent.Id,null,now));
@@ -592,8 +598,9 @@ public sealed class CreditPaymentsRepository(CreditPaymentsDbContext db):ICredit
             ?? throw new CheckoutStateException("checkout_not_found","نشست پرداخت یافت نشد");
         var payment=await db.GatewayPayments.SingleAsync(x=>x.Id==session.GatewayPaymentId,ct);
         EnsureCheckoutUsable(session,payment,now);
-        if(session.Status==CheckoutSessionStatus.Authenticated)
-            throw new CheckoutStateException("checkout_already_authenticated","نشست پرداخت قبلاً احراز هویت شده است");
+        // Keep a bound customer's identity private while allowing recovery of a lost cookie.
+        if(session.CustomerId is { } boundCustomerId && resolvedCustomerId != boundCustomerId)
+            resolvedCustomerId = null;
         var challenges=await db.CheckoutOtpChallenges.Where(x=>x.CheckoutSessionId==session.Id)
             .OrderByDescending(x=>x.SendSequence).ToListAsync(ct);
         if(challenges.Count>=maximumSends||challenges.FirstOrDefault() is { } latest&&now<latest.SentAt.Add(resendCooldown))
@@ -663,9 +670,13 @@ public sealed class CreditPaymentsRepository(CreditPaymentsDbContext db):ICredit
             throw new CheckoutStateException("customer_switch_forbidden","مشتری نشست پرداخت قابل تغییر نیست");
         var challenge=await db.CheckoutOtpChallenges.SingleOrDefaultAsync(x=>x.Id==challengeId&&x.CheckoutSessionId==session.Id,ct)
             ?? throw new CheckoutStateException("otp_invalid_or_expired","کد تأیید نامعتبر یا منقضی شده است");
+        if(challenge.Status!=CheckoutOtpChallengeStatus.Active||now>=challenge.ExpiresAt
+            ||challenge.ResolvedCustomerId!=customerId)
+            throw new CheckoutStateException("otp_invalid_or_expired","کد تأیید نامعتبر یا منقضی شده است");
         challenge.MarkVerified(now);
         session.Authenticate(customerId,authorizationSecretHash,authorizationExpiresAt,now);
-        payment.BindCustomer(customerId,now);
+        if(payment.CustomerId is null)
+            payment.BindCustomer(customerId,now);
         db.AuditRecords.Add(AuditRecord.Create("checkout.otp.validated","CheckoutOtpChallenge",challenge.Id,customerId.ToString("D"),now));
         db.AuditRecords.Add(AuditRecord.Create("checkout.customer-bound","CheckoutSession",session.Id,customerId.ToString("D"),now));
         await db.SaveChangesAsync(ct);
@@ -675,7 +686,10 @@ public sealed class CreditPaymentsRepository(CreditPaymentsDbContext db):ICredit
     {
         if(now>=session.ExpiresAt||now>=payment.ExpiresAt)
             throw new CheckoutStateException("checkout_expired","نشست پرداخت منقضی شده است");
-        if(!session.IsActive||payment.Status!=GatewayPaymentStatus.AwaitingCustomer)
+        if(!((session.Status is CheckoutSessionStatus.Created or CheckoutSessionStatus.Authenticated
+                    && payment.Status==GatewayPaymentStatus.AwaitingCustomer)
+            || (session.Status==CheckoutSessionStatus.AwaitingFunding
+                    && payment.Status==GatewayPaymentStatus.AwaitingFunding)))
             throw new CheckoutStateException("checkout_not_found","نشست پرداخت یافت نشد");
     }
     private static void EnsureFundingContext(
@@ -1064,8 +1078,7 @@ public sealed class CreditPaymentsRepository(CreditPaymentsDbContext db):ICredit
             refund.MarkSucceeded(walletRefundId,payment.Status==GatewayPaymentStatus.Refunded,walletCompletedAt,now);
             WebhookEventFactory.AddRefund(db,refund,payment,WebhookEventTypes.RefundSucceeded,
                 walletCompletedAt,now);
-            var merchant=await db.Merchants.SingleAsync(x=>x.Id==payment.MerchantId,ct);
-            var integrationEvent=SettlementIntegrationEventFactory.Refunded(refund,payment,merchant.SupplierId,now);
+            var integrationEvent=SettlementIntegrationEventFactory.Refunded(refund,payment,now);
             db.IntegrationEvents.Add(integrationEvent);
             db.AuditRecords.Add(AuditRecord.Create("settlement-integration.fact-created",
                 "IntegrationEvent",integrationEvent.Id,null,now));
@@ -1126,8 +1139,36 @@ public sealed class CreditPaymentsRepository(CreditPaymentsDbContext db):ICredit
         await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return true;
     }
     public void Add(Merchant merchant)=>db.Merchants.Add(merchant);
+    public void Add(Terminal terminal)=>db.Terminals.Add(terminal);
+    public void Add(TerminalReturnUrl returnUrl)=>db.Set<TerminalReturnUrl>().Add(returnUrl);
+    public void Add(TerminalCredential credential)=>db.TerminalCredentials.Add(credential);
+    public void Add(WebhookEndpoint webhook)=>db.Set<WebhookEndpoint>().Add(webhook);
     public void AddAudit(AuditRecord audit)=>db.AuditRecords.Add(audit);
     public Task SaveChangesAsync(CancellationToken ct)=>db.SaveChangesAsync(ct);
+    public async Task<bool> TrySaveManagementChangesAsync(CancellationToken ct)
+    {
+        try { await db.SaveChangesAsync(ct); return true; }
+        catch (DbUpdateConcurrencyException)
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
+    public async Task<bool> TrySaveTerminalCreationAsync(CancellationToken ct)
+    {
+        try { await db.SaveChangesAsync(ct); return true; }
+        catch (DbUpdateConcurrencyException)
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+            { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_terminals_merchant_id_name" })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
     public async Task RecordAuthenticationFailureAsync(string action,Guid? credentialId,Guid? terminalId,
         DateTimeOffset now,CancellationToken ct)
     {

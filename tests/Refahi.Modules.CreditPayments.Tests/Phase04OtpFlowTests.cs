@@ -142,6 +142,166 @@ public sealed class Phase04OtpFlowTests : IAsyncLifetime
         Assert.Equal(CheckoutSessionStatus.Created, raceSession.Status);
     }
 
+    [Fact]
+    public async Task Lost_cookie_can_be_replaced_only_for_bound_customer_before_expiry()
+    {
+        await using var db = Create(); await db.Database.MigrateAsync();
+        var clock = new MutableClock(Start);
+        var security = Security();
+        var options = CheckoutConfiguration();
+        var token = await SeedPaymentAsync(db, security, options, clock, "otp-reauth-0001", "OTP-REAUTH");
+        var repository = new CreditPaymentsRepository(db);
+        var customerId = Guid.NewGuid();
+        var mediator = new IdentityMediator(new AuthenticationIdentityDto(
+            customerId, true, "09120000000", OtpReceiptType.Sms));
+        var notification = new FakeNotification();
+        var protector = new DataProtectionCheckoutOtpReferenceProtector(new EphemeralDataProtectionProvider());
+        var send = new SendCheckoutOtpHandler(repository, security, protector, notification, mediator,
+            options, clock, new CapturingLogger<SendCheckoutOtpHandler>());
+        var verify = new VerifyCheckoutOtpHandler(repository, security, protector, notification, mediator,
+            options, clock, new CapturingLogger<VerifyCheckoutOtpHandler>());
+
+        var firstChallenge = await send.Handle(new(token, "customer"), default);
+        var first = await verify.Handle(new(token, firstChallenge.ChallengeId, notification.ValidOtp, null), default);
+        Assert.NotNull(first.AuthorizationSecret);
+        clock.Advance(TimeSpan.FromSeconds(61));
+
+        mediator.Resolution = new AuthenticationIdentityDto(Guid.NewGuid(), true, "09121111111", OtpReceiptType.Sms);
+        var sentBefore = notification.SendCount;
+        var wrongCustomer = await send.Handle(new(token, "other-customer"), default);
+        Assert.Equal(sentBefore, notification.SendCount);
+        Assert.Equal(CheckoutOtpChallengeStatus.Synthetic,
+            (await db.CheckoutOtpChallenges.SingleAsync(x => x.Id == wrongCustomer.ChallengeId)).Status);
+        var denied = await Assert.ThrowsAsync<CreditPaymentsApplicationException>(() =>
+            verify.Handle(new(token, wrongCustomer.ChallengeId, notification.ValidOtp, null), default));
+        Assert.Equal("otp_invalid_or_expired", denied.Code);
+        clock.Advance(TimeSpan.FromSeconds(61));
+
+        mediator.Resolution = new AuthenticationIdentityDto(customerId, true, "09120000000", OtpReceiptType.Sms);
+        var replacementChallenge = await send.Handle(new(token, "customer"), default);
+        var replacement = await verify.Handle(new(token, replacementChallenge.ChallengeId, notification.ValidOtp, null), default);
+        Assert.NotNull(replacement.AuthorizationSecret);
+        Assert.NotEqual(first.AuthorizationSecret, replacement.AuthorizationSecret);
+        db.ChangeTracker.Clear();
+        var session = await db.CheckoutSessions.SingleAsync();
+        Assert.Equal(customerId, session.CustomerId);
+        Assert.False(security.VerifyAuthorizationSecret(first.AuthorizationSecret!, session.AuthorizationSecretHash!));
+        Assert.True(security.VerifyAuthorizationSecret(replacement.AuthorizationSecret!, session.AuthorizationSecretHash!));
+
+        var duplicate = await Assert.ThrowsAsync<CreditPaymentsApplicationException>(() =>
+            verify.Handle(new(token, replacementChallenge.ChallengeId, notification.ValidOtp, null), default));
+        Assert.Equal("otp_invalid_or_expired", duplicate.Code);
+        clock.Advance(TimeSpan.FromMinutes(16));
+        var expired = await Assert.ThrowsAsync<CreditPaymentsApplicationException>(() =>
+            send.Handle(new(token, "customer"), default));
+        Assert.Equal("checkout_expired", expired.Code);
+    }
+
+    [Fact]
+    public async Task Concurrent_verification_of_one_challenge_rotates_secret_once()
+    {
+        await using var db = Create(); await db.Database.MigrateAsync();
+        var clock = new MutableClock(Start);
+        var security = Security();
+        var options = CheckoutConfiguration();
+        var token = await SeedPaymentAsync(db, security, options, clock, "otp-race-0001", "OTP-RACE");
+        var customerId = Guid.NewGuid();
+        var mediator = new IdentityMediator(new AuthenticationIdentityDto(
+            customerId, true, "09120000000", OtpReceiptType.Sms));
+        var notification = new FakeNotification();
+        var protector = new DataProtectionCheckoutOtpReferenceProtector(new EphemeralDataProtectionProvider());
+        var send = new SendCheckoutOtpHandler(new CreditPaymentsRepository(db), security, protector, notification,
+            mediator, options, clock, new CapturingLogger<SendCheckoutOtpHandler>());
+        var challenge = await send.Handle(new(token, "customer"), default);
+        var tokenHash = Hash(security, token);
+        var firstSecret = security.CreateAuthorizationSecret();
+        var secondSecret = security.CreateAuthorizationSecret();
+
+        await using var firstDb = Create();
+        await using var secondDb = Create();
+        async Task<Exception?> Attempt(CreditPaymentsDbContext context, byte[] secretHash)
+        {
+            try
+            {
+                await new CreditPaymentsRepository(context).AuthenticateCheckoutAsync(tokenHash,
+                    challenge.ChallengeId, customerId, secretHash, Start.AddMinutes(15), Start, default);
+                return null;
+            }
+            catch (Exception exception) { return exception; }
+        }
+
+        var results = await Task.WhenAll(Attempt(firstDb, firstSecret.SecretHash),
+            Attempt(secondDb, secondSecret.SecretHash));
+        Assert.Single(results, result => result is null);
+        Assert.Single(results, result => result is CheckoutStateException { Code: "otp_invalid_or_expired" });
+        db.ChangeTracker.Clear();
+        var session = await db.CheckoutSessions.SingleAsync();
+        var winningSecret = results[0] is null ? firstSecret.Secret : secondSecret.Secret;
+        var losingSecret = results[0] is null ? secondSecret.Secret : firstSecret.Secret;
+        Assert.True(security.VerifyAuthorizationSecret(winningSecret, session.AuthorizationSecretHash!));
+        Assert.False(security.VerifyAuthorizationSecret(losingSecret, session.AuthorizationSecretHash!));
+    }
+
+    [Fact]
+    public async Task Checkout_inquiry_preserves_processing_and_success_after_original_expiry()
+    {
+        await using var db = Create(); await db.Database.MigrateAsync();
+        var clock = new MutableClock(Start);
+        var security = Security();
+        var options = CheckoutConfiguration();
+        var token = await SeedPaymentAsync(db, security, options, clock, "late-result-0001", "LATE-RESULT");
+        var customerId = Guid.NewGuid();
+        var session = await db.CheckoutSessions.SingleAsync();
+        var payment = await db.GatewayPayments.SingleAsync();
+        session.Authenticate(customerId, Enumerable.Repeat((byte)7, 32).ToArray(),
+            session.ExpiresAt, Start);
+        payment.BindCustomer(customerId, Start);
+        payment.BindOrder(Guid.NewGuid(), Start);
+        session.BeginProcessing(Start.AddMinutes(1));
+        payment.BeginProcessing("policy", "v1", new string('a', 64), Start.AddMinutes(1));
+        await db.SaveChangesAsync();
+        var get = new GetCheckoutHandler(new CreditPaymentsRepository(db), security, clock);
+        clock.Advance(TimeSpan.FromMinutes(16));
+
+        var processing = await get.Handle(new GetCheckoutQuery(token), default);
+        Assert.Equal("processing", processing?.PaymentStatus);
+        payment.MarkSucceeded(Guid.NewGuid(), Start.AddMinutes(14), clock.GetUtcNow());
+        session.Complete(clock.GetUtcNow());
+        await db.SaveChangesAsync();
+
+        var succeeded = await get.Handle(new GetCheckoutQuery(token), default);
+        Assert.Equal("succeeded", succeeded?.PaymentStatus);
+        Assert.Equal("https://merchant.example/callback", succeeded?.ReturnUrl);
+    }
+
+    [Fact]
+    public async Task Checkout_inquiry_reports_expiry_before_and_after_expiration_worker()
+    {
+        await using var db = Create(); await db.Database.MigrateAsync();
+        var clock = new MutableClock(Start);
+        var security = Security();
+        var options = CheckoutConfiguration();
+        var token = await SeedPaymentAsync(db, security, options, clock, "expired-result-0001", "EXPIRED-RESULT");
+        var get = new GetCheckoutHandler(new CreditPaymentsRepository(db), security, clock);
+        clock.Advance(TimeSpan.FromMinutes(16));
+
+        var beforeWorker = await Assert.ThrowsAsync<CreditPaymentsApplicationException>(() =>
+            get.Handle(new GetCheckoutQuery(token), default));
+        Assert.Equal("checkout_expired", beforeWorker.Code);
+        Assert.Equal(410, beforeWorker.StatusCode);
+
+        var session = await db.CheckoutSessions.SingleAsync();
+        var payment = await db.GatewayPayments.SingleAsync();
+        payment.Expire(clock.GetUtcNow());
+        session.Expire(clock.GetUtcNow());
+        await db.SaveChangesAsync();
+
+        var afterWorker = await Assert.ThrowsAsync<CreditPaymentsApplicationException>(() =>
+            get.Handle(new GetCheckoutQuery(token), default));
+        Assert.Equal("checkout_expired", afterWorker.Code);
+        Assert.Equal(410, afterWorker.StatusCode);
+    }
+
     private CreditPaymentsDbContext Create() => new(
         new DbContextOptionsBuilder<CreditPaymentsDbContext>().UseNpgsql(postgres.GetConnectionString()).Options);
 
@@ -173,7 +333,7 @@ public sealed class Phase04OtpFlowTests : IAsyncLifetime
         string key,
         string orderId)
     {
-        var merchant = Merchant.Create(Guid.NewGuid(), "Merchant", clock.GetUtcNow()); merchant.Activate(clock.GetUtcNow());
+        var merchant = MerchantTestFactory.Create(Guid.NewGuid(), "Merchant", clock.GetUtcNow()); merchant.Activate(clock.GetUtcNow());
         var terminal = merchant.AddTerminal("Terminal", "store", 100, 1000,
             ["https://merchant.example/callback"], clock.GetUtcNow());
         db.Merchants.Add(merchant); await db.SaveChangesAsync();

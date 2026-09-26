@@ -1,22 +1,24 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Refahi.Modules.CreditPayments.Application;
+using Refahi.Modules.CreditPayments.Domain;
 using Refahi.Modules.CreditPayments.Infrastructure;
-using Microsoft.AspNetCore.Authentication;
 using Refahi.Shared.Presentation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
-using Refahi.Modules.CreditPayments.Domain;
 
 namespace Refahi.Modules.CreditPayments.Api;
 
 public static class DI
 {
     public const string ApiPrefix = "/api/credit-payments/v1";
+    public const string CheckoutCorsPolicy = "CreditPayments.CheckoutCors";
     public const string PaymentCreatePolicy = "CreditPayments.PaymentCreate";
     public const string PaymentReadPolicy = "CreditPayments.PaymentRead";
     public const string PaymentCancelPolicy = "CreditPayments.PaymentCancel";
@@ -35,9 +37,26 @@ public static class DI
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var checkoutAllowedOrigins = configuration
+            .GetSection("CreditPayments:Checkout:AllowedOrigins")
+            .Get<string[]>() ?? [];
+
+        services.AddCors(options => options.AddPolicy(
+            CheckoutCorsPolicy,
+            policy =>
+            {
+                if (checkoutAllowedOrigins.Length > 0)
+                    policy.WithOrigins(checkoutAllowedOrigins);
+                policy
+                    .WithMethods("GET", "POST", "OPTIONS")
+                    .WithHeaders("Accept", "Content-Type", "Idempotency-Key")
+                    .AllowCredentials();
+            }));
+
         services
             .RegisterCreditPaymentsApplication(configuration)
             .RegisterCreditPaymentsInfrastructure(configuration);
+
         services.AddAuthentication().AddScheme<AuthenticationSchemeOptions, MerchantBasicAuthenticationHandler>(MerchantBasicAuthenticationHandler.SchemeName,_=>{});
         services.AddAuthorization(options =>
         {
@@ -45,18 +64,22 @@ public static class DI
                 .AddAuthenticationSchemes(MerchantBasicAuthenticationHandler.SchemeName)
                 .RequireAuthenticatedUser().RequireClaim("scope", CredentialScopes.PaymentCreate)
                 .RequireClaim("merchant_status","active").RequireClaim("terminal_status","active"));
+
             options.AddPolicy(PaymentReadPolicy, policy => policy
                 .AddAuthenticationSchemes(MerchantBasicAuthenticationHandler.SchemeName)
                 .RequireAuthenticatedUser().RequireClaim("scope", CredentialScopes.PaymentRead));
+
             options.AddPolicy(PaymentCancelPolicy, policy => policy
                 .AddAuthenticationSchemes(MerchantBasicAuthenticationHandler.SchemeName)
                 .RequireAuthenticatedUser().RequireClaim("scope", CredentialScopes.PaymentCancel)
                 .RequireClaim("merchant_status","active").RequireClaim("terminal_status","active"));
+
             options.AddPolicy(RefundCreatePolicy, policy => policy
                 .AddAuthenticationSchemes(MerchantBasicAuthenticationHandler.SchemeName)
                 .RequireAuthenticatedUser().RequireClaim("scope",CredentialScopes.RefundCreate)
                 .RequireClaim("merchant_status","active","suspended")
                 .RequireClaim("terminal_status","active","suspended"));
+
             options.AddPolicy(RefundReadPolicy, policy => policy
                 .AddAuthenticationSchemes(MerchantBasicAuthenticationHandler.SchemeName)
                 .RequireAuthenticatedUser().RequireClaim("scope",CredentialScopes.RefundRead));
@@ -85,13 +108,25 @@ public static class DI
         return services;
     }
 
-    public static WebApplication UseCreditPaymentsModule(
-        this WebApplication app,
-        string endPointsPrefix = ApiPrefix)
+    public static WebApplication UseCreditPaymentsModule(this WebApplication app, string endPointsPrefix = ApiPrefix)
     {
         var group=app.MapGroup(endPointsPrefix);
-        foreach(var type in typeof(DI).Assembly.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&typeof(IEndpoint).IsAssignableFrom(t)))
-            if(Activator.CreateInstance(type) is IEndpoint endpoint)endpoint.Map(group);
+
+        var endpoints = typeof(DI)
+            .Assembly
+            .GetTypes()
+            .Where(
+                t => t.IsClass &&
+                !t.IsAbstract &&
+                typeof(IEndpoint).IsAssignableFrom(t)
+            );
+
+        foreach (var type in endpoints)
+            if(Activator.CreateInstance(type) is IEndpoint endpoint)
+                endpoint.Map(group);
+
+        app.Services.UseInfrastructure(app.Environment.IsDevelopment());
+
         return app;
     }
 
@@ -100,7 +135,9 @@ public static class DI
         string name,
         Func<HttpContext, string> partition,
         int permitLimit,
-        int windowSeconds) => options.AddPolicy(name, context =>
+        int windowSeconds)
+    {
+        options.AddPolicy(name, context =>
             RateLimitPartition.GetFixedWindowLimiter(partition(context), _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = permitLimit,
@@ -108,32 +145,49 @@ public static class DI
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    }
 
     private static string CheckoutPartition(HttpContext context)
     {
-        var token = context.Request.RouteValues.TryGetValue("token", out var value) ? value?.ToString() : null;
+        var token = context.Request.RouteValues.TryGetValue("token", out var value)
+            ? value?.ToString()
+            : null;
+
         var fingerprint = string.IsNullOrEmpty(token)
             ? "invalid"
             : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
         return $"{Ip(context)}:{fingerprint}";
     }
 
     private static string MerchantPartition(HttpContext context)
     {
-        var terminal=context.User.FindFirst("terminal_id")?.Value;
-        if(!string.IsNullOrWhiteSpace(terminal))return $"terminal:{terminal}:ip:{Ip(context)}";
+        var terminal = context
+            .User.FindFirst("terminal_id")?
+            .Value;
+
+        if(!string.IsNullOrWhiteSpace(terminal))
+            return $"terminal:{terminal}:ip:{Ip(context)}";
+
         var header=context.Request.Headers.Authorization.ToString();
+
         string client="invalid";
+
         try
         {
             if(header.StartsWith("Basic ",StringComparison.OrdinalIgnoreCase))
             {
-                var decoded=Encoding.UTF8.GetString(Convert.FromBase64String(header[6..].Trim()));
-                var separator=decoded.IndexOf(':');
-                if(separator>0)client=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(decoded[..separator])));
+                var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(header[6..].Trim()));
+                var separator = decoded.IndexOf(':');
+
+                if (separator > 0)
+                    client = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(decoded[..separator])));
             }
         }
-        catch(FormatException) { }
+        catch(FormatException)
+        {
+        }
+
         return $"client:{client}:ip:{Ip(context)}";
     }
 

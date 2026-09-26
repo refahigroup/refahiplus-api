@@ -13,10 +13,10 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
     public async Task<PagedAdminResult<MerchantDto>> SearchMerchantsAsync(SearchAdminMerchantsQuery r,CancellationToken ct)
     {
         var (page,size)=Page(r.Page,r.PageSize);var q=db.Merchants.AsNoTracking();
-        if(r.MerchantId is not null)q=q.Where(x=>x.Id==r.MerchantId);if(r.SupplierId is not null)q=q.Where(x=>x.SupplierId==r.SupplierId);
+        if(r.MerchantId is not null)q=q.Where(x=>x.Id==r.MerchantId);if(!string.IsNullOrWhiteSpace(r.NationalId)){var id=Merchant.NormalizeNationalId(r.NationalId);q=q.Where(x=>x.NationalId==id);}
         if(Enum.TryParse<MerchantStatus>(r.Status,true,out var status))q=q.Where(x=>x.Status==status);
         var total=await q.LongCountAsync(ct);var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Skip((page-1)*size).Take(size).ToListAsync(ct);
-        return new(rows.Select(x=>new MerchantDto(x.Id,x.SupplierId,x.DisplayName,(short)x.Status,x.CreatedAt,x.UpdatedAt,x.Version)).ToArray(),page,size,total);
+        return new(rows.Select(x=>new MerchantDto(x.Id,(short)x.EntityType,x.NationalId,x.LegalName,x.DisplayName,x.SettlementWalletId,(short)x.Status,x.CreatedAt,x.UpdatedAt,x.Version)).ToArray(),page,size,total);
     }
 
     public async Task<PagedAdminResult<TerminalDto>> SearchTerminalsAsync(SearchAdminTerminalsQuery r,CancellationToken ct)
@@ -30,7 +30,7 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
 
     public async Task<PagedAdminResult<AdminPaymentSummaryDto>> SearchPaymentsAsync(SearchAdminPaymentsQuery r,CancellationToken ct)
     {
-        var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.PaymentId is not null);
+        var (page,size)=Page(r.Page,r.PageSize);var (from,to)=Range(r.From,r.To,r.PaymentId is not null||!string.IsNullOrWhiteSpace(r.MerchantOrderId));
         var q=db.GatewayPayments.AsNoTracking().Where(x=>x.CreatedAt>=from&&x.CreatedAt<=to);
         if(r.PaymentId is not null)q=q.Where(x=>x.Id==r.PaymentId);if(r.MerchantId is not null)q=q.Where(x=>x.MerchantId==r.MerchantId);
         if(r.TerminalId is not null)q=q.Where(x=>x.TerminalId==r.TerminalId);if(r.CustomerId is not null)q=q.Where(x=>x.CustomerId==r.CustomerId);
@@ -128,6 +128,37 @@ public sealed class OperationalAdminReader(CreditPaymentsDbContext db,TimeProvid
         var unpublishedEvents=await db.IntegrationEvents.CountAsync(x=>x.Status!=CreditPaymentIntegrationEventStatus.Published,ct);
         var runDto=lastRun is null?null:new ReconciliationRunDto(lastRun.Id,lastRun.Kind.ToString(),lastRun.Status.ToString(),lastRun.StartedAt,lastRun.CompletedAt,lastRun.WorkerInstanceId,lastRun.DryRun,lastRun.ScannedCount,lastRun.FindingCount,lastRun.AutoRemediationCount,lastRun.ErrorCount,lastRun.FailureCode,lastRun.LeaseUntil);
         return new(processing,pendingAttempts,awaiting,pendingRefunds,pendingFunding,pendingTerminations,dead,oldest,openFindings,criticalFindings,oldestFinding,runDto,unpublishedEvents,settlement.Value.PublicationEnabled);
+    }
+
+    public async Task<PagedAdminResult<AdminRecoveryQueueItemDto>> SearchRecoveryQueueAsync(SearchAdminRecoveryQueueQuery r,CancellationToken ct)
+    {
+        var (page,size)=Page(r.Page,r.PageSize);
+        var type=r.ResourceType.Trim().ToLowerInvariant();
+        if(type is not ("payment" or "funding" or "refund" or "termination"))
+            throw new ArgumentException("نوع صف بازیابی نامعتبر است",nameof(r.ResourceType));
+        var total=type switch
+        {
+            "payment"=>await db.PaymentAttempts.LongCountAsync(x=>x.Status==PaymentAttemptStatus.PendingRecovery,ct),
+            "funding"=>await db.FundingContinuations.LongCountAsync(x=>x.Status==FundingContinuationStatus.PendingRecovery,ct),
+            "refund"=>await db.Refunds.LongCountAsync(x=>x.Status==RefundStatus.PendingRecovery,ct),
+            _=>await db.PaymentTerminations.LongCountAsync(x=>x.Status==PaymentTerminationStatus.PendingRecovery,ct)
+        };
+        var rows=type switch
+        {
+            "payment"=>await db.PaymentAttempts.AsNoTracking().Where(x=>x.Status==PaymentAttemptStatus.PendingRecovery)
+                .OrderBy(x=>x.StartedAt).ThenBy(x=>x.Id).Skip((page-1)*size).Take(size)
+                .Select(x=>new AdminRecoveryQueueItemDto("payment",x.Id,x.GatewayPaymentId,"pendingRecovery",x.StartedAt)).ToListAsync(ct),
+            "funding"=>await db.FundingContinuations.AsNoTracking().Where(x=>x.Status==FundingContinuationStatus.PendingRecovery)
+                .OrderBy(x=>x.CreatedAt).ThenBy(x=>x.Id).Skip((page-1)*size).Take(size)
+                .Select(x=>new AdminRecoveryQueueItemDto("funding",x.Id,x.GatewayPaymentId,"pendingRecovery",x.CreatedAt)).ToListAsync(ct),
+            "refund"=>await db.Refunds.AsNoTracking().Where(x=>x.Status==RefundStatus.PendingRecovery)
+                .OrderBy(x=>x.CreatedAt).ThenBy(x=>x.Id).Skip((page-1)*size).Take(size)
+                .Select(x=>new AdminRecoveryQueueItemDto("refund",x.Id,x.GatewayPaymentId,"pendingRecovery",x.CreatedAt)).ToListAsync(ct),
+            _=>await db.PaymentTerminations.AsNoTracking().Where(x=>x.Status==PaymentTerminationStatus.PendingRecovery)
+                .OrderBy(x=>x.RequestedAt).ThenBy(x=>x.Id).Skip((page-1)*size).Take(size)
+                .Select(x=>new AdminRecoveryQueueItemDto("termination",x.Id,x.GatewayPaymentId,"pendingRecovery",x.RequestedAt)).ToListAsync(ct)
+        };
+        return new(rows,page,size,total);
     }
     public async Task<AdminRecoveryTarget?> GetRecoveryTargetAsync(string type,Guid id,CancellationToken ct)
     {

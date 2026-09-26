@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Refahi.Modules.CreditPayments.Infrastructure.Persistence;
-using Refahi.Shared.Extensions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Refahi.Modules.CreditPayments.Application;
 using Refahi.Modules.CreditPayments.Application.Contracts;
 using Refahi.Modules.CreditPayments.Application.Contracts.IntegrationEvents;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Refahi.Modules.CreditPayments.Domain;
+using Refahi.Modules.CreditPayments.Infrastructure.Persistence;
+using Refahi.Shared.Extensions;
+using Refahi.Shared.Infrastructure;
 
 namespace Refahi.Modules.CreditPayments.Infrastructure;
 
@@ -66,5 +67,16 @@ public static class DI
             .AddCheck<CreditPaymentsReadinessHealthCheck>("credit-payments-readiness", tags: ["readiness", "credit-payments"]);
 
         return services;
+    }
+
+    public static void UseInfrastructure(this IServiceProvider provider, bool IsDevelopment)
+    {
+        //if (!IsDevelopment)
+        //    return;
+
+        using var scope = provider.CreateScope();
+        var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
+
+        tools.ApplyMigrations<CreditPaymentsDbContext>();
     }
 }

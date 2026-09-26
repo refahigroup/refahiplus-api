@@ -103,10 +103,10 @@ public sealed class CreatePaymentIntentApplicationService
             var destination =
                 await _walletReadRepo.GetByIdAsync(command.DestinationWalletId.Value, ct)
                 ?? throw new WalletNotFoundException(command.DestinationWalletId.Value);
-            if (destination.WalletType != (short)WalletType.Provider)
+            if (destination.WalletType != (short)WalletType.Provider && destination.WalletType != (short)WalletType.Merchant)
                 throw new WalletOperationNotAllowedException(
                     command.DestinationWalletId.Value,
-                    "کیف مقصد باید از نوع Provider باشد."
+                    "کیف مقصد باید از نوع Provider یا Merchant باشد."
                 );
             if (!string.Equals(destination.Currency, currency, StringComparison.Ordinal))
                 throw new InvalidOperationException("واحد پول کیف مقصد با پرداخت یکسان نیست.");

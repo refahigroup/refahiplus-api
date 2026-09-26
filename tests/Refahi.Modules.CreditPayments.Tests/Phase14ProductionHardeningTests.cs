@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.CreditPayments.Application;
 using Refahi.Modules.CreditPayments.Application.Contracts;
+using Refahi.Modules.CreditPayments.Application.Contracts.IntegrationEvents;
 using Refahi.Modules.CreditPayments.Infrastructure;
 
 namespace Refahi.Modules.CreditPayments.Tests;
@@ -206,6 +207,18 @@ public sealed class Phase14ProductionHardeningTests
         Assert.Contains("/admin/production-readiness", source, StringComparison.Ordinal);
         Assert.Contains("CreditPayments.Admin.ProductionReadiness", source, StringComparison.Ordinal);
         Assert.Contains("RequireAuthorization(\"AdminOnly\")", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Internal_wallet_transfer_launch_mode_is_accepted_without_enabling_settlement_publication()
+    {
+        var values = PersistentDataProtectionConfiguration(string.Empty, string.Empty, string.Empty);
+        values["CreditPayments:ProductionReadiness:SettlementLaunchMode"] = "internal-wallet-transfer";
+        values["CreditPayments:SettlementIntegration:PublicationEnabled"] = "false";
+
+        using var provider = BuildApplicationProvider(values);
+        Assert.Equal("internal-wallet-transfer", provider.GetRequiredService<IOptions<CreditPaymentsProductionReadinessOptions>>().Value.SettlementLaunchMode);
+        Assert.False(provider.GetRequiredService<IOptions<SettlementIntegrationOptions>>().Value.PublicationEnabled);
     }
 
     [Fact]

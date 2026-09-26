@@ -5,6 +5,8 @@ using Refahi.Modules.CreditPayments.Application.Contracts;
 using Refahi.Modules.CreditPayments.Domain;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
+using Refahi.Modules.Wallets.Application.Contracts;
+using Refahi.Modules.Wallets.Application.Contracts.Features.GetWalletInfo;
 
 namespace Refahi.Modules.CreditPayments.Application;
 
@@ -137,6 +139,30 @@ public sealed class ExecuteGatewayPaymentHandler(
         {
             logger.LogError("Payment policy unavailable. GatewayPaymentId={GatewayPaymentId} MerchantId={MerchantId} TerminalId={TerminalId}",
                 payment.Id,payment.MerchantId,payment.TerminalId);
+            await executions.RecordPaymentExecutionAuditAsync(payment.Id,null,"gateway-payment.policy-unavailable",clock.GetUtcNow(),ct);
+            return PaymentExecutionSupport.Dto(payment,null,"payment_policy_unavailable");
+        }
+
+        bool destinationValid;
+        try
+        {
+            var merchant=await mediator.Send(new GetMerchantQuery(payment.MerchantId),ct);
+            var wallet=await mediator.Send(new GetWalletInfoByIdQuery(policy.DestinationWalletId),ct);
+            destinationValid=merchant is not null && merchant.SettlementWalletId==policy.DestinationWalletId
+                && wallet is not null && wallet.OwnerId==payment.MerchantId
+                && wallet.WalletType==WalletTypeValues.Merchant && wallet.Status==1
+                && wallet.Currency==payment.Currency;
+        }
+        catch(OperationCanceledException) when(ct.IsCancellationRequested) { throw; }
+        catch(Exception ex)
+        {
+            logger.LogError(ex,"Merchant destination validation unavailable. GatewayPaymentId={GatewayPaymentId} MerchantId={MerchantId} TerminalId={TerminalId}",payment.Id,payment.MerchantId,payment.TerminalId);
+            destinationValid=false;
+        }
+        if(!destinationValid)
+        {
+            logger.LogError("Merchant destination mismatch. GatewayPaymentId={GatewayPaymentId} MerchantId={MerchantId} TerminalId={TerminalId}",payment.Id,payment.MerchantId,payment.TerminalId);
+            await executions.RecordPaymentExecutionAuditAsync(payment.Id,null,"gateway-payment.destination-wallet-invalid",clock.GetUtcNow(),ct);
             return PaymentExecutionSupport.Dto(payment,null,"payment_policy_unavailable");
         }
 

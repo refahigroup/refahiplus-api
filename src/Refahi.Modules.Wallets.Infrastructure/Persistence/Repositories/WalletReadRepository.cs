@@ -124,6 +124,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
             null or "" => null,
             "REFAHI" or "Refahi" or "User" => (short)WalletType.User,
             "OrgCredit" or "ORG_CREDIT" or "Organizational" => (short)WalletType.OrgCredit,
+            "Merchant" or "MERCHANT" => (short)WalletType.Merchant,
             _ when short.TryParse(walletType, out var parsed) => parsed,
             _ => null,
         };
@@ -140,6 +141,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
                         WHEN w.wallet_type = @OrgCreditWalletType THEN 'OrgCredit'
                         WHEN w.wallet_type = @SystemWalletType THEN 'System'
                         WHEN w.wallet_type = @ProviderWalletType THEN 'Provider'
+                        WHEN w.wallet_type = @MerchantWalletType THEN 'Merchant'
                         ELSE 'Unknown'
                     END AS WalletType,
                     le.operation_id AS OperationId,
@@ -194,6 +196,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
                     OrgCreditWalletType = (short)WalletType.OrgCredit,
                     SystemWalletType = (short)WalletType.System,
                     ProviderWalletType = (short)WalletType.Provider,
+                    MerchantWalletType = (short)WalletType.Merchant,
                     OperationType = operationType,
                     EntryType = entryType,
                 },
@@ -244,7 +247,7 @@ public sealed class WalletReadRepository : IWalletReadRepository
             DateTimeOffset? ContractExpiresAt
         )>(
             """
-            SELECT w.wallet_id, w.wallet_type, w.currency,
+            SELECT w.wallet_id, w."OwnerId" AS OwnerId, w.wallet_type, w.currency,
                    COALESCE(wb.available_minor, 0) AS available_minor,
                    COALESCE(wb.pending_minor, 0) AS pending_minor,
                    w.allowed_category_code,

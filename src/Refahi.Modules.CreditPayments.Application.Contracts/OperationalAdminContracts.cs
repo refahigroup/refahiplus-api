@@ -37,8 +37,10 @@ public sealed record AdminOperationalSummaryDto(long ProcessingPayments,long Pen
     DateTimeOffset? OldestRecoveryAt,long OpenReconciliationFindings=0,long CriticalReconciliationFindings=0,
     DateTimeOffset? OldestReconciliationFindingAt=null,ReconciliationRunDto? LastReconciliationRun=null,
     long UnpublishedIntegrationEvents=0,bool IntegrationPublicationEnabled=false);
+public sealed record AdminRecoveryQueueItemDto(string ResourceType,Guid ResourceId,Guid PaymentId,
+    string Status,DateTimeOffset CreatedAt);
 
-public sealed record SearchAdminMerchantsQuery(Guid? MerchantId,Guid? SupplierId,string? Status,int Page,int PageSize)
+public sealed record SearchAdminMerchantsQuery(Guid? MerchantId,string? NationalId,string? Status,int Page,int PageSize)
     :IRequest<PagedAdminResult<MerchantDto>>;
 public sealed record SearchAdminTerminalsQuery(Guid? TerminalId,Guid? MerchantId,string? Status,int Page,int PageSize)
     :IRequest<PagedAdminResult<TerminalDto>>;
@@ -60,6 +62,8 @@ public sealed record SearchAdminIntegrationEventsQuery(Guid? EventId,string? Sta
     :IRequest<PagedAdminResult<AdminIntegrationEventDto>>;
 public sealed record ListAdminCredentialMetadataQuery(Guid TerminalId,int Page,int PageSize):IRequest<PagedAdminResult<AdminCredentialMetadataDto>>;
 public sealed record GetAdminOperationalSummaryQuery:IRequest<AdminOperationalSummaryDto>;
+public sealed record SearchAdminRecoveryQueueQuery(string ResourceType,int Page,int PageSize)
+    :IRequest<PagedAdminResult<AdminRecoveryQueueItemDto>>;
 public sealed record RequestAdminRecoveryCommand(string ResourceType,Guid ResourceId,string? ActorId):IRequest<string>;
 
 public interface ICreditPaymentsAdminReader
@@ -77,6 +81,7 @@ public interface ICreditPaymentsAdminReader
     Task<PagedAdminResult<AdminIntegrationEventDto>> SearchIntegrationEventsAsync(SearchAdminIntegrationEventsQuery query,CancellationToken ct);
     Task<PagedAdminResult<AdminCredentialMetadataDto>> ListCredentialsAsync(ListAdminCredentialMetadataQuery query,CancellationToken ct);
     Task<AdminOperationalSummaryDto> GetSummaryAsync(CancellationToken ct);
+    Task<PagedAdminResult<AdminRecoveryQueueItemDto>> SearchRecoveryQueueAsync(SearchAdminRecoveryQueueQuery query,CancellationToken ct);
     Task<AdminRecoveryTarget?> GetRecoveryTargetAsync(string resourceType,Guid resourceId,CancellationToken ct);
     Task AuditRecoveryRequestAsync(string resourceType,Guid resourceId,string? actorId,DateTimeOffset now,CancellationToken ct);
 }

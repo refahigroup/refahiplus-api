@@ -13,6 +13,7 @@ public class CreateWalletCommandValidator : AbstractValidator<CreateWalletComman
     {
         WalletTypeCodes.Refahi,
         WalletTypeCodes.Provider,
+        WalletTypeCodes.Merchant,
     };
 
     public CreateWalletCommandValidator()
@@ -23,7 +24,7 @@ public class CreateWalletCommandValidator : AbstractValidator<CreateWalletComman
             .NotEmpty()
             .WithMessage("نوع کیف‌پول الزامی است")
             .Must(t => AllowedWalletTypes.Contains(t))
-            .WithMessage("نوع کیف‌پول باید REFAHI یا PROVIDER باشد");
+            .WithMessage("نوع کیف‌پول باید REFAHI، PROVIDER یا MERCHANT باشد");
 
         RuleFor(x => x.Currency)
             .NotEmpty()

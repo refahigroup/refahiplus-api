@@ -6,6 +6,7 @@ namespace Refahi.Modules.CreditPayments.Domain;
 public sealed class CreditPaymentsDomainException(string message) : Exception(message);
 
 public enum MerchantStatus : short { Pending = 1, Active = 2, Suspended = 3, Disabled = 4 }
+public enum MerchantEntityType : short { Individual = 1, Legal = 2 }
 public enum TerminalStatus : short { Active = 1, Suspended = 2, Disabled = 3 }
 public enum CredentialStatus : short { Active = 1, Revoked = 2 }
 public enum WebhookEndpointStatus : short { Active = 1, Disabled = 2 }
@@ -85,20 +86,33 @@ public sealed class Merchant
     private readonly List<Terminal> _terminals = [];
     private Merchant() { }
     public Guid Id { get; private set; }
-    public Guid SupplierId { get; private set; }
+    public MerchantEntityType EntityType { get; private set; }
+    public string NationalId { get; private set; } = string.Empty;
+    public string LegalName { get; private set; } = string.Empty;
     public string DisplayName { get; private set; } = string.Empty;
+    public Guid? SettlementWalletId { get; private set; }
     public MerchantStatus Status { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public long Version { get; private set; }
     public IReadOnlyCollection<Terminal> Terminals => _terminals;
 
-    public static Merchant Create(Guid supplierId, string displayName, DateTimeOffset now)
+    public static Merchant Create(MerchantEntityType entityType, string nationalId, string legalName, string? displayName, DateTimeOffset now)
     {
-        if (supplierId == Guid.Empty) throw new CreditPaymentsDomainException("تامین‌کننده الزامی است");
-        return new Merchant { Id = Guid.NewGuid(), SupplierId = supplierId, DisplayName = CreditPaymentsText.Required(displayName, 200, "نام نمایشی الزامی است"), Status = MerchantStatus.Pending, CreatedAt = now, UpdatedAt = now, Version = 1 };
+        if (!Enum.IsDefined(entityType)) throw new CreditPaymentsDomainException("نوع شخصیت پذیرنده معتبر نیست");
+        nationalId = NormalizeNationalId(nationalId);
+        if (nationalId.Length != (entityType == MerchantEntityType.Individual ? 10 : 11) || !nationalId.All(char.IsAsciiDigit))
+            throw new CreditPaymentsDomainException("کد ملی یا شناسه ملی معتبر نیست");
+        legalName = CreditPaymentsText.Required(legalName, 200, "نام قانونی پذیرنده الزامی است");
+        var name = string.IsNullOrWhiteSpace(displayName) ? legalName : CreditPaymentsText.Required(displayName, 200, "نام نمایشی نامعتبر است");
+        return new Merchant { Id = Guid.NewGuid(), EntityType = entityType, NationalId = nationalId, LegalName = legalName, DisplayName = name, Status = MerchantStatus.Pending, CreatedAt = now, UpdatedAt = now, Version = 1 };
     }
-    public void Activate(DateTimeOffset now) { if (Status is not (MerchantStatus.Pending or MerchantStatus.Suspended)) Invalid(); Status = MerchantStatus.Active; Touch(now); }
+    public static string NormalizeNationalId(string? value) => new((value ?? string.Empty).Trim().Select(c => c switch { >= '\u06f0' and <= '\u06f9' => (char)('0' + c - '\u06f0'), >= '\u0660' and <= '\u0669' => (char)('0' + c - '\u0660'), _ => c }).ToArray());
+    public bool HasSameIdentity(MerchantEntityType type, string nationalId, string legalName, string? displayName) =>
+        EntityType == type && NationalId == NormalizeNationalId(nationalId) && LegalName == (legalName?.Trim() ?? string.Empty) &&
+        DisplayName == (string.IsNullOrWhiteSpace(displayName) ? legalName.Trim() : displayName.Trim());
+    public void BindSettlementWallet(Guid walletId, DateTimeOffset now) { if (walletId == Guid.Empty || (SettlementWalletId.HasValue && SettlementWalletId != walletId)) throw new CreditPaymentsDomainException("کیف درآمد پذیرنده معتبر نیست"); if (SettlementWalletId == walletId) return; SettlementWalletId = walletId; Touch(now); }
+    public void Activate(DateTimeOffset now) { if (Status is not (MerchantStatus.Pending or MerchantStatus.Suspended)) Invalid(); if (!SettlementWalletId.HasValue) throw new CreditPaymentsDomainException("کیف درآمد پذیرنده ثبت نشده است"); Status = MerchantStatus.Active; Touch(now); }
     public void Suspend(DateTimeOffset now) { if (Status != MerchantStatus.Active) Invalid(); Status = MerchantStatus.Suspended; Touch(now); }
     public void Disable(DateTimeOffset now) { if (Status == MerchantStatus.Disabled) Invalid(); Status = MerchantStatus.Disabled; Touch(now); }
     public Terminal AddTerminal(string name, string category, long min, long max, IEnumerable<string> urls, DateTimeOffset now)
@@ -138,7 +152,7 @@ public sealed class Terminal
         return result;
     }
     public void UpdatePolicy(string category, long min, long max, DateTimeOffset now) { if (Status == TerminalStatus.Disabled) throw new CreditPaymentsDomainException("پایانه غیرفعال است"); ValidateLimits(min,max); ApprovedCategoryCode=CreditPaymentsText.Category(category); MinPaymentAmountMinor=min; MaxPaymentAmountMinor=max; Touch(now); }
-    public void AddReturnUrl(string url, DateTimeOffset now) { var canonical=SecureUrlPolicy.CanonicalizeReturnUrl(url); if (_returnUrls.Any(x=>x.CanonicalUrl==canonical)) throw new CreditPaymentsDomainException("نشانی بازگشت تکراری است"); _returnUrls.Add(TerminalReturnUrl.Create(Id,canonical,now)); Touch(now); }
+    public TerminalReturnUrl AddReturnUrl(string url, DateTimeOffset now) { var canonical=SecureUrlPolicy.CanonicalizeReturnUrl(url); if (_returnUrls.Any(x=>x.CanonicalUrl==canonical)) throw new CreditPaymentsDomainException("نشانی بازگشت تکراری است"); var item=TerminalReturnUrl.Create(Id,canonical,now); _returnUrls.Add(item); Touch(now); return item; }
     public void RemoveReturnUrl(Guid id, DateTimeOffset now) { var item=_returnUrls.SingleOrDefault(x=>x.Id==id) ?? throw new CreditPaymentsDomainException("نشانی بازگشت یافت نشد"); if (_returnUrls.Count==1) throw new CreditPaymentsDomainException("حداقل یک نشانی بازگشت الزامی است"); _returnUrls.Remove(item); Touch(now); }
     public TerminalCredential AddCredential(string clientId, string hash, string algorithm, int hashVersion, IEnumerable<string> scopes, string label, DateTimeOffset? expiresAt, DateTimeOffset now) { if(Status!=TerminalStatus.Active) throw new CreditPaymentsDomainException("پایانه فعال نیست"); var item=TerminalCredential.Create(Id,clientId,hash,algorithm,hashVersion,scopes,label,expiresAt,now); _credentials.Add(item); Touch(now); return item; }
     public void Suspend(DateTimeOffset now) { if(Status!=TerminalStatus.Active) Invalid(); Status=TerminalStatus.Suspended; Touch(now); }

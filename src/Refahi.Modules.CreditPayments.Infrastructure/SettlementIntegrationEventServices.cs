@@ -19,7 +19,7 @@ internal static class SettlementIntegrationEventFactory
     public static string CaptureSource(Guid paymentId) => $"credit-payment-captured:{paymentId:N}";
     public static string RefundSource(Guid refundId) => $"credit-payment-refunded:{refundId:N}";
 
-    public static CreditPaymentIntegrationEvent Captured(GatewayPayment payment, Guid supplierId,
+    public static CreditPaymentIntegrationEvent Captured(GatewayPayment payment,
         DateTimeOffset createdAt)
     {
         if (payment.OrderId is null || payment.WalletPaymentId is null || payment.PaidAt is null ||
@@ -29,7 +29,7 @@ internal static class SettlementIntegrationEventFactory
         var contract = new CreditPaymentCapturedV1(StableId(sourceKey),
             CreditPaymentSettlementEventTypes.CapturedV1, CreditPaymentSettlementEventTypes.Version1,
             payment.PaidAt.Value, CreditPaymentSettlementEventTypes.Source, payment.Id,
-            payment.MerchantId, payment.TerminalId, supplierId, payment.MerchantOrderId,
+            payment.MerchantId, payment.TerminalId, null, payment.MerchantOrderId,
             payment.OrderId.Value, payment.AmountMinor, payment.CapturedAmountMinor, payment.Currency,
             payment.WalletPaymentId.Value, payment.ApprovedCategoryCodeSnapshot, payment.PolicyId,
             payment.PolicyVersion, payment.PolicyHash);
@@ -39,7 +39,7 @@ internal static class SettlementIntegrationEventFactory
     }
 
     public static CreditPaymentIntegrationEvent Refunded(Refund refund, GatewayPayment payment,
-        Guid supplierId, DateTimeOffset createdAt)
+        DateTimeOffset createdAt)
     {
         if (payment.OrderId is null || payment.WalletPaymentId is null || refund.WalletRefundId is null ||
             refund.CompletedAt is null)
@@ -48,7 +48,7 @@ internal static class SettlementIntegrationEventFactory
         var contract = new CreditPaymentRefundedV1(StableId(sourceKey),
             CreditPaymentSettlementEventTypes.RefundedV1, CreditPaymentSettlementEventTypes.Version1,
             refund.CompletedAt.Value, CreditPaymentSettlementEventTypes.Source, refund.Id, payment.Id,
-            payment.MerchantId, payment.TerminalId, supplierId, payment.OrderId.Value,
+            payment.MerchantId, payment.TerminalId, null, payment.OrderId.Value,
             payment.WalletPaymentId.Value, refund.WalletRefundId.Value, refund.AmountMinor, refund.Currency,
             payment.CapturedAmountMinor, payment.RefundedAmountMinor,
             payment.Status == GatewayPaymentStatus.Refunded, refund.MerchantRefundReference);
@@ -160,10 +160,9 @@ public sealed class SettlementIntegrationEventReconciler(CreditPaymentsDbContext
         var added = 0; var now = clock.GetUtcNow();
         foreach (var payment in rows)
         {
-            var merchant = await db.Merchants.SingleAsync(x => x.Id == payment.MerchantId, ct);
             try
             {
-                db.IntegrationEvents.Add(SettlementIntegrationEventFactory.Captured(payment, merchant.SupplierId, now));
+                db.IntegrationEvents.Add(SettlementIntegrationEventFactory.Captured(payment, now));
                 db.AuditRecords.Add(AuditRecord.Create("settlement-integration.historical-fact-reconciled",
                     "GatewayPayment", payment.Id, null, now));
                 added++;
@@ -191,10 +190,9 @@ public sealed class SettlementIntegrationEventReconciler(CreditPaymentsDbContext
         foreach (var refund in rows)
         {
             var payment = await db.GatewayPayments.SingleAsync(x => x.Id == refund.GatewayPaymentId, ct);
-            var merchant = await db.Merchants.SingleAsync(x => x.Id == payment.MerchantId, ct);
             try
             {
-                db.IntegrationEvents.Add(SettlementIntegrationEventFactory.Refunded(refund, payment, merchant.SupplierId, now));
+                db.IntegrationEvents.Add(SettlementIntegrationEventFactory.Refunded(refund, payment, now));
                 db.AuditRecords.Add(AuditRecord.Create("settlement-integration.historical-fact-reconciled",
                     "Refund", refund.Id, null, now));
                 added++;

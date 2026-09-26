@@ -266,8 +266,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             ) ?? throw new WalletNotFoundException(destinationWalletId.Value);
             if ((WalletStatus)destination.Status != WalletStatus.Active)
                 throw new WalletOperationNotAllowedException(((WalletStatus)destination.Status).ToString());
-            if ((WalletType)destination.WalletType != WalletType.Provider)
-                throw new WalletOperationNotAllowedException(destinationWalletId.Value, "کیف مقصد باید از نوع Provider باشد.");
+            if ((WalletType)destination.WalletType is not (WalletType.Provider or WalletType.Merchant))
+                throw new WalletOperationNotAllowedException(destinationWalletId.Value, "کیف مقصد باید از نوع Provider یا Merchant باشد.");
             if (!string.Equals(destination.Currency, currency, StringComparison.Ordinal))
                 throw new WalletCurrencyMismatchException(destination.Currency, currency);
         }

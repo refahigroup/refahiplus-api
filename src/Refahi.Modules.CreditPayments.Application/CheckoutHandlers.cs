@@ -37,14 +37,18 @@ public sealed class GetCheckoutHandler(
 
     internal static void EnsureUsable(CheckoutLookup lookup, DateTimeOffset now)
     {
-        if (now >= lookup.Session.ExpiresAt || now >= lookup.Payment.ExpiresAt)
-            throw Error("checkout_expired", "نشست پرداخت منقضی شده است", 410);
         if (lookup.Session.Status is not (CheckoutSessionStatus.Created or CheckoutSessionStatus.Authenticated
                 or CheckoutSessionStatus.AwaitingFunding or CheckoutSessionStatus.Processing or CheckoutSessionStatus.Completed
-                or CheckoutSessionStatus.Canceled)
+                or CheckoutSessionStatus.Canceled or CheckoutSessionStatus.Expired)
             || lookup.Payment.Status is not (GatewayPaymentStatus.AwaitingCustomer or GatewayPaymentStatus.AwaitingFunding
-                or GatewayPaymentStatus.Processing or GatewayPaymentStatus.Succeeded or GatewayPaymentStatus.Canceled))
+                or GatewayPaymentStatus.Processing or GatewayPaymentStatus.Succeeded or GatewayPaymentStatus.Canceled
+                or GatewayPaymentStatus.Expired))
             throw Error("checkout_not_found", "نشست پرداخت یافت نشد", 404);
+        if (lookup.Payment.Status == GatewayPaymentStatus.Expired
+            || lookup.Session.Status == CheckoutSessionStatus.Expired
+            || ((lookup.Payment.Status is GatewayPaymentStatus.AwaitingCustomer or GatewayPaymentStatus.AwaitingFunding)
+                && (now >= lookup.Session.ExpiresAt || now >= lookup.Payment.ExpiresAt)))
+            throw Error("checkout_expired", "نشست پرداخت منقضی شده است", 410);
     }
 
     internal static CreditPaymentsApplicationException Error(string code, string message, int status = 400) =>
@@ -94,7 +98,7 @@ public sealed class SendCheckoutOtpHandler(
             throw MapState(ex);
         }
 
-        if (trustedIdentity is null)
+        if (trustedIdentity is null || dispatch.Challenge.ResolvedCustomerId is null)
         {
             await checkouts.FinalizeOtpChallengeAsync(
                 dispatch.Challenge.Id, null, dispatch.Challenge.ExpiresAt, true, now, ct);
@@ -175,18 +179,17 @@ public sealed class VerifyCheckoutOtpHandler(
         var existing = await checkouts.FindCheckoutAsync(tokenHash, false, ct);
         if (existing is null)
             throw GetCheckoutHandler.Error("checkout_not_found", "نشست پرداخت یافت نشد", 404);
-        if (existing.Session.Status == CheckoutSessionStatus.Authenticated)
+        GetCheckoutHandler.EnsureUsable(existing, now);
+        if (existing.Session.Status is CheckoutSessionStatus.Authenticated or CheckoutSessionStatus.AwaitingFunding)
         {
             var authorized = existing.Session.AuthorizationSecretHash is not null
                 && existing.Session.AuthorizationExpiresAt > now
                 && !string.IsNullOrWhiteSpace(request.ExistingAuthorizationSecret)
                 && security.VerifyAuthorizationSecret(
                     request.ExistingAuthorizationSecret, existing.Session.AuthorizationSecretHash);
-            if (!authorized)
-                throw GetCheckoutHandler.Error("checkout_already_authenticated", "نشست پرداخت قبلاً احراز هویت شده است", 409);
-            return new("authenticated", null, existing.Session.AuthorizationExpiresAt, true);
+            if (authorized)
+                return new("authenticated", null, existing.Session.AuthorizationExpiresAt, true);
         }
-        GetCheckoutHandler.EnsureUsable(existing, now);
 
         OtpChallengeDispatch? dispatch;
         try
@@ -247,7 +250,13 @@ public sealed class VerifyCheckoutOtpHandler(
         }
         catch (CheckoutStateException ex)
         {
-            throw GetCheckoutHandler.Error(ex.Code, ex.Message, ex.Code == "customer_switch_forbidden" ? 409 : 400);
+            throw GetCheckoutHandler.Error(ex.Code, ex.Message, ex.Code switch
+            {
+                "customer_switch_forbidden" => 409,
+                "checkout_expired" => 410,
+                "checkout_not_found" => 404,
+                _ => 400
+            });
         }
         logger.LogInformation("Checkout customer authenticated. CheckoutSessionId={CheckoutSessionId} OtpChallengeId={OtpChallengeId} CustomerId={CustomerId}",
             dispatch.Session.Id, dispatch.Challenge.Id, customerId);

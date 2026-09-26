@@ -304,7 +304,7 @@ public sealed class Phase05FundingEvaluationTests
     {
         var now = DateTimeOffset.UtcNow;
         var customerId = Guid.NewGuid();
-        var merchant = Merchant.Create(Guid.NewGuid(), "Merchant", now);
+        var merchant = MerchantTestFactory.Create(Guid.NewGuid(), "Merchant", now);
         merchant.Activate(now);
         var payment = GatewayPayment.Create(
             merchant.Id, Guid.NewGuid(), "M-ORDER", PaymentAmount, "IRR", null, "{}",
@@ -411,7 +411,7 @@ public sealed class Phase05FundingEvaluationTests
                         "CreditPayments",
                         payment.Id,
                         "CreditPayments",
-                        merchant.SupplierId,
+                        merchant.Id,
                         payment.AmountMinor,
                         "IRR",
                         payment.ApprovedCategoryCodeSnapshot,

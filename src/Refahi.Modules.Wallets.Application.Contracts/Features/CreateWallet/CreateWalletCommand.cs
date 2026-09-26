@@ -7,6 +7,7 @@ public static class WalletTypeCodes
 {
     public const string Refahi = "REFAHI";
     public const string Provider = "PROVIDER";
+    public const string Merchant = "MERCHANT";
 }
 
 public sealed record CreateWalletCommand(Guid OwnerId, string WalletType, string Currency)

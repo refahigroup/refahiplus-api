@@ -95,6 +95,7 @@ public sealed class CreditPaymentsProductionReadinessChecker(
     IOptions<MerchantPaymentPolicyOptions> policies,
     IOptions<CreditPaymentsDataProtectionOptions> dataProtection,
     IOptions<CreditPaymentsProductionReadinessOptions> readiness,
+    IOptions<ReconciliationOptions> reconciliation,
     IOptions<SettlementIntegrationOptions> settlement,
     ICreditPaymentIntegrationEventPublisher publisher,
     IDataProtectionProvider protectionProvider,
@@ -125,13 +126,24 @@ public sealed class CreditPaymentsProductionReadinessChecker(
                 ? await (from terminal in db.Terminals.AsNoTracking()
                     join merchant in db.Merchants.AsNoTracking() on terminal.MerchantId equals merchant.Id
                     where terminal.Status == TerminalStatus.Active && merchant.Status == MerchantStatus.Active
-                    select new { merchant.Id, TerminalId = terminal.Id, terminal.ApprovedCategoryCode }).ToListAsync(ct)
+                    select new { merchant.Id, merchant.SettlementWalletId, TerminalId = terminal.Id,
+                        terminal.ApprovedCategoryCode, WebhookActive = terminal.WebhookEndpoint != null
+                            && terminal.WebhookEndpoint.Status == WebhookEndpointStatus.Active }).ToListAsync(ct)
                 : [];
-            var policyCoverage = databaseConnected && activeTerminals.All(x => MatchingPolicies(
-                policies.Value.Policies, x.Id, x.TerminalId, x.ApprovedCategoryCode) == 1);
+            var policyCoverage = databaseConnected && activeTerminals.Count > 0 && activeTerminals.All(x =>
+                x.SettlementWalletId.HasValue && x.SettlementWalletId != Guid.Empty &&
+                policies.Value.Policies.Count(policy => Matches(policy, x.Id, x.TerminalId, x.ApprovedCategoryCode)
+                    && policy.DestinationWalletId == x.SettlementWalletId.Value) == 1 &&
+                MatchingPolicies(policies.Value.Policies, x.Id, x.TerminalId, x.ApprovedCategoryCode) == 1);
             Add(rows, "merchant-policy-coverage", policyCoverage, true,
-                policyCoverage ? $"Exactly one policy resolves for each of {activeTerminals.Count} active terminal/category combinations."
-                    : "At least one active terminal/category combination has zero or ambiguous policy matches.");
+                policyCoverage ? $"Exactly one policy targets the merchant wallet for each of {activeTerminals.Count} active terminals."
+                    : "No active terminal exists, or a terminal has no unique policy targeting its merchant wallet.");
+
+            var webhookCoverage = databaseConnected && activeTerminals.Count > 0
+                && activeTerminals.All(x => x.WebhookActive);
+            Add(rows, "webhook-coverage", webhookCoverage, true,
+                webhookCoverage ? "Every active terminal has an active webhook endpoint."
+                    : "At least one active terminal has no active webhook endpoint.");
 
             var financeApproved = !string.IsNullOrWhiteSpace(policies.Value.FinanceApprovalReference);
             Add(rows, "finance-approval", financeApproved, true,
@@ -139,25 +151,29 @@ public sealed class CreditPaymentsProductionReadinessChecker(
         }
         else
         {
-            Add(rows, "financial-execution", true, false, "Financial execution is explicitly disabled for this launch mode.");
+            Add(rows, "financial-execution", false, true, "Financial execution is disabled; this instance cannot accept production payments.");
         }
 
-        var checkoutReady = !readiness.Value.HostedCheckoutRequired
-            || !string.IsNullOrWhiteSpace(readiness.Value.HostedCheckoutDeploymentEvidence);
-        Add(rows, "hosted-checkout", checkoutReady, readiness.Value.HostedCheckoutRequired,
-            checkoutReady ? "Hosted Checkout deployment evidence is configured or not required."
+        var checkoutReady = readiness.Value.HostedCheckoutRequired
+            && !string.IsNullOrWhiteSpace(readiness.Value.HostedCheckoutDeploymentEvidence);
+        Add(rows, "hosted-checkout", checkoutReady, true,
+            checkoutReady ? "Hosted Checkout deployment evidence is configured."
                 : "Hosted Checkout deployment is not evidenced.");
+
+        Add(rows, "reconciliation", reconciliation.Value.Enabled, true,
+            reconciliation.Value.Enabled ? "Automated reconciliation is enabled."
+                : "Automated reconciliation is disabled.");
 
         var transportReady = readiness.Value.SettlementLaunchMode switch
         {
-            "gated-no-consumer" => !settlement.Value.PublicationEnabled,
+            "internal-wallet-transfer" or "gated-no-consumer" => !settlement.Value.PublicationEnabled,
             "required" => settlement.Value.PublicationEnabled
                 && publisher is not UnavailableCreditPaymentIntegrationEventPublisher,
             _ => false
         };
         Add(rows, "integration-event-transport", transportReady, true,
             transportReady ? $"Explicit launch mode '{readiness.Value.SettlementLaunchMode}' is coherent with publication configuration."
-                : "Approved Settlement publication or explicit gated-no-consumer launch decision is not evidenced.");
+                : "Internal wallet transfer mode requires integration-event publication to be disabled; other modes require an approved publisher.");
 
         return new(rows.Any(x => x.ProductionBlocker && x.Status == "blocked") ? "blocked" : "ready",
             clock.GetUtcNow(), rows);
@@ -165,9 +181,13 @@ public sealed class CreditPaymentsProductionReadinessChecker(
 
     private static int MatchingPolicies(IEnumerable<MerchantPaymentPolicyEntry> entries, Guid merchantId,
         Guid terminalId, string category) => entries.Count(x =>
-            (!x.MerchantId.HasValue || x.MerchantId == merchantId)
+        Matches(x, merchantId, terminalId, category));
+
+    private static bool Matches(MerchantPaymentPolicyEntry x, Guid merchantId,
+        Guid terminalId, string category) =>
+        (!x.MerchantId.HasValue || x.MerchantId == merchantId)
             && (!x.TerminalId.HasValue || x.TerminalId == terminalId)
-            && string.Equals(x.CategoryCode?.Trim(), category, StringComparison.Ordinal));
+            && string.Equals(x.CategoryCode?.Trim(), category, StringComparison.Ordinal);
 
     private static bool ProtectionRoundTrip(IDataProtectionProvider provider)
     {

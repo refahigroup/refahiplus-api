@@ -34,27 +34,36 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, C
         var walletTypeShort = (short)walletTypeEnum;
 
         // Idempotent: if wallet already exists for this owner+type, return it
-        var existing = await _readRepo.ExistsByOwnerAndTypeAsync(
-            request.OwnerId,
-            walletTypeShort,
-            cancellationToken
-        );
-        if (existing)
+        var owned = await _readRepo.GetByOwnerIdAsync(request.OwnerId, cancellationToken);
+        var match = owned.FirstOrDefault(w =>
+            string.Equals(w.WalletType, walletTypeEnum == WalletType.User ? WalletTypeCodes.Refahi : walletTypeEnum.ToString(), StringComparison.OrdinalIgnoreCase)
+            && string.Equals(w.Currency, currency, StringComparison.OrdinalIgnoreCase));
+        if (match is not null)
         {
-            var owned = await _readRepo.GetByOwnerIdAsync(request.OwnerId, cancellationToken);
-            var match = owned.First(w =>
-                string.Equals(w.WalletType, request.WalletType, StringComparison.OrdinalIgnoreCase)
-            );
             return new CreateWalletResponse(match.WalletId, match.WalletType, match.Currency);
         }
 
-        var walletId = await _writeRepo.CreateAsync(
-            ownerId: request.OwnerId,
-            walletType: walletTypeShort,
-            walletStatus: (short)WalletStatus.Active,
-            currency: currency,
-            ct: cancellationToken
-        );
+        Guid walletId;
+        try
+        {
+            walletId = await _writeRepo.CreateAsync(
+                ownerId: request.OwnerId,
+                walletType: walletTypeShort,
+                walletStatus: (short)WalletStatus.Active,
+                currency: currency,
+                ct: cancellationToken
+            );
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // A concurrent create may have committed after the initial read.
+            var concurrent = (await _readRepo.GetByOwnerIdAsync(request.OwnerId, cancellationToken))
+                .FirstOrDefault(w => string.Equals(w.WalletType,
+                    walletTypeEnum == WalletType.User ? WalletTypeCodes.Refahi : walletTypeEnum.ToString(),
+                    StringComparison.OrdinalIgnoreCase) && string.Equals(w.Currency, currency, StringComparison.OrdinalIgnoreCase));
+            if (concurrent is null) throw;
+            return new CreateWalletResponse(concurrent.WalletId, concurrent.WalletType, concurrent.Currency);
+        }
 
         return new CreateWalletResponse(walletId, request.WalletType.ToUpperInvariant(), currency);
     }
@@ -64,6 +73,7 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, C
         {
             WalletTypeCodes.Refahi => WalletType.User,
             WalletTypeCodes.Provider => WalletType.Provider,
+            WalletTypeCodes.Merchant => WalletType.Merchant,
             _ => throw new ArgumentException(
                 $"نوع کیف‌پول '{walletType}' پشتیبانی نمی‌شود",
                 nameof(walletType)

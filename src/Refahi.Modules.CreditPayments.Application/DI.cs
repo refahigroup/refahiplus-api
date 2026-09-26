@@ -45,7 +45,7 @@ public static class DI
         services.AddOptions<CreditPaymentsProductionReadinessOptions>()
             .Bind(configuration.GetSection(CreditPaymentsProductionReadinessOptions.SectionName))
             .Validate(x=>string.IsNullOrWhiteSpace(x.SettlementLaunchMode)||
-                x.SettlementLaunchMode is "required" or "gated-no-consumer",
+                x.SettlementLaunchMode is "required" or "gated-no-consumer" or "internal-wallet-transfer",
                 "Production readiness settlement launch mode is invalid.")
             .ValidateOnStart();
         services.TryAddSingleton(TimeProvider.System);

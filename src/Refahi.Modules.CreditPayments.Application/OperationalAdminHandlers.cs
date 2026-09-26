@@ -18,7 +18,8 @@ public sealed class OperationalAdminQueryHandlers(ICreditPaymentsAdminReader rea
     IRequestHandler<SearchAdminWebhookDeliveriesQuery,PagedAdminResult<AdminWebhookDeliveryDto>>,
     IRequestHandler<SearchAdminIntegrationEventsQuery,PagedAdminResult<AdminIntegrationEventDto>>,
     IRequestHandler<ListAdminCredentialMetadataQuery,PagedAdminResult<AdminCredentialMetadataDto>>,
-    IRequestHandler<GetAdminOperationalSummaryQuery,AdminOperationalSummaryDto>
+    IRequestHandler<GetAdminOperationalSummaryQuery,AdminOperationalSummaryDto>,
+    IRequestHandler<SearchAdminRecoveryQueueQuery,PagedAdminResult<AdminRecoveryQueueItemDto>>
 {
     public Task<PagedAdminResult<MerchantDto>> Handle(SearchAdminMerchantsQuery r,CancellationToken ct)=>reader.SearchMerchantsAsync(r,ct);
     public Task<PagedAdminResult<TerminalDto>> Handle(SearchAdminTerminalsQuery r,CancellationToken ct)=>reader.SearchTerminalsAsync(r,ct);
@@ -33,6 +34,7 @@ public sealed class OperationalAdminQueryHandlers(ICreditPaymentsAdminReader rea
     public Task<PagedAdminResult<AdminIntegrationEventDto>> Handle(SearchAdminIntegrationEventsQuery r,CancellationToken ct)=>reader.SearchIntegrationEventsAsync(r,ct);
     public Task<PagedAdminResult<AdminCredentialMetadataDto>> Handle(ListAdminCredentialMetadataQuery r,CancellationToken ct)=>reader.ListCredentialsAsync(r,ct);
     public Task<AdminOperationalSummaryDto> Handle(GetAdminOperationalSummaryQuery r,CancellationToken ct)=>reader.GetSummaryAsync(ct);
+    public Task<PagedAdminResult<AdminRecoveryQueueItemDto>> Handle(SearchAdminRecoveryQueueQuery r,CancellationToken ct)=>reader.SearchRecoveryQueueAsync(r,ct);
 }
 
 public sealed class RequestAdminRecoveryHandler(ICreditPaymentsAdminReader reader,IMediator mediator,TimeProvider clock):

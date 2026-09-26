@@ -51,7 +51,7 @@ public sealed class EvaluateCheckoutFundingHandler(
                     customerId,
                     SourceModule,
                     context.Payment.Id,
-                    context.Merchant.SupplierId,
+                    context.Merchant.Id,
                     context.Payment.AmountMinor,
                     context.Payment.Currency,
                     context.Payment.ApprovedCategoryCodeSnapshot,
@@ -212,7 +212,7 @@ public sealed class EvaluateCheckoutFundingHandler(
         && string.Equals(order.SourceModule, SourceModule, StringComparison.Ordinal)
         && order.SourceReferenceId == context.Payment.Id
         && string.Equals(order.ReferenceType, SourceModule, StringComparison.Ordinal)
-        && order.SourceOwnerId == context.Merchant.SupplierId
+        && order.SourceOwnerId == context.Merchant.Id
         && order.AmountMinor == context.Payment.AmountMinor
         && string.Equals(order.Currency, "IRR", StringComparison.Ordinal)
         && string.Equals(

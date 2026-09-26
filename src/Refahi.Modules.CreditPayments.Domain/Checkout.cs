@@ -93,11 +93,12 @@ public sealed class CheckoutSession
             throw new CreditPaymentsDomainException("نشست پرداخت منقضی شده است");
         if (CustomerId is not null && CustomerId != customerId)
             throw new CreditPaymentsDomainException("مشتری نشست پرداخت قابل تغییر نیست");
-        if (Status == CheckoutSessionStatus.Authenticated && CustomerId == customerId) return;
-        if (Status != CheckoutSessionStatus.Created)
+        if (Status is not (CheckoutSessionStatus.Created or CheckoutSessionStatus.Authenticated
+            or CheckoutSessionStatus.AwaitingFunding))
             throw new CreditPaymentsDomainException("وضعیت نشست برای احراز هویت مجاز نیست");
         CustomerId = customerId;
-        Status = CheckoutSessionStatus.Authenticated;
+        if (Status == CheckoutSessionStatus.Created)
+            Status = CheckoutSessionStatus.Authenticated;
         AuthenticatedAt = now;
         AuthorizationSecretHash = authorizationSecretHash.ToArray();
         AuthorizationExpiresAt = authorizationExpiresAt;

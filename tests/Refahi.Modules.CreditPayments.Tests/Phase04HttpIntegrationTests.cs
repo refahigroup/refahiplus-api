@@ -37,6 +37,7 @@ public sealed class Phase04HttpIntegrationTests : IAsyncLifetime
             builder.UseSetting("Commerce:Providers:TouristPanel:Enabled", "false");
             builder.UseSetting("Commerce:Providers:TouristPanel:SalesEnabled", "false");
             builder.UseSetting("Commerce:Providers:Aabsar:Enabled", "false");
+            builder.UseSetting("CreditPayments:Checkout:AllowedOrigins:0", "https://pay.test");
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
@@ -68,6 +69,27 @@ public sealed class Phase04HttpIntegrationTests : IAsyncLifetime
         client.Dispose();
         await factory.DisposeAsync();
         await postgres.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Checkout_cors_allows_only_approved_credentialed_origin()
+    {
+        using var approvedRequest = new HttpRequestMessage(HttpMethod.Options, Path("/checkout/token/otp/verify"));
+        approvedRequest.Headers.Add("Origin", "https://pay.test");
+        approvedRequest.Headers.Add("Access-Control-Request-Method", "POST");
+        approvedRequest.Headers.Add("Access-Control-Request-Headers", "content-type,idempotency-key");
+        using var approved = await client.SendAsync(approvedRequest);
+        Assert.Equal(HttpStatusCode.NoContent, approved.StatusCode);
+        Assert.Equal("https://pay.test", approved.Headers.GetValues("Access-Control-Allow-Origin").Single());
+        Assert.Equal("true", approved.Headers.GetValues("Access-Control-Allow-Credentials").Single());
+
+        using var rejectedRequest = new HttpRequestMessage(HttpMethod.Options, Path("/checkout/token/otp/verify"));
+        rejectedRequest.Headers.Add("Origin", "https://unapproved.example");
+        rejectedRequest.Headers.Add("Access-Control-Request-Method", "POST");
+        using var rejected = await client.SendAsync(rejectedRequest);
+        Assert.Equal(HttpStatusCode.NoContent, rejected.StatusCode);
+        Assert.False(rejected.Headers.Contains("Access-Control-Allow-Origin"));
+        Assert.False(rejected.Headers.Contains("Access-Control-Allow-Credentials"));
     }
 
     [Fact]
@@ -250,7 +272,7 @@ public sealed class Phase04HttpIntegrationTests : IAsyncLifetime
         bool suspendTerminal = false)
     {
         var now = DateTimeOffset.UtcNow;
-        var merchant = Merchant.Create(Guid.NewGuid(), $"Merchant {name}", now);
+        var merchant = MerchantTestFactory.Create(Guid.NewGuid(), $"Merchant {name}", now);
         merchant.Activate(now);
         var terminal = merchant.AddTerminal($"Terminal {name}", "store", 100, 10_000,
             ["https://merchant.example/callback"], now);

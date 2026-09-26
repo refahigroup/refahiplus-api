@@ -774,13 +774,29 @@ namespace Refahi.Modules.CreditPayments.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("display_name");
 
+                    b.Property<short>("EntityType")
+                        .HasColumnType("smallint")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("LegalName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("legal_name");
+
+                    b.Property<string>("NationalId")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("national_id");
+
+                    b.Property<Guid?>("SettlementWalletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("settlement_wallet_id");
+
                     b.Property<short>("Status")
                         .HasColumnType("smallint")
                         .HasColumnName("status");
-
-                    b.Property<Guid>("SupplierId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("supplier_id");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -793,11 +809,13 @@ namespace Refahi.Modules.CreditPayments.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SupplierId")
+                    b.HasIndex("EntityType", "NationalId")
                         .IsUnique();
 
                     b.ToTable("merchants", "credit_payments", t =>
                         {
+                            t.HasCheckConstraint("ck_merchants_entity_type", "entity_type IN (1,2)");
+
                             t.HasCheckConstraint("ck_merchants_status", "status IN (1,2,3,4)");
                         });
                 });
