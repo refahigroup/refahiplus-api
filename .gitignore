@@ -431,3 +431,6 @@ FodyWeavers.xsd
 /src/Refahi.Api/appsettingsLocal.json
 /src/Refahi.Api/appsettings.Local.json
 /src/Refahi.Api/appsettings.Local.json
+
+
+.DS_Store
