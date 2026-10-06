@@ -1,36 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket;
+using Refahi.Shared.Extensions;
 
-namespace Refahi.Modules.Cinema.Infrastructure.iTicket;
+namespace Refahi.Modules.Cinema.Infrastructure;
 
-public static class ITicketServiceCollectionExtensions
+public static class DI
 {
-    private const string ClientName = "iTicket";
-
-    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddITicketClient(
-        this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
-        string apiAccessToken,
-        Uri? baseAddress = null)
+    public static IServiceCollection RegisterInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
-        services.AddHttpClient(ClientName, client =>
-        {
-            client.BaseAddress = baseAddress ?? new Uri("https://console.iticket.ir/api/v1/");
-        });
+        var connectionString = configuration.GetConnectionString();
 
-        services.AddTransient<IITicketClient>(sp =>
-        {
-            var factory = sp.GetRequiredService<Microsoft.Extensions.Http.IHttpClientFactory>();
-            var httpClient = factory.CreateClient(ClientName);
-            return new ITicketClient(httpClient, apiAccessToken);
-        });
+        //services.AddDbContext<CinemaDbContext>(options =>
+        //    options.UseNpgsql(
+        //        connectionString,
+        //        npgsql =>
+        //            npgsql.MigrationsHistoryTable("__EFMigrationsHistory", ChargeDbContext.Schema)
+        //    )
+        //);
+
+
+        services.AddiTicketClient(configuration);
+
+        services.AddDataProtection();
 
         return services;
+    }
+
+    public static void UseInfrastructure(this IServiceProvider provider, bool isDevelopment)
+    {
+        using var scope = provider.CreateScope();
+
+        //scope.ServiceProvider
+        //     .GetRequiredService<IDbTools>()
+        //     .ApplyMigrations<CinemaDbContext>();
     }
 }

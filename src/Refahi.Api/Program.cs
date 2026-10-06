@@ -10,6 +10,7 @@ using Refahi.Api.Services.Chaching;
 using Refahi.Api.Services.Notification;
 using Refahi.Api.Services.Path;
 using Refahi.Modules.Charge.Api;
+using Refahi.Modules.Cinema.Api;
 using Refahi.Modules.Commerce.Api;
 using Refahi.Modules.Flights.Api;
 using Refahi.Modules.Hotels.Api;
@@ -120,7 +121,8 @@ builder
     .RegisterSupplyChainModule(builder.Configuration)
     .RegisterPaymentGatewayModule(builder.Configuration)
     .RegisterChargeModule(builder.Configuration)
-    .RegisterCommerceModule(builder.Configuration);
+    .RegisterCommerceModule(builder.Configuration)
+    .RegisterCinemaModule(builder.Configuration);
 
 //}
 //catch(Exception ex)
@@ -199,7 +201,8 @@ app.UseReferencesModule("/api/references")
     .UseSupplyChainModule("/api/supply-chain")
     .UsePaymentGatewayModule("/api/payment-gateway")
     .UseChargeModule("/api/charge")
-    .UseCommerceModule("/api/commerce");
+    .UseCommerceModule("/api/commerce")
+    .UseCinemaModule("/api/commerce");
 
 //}
 //catch
