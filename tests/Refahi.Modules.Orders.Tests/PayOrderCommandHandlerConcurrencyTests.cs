@@ -1,3 +1,4 @@
+using Refahi.Modules.Orders.Application.Contracts.Payments;
 using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
@@ -82,6 +83,39 @@ public sealed class PayOrderCommandHandlerConcurrencyTests
         Assert.Equal($"order-capture-{order.Id:N}", mediator.CaptureKey);
     }
 
+    [Fact]
+    public async Task Source_lease_spans_reserve_capture_and_is_disposed_after_payment()
+    {
+        var user=Guid.NewGuid();var wallet=Guid.NewGuid();
+        var order=Order.Create(user,"Cinema",Guid.NewGuid(),"cinema-key","CinemaOrder",
+            [new OrderItemData("بلیط",100000,1,0,Guid.NewGuid(),"cinema",null,null)]);
+        var repo=new FakeOrderRepository(order);var source=new TestPaymentSource();
+        var mediator=new PaymentMediator(order.Id,wallet,100000){Observe=()=>Assert.True(source.Held)};
+        var handler=new PayOrderCommandHandler(repo,mediator,NullLogger<PayOrderCommandHandler>.Instance,
+            new SerialOrderMutationLock(),new OrderCancellationService(repo,mediator,mediator),[source]);
+        await handler.Handle(new(order.Id,user,"User",[new(wallet,100000)],"pay"),default);
+        Assert.False(source.Held);Assert.Equal(1,mediator.CaptureCount);
+    }
+    [Fact]
+    public async Task Rejected_source_does_not_reserve_or_capture_money()
+    {
+        var user=Guid.NewGuid();var wallet=Guid.NewGuid();
+        var order=Order.Create(user,"Cinema",Guid.NewGuid(),"cinema-key","CinemaOrder",
+            [new OrderItemData("بلیط",100000,1,0,Guid.NewGuid(),"cinema",null,null)]);
+        var repo=new FakeOrderRepository(order);var mediator=new PaymentMediator(order.Id,wallet,100000);
+        var handler=new PayOrderCommandHandler(repo,mediator,NullLogger<PayOrderCommandHandler>.Instance,
+            new SerialOrderMutationLock(),new OrderCancellationService(repo,mediator,mediator),[new TestPaymentSource{Reject=true}]);
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>handler.Handle(new(order.Id,user,"User",[new(wallet,100000)],"pay"),default));
+        Assert.Equal(0,mediator.CreateIntentCount);Assert.Equal(0,mediator.CaptureCount);
+    }
+    private sealed class TestPaymentSource : IOrderPaymentParticipant
+    {
+        public string SourceModule=>"Cinema";public bool Held,Reject;
+        public Task<IAsyncDisposable> AcquireAsync(OrderPaymentContext c,CancellationToken ct)
+        {if(Reject)throw new InvalidOperationException("رزرو معتبر نیست");Held=true;return Task.FromResult<IAsyncDisposable>(new Lease(this));}
+        private sealed class Lease(TestPaymentSource source):IAsyncDisposable
+        {public ValueTask DisposeAsync(){source.Held=false;return ValueTask.CompletedTask;}}
+    }
     private sealed class SerialOrderMutationLock : IOrderMutationLock
     {
         private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -112,11 +146,13 @@ public sealed class PayOrderCommandHandlerConcurrencyTests
         public string? ReserveKey { get; private set; }
         public string? CaptureKey { get; private set; }
 
+        public Action? Observe;
         public Task<TResponse> Send<TResponse>(
             IRequest<TResponse> request,
             CancellationToken cancellationToken = default
         )
         {
+            Observe?.Invoke();
             object response = request switch
             {
                 CreatePaymentIntentCommand command => CreateIntent(command),

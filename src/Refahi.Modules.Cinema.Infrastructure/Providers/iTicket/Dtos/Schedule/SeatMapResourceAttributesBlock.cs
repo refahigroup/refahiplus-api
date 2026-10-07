@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.Schedule;
@@ -11,19 +12,19 @@ public sealed class SeatMapResourceAttributesBlock
     public string Name { get; init; }
 
     [JsonPropertyName("color")]
-    public string Color { get; init; }
+    public string? Color { get; init; }
 
     [JsonPropertyName("sort_order")]
-    public string SortOrder { get; init; }
+    public int SortOrder { get; init; }
 
     [JsonPropertyName("grid_row_count")]
-    public string GridRowCount { get; init; }
+    public int GridRowCount { get; init; }
 
     [JsonPropertyName("grid_column_count")]
-    public string GridColumnCount { get; init; }
+    public int GridColumnCount { get; init; }
 
     [JsonPropertyName("row_labels")]
-    public string RowLabels { get; init; }
+    public JsonElement RowLabels { get; init; }
 
     [JsonPropertyName("status")]
     public string Status { get; init; }
@@ -38,6 +39,6 @@ public sealed class SeatMapResourceAttributesBlock
     public int AvailableCount { get; init; }
 
     [JsonPropertyName("seats")]
-    public List<string> Seats { get; init; }
+    public List<List<JsonElement>> Seats { get; init; }
 
 }

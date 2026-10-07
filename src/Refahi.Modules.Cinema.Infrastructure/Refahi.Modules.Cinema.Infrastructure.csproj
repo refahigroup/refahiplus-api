@@ -20,4 +20,8 @@
 	  <ProjectReference Include="..\Refahi.Modules.Commerce.Application.Contracts\Refahi.Modules.Commerce.Application.Contracts.csproj" />
 	  <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Cinema.Application.Contracts/Refahi.Modules.Cinema.Application.Contracts.csproj" /></ItemGroup>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Orders.Application.Contracts/Refahi.Modules.Orders.Application.Contracts.csproj" /></ItemGroup>
+<ItemGroup><PackageReference Include="Microsoft.Playwright" Version="1.55.0" /></ItemGroup>
+<ItemGroup><EmbeddedResource Include="Printing/TicketFont.woff2" LogicalName="CinemaTicketFont.woff2" /></ItemGroup>
 </Project>

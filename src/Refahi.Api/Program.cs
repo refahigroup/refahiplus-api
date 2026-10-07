@@ -202,7 +202,7 @@ app.UseReferencesModule("/api/references")
     .UsePaymentGatewayModule("/api/payment-gateway")
     .UseChargeModule("/api/charge")
     .UseCommerceModule("/api/commerce")
-    .UseCinemaModule("/api/commerce");
+    .UseCinemaModule("/api/cinema");
 
 //}
 //catch

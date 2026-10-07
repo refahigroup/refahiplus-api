@@ -1,3 +1,4 @@
+using Refahi.Modules.Cinema.Application.Contracts;
 ﻿using System.Net;
 using FluentValidation;
 using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
@@ -28,6 +29,12 @@ public sealed class ApiExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (CinemaException ex)
+        {
+            _logger.LogWarning("Cinema operation rejected. StatusCode={StatusCode}", ex.Status);
+            context.Response.StatusCode = ex.Status;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: ex.Status));
         }
         catch (ValidationException ex)
         {

@@ -1,3 +1,7 @@
+using Refahi.Modules.Cinema.Application.Contracts;
+using Refahi.Modules.Cinema.Application.Features.Orders;
+using Refahi.Modules.Orders.Application.Contracts.Payments;
+using Refahi.Modules.Orders.Application.Contracts.Cancellation;
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +16,10 @@ public static class DI
         IConfiguration configuration
     )
     {
+        services.Configure<CinemaOptions>(configuration.GetSection("Cinema"));
+        services.AddScoped<CinemaOrderService>();
+        services.AddScoped<IOrderPaymentParticipant,CinemaPaymentParticipant>();
+        services.AddScoped<IOrderCancellationParticipant,CinemaCancellationParticipant>();
         var assembly = typeof(DI).Assembly;
 
         services.AddMediatR(assembly)

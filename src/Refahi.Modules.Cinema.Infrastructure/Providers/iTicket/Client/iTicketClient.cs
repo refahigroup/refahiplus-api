@@ -1,4 +1,3 @@
-using Microsoft.CodeAnalysis.Options;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.Banner;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.Place;
@@ -165,6 +164,12 @@ public sealed class iTicketClient : IiTicketClient
         => PostEmptyAsync<ResellerOrderCanceledResource>(
             $"/reseller/orders/{Encode(request.Order)}/cancel", cancellationToken);
 
+    public Task<JsonElement> GetDocumentAsync(string path, CancellationToken ct)
+        => GetAsync<JsonElement>(path, ct);
+
+    public Task<JsonElement> PostDocumentAsync(string path, object? body, CancellationToken ct)
+        => body is null ? PostEmptyAsync<JsonElement>(path, ct) : PostAsync<JsonElement>(path, body, ct);
+
     private async Task<T> GetAsync<T>(string path, CancellationToken cancellationToken)
     {
         using var request = CreateRequest(HttpMethod.Get, path);
@@ -186,7 +191,7 @@ public sealed class iTicketClient : IiTicketClient
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string path)
     {
-        var request = new HttpRequestMessage(method, path);
+        var request = new HttpRequestMessage(method, path.TrimStart('/'));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.api+json"));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Headers.TryAddWithoutValidation("X-Api-Access-Token", _options.AccessToken);
@@ -211,6 +216,7 @@ public sealed class iTicketClient : IiTicketClient
             throw new ITicketTransportException("The iTicket request failed.", ex);
         }
 
+        using var ownedResponse = response;
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
@@ -242,7 +248,13 @@ public sealed class iTicketClient : IiTicketClient
 
         try
         {
-            var result = await JsonSerializer.DeserializeAsync<T>(stream, _jsonOptions, cancellationToken);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            var root = document.RootElement;
+            // JSON:API wraps single resources in data; collection DTOs own that property.
+            if (typeof(T) != typeof(JsonElement) && root.TryGetProperty("data", out var data)
+                && !typeof(T).GetProperties().Any(p => string.Equals(p.Name, "Data", StringComparison.OrdinalIgnoreCase)))
+                root = data;
+            var result = root.Deserialize<T>(_jsonOptions);
             return result ?? throw new ITicketException(
                 $"iTicket returned an empty response for {request.RequestUri}.");
         }

@@ -48,9 +48,3 @@ public static class DI
         }
     }
 }
-
-public static class ChargeRateLimiting
-{
-    public const string PublicCatalogPolicy = "ChargePublicCatalog";
-}
-

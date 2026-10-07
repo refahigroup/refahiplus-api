@@ -21,28 +21,28 @@ public sealed class ResellerOrderResourceAttributes
     public string CurrencyLabel { get; init; }
 
     [JsonPropertyName("subtotal_amount")]
-    public int SubtotalAmount { get; init; }
+    public long SubtotalAmount { get; init; }
 
     [JsonPropertyName("discount_amount")]
-    public int DiscountAmount { get; init; }
+    public long DiscountAmount { get; init; }
 
     [JsonPropertyName("platform_amount")]
-    public int PlatformAmount { get; init; }
+    public long PlatformAmount { get; init; }
 
     [JsonPropertyName("tax_amount")]
-    public int TaxAmount { get; init; }
+    public long TaxAmount { get; init; }
 
     [JsonPropertyName("total_amount")]
-    public int TotalAmount { get; init; }
+    public long TotalAmount { get; init; }
 
     [JsonPropertyName("use_wallet")]
     public bool UseWallet { get; init; }
 
     [JsonPropertyName("wallet_amount")]
-    public int WalletAmount { get; init; }
+    public long WalletAmount { get; init; }
 
     [JsonPropertyName("gateway_amount")]
-    public int GatewayAmount { get; init; }
+    public long GatewayAmount { get; init; }
 
     [JsonPropertyName("transaction_id")]
     public string? TransactionId { get; init; }
@@ -57,7 +57,7 @@ public sealed class ResellerOrderResourceAttributes
     public string? PaymentCallbackUrl { get; init; }
 
     [JsonPropertyName("gateway_charge_amount")]
-    public int? GatewayChargeAmount { get; init; }
+    public long? GatewayChargeAmount { get; init; }
 
     [JsonPropertyName("expires_at")]
     public string? ExpiresAt { get; init; }

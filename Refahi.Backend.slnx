@@ -116,5 +116,9 @@
     <Project Path="tests/Refahi.Modules.Vendor.Tests/Refahi.Modules.Vendor.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" />
   </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Refahi.Modules.Cinema.Tests/Refahi.Modules.Cinema.Tests.csproj" />
+  </Folder>
   <Project Path="src/Refahi.Api/Refahi.Api.csproj" />
 </Solution>

@@ -18,6 +18,8 @@ namespace Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Client;
 /// </summary>
 public interface IiTicketClient
 {
+    Task<System.Text.Json.JsonElement> GetDocumentAsync(string path, CancellationToken ct);
+    Task<System.Text.Json.JsonElement> PostDocumentAsync(string path, object? body, CancellationToken ct);
     Task<BannerPlacementResourceCollection> ListBannerPlacementsAsync(ListBannerPlacementsRequest request, CancellationToken cancellationToken = default);
     Task<BannerResourceCollection> ListBannersAsync(ListBannersRequest request, CancellationToken cancellationToken = default);
     Task<ResellerScheduleResourceCollection> ListResellerSchedulesAsync(ListResellerSchedulesRequest request, CancellationToken cancellationToken = default);

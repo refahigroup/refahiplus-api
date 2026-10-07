@@ -26,7 +26,7 @@ public sealed class SessionResourceCollectionDataItemAttributes
     public string? PurchaseEndAt { get; init; }
 
     [JsonPropertyName("price")]
-    public int? Price { get; init; }
+    public long? Price { get; init; }
 
     [JsonPropertyName("is_multi_price")]
     public bool IsMultiPrice { get; init; }
