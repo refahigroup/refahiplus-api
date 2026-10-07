@@ -63,3 +63,5 @@ public sealed record CreateOrderResponse(
     long FinalAmountMinor,
     string Currency = "IRR"
 );
+
+public sealed record ValidateOrderSourceNotification(CreateOrderCommand Order) : INotification;

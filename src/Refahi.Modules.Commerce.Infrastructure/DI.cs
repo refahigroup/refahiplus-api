@@ -19,11 +19,14 @@ public static class DI
     {
         services.AddDbContext<CommerceDbContext>(options => options.UseNpgsql(configuration.GetConnectionString(),
             x => x.MigrationsHistoryTable("__EFMigrationsHistory", CommerceDbContext.Schema)));
+        
         services.AddDataProtection();
-        services.AddScoped<ICommerceRepository, CommerceRepository>();
-        services.AddScoped<ICommerceSessionRepository, CommerceSessionRepository>();
-        services.AddSingleton<ICommerceMutationLock>(
-            new PostgresCommerceMutationLock(configuration.GetConnectionString()));
+        
+        services.AddScoped<ICommerceRepository, CommerceRepository>()
+                .AddScoped<ICommerceSessionRepository, CommerceSessionRepository>()
+                .AddSingleton<ICommerceMutationLock>(
+                    new PostgresCommerceMutationLock(configuration.GetConnectionString())
+                );
 
         services.AddScoped<ICommerceSecretProtector, CommerceSecretProtector>()
                 .AddScoped<ICommerceProviderFactory, CommerceProviderFactory>();

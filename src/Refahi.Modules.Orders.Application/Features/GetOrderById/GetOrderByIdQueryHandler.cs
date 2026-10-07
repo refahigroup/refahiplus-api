@@ -1,3 +1,5 @@
+using Refahi.Modules.Orders.Application.Contracts.Payments;
+using Refahi.Modules.Orders.Domain.Aggregates;
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Dtos;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
@@ -8,10 +10,12 @@ namespace Refahi.Modules.Orders.Application.Features.GetOrderById;
 public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, OrderDto?>
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IEnumerable<IOrderPaymentParticipant> _participants;
 
-    public GetOrderByIdQueryHandler(IOrderRepository orderRepository)
+    public GetOrderByIdQueryHandler(IOrderRepository orderRepository, IEnumerable<IOrderPaymentParticipant>? participants = null)
     {
         _orderRepository = orderRepository;
+        _participants = participants ?? [];
     }
 
     public async Task<OrderDto?> Handle(
@@ -47,6 +51,12 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             .ToList();
 
         var paymentEligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
+        if (paymentEligibility.CanPay)
+        {
+            var source = _participants.SingleOrDefault(p => p.SourceModule.Equals(order.SourceModule, StringComparison.OrdinalIgnoreCase));
+            var reason = source is null ? null : await source.GetUnavailableReasonAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.FinalAmountMinor), cancellationToken);
+            if (reason is not null) paymentEligibility = OrderPaymentEligibility.Unavailable(reason);
+        }
 
         return new OrderDto(
             Id: order.Id,

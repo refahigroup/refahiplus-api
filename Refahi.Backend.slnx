@@ -39,7 +39,7 @@
     <Project Path="src/Refahi.Modules.Media.Infrastructure/Refahi.Modules.Media.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/01_Modules/Identity/">
-    <Folder Name="/01_Modules/Orders/"></Folder>
+    <Folder Name="/01_Modules/Orders/" />
     <Project Path="src/Refahi.Modules.Identity.Api/Refahi.Modules.Identity.Api.csproj" />
     <Project Path="src/Refahi.Modules.Identity.Application.Contracts/Refahi.Modules.Identity.Application.Contracts.csproj" />
     <Project Path="src/Refahi.Modules.Identity.Application/Refahi.Modules.Identity.Application.csproj" />
@@ -95,6 +95,13 @@
     <Project Path="src/Refahi.Modules.PaymentGateway.Domain/Refahi.Modules.PaymentGateway.Domain.csproj" />
     <Project Path="src/Refahi.Modules.PaymentGateway.Infrastructure/Refahi.Modules.PaymentGateway.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/01_Modules/Cinema/">
+    <Project Path="src/Refahi.Modules.Cinema.Domain/Refahi.Modules.Cinema.Domain.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Application/Refahi.Modules.Cinema.Application.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Application.Contracts/Refahi.Modules.Cinema.Application.Contracts.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Infrastructure/Refahi.Modules.Cinema.Infrastructure.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Api/Refahi.Modules.Cinema.Api.csproj" />
+  </Folder>
   <Folder Name="/02_Tests/">
     <Project Path="tests/Refahi.Modules.Charge.Tests/Refahi.Modules.Charge.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Commerce.Tests/Refahi.Modules.Commerce.Tests.csproj" />
@@ -108,6 +115,10 @@
     <Project Path="tests/Refahi.Modules.SupplyChain.Tests/Refahi.Modules.SupplyChain.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Vendor.Tests/Refahi.Modules.Vendor.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Refahi.Modules.Cinema.Tests/Refahi.Modules.Cinema.Tests.csproj" />
   </Folder>
   <Project Path="src/Refahi.Api/Refahi.Api.csproj" />
 </Solution>

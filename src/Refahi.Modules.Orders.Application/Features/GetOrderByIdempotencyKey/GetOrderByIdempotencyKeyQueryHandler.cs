@@ -1,3 +1,5 @@
+using Refahi.Modules.Orders.Application.Contracts.Payments;
+using Refahi.Modules.Orders.Domain.Aggregates;
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Dtos;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
@@ -9,10 +11,12 @@ public class GetOrderByIdempotencyKeyQueryHandler
     : IRequestHandler<GetOrderByIdempotencyKeyQuery, OrderDto?>
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IEnumerable<IOrderPaymentParticipant> _participants;
 
-    public GetOrderByIdempotencyKeyQueryHandler(IOrderRepository orderRepository)
+    public GetOrderByIdempotencyKeyQueryHandler(IOrderRepository orderRepository, IEnumerable<IOrderPaymentParticipant>? participants = null)
     {
         _orderRepository = orderRepository;
+        _participants = participants ?? [];
     }
 
     public async Task<OrderDto?> Handle(
@@ -55,6 +59,12 @@ public class GetOrderByIdempotencyKeyQueryHandler
             .ToList();
 
         var paymentEligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
+        if (paymentEligibility.CanPay)
+        {
+            var source = _participants.SingleOrDefault(p => p.SourceModule.Equals(order.SourceModule, StringComparison.OrdinalIgnoreCase));
+            var reason = source is null ? null : await source.GetUnavailableReasonAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.FinalAmountMinor), cancellationToken);
+            if (reason is not null) paymentEligibility = OrderPaymentEligibility.Unavailable(reason);
+        }
 
         return new OrderDto(
             Id: order.Id,

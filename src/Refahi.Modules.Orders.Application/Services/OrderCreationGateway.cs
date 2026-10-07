@@ -75,6 +75,8 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
         if (IsHotelRequestOrder(request))
             await ValidateHotelRequestAsync(request, cancellationToken);
 
+        await _mediator.Publish(new ValidateOrderSourceNotification(request), cancellationToken);
+
         var order = Order.Create(
             userId: request.UserId,
             sourceModule: request.SourceModule,

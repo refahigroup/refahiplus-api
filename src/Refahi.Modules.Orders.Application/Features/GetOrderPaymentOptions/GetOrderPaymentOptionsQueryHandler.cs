@@ -1,3 +1,5 @@
+using Refahi.Modules.Orders.Application.Contracts.Payments;
+using Refahi.Modules.Orders.Domain.Aggregates;
 using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Domain.Exceptions;
@@ -10,11 +12,13 @@ public sealed class GetOrderPaymentOptionsQueryHandler
     : IRequestHandler<GetOrderPaymentOptionsQuery, OrderPaymentOptionsDto?>
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IEnumerable<IOrderPaymentParticipant> _participants;
     private readonly IMediator _mediator;
 
-    public GetOrderPaymentOptionsQueryHandler(IOrderRepository orderRepository, IMediator mediator)
+    public GetOrderPaymentOptionsQueryHandler(IOrderRepository orderRepository, IMediator mediator, IEnumerable<IOrderPaymentParticipant>? participants = null)
     {
         _orderRepository = orderRepository;
+        _participants = participants ?? [];
         _mediator = mediator;
     }
 
@@ -34,6 +38,12 @@ public sealed class GetOrderPaymentOptionsQueryHandler
             return null;
 
         var eligibility = order.GetPaymentEligibility(DateTimeOffset.UtcNow);
+        if (eligibility.CanPay)
+        {
+            var source = _participants.SingleOrDefault(p => p.SourceModule.Equals(order.SourceModule, StringComparison.OrdinalIgnoreCase));
+            var reason = source is null ? null : await source.GetUnavailableReasonAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.FinalAmountMinor), cancellationToken);
+            if (reason is not null) eligibility = OrderPaymentEligibility.Unavailable(reason);
+        }
         if (!eligibility.CanPay)
             throw new OrderStateConflictException(
                 eligibility.UnavailableReason ?? "سفارش در وضعیت قابل پرداخت نیست"
