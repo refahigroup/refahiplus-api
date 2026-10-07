@@ -1,7 +1,5 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
+using Microsoft.CodeAnalysis.Options;
+using Microsoft.Extensions.Options;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.Banner;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.Place;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.Province;
@@ -13,21 +11,29 @@ using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.ShowArtist;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.ShowCategory;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Dtos.ShowGenre;
 using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Exceptions;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Refahi.Modules.Cinema.Infrastructure.Providers.iTicket.Client;
 
 public sealed class iTicketClient : IiTicketClient
 {
     private readonly HttpClient _httpClient;
-    private readonly string _apiAccessToken;
+    private readonly iTicketOptions _options;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public iTicketClient(HttpClient httpClient, string apiAccessToken, JsonSerializerOptions? jsonOptions = null)
+    public iTicketClient(HttpClient httpClient, IOptions<iTicketOptions> options, JsonSerializerOptions? jsonOptions = null)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _apiAccessToken = apiAccessToken ?? throw new ArgumentNullException(nameof(apiAccessToken));
+        _options = options.Value ?? 
+            throw new ArgumentNullException(nameof(_options));
 
-        _jsonOptions = jsonOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        _httpClient = httpClient ?? 
+            throw new ArgumentNullException(nameof(httpClient));
+
+        _jsonOptions = jsonOptions ?? 
+            new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
 
     public Task<BannerPlacementResourceCollection> ListBannerPlacementsAsync(
@@ -183,7 +189,7 @@ public sealed class iTicketClient : IiTicketClient
         var request = new HttpRequestMessage(method, path);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.api+json"));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Headers.TryAddWithoutValidation("X-Api-Access-Token", _apiAccessToken);
+        request.Headers.TryAddWithoutValidation("X-Api-Access-Token", _options.AccessToken);
         return request;
     }
 
