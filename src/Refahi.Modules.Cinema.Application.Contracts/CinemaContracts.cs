@@ -4,14 +4,18 @@ using Refahi.Modules.Orders.Application.Contracts.Commands;
 namespace Refahi.Modules.Cinema.Application.Contracts;
 
 public sealed record CinemaCity(int Id,string Name,string Province);
+public sealed record CinemaGenre(string Id, string Name);
+public sealed record CinemaArtist(string Id, string Name, string? Portrait);
 public sealed record CinemaShow(string Id, string Title, string Kind, string? Poster, string? Cover,
-    string? Summary, string? Description, int? DurationMinutes, string? AgeGroup, string[] Artists);
+    string? Summary, string? Description, int? DurationMinutes, string? AgeGroup, string[] Artists,
+    CinemaGenre[]? Genres = null, CinemaArtist[]? ArtistDetails = null,
+    string? SummaryHtml = null, string? DescriptionHtml = null, string? SummaryText = null);
 public sealed record CinemaCatalog(IReadOnlyList<CinemaShow> Items, int Page, int TotalPages);
 public sealed record CinemaBanner(string Title, string ImageUrl, string? Url);
 public sealed record CinemaRanking(int Rank, string ShowId, string Title, long? AmountMinor);
 public sealed record CinemaLanding(IReadOnlyList<CinemaBanner> Banners, IReadOnlyList<CinemaShow> Cinema,
     IReadOnlyList<CinemaShow> Theater, IReadOnlyList<CinemaShow> Art, IReadOnlyList<CinemaRanking> Rankings);
-public sealed record CinemaPlace(string Id, string Title, string? Address, string? City);
+public sealed record CinemaPlace(string Id, string Title, string? Address, string? City, string? Cover = null);
 public sealed record CinemaDisplayDay(string Date, string Weekday, string Label, IReadOnlyList<CinemaPlace> Places);
 public sealed record CinemaSession(string Id, string Hall, DateTimeOffset StartsAt, DateTimeOffset? PurchaseEndAt,
     string Status, int AvailableCount, long? PriceMinor, long[] PricesMinor, string? Label);

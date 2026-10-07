@@ -51,6 +51,47 @@ public sealed class CinemaProviderTests
         var error=await Assert.ThrowsAsync<CinemaProviderAmbiguousException>(()=>Provider(handler).ReserveAsync("schedule",["seat"],new("09123456789","آزمایشی"),default));
         Assert.Equal("known-provider-order",error.ProviderOrderId);Assert.Equal(1,handler.Calls);
     }
+    [Fact]
+    public async Task Landing_reads_configured_sections_and_maps_provider_resources()
+    {
+        var settings = new CinemaProviderSettings
+        {
+            CinemaCategories = ["cinema-category"], TheaterCategories = ["theater-category"],
+            ArtCategories = ["art-category"]
+        };
+        var handler = new LandingHandler();
+        var provider = new ITicketCinemaProvider(new iTicketClient(
+            new HttpClient(handler) { BaseAddress = new("https://console.iticket.ir/api/v1/") },
+            Options.Create(new iTicketOptions { AccessToken = "test-token" })),
+            Options.Create(settings), Options.Create(new iTicketOptions()),
+            new MemoryCache(new MemoryCacheOptions()), NullLogger<ITicketCinemaProvider>.Instance);
+        var landing = await provider.LandingAsync(12, default);
+        Assert.Single(landing.Banners);
+        Assert.Equal("https://example.com/banner.jpg", landing.Banners[0].ImageUrl);
+        Assert.Equal("cinema", Assert.Single(landing.Cinema).Kind);
+        Assert.Equal("theater", Assert.Single(landing.Theater).Kind);
+        Assert.Equal("art", Assert.Single(landing.Art).Kind);
+        Assert.Equal(1230L, Assert.Single(landing.Rankings).AmountMinor);
+        foreach (var category in new[] { "cinema-category", "theater-category", "art-category" })
+            Assert.Contains(handler.Paths, path => path.Contains("category[]=" + category) &&
+                path.Contains("city[]=12") && path.Contains("only_with_active_sessions=true"));
+        Assert.Contains(handler.Paths, path => path.Contains("placement=home-1"));
+    }
+    private sealed class LandingHandler : HttpMessageHandler
+    {
+        public List<string> Paths { get; } = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var path = Uri.UnescapeDataString(request.RequestUri!.PathAndQuery);
+            Paths.Add(path);
+            var json = path.Contains("marketing/banners")
+                ? """{"data":[{"attributes":{"title":"Banner","image":{"full":"https://example.com/banner.jpg"}}}]}"""
+                : path.Contains("box-office")
+                    ? """{"data":[{"show_id":"show","title":"Movie","final_price":123}]}"""
+                    : """{"data":[{"id":"show","attributes":{"title":"Show","media":{"poster":{"full":"https://example.com/poster.jpg"}}}}],"meta":{"last_page":2}}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) });
+        }
+    }
     private static iTicketClient Client(StubHandler h)=>new(new HttpClient(h){BaseAddress=new("https://console.iticket.ir/api/v1/")},Options.Create(new iTicketOptions{AccessToken="test-token"}));
     private static ITicketCinemaProvider Provider(StubHandler h)=>new(Client(h),Options.Create(new CinemaProviderSettings()),Options.Create(new iTicketOptions()),new MemoryCache(new MemoryCacheOptions()),NullLogger<ITicketCinemaProvider>.Instance);
     private sealed class StubHandler(string json,bool timeout=false) : HttpMessageHandler

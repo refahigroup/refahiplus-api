@@ -15,7 +15,7 @@ public sealed class CinemaProviderSettings
     public string[] TheaterCategories { get; set; } = [];
     public string[] ArtCategories { get; set; } = [];
     public string BoxOfficeCurrency { get; set; } = "IRT";
-    public string BannerPlacement { get; set; } = "home";
+    public string BannerPlacement { get; set; } = "home-1";
     public string[] ReservedStatuses { get; set; } = ["reserved"];
     public string[] ConfirmedStatuses { get; set; } = ["confirmed"];
     public string[] CancelledStatuses { get; set; } = ["cancelled", "canceled"];
@@ -28,6 +28,9 @@ public sealed class CinemaProviderFactory(IEnumerable<ICinemaProvider> providers
 public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<CinemaProviderSettings> settings,
     IOptions<iTicketOptions> connection, IMemoryCache cache, ILogger<ITicketCinemaProvider> logger) : ICinemaProvider
 {
+    // Shared across request-scoped provider instances; striped locks coalesce enrichment reads.
+    private static readonly SemaphoreSlim EnrichmentConcurrency = new(4);
+    private static readonly SemaphoreSlim[] EnrichmentLocks = Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
     public string Key => "iticket";
     public async Task<IReadOnlyList<CinemaCity>> CitiesAsync(CancellationToken ct)
         => Items(await Read("provinces",ct,true)).SelectMany(p=>Items(P(p,"cities")).Select(c=>new CinemaCity((int)N(c,"id"),S(c,"name"),S(p,"name")))).ToArray();
@@ -69,7 +72,10 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
         var theater = await ShowsAsync("theater", city, null, 1, ct);
         var art = await ShowsAsync("art", city, null, 1, ct);
         var banners = Items(await Read("marketing/banners?placement=" + E(Settings.BannerPlacement), ct, true))
-            .Select(x => A(x)).Select(a => new CinemaBanner(S(a,"title"), Image(a,"image"), null)).Where(x => x.ImageUrl.Length > 0).ToArray();
+            .Select(x => A(x)).OrderBy(a => N(a,"sort_order"))
+            .Select(a => new CinemaBanner(S(a,"title"), Image(a,"image"), SafeLink(P(a,"link"))))
+            .Where(x => x.ImageUrl.Length > 0).ToArray();
+        logger.LogInformation("Cinema landing received {BannerCount} valid banners for placement {Placement}", banners.Length, Settings.BannerPlacement);
         var rankings = Items(await Read("schedules/box-office?limit=6",ct,true)).Select((x,i) =>
         {
             if (x.ValueKind == JsonValueKind.String)
@@ -86,7 +92,11 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
     public async Task<CinemaCatalog> ShowsAsync(string kind, int? city, string? search, int page, CancellationToken ct)
     {
         var categories = kind switch { "theater" => Settings.TheaterCategories, "art" => Settings.ArtCategories, _ => Settings.CinemaCategories };
-        if (categories.Length == 0) return new([],page,1);
+        if (categories.Length == 0)
+        {
+            logger.LogWarning("Cinema catalog section {Kind} has no configured provider categories", kind);
+            return new([],page,1);
+        }
         var path = $"shows?page={page}&per_page=24&sort=-display_priority&only_with_active_sessions=true";
         foreach (var category in categories) path += "&category[]=" + E(category);
         if (city.HasValue) path += "&city[]=" + city;
@@ -94,14 +104,29 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
         var root = await Read(path,ct,true);
         return new(Items(root).Select(x => MapShow(x,kind)).ToArray(),page,(int)N(P(root,"meta"),"last_page",1));
     }
-    public async Task<CinemaShow> ShowAsync(string id, CancellationToken ct) => MapShow(Resource(await Read("shows/"+E(id),ct,true)));
+    public async Task<CinemaShow> ShowAsync(string id, CancellationToken ct)
+    {
+        var show = MapShow(Resource(await Read("shows/"+E(id),ct,true)));
+        var artists = await Task.WhenAll((show.ArtistDetails ?? []).Select(async artist =>
+        {
+            if (!string.IsNullOrWhiteSpace(artist.Portrait) || string.IsNullOrWhiteSpace(artist.Id)) return artist;
+            var detail = await OptionalDetail("show-artists/" + E(artist.Id), ct);
+            if (detail is not JsonElement value) return artist;
+            var mapped = MapArtist(Resource(value));
+            return artist with { Portrait = mapped.Portrait, Name = artist.Name.Length > 0 ? artist.Name : mapped.Name };
+        }));
+        return show with { ArtistDetails = artists.Where(x=>!string.IsNullOrWhiteSpace(x.Name)).ToArray(), Artists = artists.Where(x=>!string.IsNullOrWhiteSpace(x.Name)).Select(x => x.Name).ToArray() };
+    }
     private CinemaShow MapShow(JsonElement x, string? forcedKind = null)
     {
         x=Resource(x);var a=A(x); var cats=Items(P(a,"categories")).Select(c=>S(c,"id")).ToArray();
         var kind=forcedKind ?? (cats.Intersect(Settings.TheaterCategories).Any()?"theater":cats.Intersect(Settings.ArtCategories).Any()?"art":"cinema");
         return new(S(x,"id"),S(a,"title"),kind,Image(P(a,"media"),"poster"),Image(P(a,"media"),"banner"),
             S(a,"summary"),S(a,"description"),(int?)NullableNumber(a,"duration_minutes"),S(a,"age_group"),
-            Items(P(a,"artists")).Select(y=>S(A(y),"name",S(y,"name"))).Where(y=>y.Length>0).ToArray());
+            Items(P(a,"artists")).Select(MapArtist).Where(y=>y.Name.Length>0).Select(y=>y.Name).ToArray(),
+            Items(P(a,"genres")).Select(g=>new CinemaGenre(S(g,"id"), S(A(g),"name"))).Where(g=>g.Name.Length>0).ToArray(),
+            Items(P(a,"artists")).Select(MapArtist).Where(y=>y.Name.Length>0 || y.Id.Length>0).ToArray(),
+            CinemaHtml.Sanitize(S(a,"summary")), CinemaHtml.Sanitize(S(a,"description")), CinemaHtml.PlainText(S(a,"summary")));
     }
     public async Task<IReadOnlyList<CinemaDisplayDay>> PlacesAsync(string show, int? city, string? search, CancellationToken ct)
     {
@@ -109,8 +134,18 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
         if(city.HasValue)path+="&city[]="+city;
         if(!string.IsNullOrWhiteSpace(search))path+="&search="+E(search);
         var a=A(Resource(await Read(path,ct,true)));
-        return Items(P(a,"dates")).Select(d=>new CinemaDisplayDay(S(d,"date"),S(d,"weekday"),S(d,"jalali_day_month"),
+        var fullMediaIds = Items(P(a,"dates")).SelectMany(d=>Items(P(d,"places")))
+            .Where(p=>PlaceCover(P(A(Resource(p)),"media")).Length>0).Select(p=>S(Resource(p),"id")).ToHashSet();
+        var days = Items(P(a,"dates")).Select(d=>new CinemaDisplayDay(S(d,"date"),S(d,"weekday"),S(d,"jalali_day_month"),
             Items(P(d,"places")).Select(MapPlace).ToArray())).ToArray();
+        var places = await Task.WhenAll(days.SelectMany(d=>d.Places).DistinctBy(p=>p.Id).Select(async place =>
+        {
+            if (fullMediaIds.Contains(place.Id)) return place;
+            var detail = await OptionalDetail("places/" + E(place.Id), ct);
+            return detail is JsonElement value ? place with { Cover = MapPlace(Resource(value)).Cover ?? place.Cover } : place;
+        }));
+        var byId = places.ToDictionary(p=>p.Id);
+        return days.Select(d=>d with { Places = d.Places.Select(p=>byId[p.Id]).ToArray() }).ToArray();
     }
     public async Task<IReadOnlyList<CinemaSession>> SessionsAsync(string show,string place,string? date,CancellationToken ct)
     {
@@ -182,13 +217,62 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
     }
     public static long Money(long amount,string currency)=>currency switch
     { "IRT"=>checked(amount*10),"IRR"=>amount,_=>throw new CinemaException("واحد مبلغ تأمین‌کننده پشتیبانی نمی‌شود",502) };
-    private static CinemaPlace MapPlace(JsonElement x) {x=Resource(x);var a=A(x);return new(S(x,"id"),S(a,"title",S(a,"name")),S(a,"address"),S(P(a,"city"),"name",S(a,"city_name")));}
+    private static CinemaPlace MapPlace(JsonElement x)
+    {
+        x=Resource(x); var a=A(x); var media=P(a,"media");
+        var cover=PlaceCover(media);
+        if (cover.Length==0) cover=Image(media,"logo");
+        return new(S(x,"id"),S(a,"title",S(a,"name")),S(a,"address"),S(P(a,"city"),"name",S(a,"city_name")),cover.Length>0 ? cover : null);
+    }
+    private static string PlaceCover(JsonElement media)
+    {
+        var primary=Image(media,"primary_media");
+        return primary.Length>0 ? primary : Items(P(media,"gallery")).Select(ImageValue).FirstOrDefault(v=>v.Length>0) ?? "";
+    }
+    private static CinemaArtist MapArtist(JsonElement x)
+    {
+        x=Resource(x); var a=A(x); var portrait=Image(a,"portrait");
+        return new(S(x,"id"),S(a,"name",S(a,"first_name")+" "+S(a,"last_name")).Trim(),portrait.Length>0 ? portrait : null);
+    }
+    private static string? SafeLink(JsonElement link)
+    {
+        var value=S(link,"url");
+        if (value.StartsWith('/') && !value.StartsWith("//") && !value.Contains('\\')) return value;
+        return Uri.TryCreate(value,UriKind.Absolute,out var uri) && uri.Scheme is "https" or "http" ? value : null;
+    }
+    private async Task<JsonElement?> OptionalDetail(string path, CancellationToken ct)
+    {
+        var scope = connection.Value.BaseUrl + ":" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(connection.Value.AccessToken))) + ":" + path;
+        var key = "cinema:detail:" + scope;
+        var gate=EnrichmentLocks[(StringComparer.Ordinal.GetHashCode(scope) & int.MaxValue) % EnrichmentLocks.Length];
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (cache.TryGetValue<JsonElement?>(key,out var cached)) return cached;
+            await EnrichmentConcurrency.WaitAsync(ct);
+            try
+            {
+                JsonElement? detail;
+                try { detail=await Read(path,ct,true); }
+                catch (Exception ex) when (ex is CinemaException or JsonException) { detail=null; logger.LogWarning("Cinema optional media unavailable for {Resource}",path); }
+                cache.Set(key,detail,TimeSpan.FromMinutes(5));
+                return detail;
+            }
+            finally { EnrichmentConcurrency.Release(); }
+        }
+        finally { gate.Release(); }
+    }
     private static string Image(JsonElement root,string field)
     {
-        var v=P(root,field);if(v.ValueKind==JsonValueKind.String)return v.GetString()??"";
-        if(v.ValueKind==JsonValueKind.Object)foreach(var key in new[]{"full","poster","banner","original","url","thumbnail_card","large","desktop"}) {var s=S(v,key);if(s.Length>0)return s;}
+        return ImageValue(P(root,field));
+    }
+    private static string ImageValue(JsonElement v)
+    {
+        if(v.ValueKind==JsonValueKind.String)return SafeImage(v.GetString());
+        if(v.ValueKind==JsonValueKind.Object)foreach(var key in new[]{"full","poster","banner","original","url","thumbnail_card","large","desktop","thumbnail","avatar"}) {var s=S(v,key);if(SafeImage(s).Length>0)return SafeImage(s);}
         return "";
     }
+    private static string SafeImage(string? value) => Uri.TryCreate(value,UriKind.Absolute,out var uri) && uri.Scheme is "https" or "http" ? value! : "";
     private static string E(string value)=>Uri.EscapeDataString(value);
     private static JsonElement Resource(JsonElement x)=>x.ValueKind==JsonValueKind.Object&&x.TryGetProperty("data",out var d)?d:x;
     private static JsonElement A(JsonElement x)=>x.ValueKind==JsonValueKind.Object&&x.TryGetProperty("attributes",out var a)?a:x;
