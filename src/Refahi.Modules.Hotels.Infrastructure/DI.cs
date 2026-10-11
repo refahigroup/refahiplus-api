@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Polly;
 using Refahi.Modules.Hotels.Application.Contracts.Providers;
 using Refahi.Modules.Hotels.Domain.Abstraction.Repositories;
 using Refahi.Modules.Hotels.Infrastructure.Persistence;
@@ -38,6 +39,24 @@ public static class DI
             IHotelProviderBookingCacheRepository,
             HotelProviderBookingCacheRepository
         >();
+
+        services.AddScoped<IHotelCatalogueRepository, HotelCatalogueRepository>();
+        services.AddMemoryCache();
+        services.AddSingleton<Providers.Catalogue.HotelInventoryStore>();
+        services.Configure<Providers.Lamasoo.LamasooOptions>(configuration.GetSection("Hotels:Providers:Lamasoo"));
+        services.PostConfigure<Providers.Lamasoo.LamasooOptions>(o => o.ApiKey = o.ApiKey.ReplaceWithEnvironmentVariables());
+        services.AddHttpClient<Providers.Lamasoo.LamasooApiClient>((sp, client) =>
+        {
+            var o = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Providers.Lamasoo.LamasooOptions>>().Value;
+            if (!Uri.TryCreate(o.BaseUrl, UriKind.Absolute, out var uri) || uri.Scheme != "https") throw new InvalidOperationException("نشانی لاماسو معتبر نیست.");
+            client.BaseAddress = uri; client.Timeout = TimeSpan.FromSeconds(Math.Clamp(o.TimeoutSeconds, 1, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", o.ApiKey);
+            if (o.IncludeAgencyProvider) client.DefaultRequestHeaders.Add("x-include-agency-provider", "true");
+        }).AddPolicyHandler(Polly.Extensions.Http.HttpPolicyExtensions.HandleTransientHttpError().CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+        services.AddScoped<Providers.Lamasoo.LamasooHotelProvider>();
+        services.AddScoped<Providers.Catalogue.SnappTripCatalogueProvider>();
+        services.AddScoped<Refahi.Modules.Hotels.Application.Contracts.Catalogue.IHotelCatalogueProviderRegistry, Providers.Catalogue.HotelCatalogueProviderRegistry>();
+        services.AddHostedService<Workers.HotelCatalogueRecoveryWorker>();
 
         // Providers
         services

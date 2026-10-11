@@ -50,82 +50,51 @@ public class SnappTripApiClient
 
     #region INTERNAL HELPERS
 
-    private async Task<T> GetAsync<T>(string url)
+    private Task<T> GetAsync<T>(string url, CancellationToken ct = default) => SendAsync<T>(HttpMethod.Get, url, null, null, ct);
+    private Task<T> PostAsync<T>(string url, object payload, CancellationToken ct = default) => SendAsync<T>(HttpMethod.Post, url, payload, null, ct);
+    private Task<T> PostAsync<T>(string url, object payload, string idempotencyKey) => SendAsync<T>(HttpMethod.Post, url, payload, idempotencyKey);
+
+    private async Task<T> SendAsync<T>(HttpMethod method, string url, object? payload, string? idempotencyKey, CancellationToken ct = default)
     {
-        _logger.LogInformation("SnappTrip GET {Url}", url);
-
-        var response = await _http.GetAsync(url);
-
-        if (!response.IsSuccessStatusCode)
-            await ThrowApiError(response, url);
-
-        string json = await response.Content.ReadAsStringAsync();
-
-        _logger.LogInformation(json);
-
-        var result = await response.Content.ReadFromJsonAsync<T>();
-        if (result == null)
-            throw new Exception($"SnappTrip GET {url} returned NULL");
-
-        return result;
-    }
-
-    private async Task<T> PostAsync<T>(string url, object payload)
-    {
-        _logger.LogInformation("SnappTrip POST {Url}", url);
-
-        var response = await _http.PostAsJsonAsync(url, payload);
-
-        if (!response.IsSuccessStatusCode)
-            await ThrowApiError(response, url);
-
-        string json = await response.Content.ReadAsStringAsync();
-
-        var result = await response.Content.ReadFromJsonAsync<T>();
-        if (result == null)
-            throw new Exception($"SnappTrip POST {url} returned NULL");
-
-        return result;
-    }
-
-    private async Task<T> PostAsync<T>(string url, object payload, string idempotencyKey)
-    {
-        _logger.LogInformation(
-            "SnappTrip POST {Url} IdempotencyKey={IdempotencyKey}",
-            url,
-            idempotencyKey
-        );
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        var mutation = method != HttpMethod.Get && url.StartsWith("/booking/", StringComparison.OrdinalIgnoreCase);
+        using var request = new HttpRequestMessage(method, url);
+        if (payload is not null) request.Content = JsonContent.Create(payload);
+        if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
-            Content = JsonContent.Create(payload),
-        };
-        request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
-        request.Headers.TryAddWithoutValidation("X-Idempotency-Key", idempotencyKey);
-
-        var response = await _http.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-            await ThrowApiError(response, url);
-
-        var result = await response.Content.ReadFromJsonAsync<T>();
-        if (result == null)
-            throw new Exception($"SnappTrip POST {url} returned NULL");
-
-        return result;
+            request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
+            request.Headers.TryAddWithoutValidation("X-Idempotency-Key", idempotencyKey);
+        }
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var outcome = "failure";
+        try
+        {
+            using var response = await _http.SendAsync(request, ct);
+            _logger.LogInformation("Hotel provider HTTP operation Provider=SnappTrip Method={Method} Status={Status} ElapsedMs={ElapsedMs}",
+                method, (int)response.StatusCode, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            if (!response.IsSuccessStatusCode) await ThrowApiError(response, url);
+            var result = await response.Content.ReadFromJsonAsync<T>(ct) ?? throw new System.Text.Json.JsonException();
+            outcome = "success";
+            return result;
+        }
+        catch (Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException) { outcome = "unknown"; throw; }
+        catch (Exception ex) when (mutation && ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException or Polly.Timeout.TimeoutRejectedException)
+        {
+            outcome = "unknown";
+            throw new Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException("نتیجه عملیات رزرو هنوز مشخص نیست.", ex);
+        }
+        finally
+        {
+            Catalogue.HotelProviderTelemetry.Record("SnappTrip", mutation ? "booking-mutation" : "read", outcome,
+                System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        }
     }
 
-    private async Task ThrowApiError(HttpResponseMessage response, string url)
+    private Task ThrowApiError(HttpResponseMessage response, string url)
     {
-        var err = await response.Content.ReadFromJsonAsync<SnappTripApiError>();
-        var message =
-            $"SnappTrip Error calling {url}. "
-            + $"Status={(int)response.StatusCode}, "
-            + $"Code={err?.code}, "
-            + $"Message={err?.message}, Trace={err?.trace_id}";
-
-        _logger.LogError(message);
-        throw new Exception(message);
+        _logger.LogWarning("Hotel provider rejected request Provider=SnappTrip Status={Status}", (int)response.StatusCode);
+        if (url.StartsWith("/booking/", StringComparison.OrdinalIgnoreCase) && ((int)response.StatusCode >= 500 || response.StatusCode == System.Net.HttpStatusCode.RequestTimeout))
+            throw new Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException("نتیجه عملیات رزرو هنوز مشخص نیست.");
+        throw new InvalidOperationException("عملیات هتل توسط تأمین‌کننده پذیرفته نشد.");
     }
 
     #endregion
@@ -136,10 +105,10 @@ public class SnappTripApiClient
     // ============================================================
 
     public Task<SnappTripCityAvailabilityResponse> SearchCityAvailabilityAsync(
-        SnappTripCityAvailabilityRequest request
+        SnappTripCityAvailabilityRequest request, CancellationToken ct = default
     )
     {
-        return PostAsync<SnappTripCityAvailabilityResponse>("/availability/cities", request);
+        return PostAsync<SnappTripCityAvailabilityResponse>("/availability/cities", request, ct);
     }
 
     // ============================================================
@@ -165,11 +134,11 @@ public class SnappTripApiClient
     public Task<SnappTripAvailabilityResponse> GetHotelAvailabilityByIdAsync(
         long hotelId,
         string checkIn,
-        string checkOut
+        string checkOut, CancellationToken ct = default
     )
     {
         var url = $"/availability/hotels/{hotelId}?checkin={checkIn}&checkout={checkOut}";
-        return GetAsync<SnappTripAvailabilityResponse>(url);
+        return GetAsync<SnappTripAvailabilityResponse>(url, ct);
     }
 
     // ============================================================
@@ -277,9 +246,9 @@ public class SnappTripApiClient
     // 11) CITIES LIST
     // ============================================================
 
-    public Task<IEnumerable<SnappTripCityData>> GetCitiesAsync()
+    public Task<IEnumerable<SnappTripCityData>> GetCitiesAsync(CancellationToken ct = default)
     {
-        return GetAsync<IEnumerable<SnappTripCityData>>("/cities/");
+        return GetAsync<IEnumerable<SnappTripCityData>>("/cities/", ct);
     }
 
     // ============================================================
@@ -330,11 +299,11 @@ public class SnappTripApiClient
     // 14) HOTEL DETAILS (STATIC)
     // ============================================================
 
-    public Task<IEnumerable<SnappTripHotelDetailsResponse>> GetHotelsDetailsAsync(long[] hotelIds)
+    public Task<IEnumerable<SnappTripHotelDetailsResponse>> GetHotelsDetailsAsync(long[] hotelIds, CancellationToken ct = default)
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()).Take(10)); // Max 10 per API docs
         var url = $"/hotels/?id={ids}";
-        return GetAsync<IEnumerable<SnappTripHotelDetailsResponse>>(url);
+        return GetAsync<IEnumerable<SnappTripHotelDetailsResponse>>(url, ct);
     }
 
     // ============================================================
@@ -342,12 +311,12 @@ public class SnappTripApiClient
     // ============================================================
 
     public Task<IEnumerable<SnappTripHotelFacilitiesResponse>> GetHotelsFacilitiesAsync(
-        long[] hotelIds
+        long[] hotelIds, CancellationToken ct = default
     )
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()).Take(10)); // Max 10 per API docs
         var url = $"/hotels/facilities?id={ids}";
-        return GetAsync<IEnumerable<SnappTripHotelFacilitiesResponse>>(url);
+        return GetAsync<IEnumerable<SnappTripHotelFacilitiesResponse>>(url, ct);
     }
 
     // ============================================================
@@ -355,23 +324,23 @@ public class SnappTripApiClient
     // ============================================================
 
     public Task<IEnumerable<SnappTripHotelGalleriesResponse>> GetHotelsGalleriesAsync(
-        long[] hotelIds
+        long[] hotelIds, CancellationToken ct = default
     )
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()).Take(10)); // Max 10 per API docs
         var url = $"/hotels/galleries?id={ids}";
-        return GetAsync<IEnumerable<SnappTripHotelGalleriesResponse>>(url);
+        return GetAsync<IEnumerable<SnappTripHotelGalleriesResponse>>(url, ct);
     }
 
     // ============================================================
     // 17) HOTEL ROOMS (STATIC)
     // ============================================================
 
-    public Task<IEnumerable<SnappTripHotelRoomsResponse>> GetHotelsRoomsAsync(long[] hotelIds)
+    public Task<IEnumerable<SnappTripHotelRoomsResponse>> GetHotelsRoomsAsync(long[] hotelIds, CancellationToken ct = default)
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()).Take(10)); // Max 10 per API docs
         var url = $"/hotels/rooms?id={ids}";
-        return GetAsync<IEnumerable<SnappTripHotelRoomsResponse>>(url);
+        return GetAsync<IEnumerable<SnappTripHotelRoomsResponse>>(url, ct);
     }
 
     // ============================================================

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.ConvertHotelRequestToOrder;
@@ -17,18 +17,21 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
     private readonly IHotelBookingSagaRepository _sagaRepository;
     private readonly IMediator _mediator;
     private readonly ILogger<ConvertHotelRequestToOrderCommandHandler> _logger;
+    private readonly IHotelCatalogueRepository? _catalogue;
 
     public ConvertHotelRequestToOrderCommandHandler(
         IHotelRequestRepository repository,
         IHotelBookingSagaRepository sagaRepository,
         IMediator mediator,
-        ILogger<ConvertHotelRequestToOrderCommandHandler> logger
+        ILogger<ConvertHotelRequestToOrderCommandHandler> logger,
+        IHotelCatalogueRepository? catalogue = null
     )
     {
         _repository = repository;
         _sagaRepository = sagaRepository;
         _mediator = mediator;
         _logger = logger;
+        _catalogue = catalogue;
     }
 
     public async Task<ConvertHotelRequestToOrderResponse> Handle(
@@ -41,6 +44,12 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
             ?? throw new InvalidOperationException("درخواست هتل یافت نشد");
 
         var now = DateTime.UtcNow;
+        if (hotelRequest.ProviderName == "Lamasoo")
+        {
+            var reservation = _catalogue is null ? null : await _catalogue.ReservationAsync(hotelRequest.Id, cancellationToken);
+            if (reservation?.State != Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.HotelExternalState.Reserved)
+                throw new InvalidOperationException("وضعیت رزرو اجازه ایجاد سفارش نمی‌دهد.");
+        }
 
         if (hotelRequest.PricingVersion != HotelRequest.CurrentPricingVersion)
             throw new InvalidOperationException(
@@ -130,9 +139,10 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
                             MetadataJson: BuildMetadataJson(hotelRequest)
                         ),
                     ],
-                    IdempotencyKey: $"hotel-request-order-{NormalizeIdempotencyKey(request.IdempotencyKey)}",
+                    IdempotencyKey: $"hotel-request-order-{hotelRequest.Id:N}",
                     ReferenceType: "HotelRequest",
-                    SagaId: saga.SagaId
+                    SagaId: saga.SagaId,
+                    PayableUntil: new DateTimeOffset(hotelRequest.ExpireAt, TimeSpan.Zero)
                 ),
                 cancellationToken
             );
@@ -146,8 +156,7 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
                 hotelRequest.Id
             );
 
-            hotelRequest.MarkFailed(DateTime.UtcNow);
-            saga.Fail("Order creation failed.", DateTime.UtcNow);
+            saga.RecordRecoverableFailure("Order creation needs recovery with the stable request key.", DateTime.UtcNow);
             await _repository.SaveChangesAsync(cancellationToken);
             throw;
         }
@@ -176,7 +185,13 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
 
     private static string BuildOrderTitle(
         Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.HotelRequest request
-    ) => $"رزرو هتل {request.ProviderHotelId} - اتاق {request.ProviderRoomId}";
+    ) => $"رزرو هتل {ReadName(request.SelectedHotelSnapshot)} - اتاق {ReadName(request.SelectedRoomSnapshot)}";
+
+    private static string ReadName(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.TryGetProperty("name", out var name) ? name.GetString() ?? "انتخابی" : "انتخابی";
+    }
 
     private static string BuildMetadataJson(
         Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.HotelRequest request
@@ -189,6 +204,9 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
                 provider = request.ProviderName,
                 provider_hotel_id = request.ProviderHotelId,
                 provider_room_id = request.ProviderRoomId,
+                native_hotel_id = request.NativeHotelId,
+                native_room_id = request.NativeRoomId,
+                offer_token = request.OfferToken,
                 search_criteria_snapshot = request.SearchCriteriaSnapshot,
                 selected_hotel_snapshot = request.SelectedHotelSnapshot,
                 selected_room_snapshot = request.SelectedRoomSnapshot,
@@ -198,11 +216,4 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
             }
         );
 
-    private static string NormalizeIdempotencyKey(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new InvalidOperationException("هدر Idempotency-Key الزامی است");
-
-        return value.Trim();
-    }
 }
