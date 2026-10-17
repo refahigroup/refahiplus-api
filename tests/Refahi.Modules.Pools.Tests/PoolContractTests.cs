@@ -1,9 +1,12 @@
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Pools.Application;
+using Refahi.Modules.Pools.Application.Validators;
 using Refahi.Modules.Pools.Application.Contracts;
 using Refahi.Modules.Pools.Domain;
 using Refahi.Modules.Pools.Infrastructure.Providers;
@@ -40,11 +43,154 @@ public sealed class PoolContractTests
         Assert.Contains("city_id=3", handler.Body); Assert.DoesNotContain("access_token", handler.Body);
         Assert.Equal("/api/v2/pools/1/10", handler.Path);
     }
+    [Theory]
+    [InlineData("1", true)] [InlineData("0", false)]
+    [InlineData("true", true)] [InlineData("false", false)]
+    public async Task Search_accepts_numeric_and_boolean_sale_flags(string flag, bool expected)
+    {
+        var json = """{"page":1,"limit":50,"status":1,"pools":[{"pool_id":2,"name":"استخر ارمغان سپید ایرانیان مشهد","lat":36.297577614645,"lng":59.60572242737,"status_sell":FLAG,"status_sell_course":1,"status_sell_pack":1,"gender":2,"comment":1,"state_name":"آذربایجان شرقی","city_name":"تبریز","area_name":"محله تبریزی ها","state_id":1,"city_id":1,"area_id":2,"default_image":"https://staging.poolticket.org/files/images/pg/35/270_160_2.webp","max_discount":30,"rating":3.3,"minimum_sale_price":700,"minimum_market_price":1000,"type_id":1,"status_sell_ticket":1}],"sort_list":[{"title":"حروف الفبا","code":"name"}],"sorted_by":"name"}""".Replace("FLAG", flag);
+        var catalog = await Provider(new(json)).SearchAsync(new("poolticket", Page: 1, Limit: 50), default);
+        var pool = Assert.Single(catalog.Items);
+        Assert.Equal(expected, pool.IsSelling);
+        Assert.Equal(700m, pool.MinimumSalePrice);
+        Assert.Equal("name", catalog.SortedBy);
+    }
+
+    [Theory]
+    [InlineData("1", true)] [InlineData("0", false)]
+    [InlineData("true", true)] [InlineData("false", false)]
+    public async Task Sessions_accept_numeric_and_boolean_sale_flags(string flag, bool expected)
+    {
+        var json = """{"status":1,"saens":[{"saens_id":7,"saens_name":"روز","gender":2,"rows":[{"saens_row_id":9,"status_sell":FLAG,"adult_sale_status":FLAG,"child_sale_status":FLAG,"price_sale_adult":100,"price_sale_child":200,"price_market_adult":120,"price_market_child":220,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}]}]}""".Replace("FLAG", flag);
+        var sessions = await Provider(new(json)).SessionsAsync("2", default);
+        var row = Assert.Single(Assert.Single(sessions).Rows);
+        Assert.Equal(expected, row.IsSelling);
+        Assert.Equal(expected, row.AdultEnabled);
+        Assert.Equal(expected, row.ChildEnabled);
+    }
+
+    [Theory]
+    [InlineData("2")] [InlineData("-1")] [InlineData("1.5")]
+    [InlineData("\"1\"")] [InlineData("null")]
+    public async Task Invalid_sale_flags_are_rejected(string flag)
+    {
+        var json = """{"status":1,"pools":[{"pool_id":2,"name":"استخر","status_sell":FLAG,"gender":2}]}""".Replace("FLAG", flag);
+        var error = await Assert.ThrowsAsync<PoolException>(() => Provider(new(json)).SearchAsync(new("poolticket"), default));
+        Assert.Equal(502, error.Status);
+    }
+
+    [Fact]
+    public async Task Terms_accepts_provider_response_with_escaped_unicode_and_slash()
+    {
+        var handler = new StubHandler("""{"status":1,"terms_of_use":{"content":"<p>\u0634\u0631\u0627\u06cc\u0637 \u0627\u0633\u062a\u0641\u0627\u062f\u0647<\/p>"}}""");
+        Assert.Equal("<p>شرایط استفاده</p>", await Provider(handler).TermsAsync("72", default));
+        Assert.Equal("/api/v2/pool/terms-of-use/72", handler.Path);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"\"")]
+    public async Task Terms_without_content_returns_empty_text(string content)
+    {
+        var json = """{"status":1,"terms_of_use":{"content":CONTENT}}""".Replace("CONTENT", content);
+        Assert.Equal("", await Provider(new(json)).TermsAsync("72", default));
+    }
+
+    [Theory]
+    [InlineData(200)]
+    [InlineData(201)]
+    public async Task Terms_accepts_reported_pool_88_response(int httpStatus)
+    {
+        var json = """{"status":1,"terms_of_use":{"content":"<p>۲۰ دقیقه پایانی سانس به دوش&zwnj;گرفتن و تعویض لباس اختصاص دارد.</p>\r\n<p>پذیرش کودکان 5 سال به بالا امکان پذیر است.</p>\r\n<p>سانس صبحگاهی همراه با پذیرایی صبحانه است.</p>\r\n<p>سانس vip همراه با دیجی است.</p>\r\n<p>&nbsp;</p>"}}""";
+        var handler = new StubHandler(json, (HttpStatusCode)httpStatus);
+        var terms = await Provider(handler).TermsAsync("88", default);
+        Assert.Contains("۲۰ دقیقه پایانی سانس", terms);
+        Assert.Contains("پذیرش کودکان 5 سال به بالا", terms);
+        Assert.Contains("سانس vip همراه با دیجی است.", terms);
+        Assert.Equal("/api/v2/pool/terms-of-use/88", handler.Path);
+    }
+
+    [Theory]
+    [InlineData(404)]
+    [InlineData(500)]
+    public async Task Terms_rejects_unsuccessful_http_even_with_successful_envelope(int httpStatus)
+    {
+        var handler = new StubHandler("""{"status":1,"terms_of_use":{"content":"<p>قانون</p>"}}""", (HttpStatusCode)httpStatus);
+        var error = await Assert.ThrowsAsync<PoolException>(() => Provider(handler).TermsAsync("88", default));
+        Assert.Equal(502, error.Status);
+    }
+
+    [Theory]
+    [InlineData("{\"status\":1}")]
+    [InlineData("{\"status\":1,\"terms_of_use\":null}")]
+    public async Task Terms_without_envelope_is_rejected(string json)
+    {
+        var error = await Assert.ThrowsAsync<PoolException>(() => Provider(new(json)).TermsAsync("72", default));
+        Assert.Equal(502, error.Status);
+    }
+
+    [Fact]
+    public async Task Sessions_requests_json_and_preserves_api_errors()
+    {
+        var handler = new StubHandler("""{"status":0,"error":"invalid_pool"}""");
+        var error = await Assert.ThrowsAsync<PoolException>(() => Provider(handler).SessionsAsync("72", default));
+        Assert.Equal(404, error.Status);
+        Assert.Equal("/api/v2/saens/list", handler.Path);
+        Assert.Equal("application/json", handler.Accept);
+        Assert.Contains("pool_id=72", handler.Body);
+        Assert.Contains("client_id=test-client", handler.Body);
+    }
+
+    [Fact]
+    public void Registered_provider_client_does_not_follow_redirects()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ConnectionStringName"] = "Test",
+            ["ConnectionStrings:Test"] = "Host=localhost;Database=pools_test;Username=test;Password=test"
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        Refahi.Modules.Pools.Infrastructure.DI.RegisterInfrastructure(services, config);
+        using var scope = services.BuildServiceProvider();
+        var handler = scope.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler(nameof(PoolTicketClient));
+        while (handler is DelegatingHandler wrapper)
+            handler = wrapper.InnerHandler!;
+        Assert.False(Assert.IsType<HttpClientHandler>(handler).AllowAutoRedirect);
+    }
+
+    [Theory]
+    [InlineData(200, "text/html", "POOLS_PROVIDER_NON_JSON")]
+    [InlineData(502, "text/html", "POOLS_PROVIDER_NON_JSON")]
+    [InlineData(302, "text/html", "POOLS_PROVIDER_REDIRECT")]
+    [InlineData(307, "text/html", "POOLS_PROVIDER_REDIRECT")]
+    public async Task Sessions_rejects_website_and_redirect_responses(int status, string mediaType, string code)
+    {
+        var handler = new StubHandler("<!DOCTYPE html><html><meta name='csrf-token' content='private-token'></html>", (HttpStatusCode)status, mediaType);
+        var error = await Assert.ThrowsAsync<PoolException>(() => Provider(handler).SessionsAsync("72", default));
+        Assert.Equal(502, error.Status);
+        Assert.Equal(code, error.Code);
+        Assert.DoesNotContain("private-token", error.Message);
+    }
+
     [Fact]
     public async Task Success_http_with_status_zero_is_rejected()
     {
         var p = Provider(new("""{"status":0,"error":"invalid_client"}"""));
         var ex = await Assert.ThrowsAsync<PoolException>(() => p.StatesAsync(true, default)); Assert.Equal(502, ex.Status);
+    }
+
+    [Theory]
+    [InlineData("{\"status\":0}", "application/json")]
+    [InlineData("{\"status\":1,\"terms_of_use\":{\"content\":\"text\"}}", "application/json")]
+    [InlineData("<html>Too many requests</html>", "text/html")]
+    [InlineData("", "text/plain")]
+    public async Task Rate_limit_is_reported_independently_of_response_body(string body, string mediaType)
+    {
+        var handler = new StubHandler(body, HttpStatusCode.TooManyRequests, mediaType);
+        var error = await Assert.ThrowsAsync<PoolException>(() => Provider(handler).TermsAsync("88", default));
+        Assert.Equal(429, error.Status);
+        Assert.Equal("POOLS_PROVIDER_RATE_LIMITED", error.Code);
     }
     [Fact]
     public async Task Malformed_or_missing_provider_fields_are_rejected()
@@ -99,40 +245,16 @@ public sealed class PoolContractTests
         Assert.All(selection.Validate(new PoolSelection("", "", "", -1, 101)).Errors, e => Assert.Matches("[\u0600-\u06ff]", e.ErrorMessage));
         Assert.All(search.Validate(new PoolSearchQuery("", Page: 0, Limit: 51)).Errors, e => Assert.Matches("[\u0600-\u06ff]", e.ErrorMessage));
     }
-    [Fact]
-    public void Production_policy_rejects_mock_even_with_purchase_flags()
-    {
-        var options = Options.Create(new PoolsOptions { PurchaseEnabled = true, MockLifecycleEnabled = true, TestFundsConfirmed = true });
-        Assert.Throws<PoolException>(() => new PoolPurchasePolicy(new TestEnvironment("Production"), options).EnsureAllowed(true));
-        new PoolPurchasePolicy(new TestEnvironment("Staging"), options).EnsureAllowed(true);
-    }
-    [Fact]
-    public void Mock_requires_explicit_confirmation_of_isolated_test_funds_and_cannot_enable_live_purchase()
-    {
-        var options = Options.Create(new PoolsOptions { PurchaseEnabled = true, MockLifecycleEnabled = true });
-        var policy = new PoolPurchasePolicy(new TestEnvironment("Test"), options);
-        Assert.Throws<PoolException>(() => policy.EnsureAllowed(true));
-        options.Value.TestFundsConfirmed = true;
-        Assert.Throws<PoolException>(() => policy.EnsureAllowed(false));
-    }
-    [Fact]
-    public void Domain_never_issues_before_payment_or_after_cancel()
-    {
-        var b = PoolBooking.Create(Guid.NewGuid(), "poolticket", "key", "hash", "{}", true);
-        b.Reserve("MOCK-1", 100, DateTimeOffset.UtcNow.AddMinutes(10));
-        Assert.Throws<InvalidOperationException>(() => b.Issue("MOCK-code"));
-        b.MarkPaid(); b.Cancel(); Assert.Throws<InvalidOperationException>(() => b.Issue("MOCK-code"));
-    }
     private static PoolTicketProvider Provider(StubHandler handler)
     {
         var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", CalculateReadOnlyConfirmed = true });
         return new(new(new HttpClient(handler) { BaseAddress = new("https://example.test/") }, options, NullLogger<PoolTicketClient>.Instance), options);
     }
-    private sealed class StubHandler(string json) : HttpMessageHandler
+    private sealed class StubHandler(string json, HttpStatusCode status = HttpStatusCode.OK, string mediaType = "application/json") : HttpMessageHandler
     {
-        public string? Body, Path;
+        public string? Body, Path, Accept;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage r, CancellationToken ct)
-        { Body = await r.Content!.ReadAsStringAsync(ct); Path = r.RequestUri!.AbsolutePath; return new(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") }; }
+        { Body = await r.Content!.ReadAsStringAsync(ct); Path = r.RequestUri!.AbsolutePath; Accept = r.Headers.Accept.ToString(); return new(status) { Content = new StringContent(json, Encoding.UTF8, mediaType) }; }
     }
     private sealed class ThrowingHandler(Exception error) : HttpMessageHandler
     {

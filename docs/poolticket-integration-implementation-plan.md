@@ -1,3 +1,5 @@
+> Historical notes, superseded on 2026-10-13 by [current Pools architecture/API/runbook](pools-architecture-api-runbook.md). Routes, configuration and test counts below describe the retired implementation.
+
 # پیاده‌سازی Pools — بکند و فرانتند
 
 تاریخ: 2026-10-11

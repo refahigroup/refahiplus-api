@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,8 @@ using Npgsql;
 using Refahi.Modules.Pools.Api;
 using Refahi.Modules.Pools.Application.Contracts;
 using Refahi.Modules.Pools.Domain;
+using Refahi.Modules.Pools.Application.Contracts.Public;
+using Refahi.Modules.Identity.Application.Contracts.AuthorizationGrants;
 using Refahi.Modules.Pools.Infrastructure.Persistence;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
@@ -39,24 +42,20 @@ public sealed class PoolsPostgresCollection;
 public sealed class PoolPostgresTests
 {
     private static string Connection => Environment.GetEnvironmentVariable("REFAHI_POOLS_TEST_CONNECTION")!;
-    private static readonly PoolSelection Selection = new("poolticket", "1", "1", 1, 1);
-    private static ServiceProvider Services(string scenario = "Success")
+    private static ServiceProvider Services()
     {
-        Assert.Contains("test", new NpgsqlConnectionStringBuilder(Connection).Database!, StringComparison.OrdinalIgnoreCase);
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["ConnectionStringName"] = "Test", ["ConnectionStrings:Test"] = Connection,
-            ["Pools:CatalogEnabled"] = "true", ["Pools:PurchaseEnabled"] = "true", ["Pools:MockLifecycleEnabled"] = "true",
-            ["Pools:FixtureCatalogEnabled"] = "true", ["Pools:Mock:Scenario"] = scenario,
-            ["Pools:TestFundsConfirmed"] = "true"
-        }).Build();
-        var s = new ServiceCollection(); s.AddLogging(); s.AddSingleton<IConfiguration>(config); s.AddSingleton<IHostEnvironment>(new TestEnvironment("Test"));
+        Assert.Contains("test",new NpgsqlConnectionStringBuilder(Connection).Database!,StringComparison.OrdinalIgnoreCase);
+        var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{
+            ["ConnectionStringName"]="Test",["ConnectionStrings:Test"]=Connection,["Pools:CatalogEnabled"]="true",["Pools:PurchaseEnabled"]="true",
+            ["Pools:PoolTicket:PriceUnit"]="TOMAN"}).Build();
+        var s=new ServiceCollection();s.AddSingleton<RefundFault>();s.AddLogging();s.AddSingleton<IConfiguration>(config);s.AddSingleton<IHostEnvironment>(new TestEnvironment("Test"));
         s.RegisterPoolsModule(config);
-        Refahi.Modules.Orders.Application.DI.RegisterApplication(s, config);
-        Refahi.Modules.Orders.Infrastructure.DI.RegisterInfrastructure(s, config);
-        Refahi.Modules.Wallets.Application.DI.RegisterApplication(s, config);
-        Refahi.Modules.Wallets.Infrastructure.DI.RegisterInfrastructure(s, config);
-        s.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationPipeline<,>));
+        Refahi.Modules.Orders.Application.DI.RegisterApplication(s,config);Refahi.Modules.Orders.Infrastructure.DI.RegisterInfrastructure(s,config);
+        Refahi.Modules.Wallets.Application.DI.RegisterApplication(s,config);Refahi.Modules.Wallets.Infrastructure.DI.RegisterInfrastructure(s,config);
+        s.RemoveAll<IPoolProvider>();s.AddSingleton<TestPoolProvider>();s.AddScoped<IPoolProvider>(sp=>sp.GetRequiredService<TestPoolProvider>());
+        s.AddSingleton<TestClock>();s.AddSingleton<TimeProvider>(sp=>sp.GetRequiredService<TestClock>());
+        s.AddSingleton<GrantState>();s.AddScoped<IRequestHandler<GetAuthorizationGrantsByIssuerQuery,IReadOnlyList<AuthorizationGrantDto>>,AllGrantsHandler>();s.AddScoped<IRequestHandler<GetActiveAuthorizationGrantsQuery,IReadOnlyList<AuthorizationGrantDto>>,GrantHandler>();
+        s.AddTransient(typeof(IPipelineBehavior<,>),typeof(ValidationPipeline<,>));
         return s.BuildServiceProvider();
     }
     private static async Task Migrate(ServiceProvider services)
@@ -75,8 +74,6 @@ public sealed class PoolPostgresTests
     }
     private static async Task<T> Send<T>(ServiceProvider services, IRequest<T> request)
     { using var scope = services.CreateScope(); return await scope.ServiceProvider.GetRequiredService<IMediator>().Send(request); }
-    private static async Task Reconcile(ServiceProvider services, Guid id)
-    { using var scope = services.CreateScope(); await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new ReconcilePoolBookingCommand(id)); }
     private static async Task<(Guid Org, Guid Personal)> SeedWallets(Guid user, string category = "entertainment")
     {
         var org = Guid.NewGuid(); var personal = Guid.NewGuid(); await using var c = new NpgsqlConnection(Connection);
@@ -90,208 +87,173 @@ public sealed class PoolPostgresTests
                     Category = pair.Item2 == 4 ? category : null, Expires = pair.Item2 == 4 ? DateTimeOffset.UtcNow.AddDays(10) : (DateTimeOffset?)null });
         return (org, personal);
     }
-    private static async Task<PoolCheckout> ReserveAndCheckout(ServiceProvider services, Guid user)
+
+    private static async Task<PoolChoice[]> Catalogue(ServiceProvider services)
     {
-        var b = await Send(services, new ReservePoolBookingCommand(user, Selection, 1500000, Guid.NewGuid().ToString("N")));
-        Assert.True(b.CanCheckout);
-        return await Send(services, new CheckoutPoolBookingCommand(b.Id, user, b.Version, b.TotalMinor));
+        using(var scope=services.CreateScope()){var m=scope.ServiceProvider.GetRequiredService<IMediator>();await m.Send(new SyncPoolCatalogCommand(true));await m.Send(new SyncPoolCatalogCommand(false));}
+        var sessions=await Send(services,new ListPoolSessionsQuery(new(Limit:50)));
+        services.GetRequiredService<GrantState>().Pool=sessions.Items[0].PoolId;
+        return sessions.Items.Take(2).Select(x=>new PoolChoice(x.Id,1,1)).ToArray();
     }
-    private static async Task PublishPaid(ServiceProvider services, PoolCheckout checkout, Guid user, Guid payment)
+    private static async Task<(PoolPurchaseDto Purchase,PoolPurchaseCheckoutDto Checkout)> Checkout(ServiceProvider s,Guid user)
     {
-        using var scope = services.CreateScope(); await scope.ServiceProvider.GetRequiredService<IMediator>().Publish(new OrderPaidIntegrationEvent(
-            checkout.OrderId, checkout.OrderNumber, user, "Pools", checkout.BookingId, "PoolBooking", checkout.BookingId, payment, checkout.TotalMinor, DateTimeOffset.UtcNow));
+        var choices=await Catalogue(s);var quote=await Send(s,new QuotePoolPurchaseQuery(choices));
+        var p=await Send(s,new CreatePoolPurchaseCommand(user,choices,quote.TotalMinor,Guid.NewGuid().ToString("N")));
+        return(p,await Send(s,new CheckoutPoolPurchaseCommand(p.Id,user,p.Version,p.TotalMinor)));
+    }
+    private static async Task Reconcile(ServiceProvider s,Guid id){using var scope=s.CreateScope();await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new ReconcilePoolPurchaseCommand(id));}
+    [PostgresFact]
+    public async Task Grouped_purchase_real_split_payment_replay_and_refund_original_allocations()
+    {
+        await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var (p,c)=await Checkout(s,user);
+        Assert.Equal(2,p.Requests.Count);Assert.Equal(1500000,p.TotalMinor);Assert.All(p.Requests,x=>Assert.Null(x.Code));
+        var pay=new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Org,600000),new(wallets.Personal,900000)],"pay");
+        var paid=await Send(s,pay);Assert.Equal(paid.PaymentId,(await Send(s,pay with{IdempotencyKey="replay"})).PaymentId);
+        await Reconcile(s,p.Id);p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.Equal("Paid",p.Status);Assert.All(p.Requests,x=>Assert.Equal(32,x.Code!.Length));
+        var codes=p.Requests.Select(x=>x.Code).ToArray();await Reconcile(s,p.Id);Assert.Equal(codes,(await Send(s,new GetPoolPurchaseQuery(p.Id,user))).Requests.Select(x=>x.Code));
+        var cancelled=await Send(s,new CancelPoolPurchaseCommand(p.Id,user));Assert.Equal("Refunded",cancelled.Status);Assert.All(cancelled.Requests,x=>Assert.Null(x.Code));
+        await Send(s,new CancelPoolPurchaseCommand(p.Id,user));await using var db=new NpgsqlConnection(Connection);
+        foreach(var id in new[]{wallets.Org,wallets.Personal})Assert.Equal(2000000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=id}));
     }
     [PostgresFact]
-    public async Task Full_purchase_uses_real_orders_wallet_split_and_refunds_original_allocations()
+    public async Task Concurrent_create_checkout_and_payload_conflict_are_idempotent()
     {
-        await using var services = Services(); await Migrate(services); var user = Guid.NewGuid(); var wallets = await SeedWallets(user);
-        var checkout = await ReserveAndCheckout(services, user);
-        var pay = new PayOrderCommand(checkout.OrderId, user, "User", [new(wallets.Org, 600000), new(wallets.Personal, 900000)], "pay");
-        var paid = await Send(services, pay); var replay = await Send(services, pay with { IdempotencyKey = "pay-again" }); Assert.Equal(paid.PaymentId, replay.PaymentId);
-        await PublishPaid(services, checkout, user, paid.PaymentId); await PublishPaid(services, checkout, user, paid.PaymentId);
-        var issued = await Send(services, new GetPoolBookingQuery(checkout.BookingId, user)); Assert.StartsWith("MOCK-TICKET-", issued.TicketCode); Assert.Equal("Issued", issued.IssuanceStatus);
-        await using var c = new NpgsqlConnection(Connection);
-        Assert.Equal(1400000, await c.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id", new { Id = wallets.Org }));
-        Assert.Equal(1100000, await c.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id", new { Id = wallets.Personal }));
-        var cancelled = await Send(services, new CancelPoolBookingCommand(checkout.BookingId, user)); Assert.Equal("Refunded", cancelled.PaymentStatus); Assert.Null(cancelled.TicketCode);
-        await Send(services, new CancelPoolBookingCommand(checkout.BookingId, user));
-        foreach (var id in new[] { wallets.Org, wallets.Personal }) Assert.Equal(2000000, await c.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id", new { Id = id }));
+        await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var choices=await Catalogue(s);var quote=await Send(s,new QuotePoolPurchaseQuery(choices));
+        var command=new CreatePoolPurchaseCommand(user,choices,quote.TotalMinor,Guid.NewGuid().ToString("N"));
+        var purchases=await Task.WhenAll(Send(s,command),Send(s,command));Assert.Equal(purchases[0].Id,purchases[1].Id);
+        var p=purchases[0];var checkout=new CheckoutPoolPurchaseCommand(p.Id,user,p.Version,p.TotalMinor);
+        var orders=await Task.WhenAll(Send(s,checkout),Send(s,checkout));Assert.Equal(orders[0].OrderId,orders[1].OrderId);
+        Assert.Equal("IDEMPOTENCY_MISMATCH",(await Assert.ThrowsAsync<PoolException>(()=>Send(s,command with{ExpectedTotalMinor=1}))).Code);
+        await Assert.ThrowsAsync<PoolException>(()=>Send(s,new GetPoolPurchaseQuery(p.Id,Guid.NewGuid())));
     }
     [PostgresFact]
-    public async Task Concurrent_reserve_and_checkout_return_one_booking_and_order()
+    public async Task Lost_attachment_price_change_and_expiry_cannot_debit()
     {
-        await using var services = Services(); await Migrate(services); var user = Guid.NewGuid();
-        var command = new ReservePoolBookingCommand(user, Selection, 1500000, Guid.NewGuid().ToString("N"));
-        var bookings = await Task.WhenAll(Send(services, command), Send(services, command)); Assert.Equal(bookings[0].Id, bookings[1].Id);
-        var b = bookings[0]; var checkout = new CheckoutPoolBookingCommand(b.Id, user, b.Version, b.TotalMinor);
-        var orders = await Task.WhenAll(Send(services, checkout), Send(services, checkout)); Assert.Equal(orders[0].OrderId, orders[1].OrderId);
-        await Assert.ThrowsAsync<PoolException>(() => Send(services, command with { Selection = Selection with { AdultCount = 2 } }));
-        await Assert.ThrowsAsync<PoolException>(() => Send(services, new GetPoolBookingQuery(b.Id, Guid.NewGuid())));
+        await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var(p,c)=await Checkout(s,user);
+        using(var scope=s.CreateScope())await scope.ServiceProvider.GetRequiredService<PoolsDbContext>().Purchases.Where(x=>x.Id==p.Id).ExecuteUpdateAsync(x=>x.SetProperty(v=>v.OrderId,(Guid?)null).SetProperty(v=>v.OrderNumber,(string?)null));
+        await Reconcile(s,p.Id);Assert.Equal(c.OrderId,(await Send(s,new GetPoolPurchaseQuery(p.Id,user))).OrderId);
+        s.GetRequiredService<TestPoolProvider>().PriceDelta=10;
+        await Assert.ThrowsAsync<PoolException>(()=>Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"changed")));
+        s.GetRequiredService<TestPoolProvider>().PriceDelta=0;
+        using(var scope=s.CreateScope())await scope.ServiceProvider.GetRequiredService<PoolsDbContext>().Purchases.Where(x=>x.Id==p.Id).ExecuteUpdateAsync(x=>x.SetProperty(v=>v.PayableUntil,DateTimeOffset.UtcNow.AddMinutes(-1)));
+        await Assert.ThrowsAsync<PoolException>(()=>Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"expired")));
+        await Reconcile(s,p.Id);await using var db=new NpgsqlConnection(Connection);Assert.Equal(2000000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=wallets.Personal}));
     }
     [PostgresFact]
-    public async Task Lost_reserve_confirm_and_cancel_responses_recover_after_new_scopes()
+    public async Task Grant_time_window_concurrent_redemption_and_cancellation_are_serialized()
     {
-        var user = Guid.NewGuid();
-        await using var reserveServices = Services("ReserveAmbiguous"); await Migrate(reserveServices);
-        var b = await Send(reserveServices, new ReservePoolBookingCommand(user, Selection, 1500000, Guid.NewGuid().ToString("N")));
-        Assert.Equal("Reserving", b.ReservationStatus); await Reconcile(reserveServices, b.Id);
-        b = await Send(reserveServices, new GetPoolBookingQuery(b.Id, user)); Assert.Equal("Reserved", b.ReservationStatus);
-        var checkout = await Send(reserveServices, new CheckoutPoolBookingCommand(b.Id, user, b.Version, b.TotalMinor));
-        var wallets = await SeedWallets(user);
-        var paid = await Send(reserveServices, new PayOrderCommand(checkout.OrderId, user, "User", [new(wallets.Personal, 1500000)], "pay"));
-        await using var confirmServices = Services("ConfirmAmbiguous"); await PublishPaid(confirmServices, checkout, user, paid.PaymentId);
-        await Reconcile(confirmServices, b.Id); b = await Send(confirmServices, new GetPoolBookingQuery(b.Id, user)); Assert.Equal("Issued", b.IssuanceStatus);
-        await using var cancelServices = Services("CancelAmbiguous");
-        await Assert.ThrowsAsync<Refahi.Modules.Orders.Domain.Exceptions.OrderStateConflictException>(() => Send(cancelServices, new CancelPoolBookingCommand(b.Id, user)));
-        await Reconcile(cancelServices, b.Id); b = await Send(cancelServices, new GetPoolBookingQuery(b.Id, user)); Assert.Equal("Refunded", b.PaymentStatus);
+        await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var(p,c)=await Checkout(s,user);
+        await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"pay"));await Reconcile(s,p.Id);
+        p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));var v=p.Requests[0];var op=Guid.NewGuid();var grants=s.GetRequiredService<GrantState>();grants.User=op;grants.Pool=v.PoolId;
+        await Assert.ThrowsAsync<PoolException>(()=>Send(s,new ValidatePoolVoucherQuery(op,Guid.NewGuid(),v.Code!)));
+        Assert.False((await Send(s,new ValidatePoolVoucherQuery(op,v.PoolId,v.Code!))).CanRedeem);
+        s.GetRequiredService<TestClock>().Now=v.StartsAtUtc;var command=new RedeemPoolVoucherCommand(op,v.PoolId,v.Code!,"redeem");
+        var results=await Task.WhenAll(Send(s,command),Send(s,command));Assert.All(results,x=>Assert.Equal("Redeemed",x.Status));
+        await Assert.ThrowsAsync<Refahi.Modules.Orders.Domain.Exceptions.OrderStateConflictException>(()=>Send(s,new CancelPoolPurchaseCommand(p.Id,user)));
+        grants.Active=false;await Assert.ThrowsAsync<PoolException>(()=>Send(s,command));
     }
     [PostgresFact]
-    public async Task Crash_after_order_commit_repairs_attachment_and_expired_booking_cannot_debit()
+    public async Task Catalogue_stable_ids_complete_only_deletion_and_postgres_lock_cancellation()
     {
-        await using var services = Services(); await Migrate(services); var user = Guid.NewGuid(); var checkout = await ReserveAndCheckout(services, user);
-        using (var scope = services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<PoolsDbContext>().Bookings.Where(x => x.Id == checkout.BookingId)
-                .ExecuteUpdateAsync(x => x.SetProperty(b => b.OrderId, (Guid?)null).SetProperty(b => b.OrderNumber, (string?)null));
-        await Reconcile(services, checkout.BookingId); var b = await Send(services, new GetPoolBookingQuery(checkout.BookingId, user)); Assert.Equal(checkout.OrderId, b.OrderId);
-        using (var scope = services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<PoolsDbContext>().Bookings.Where(x => x.Id == checkout.BookingId)
-                .ExecuteUpdateAsync(x => x.SetProperty(b => b.PayableUntil, DateTimeOffset.UtcNow.AddMinutes(-1)));
-        var wallets = await SeedWallets(user);
-        await Assert.ThrowsAsync<PoolException>(() => Send(services, new PayOrderCommand(checkout.OrderId, user, "User", [new(wallets.Personal, 1500000)], "pay")));
-        await Reconcile(services, checkout.BookingId);
-        await using var c = new NpgsqlConnection(Connection);
-        using (var scope = services.CreateScope())
-            Assert.DoesNotContain(checkout.BookingId, await scope.ServiceProvider.GetRequiredService<IPoolBookingRepository>().CandidatesAsync(null, null, default));
-        Assert.Equal(2000000, await c.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id", new { Id = wallets.Personal }));
+        await using var s=Services();await Migrate(s);var first=await Catalogue(s);var again=await Catalogue(s);Assert.Equal(first,again);
+        var provider=s.GetRequiredService<TestPoolProvider>();provider.FailSessions=true;
+        using(var scope=s.CreateScope())await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new SyncPoolCatalogCommand(false));
+        Assert.Equal(2,(await Send(s,new ListPoolSessionsQuery(new()))).Total);
+        provider.FailSessions=false;provider.OnlyOne=true;await Catalogue(s);Assert.Equal(1,(await Send(s,new ListPoolSessionsQuery(new()))).Total);
+        using var locked=s.CreateScope();var gate=locked.ServiceProvider.GetRequiredService<IPoolMutationLock>();var id=Guid.NewGuid();await using var held=await gate.AcquireAsync(id,default);
+        using var timeout=new CancellationTokenSource(TimeSpan.FromMilliseconds(200));await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>gate.AcquireAsync(id,timeout.Token));
+    }
+
+    [PostgresFact]
+    public async Task Financial_category_insufficient_balance_and_forged_items_cannot_pay()
+    {
+        await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user,"hotel");var(p,c)=await Checkout(s,user);
+        await Assert.ThrowsAnyAsync<Exception>(()=>Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Org,p.TotalMinor)],"category")));
+        await Assert.ThrowsAnyAsync<Exception>(()=>Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,3000000)],"balance")));
+        var choices=await Catalogue(s);var quote=await Send(s,new QuotePoolPurchaseQuery(choices));var pending=await Send(s,new CreatePoolPurchaseCommand(user,choices,quote.TotalMinor,Guid.NewGuid().ToString("N")));
+        var items=pending.Requests.Select(x=>new CreateOrderItemInput("ووچر",x.TotalMinor,1,0,x.RequestId,"hotel",null,null)).ToList();
+        await Assert.ThrowsAsync<PoolException>(()=>Send(s,new CreateOrderCommand(user,"Pools",pending.Id,items,$"pools-purchase:{pending.Id:N}",ReferenceType:"PoolPurchase",SagaId:pending.Id,PayableUntil:pending.PayableUntil)));
+        await using var db=new NpgsqlConnection(Connection);foreach(var id in new[]{wallets.Org,wallets.Personal})Assert.Equal(2000000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=id}));
     }
     [PostgresFact]
-    public async Task Issuance_failure_compensates_through_orders_and_disallowed_category_never_debits()
+    public async Task Concurrent_consumption_and_refund_never_produce_a_refunded_consumed_voucher()
     {
-        await using var services = Services("ConfirmFailure"); await Migrate(services); var user = Guid.NewGuid(); var wallets = await SeedWallets(user, "hotel");
-        var checkout = await ReserveAndCheckout(services, user);
-        await Assert.ThrowsAnyAsync<Exception>(() => Send(services, new PayOrderCommand(checkout.OrderId, user, "User", [new(wallets.Org, 1500000)], "blocked")));
-        var paid = await Send(services, new PayOrderCommand(checkout.OrderId, user, "User", [new(wallets.Personal, 1500000)], "pay"));
-        await PublishPaid(services, checkout, user, paid.PaymentId); await Reconcile(services, checkout.BookingId);
-        var b = await Send(services, new GetPoolBookingQuery(checkout.BookingId, user)); Assert.Equal("Refunded", b.PaymentStatus);
+        await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var(p,c)=await Checkout(s,user);
+        await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"pay"));await Reconcile(s,p.Id);p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));var v=p.Requests[0];var op=Guid.NewGuid();s.GetRequiredService<GrantState>().User=op;s.GetRequiredService<TestClock>().Now=v.StartsAtUtc;
+        async Task Consume(){try{await Send(s,new RedeemPoolVoucherCommand(op,v.PoolId,v.Code!,"race"));}catch(PoolException){}}
+        async Task Cancel(){try{await Send(s,new CancelPoolPurchaseCommand(p.Id,user));}catch(Refahi.Modules.Orders.Domain.Exceptions.OrderStateConflictException){}}
+        await Task.WhenAll(Consume(),Cancel()).WaitAsync(TimeSpan.FromSeconds(20));await Reconcile(s,p.Id);
+        var final=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.False(final.Status=="Refunded"&&final.Requests.Any(x=>x.Status=="Redeemed"));
+        await using var db=new NpgsqlConnection(Connection);Assert.Equal(final.Status=="Refunded"?2000000:500000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=wallets.Personal}));
     }
     [PostgresFact]
-    public async Task Advisory_lock_cancels_waiter_and_uniqueness_is_enforced_by_postgres()
+    public async Task Keyset_recovery_pages_and_database_uniqueness_are_real_postgres_constraints()
     {
-        await using var services = Services(); await Migrate(services); var id = Guid.NewGuid(); using var scope = services.CreateScope();
-        var gate = scope.ServiceProvider.GetRequiredService<IPoolMutationLock>();
-        await using (var held = await gate.AcquireAsync(id, default))
-        { using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)); await Assert.ThrowsAnyAsync<OperationCanceledException>(() => gate.AcquireAsync(id, timeout.Token)); }
-        await using var again = await gate.AcquireAsync(id, default);
-        var db = scope.ServiceProvider.GetRequiredService<PoolsDbContext>(); var user = Guid.NewGuid();
-        db.Bookings.Add(PoolBooking.Create(user, "poolticket", "same", "f", "{}", true)); await db.SaveChangesAsync();
-        db.Bookings.Add(PoolBooking.Create(user, "poolticket", "same", "f", "{}", true)); await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+        await using var s=Services();await Migrate(s);using var scope=s.CreateScope();var db=scope.ServiceProvider.GetRequiredService<PoolsDbContext>();var now=DateTimeOffset.UtcNow;
+        PoolPurchase New(Guid user,string key)=>PoolPurchase.Create(user,key,"hash",[PoolRequest.Create(Guid.NewGuid(),Guid.NewGuid(),"poolticket","12","9","{}","استخر","date","time",1,0,100,now.AddDays(1),now.AddDays(1).AddHours(2))],now,now.AddMinutes(10));
+        for(var i=0;i<61;i++)db.Purchases.Add(New(Guid.NewGuid(),Guid.NewGuid().ToString("N")));await db.SaveChangesAsync();
+        var repo=scope.ServiceProvider.GetRequiredService<IPoolPurchaseRepository>();var seen=new HashSet<Guid>();DateTimeOffset? after=null;Guid? afterId=null;
+        while(true){var ids=await repo.RecoveryIdsAsync(after,afterId,default);if(ids.Count==0)break;Assert.All(ids,id=>Assert.True(seen.Add(id)));var last=(await repo.GetAsync(ids[^1],default))!;after=last.CreatedAt;afterId=last.Id;}Assert.True(seen.Count>=61);
+        var user=Guid.NewGuid();db.Purchases.Add(New(user,"unique"));await db.SaveChangesAsync();db.Purchases.Add(New(user,"unique"));await Assert.ThrowsAsync<DbUpdateException>(()=>db.SaveChangesAsync());
     }
+
     [PostgresFact]
-    public async Task Concurrent_payment_and_cancellation_never_leave_a_debit_or_duplicate_refund()
+    public async Task Http_endpoints_enforce_ownership_validation_envelopes_and_private_purchase_cache()
     {
-        await using var services = Services(); await Migrate(services);
-        for (var i = 0; i < 3; i++)
-        {
-            var user = Guid.NewGuid(); var wallets = await SeedWallets(user); var checkout = await ReserveAndCheckout(services, user);
-            var pay = Task.Run(async () =>
-            {
-                try { await Send(services, new PayOrderCommand(checkout.OrderId, user, "User", [new(wallets.Personal, 1500000)], "race-pay")); }
-                catch (Exception ex) when (ex is PoolException or Refahi.Modules.Orders.Domain.Exceptions.OrderStateConflictException) { }
-            });
-            await Task.WhenAll(pay, Send(services, new CancelPoolBookingCommand(checkout.BookingId, user)));
-            await Reconcile(services, checkout.BookingId);
-            var booking = await Send(services, new GetPoolBookingQuery(checkout.BookingId, user)); Assert.Equal("Cancelled", booking.CancellationStatus); Assert.Null(booking.TicketCode);
-            await using var connection = new NpgsqlConnection(Connection);
-            Assert.Equal(2000000, await connection.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id", new { Id = wallets.Personal }));
-        }
+        await using var services=Services();await Migrate(services);var choices=await Catalogue(services);
+        var builder=WebApplication.CreateBuilder(new WebApplicationOptions{EnvironmentName="Test"});builder.Logging.ClearProviders();builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddScoped<IServiceScope>(_=>services.CreateScope());builder.Services.AddScoped(sp=>sp.GetRequiredService<IServiceScope>().ServiceProvider.GetRequiredService<IMediator>());
+        builder.Services.AddSingleton(services.GetRequiredService<IOptionsMonitor<PoolsOptions>>());
+        builder.Services.AddAuthentication("PoolsTest").AddScheme<AuthenticationSchemeOptions,TestAuthentication>("PoolsTest",_=>{});
+        builder.Services.AddAuthorization(o=>o.AddPolicy("UserOrAdmin",p=>p.RequireAuthenticatedUser().RequireRole("User","Admin")));
+        await using var app=builder.Build();app.UseAuthentication();app.UseAuthorization();var routes=app.MapGroup("/api/pools");new Refahi.Modules.Pools.Api.Endpoints.PoolCatalogEndpoints().Map(routes);new Refahi.Modules.Pools.Api.Endpoints.PoolPurchaseEndpoints().Map(routes);await app.StartAsync();
+        using var client=new HttpClient{BaseAddress=new(app.Urls.Single())};Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/pools/catalog/sessions")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/pools/catalog/sessions?gender=9")).StatusCode);
+        var request=new{Choices=choices,ExpectedTotalMinor=1500000,IdempotencyKey=Guid.NewGuid().ToString("N")};Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync("/api/pools/purchases",request)).StatusCode);
+        var user=Guid.NewGuid();client.DefaultRequestHeaders.Add("X-Test-User",user.ToString());var response=await client.PostAsJsonAsync("/api/pools/purchases",request);Assert.Equal(HttpStatusCode.OK,response.StatusCode);Assert.True(response.Headers.CacheControl!.NoStore);Assert.True(response.Headers.CacheControl.Private);
+        using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());var id=json.RootElement.GetProperty("data").GetProperty("id").GetGuid();Assert.True(json.RootElement.GetProperty("success").GetBoolean());Assert.DoesNotContain("providerKey",await response.Content.ReadAsStringAsync());
+        client.DefaultRequestHeaders.Remove("X-Test-User");client.DefaultRequestHeaders.Add("X-Test-User",Guid.NewGuid().ToString());Assert.Equal(HttpStatusCode.Forbidden,(await client.GetAsync($"/api/pools/purchases/{id}")).StatusCode);
+        client.DefaultRequestHeaders.Remove("X-Test-User");client.DefaultRequestHeaders.Add("X-Test-User",user.ToString());var pdf=await client.GetAsync($"/api/pools/purchases/{id}/vouchers.pdf");Assert.Equal(HttpStatusCode.Conflict,pdf.StatusCode);Assert.Equal("application/json",pdf.Content.Headers.ContentType!.MediaType);Assert.True(pdf.Headers.CacheControl!.NoStore);await app.StopAsync();
     }
-    [PostgresFact]
-    public async Task Forged_order_amount_category_and_deadline_are_rejected()
-    {
-        await using var services = Services(); await Migrate(services); var user = Guid.NewGuid();
-        var b = await Send(services, new ReservePoolBookingCommand(user, Selection, 1500000, Guid.NewGuid().ToString("N")));
-        var key = Refahi.Modules.Pools.Application.Features.Bookings.PoolBookingService.OrderKey(b.Id);
-        var command = new CreateOrderCommand(user, "Pools", b.Id, [new("بلیط", b.TotalMinor + 1, 1, 0, b.Id, "entertainment.waterpark", null, null)],
-            key, ReferenceType: "PoolBooking", SagaId: b.Id, PayableUntil: b.PayableUntil);
-        await Assert.ThrowsAsync<PoolException>(() => Send(services, command));
-        await Assert.ThrowsAsync<PoolException>(() => Send(services, command with { Items = [new("بلیط", b.TotalMinor, 1, 0, b.Id, "hotel", null, null)] }));
-        await Assert.ThrowsAsync<PoolException>(() => Send(services, command with { Items = [new("بلیط", b.TotalMinor, 1, 0, b.Id, "entertainment.waterpark", null, null)], PayableUntil = b.PayableUntil!.Value.AddDays(1) }));
-    }
-    [PostgresFact]
-    public async Task Catalog_identity_and_recovery_pagination_use_postgres_composite_keys()
-    {
-        await using var services = Services(); await Migrate(services); using var scope = services.CreateScope();
-        var factory = scope.ServiceProvider.GetRequiredService<IPoolProviderFactory>(); var catalog = scope.ServiceProvider.GetRequiredService<IPoolCatalogStore>();
-        var pool = (await factory.Get("poolticket").SearchAsync(new("poolticket"), default)).Items.Single();
-        await catalog.UpsertAsync([pool, pool with { ProviderKey = "aabsar", Name = "آبسار" }], default);
-        Assert.NotEqual((await catalog.GetAsync("poolticket", pool.Id, default))!.Name, (await catalog.GetAsync("aabsar", pool.Id, default))!.Name);
-        Assert.Throws<PoolException>(() => factory.Get("aabsar"));
-        var db = scope.ServiceProvider.GetRequiredService<PoolsDbContext>();
-        for (var i = 0; i < 60; i++) db.Bookings.Add(PoolBooking.Create(Guid.NewGuid(), "poolticket", Guid.NewGuid().ToString("N"), "f", "{}", true));
-        await db.SaveChangesAsync(); var repository = scope.ServiceProvider.GetRequiredService<IPoolBookingRepository>();
-        var seen = new HashSet<Guid>(); DateTimeOffset? after = null; Guid? afterId = null;
-        while (true)
-        {
-            var ids = await repository.CandidatesAsync(after, afterId, default); if (ids.Count == 0) break;
-            Assert.All(ids, id => Assert.True(seen.Add(id))); var last = (await repository.GetAsync(ids[^1], default))!; after = last.CreatedAt; afterId = last.Id;
-        }
-        Assert.True(seen.Count >= 60);
-    }
-    [PostgresFact]
-    public async Task Capacity_and_changed_price_do_not_create_payable_orders()
-    {
-        await using var capacity = Services("Capacity"); await Migrate(capacity); var user = Guid.NewGuid();
-        var failed = await Send(capacity, new ReservePoolBookingCommand(user, Selection, 1500000, Guid.NewGuid().ToString("N")));
-        Assert.Equal("Failed", failed.ReservationStatus); Assert.False(failed.CanCheckout); Assert.Null(failed.OrderId);
-        await using var changed = Services("PriceChange");
-        await Assert.ThrowsAsync<PoolException>(() => Send(changed, new ReservePoolBookingCommand(user, Selection, 1500000, Guid.NewGuid().ToString("N"))));
-    }
-    [PostgresFact]
-    public async Task Http_api_validates_authorization_ownership_envelopes_and_no_store_checkout()
-    {
-        await using var services = Services(); await Migrate(services);
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Test" });
-        builder.Logging.ClearProviders(); builder.WebHost.UseUrls("http://127.0.0.1:0");
-        builder.Services.AddScoped<IServiceScope>(_ => services.CreateScope());
-        builder.Services.AddScoped(sp => sp.GetRequiredService<IServiceScope>().ServiceProvider.GetRequiredService<IMediator>());
-        builder.Services.AddAuthentication("PoolsTest").AddScheme<AuthenticationSchemeOptions, TestAuthentication>("PoolsTest", _ => { });
-        builder.Services.AddAuthorization(o => o.AddPolicy("UserOrAdmin", p => p.RequireAuthenticatedUser().RequireRole("User", "Admin")));
-        await using var app = builder.Build(); app.UseAuthentication(); app.UseAuthorization();
-        new Refahi.Modules.Pools.Api.Endpoints.PoolEndpoints().Map(app.MapGroup("/api/pools")); await app.StartAsync();
-        using var client = new HttpClient { BaseAddress = new(app.Urls.Single()) };
-        var catalog = await client.GetAsync("/api/pools/poolticket/pools"); Assert.Equal(HttpStatusCode.OK, catalog.StatusCode);
-        using (var body = JsonDocument.Parse(await catalog.Content.ReadAsStringAsync())) Assert.True(body.RootElement.GetProperty("success").GetBoolean());
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/pools/poolticket/pools?gender=2")).StatusCode);
-        var request = new { Selection, ExpectedTotalMinor = 1500000, IdempotencyKey = Guid.NewGuid().ToString("N") };
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/pools/bookings", request)).StatusCode);
-        var user = Guid.NewGuid(); client.DefaultRequestHeaders.Add("X-Test-User", user.ToString());
-        var reserved = await client.PostAsJsonAsync("/api/pools/bookings", request); Assert.Equal(HttpStatusCode.OK, reserved.StatusCode);
-        Assert.True(reserved.Headers.CacheControl!.NoStore); Assert.True(reserved.Headers.CacheControl.Private);
-        using var json = JsonDocument.Parse(await reserved.Content.ReadAsStringAsync());
-        var data = json.RootElement.GetProperty("data"); var id = data.GetProperty("id").GetGuid(); Assert.True(data.GetProperty("isMock").GetBoolean());
-        client.DefaultRequestHeaders.Remove("X-Test-User"); client.DefaultRequestHeaders.Add("X-Test-User", Guid.NewGuid().ToString());
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/pools/bookings/{id}")).StatusCode);
-        client.DefaultRequestHeaders.Remove("X-Test-User"); client.DefaultRequestHeaders.Add("X-Test-User", user.ToString());
-        var checkout = await client.PostAsJsonAsync($"/api/pools/bookings/{id}/checkout", new { version = data.GetProperty("version").GetInt64(), totalMinor = 1500000 });
-        Assert.Equal(HttpStatusCode.OK, checkout.StatusCode); Assert.True(checkout.Headers.CacheControl!.NoStore);
-        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync($"/api/pools/bookings/{id}/cancel", new { })).StatusCode);
-        await app.StopAsync();
-    }
-    public sealed class TestAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
-        : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    public sealed class TestAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,ILoggerFactory logger,UrlEncoder encoder):AuthenticationHandler<AuthenticationSchemeOptions>(options,logger,encoder)
     {
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            if (!Guid.TryParse(Request.Headers["X-Test-User"], out var user)) return Task.FromResult(AuthenticateResult.NoResult());
-            var principal = new ClaimsPrincipal(new ClaimsIdentity([new(ClaimTypes.NameIdentifier, user.ToString()), new(ClaimTypes.Role, "User")], Scheme.Name));
-            return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name)));
+            if(!Guid.TryParse(Request.Headers["X-Test-User"],out var user))return Task.FromResult(AuthenticateResult.NoResult());
+            var principal=new ClaimsPrincipal(new ClaimsIdentity([new(ClaimTypes.NameIdentifier,user.ToString()),new(ClaimTypes.Role,"User")],Scheme.Name));
+            return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal,Scheme.Name)));
         }
     }
-    public sealed class ValidationPipeline<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators) : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse>
+
+    [PostgresFact]
+    public async Task Multi_page_sync_and_partial_failure_preserve_complete_old_projection()
+    {
+        await using var services=Services();await Migrate(services);await Catalogue(services);var provider=services.GetRequiredService<TestPoolProvider>();provider.MultiPage=true;provider.FailPageTwo=true;
+        async Task Sync(bool venues){using var scope=services.CreateScope();await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new SyncPoolCatalogCommand(venues));}
+        await Assert.ThrowsAsync<PoolException>(()=>Sync(true));Assert.Equal(1,(await Send(services,new ListPoolVenuesQuery(new()))).Total);
+        provider.FailPageTwo=false;await Sync(true);var page=await Send(services,new ListPoolVenuesQuery(new(Limit:10)));Assert.Equal(51,page.Total);Assert.Equal(10,page.Items.Count);var first=page.Items.Select(x=>x.Id).ToArray();await Sync(true);Assert.Equal(first,(await Send(services,new ListPoolVenuesQuery(new(Limit:10)))).Items.Select(x=>x.Id));
+        provider.FailPoolId="101";await Sync(false);Assert.Equal(100,(await Send(services,new ListPoolSessionsQuery(new()))).Total);
+    }
+
+    public sealed class RefundFault { public bool Fail; }
+    [PostgresFact]
+    public async Task Refund_failure_keeps_codes_revoked_and_recovery_retries_original_allocations()
+    {
+        await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var(p,c)=await Checkout(s,user);
+        using(var scope=s.CreateScope())await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new IssuePoolVouchersCommand(p.Id));
+        Assert.All((await Send(s,new GetPoolPurchaseQuery(p.Id,user))).Requests,x=>Assert.Null(x.Code));
+        await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Org,600000),new(wallets.Personal,900000)],"pay"));await Reconcile(s,p.Id);
+        s.GetRequiredService<RefundFault>().Fail=true;await Assert.ThrowsAsync<PoolException>(()=>Send(s,new CancelPoolPurchaseCommand(p.Id,user)));
+        var pending=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.Equal("CancellationPending",pending.Status);Assert.All(pending.Requests,x=>{Assert.Null(x.Code);Assert.Equal("Revoked",x.Status);});
+        s.GetRequiredService<RefundFault>().Fail=false;await Reconcile(s,p.Id);Assert.Equal("Refunded",(await Send(s,new GetPoolPurchaseQuery(p.Id,user))).Status);
+        await using var db=new NpgsqlConnection(Connection);foreach(var id in new[]{wallets.Org,wallets.Personal})Assert.Equal(2000000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=id}));
+    }
+    public sealed class ValidationPipeline<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators, RefundFault faults) : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse>
     {
         public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
         {
 
+            if (request is Refahi.Modules.Wallets.Application.Contracts.Features.RefundPayment.RefundPaymentCommand && faults.Fail) throw new PoolException("خطای استرداد آزمایشی");
             foreach (var validator in validators) await validator.ValidateAndThrowAsync(request, ct);
             return await next();
         }

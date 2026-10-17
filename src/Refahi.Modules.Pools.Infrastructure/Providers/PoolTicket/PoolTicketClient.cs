@@ -2,50 +2,131 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly.CircuitBreaker;
 using Refahi.Modules.Pools.Application.Contracts;
 
 namespace Refahi.Modules.Pools.Infrastructure.Providers.PoolTicket;
+
 public sealed class PoolTicketOptions
 {
     public string BaseUrl { get; set; } = "https://staging.poolticket.org";
-    public string ClientId { get; set; } = "";
+    public string ClientId { get; set; } = "ClientId";
     public int TimeoutSeconds { get; set; } = 30;
     public string RequestEncoding { get; set; } = "Form";
-    public string? PriceUnit { get; set; }
+    public string? PriceUnit { get; set; } = "TOMAN";
     public bool CalculateReadOnlyConfirmed { get; set; }
 }
+
 public sealed class PoolTicketClient(HttpClient http, IOptions<PoolTicketOptions> options, ILogger<PoolTicketClient> logger)
 {
-    internal static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+    internal static readonly JsonSerializerOptions Json = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        Converters = { new PoolTicketBooleanConverter() }
+    };
+
     internal async Task<T> PostAsync<T>(string path, Dictionary<string, object?> fields, CancellationToken ct) where T : WireResponse
     {
         var settings = options.Value;
-        if (string.IsNullOrWhiteSpace(settings.ClientId)) throw new PoolException("اتصال تأمین‌کننده استخر تنظیم نشده است", 503);
-        var body = fields.Where(x => x.Value != null).ToDictionary(x => x.Key, x => x.Value!);
+
+        if (string.IsNullOrWhiteSpace(settings.ClientId))
+            throw new PoolException("اتصال تأمین‌کننده استخر تنظیم نشده است", 503);
+
+        var body = fields
+            .Where(x => x.Value != null)
+            .ToDictionary(x => x.Key, x => x.Value!);
+
         body.Add("client_id", settings.ClientId);
+
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/v2/" + path);
-        request.Content = settings.RequestEncoding == "Json" ? JsonContent.Create(body) : new FormUrlEncodedContent(body.Select(x =>
-            new KeyValuePair<string, string>(x.Key, x.Value is bool b ? (b ? "true" : "false") : Convert.ToString(x.Value, CultureInfo.InvariantCulture)!)));
+        request.Headers.Accept.ParseAdd("application/json");
+
+        request.Content = settings.RequestEncoding == "Json"
+            ? JsonContent.Create(body)
+            : new FormUrlEncodedContent(body.Select(x =>
+                new KeyValuePair<string, string>(
+                    x.Key,
+                    x.Value is bool b
+                        ? (b ? "true" : "false")
+                        : Convert.ToString(x.Value, CultureInfo.InvariantCulture)!
+                )
+             ));
+
         var timer = Stopwatch.StartNew();
-        int? httpStatus = null; var successful = false;
+
+        int? httpStatus = null;
+        var successful = false;
+
         try
         {
             using var response = await http.SendAsync(request, ct);
             httpStatus = (int)response.StatusCode;
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                logger.LogWarning("PoolTicket request rate limited. Operation={Operation} HttpStatus={HttpStatus}", path, httpStatus);
+                throw new PoolException("تعداد درخواست‌ها به تأمین‌کننده استخر بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید", 429, "POOLS_PROVIDER_RATE_LIMITED");
+            }
+            if (httpStatus is >= 300 and < 400)
+            {
+                logger.LogWarning("PoolTicket API returned redirect. Operation={Operation} ProviderPoolId={ProviderPoolId} HttpStatus={HttpStatus}",
+                    path, fields.GetValueOrDefault("pool_id"), httpStatus);
+                throw new PoolException("سرویس تأمین‌کننده به‌جای پاسخ API تغییر مسیر داد", 502, "POOLS_PROVIDER_REDIRECT");
+            }
+
+            var mediaType = response.Content.Headers.ContentType?.MediaType;
+            if (mediaType is "text/html" or "application/xhtml+xml")
+            {
+                logger.LogWarning("PoolTicket API returned HTML. Operation={Operation} ProviderPoolId={ProviderPoolId} HttpStatus={HttpStatus} ContentType={ContentType}",
+                    path, fields.GetValueOrDefault("pool_id"), httpStatus, mediaType);
+                throw new PoolException("سرویس تأمین‌کننده به‌جای اطلاعات استخر صفحه وب برگرداند", 502, "POOLS_PROVIDER_NON_JSON");
+            }
             T? result;
-            try { result = await response.Content.ReadFromJsonAsync<T>(Json, ct); }
-            catch (JsonException) { throw new PoolException("پاسخ تأمین‌کننده معتبر نیست", 502); }
-            if (result == null) throw new PoolException("پاسخ تأمین‌کننده خالی است", 502);
-            if (!response.IsSuccessStatusCode || result.Status != 1) throw MapError(result.Error);
+
+            try
+            {
+                var json = await response.Content.ReadAsStringAsync(ct);
+                result = JsonSerializer.Deserialize<T>(json, Json);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogWarning("PoolTicket JSON response invalid. Operation={Operation} HttpStatus={HttpStatus} ContentType={ContentType} ResponseType={ResponseType} JsonPath={JsonPath} LineNumber={LineNumber} BytePosition={BytePosition}",
+                    path, httpStatus, mediaType, typeof(T).Name, ex.Path, ex.LineNumber, ex.BytePositionInLine);
+                throw new PoolException("پاسخ تأمین‌کننده معتبر نیست", 502);
+            }
+            catch (NotSupportedException)
+            {
+                throw new PoolException("پاسخ تأمین‌کننده معتبر نیست", 502);
+            }
+
+            if (result == null)
+                throw new PoolException("پاسخ تأمین‌کننده خالی است", 502);
+
+            if (!response.IsSuccessStatusCode || result.Status != 1)
+            {
+                logger.LogWarning("PoolTicket response rejected. Operation={Operation} HttpStatus={HttpStatus} ProviderStatus={ProviderStatus} ResponseType={ResponseType}",
+                    path, httpStatus, result.Status, typeof(T).Name);
+                throw MapError(result.Error);
+            }
+
             successful = true;
+
             return result;
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new PoolException("مهلت پاسخ تأمین‌کننده پایان یافت", 504); }
-        catch (HttpRequestException) { throw new PoolException("ارتباط با تأمین‌کننده برقرار نشد", 502); }
-        catch (BrokenCircuitException) { throw new PoolException("سرویس استخر موقتاً در دسترس نیست", 503); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new PoolException("مهلت پاسخ تأمین‌کننده پایان یافت", 504);
+        }
+        catch (HttpRequestException)
+        {
+            throw new PoolException("ارتباط با تأمین‌کننده برقرار نشد", 502);
+        }
+        catch (BrokenCircuitException)
+        {
+            throw new PoolException("سرویس استخر موقتاً در دسترس نیست", 503);
+        }
         finally
         {
             logger.LogInformation("PoolTicket operation completed. Operation={Operation} HttpStatus={HttpStatus} LatencyMs={LatencyMs} Success={Success} TraceId={TraceId}",
@@ -54,36 +135,95 @@ public sealed class PoolTicketClient(HttpClient http, IOptions<PoolTicketOptions
     }
     public static PoolException MapError(string? error) => error switch
     {
-        "invalid_pool" or "invalid_saens_row" => new("استخر یا سانس یافت نشد", 404),
-        "invalid_state" => new("استان معتبر نیست", 400),
-        "pool_capacity_overflow" or "not_available_ticket_serial" => new("ظرفیت بلیط انتخابی کافی نیست", 409),
-        "coupon_error" => new("کد تخفیف قابل استفاده نیست", 400),
-        "city_id,area_id and lat,lng should not be sent together" => new("شهر و مختصات همزمان مجاز نیستند", 400),
-        "invalid_client" => new("اتصال تأمین‌کننده نیازمند بررسی است", 502),
+        "invalid_pool" or "invalid_saens_row"
+            => new("استخر یا سانس یافت نشد", 404),
+        "invalid_state"
+            => new("استان معتبر نیست", 400),
+        "pool_capacity_overflow" or "not_available_ticket_serial"
+            => new("ظرفیت بلیط انتخابی کافی نیست", 409),
+        "coupon_error"
+            => new("کد تخفیف قابل استفاده نیست", 400),
+        "city_id,area_id and lat,lng should not be sent together"
+            => new("شهر و مختصات همزمان مجاز نیستند", 400),
+        "invalid_client"
+            => new("اتصال تأمین‌کننده نیازمند بررسی است", 502),
         _ => new("تأمین‌کننده درخواست را تکمیل نکرد؛ دوباره تلاش کنید", 502)
     };
 }
-internal class WireResponse { public int Status { get; set; } public string? Error { get; set; } }
-internal sealed class StatesResponse : WireResponse { public StateWire[]? States { get; set; } }
+internal class WireResponse
+{
+    public int Status { get; set; }
+    public string? Error { get; set; }
+}
+
+// PoolTicket represents sale flags as either JSON booleans or integer 0/1.
+internal sealed class PoolTicketBooleanConverter : JsonConverter<bool>
+{
+    public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType is JsonTokenType.True or JsonTokenType.False)
+            return reader.GetBoolean();
+
+        if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var value) && value is 0 or 1)
+            return value == 1;
+
+        throw new JsonException("PoolTicket sale flags must be booleans or integer 0/1.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options) =>
+        writer.WriteBooleanValue(value);
+}
+
+internal sealed class StatesResponse : WireResponse
+{
+    public StateWire[]? States { get; set; }
+}
+
 internal sealed record StateWire(long StateId, string Name);
-internal sealed class CitiesResponse : WireResponse { public CityWire[]? Cities { get; set; } }
+internal sealed class CitiesResponse : WireResponse
+{
+    public CityWire[]? Cities { get; set; }
+}
+
 internal sealed record CityWire(long CityId, string CityName, long StateId, string StateName);
+
 internal sealed class CatalogResponse : WireResponse
 {
-    public int Page { get; set; } public int Limit { get; set; } public PoolWire[]? Pools { get; set; }
-    public SortWire[]? SortList { get; set; } public string? SortedBy { get; set; }
+    public int Page { get; set; }
+    public int Limit { get; set; }
+    public PoolWire[]? Pools { get; set; }
+    public SortWire[]? SortList { get; set; }
+    public string? SortedBy { get; set; }
 }
+
 internal sealed record SortWire(string Code, string Title);
+
 internal sealed record PoolWire(long PoolId, string Name, string? DefaultImage, string StateName, string CityName, string? AreaName,
     decimal? Lat, decimal? Lng, bool StatusSell, int Gender, decimal? Rating, decimal? MaxDiscount,
     decimal? MinimumSalePrice, decimal? MinimumMarketPrice);
-internal sealed class SessionsResponse : WireResponse { public SessionWire[]? Saens { get; set; } }
+
+internal sealed class SessionsResponse : WireResponse
+{
+    public SessionWire[]? Saens { get; set; }
+}
+
 internal sealed record SessionWire(long SaensId, string SaensName, int Gender, RowWire[]? Rows);
+
 internal sealed record RowWire(long SaensRowId, bool StatusSell, bool AdultSaleStatus, bool ChildSaleStatus,
     decimal PriceSaleAdult, decimal PriceSaleChild, decimal PriceMarketAdult, decimal PriceMarketChild,
     string StartDate, string StartDay, string Time, string? Description, string? DescriptionType, string? TermsOfUse, string? TermsOfUseType);
-internal sealed class TermsResponse : WireResponse { public TermsWire? TermsOfUse { get; set; } }
+
+internal sealed class TermsResponse : WireResponse
+{
+    public TermsWire? TermsOfUse { get; set; }
+}
+
 internal sealed record TermsWire(string? Content);
-internal sealed class QuoteResponse : WireResponse { public CartWire? Cart { get; set; } }
+
+internal sealed class QuoteResponse : WireResponse
+{
+    public CartWire? Cart { get; set; }
+}
+
 internal sealed record CartWire(long SaensRowId, decimal TotalSale, decimal TotalMarket, int CountAdult, int CountChild,
     string StartDate, string StartDay, string Time);
