@@ -1,5 +1,5 @@
 using Refahi.Modules.Cinema.Application.Contracts;
-﻿using System.Net;
+using System.Net;
 using FluentValidation;
 using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
 using Refahi.Modules.Flights.Application.Contracts.Providers;
@@ -29,6 +29,21 @@ public sealed class ApiExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (Refahi.Modules.Promotions.Application.Contracts.PromotionException ex)
+        {
+            context.Response.StatusCode = ex.StatusCode;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: ex.StatusCode));
+        }
+        catch (Refahi.Modules.Promotions.Domain.PromotionRuleException ex)
+        {
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: 400));
+        }
+        catch (Refahi.Modules.Wallets.Application.Contracts.Exceptions.InsufficientFundsException)
+        {
+            context.Response.StatusCode = 409;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("موجودی کیف پول یا بودجهٔ رفاهی برای پرداخت کافی نیست", statusCode: 409));
         }
         catch (CinemaException ex)
         {
@@ -104,6 +119,11 @@ public sealed class ApiExceptionMiddleware
         {
             _logger.LogWarning(ex, "Domain rule violation");
             await HandleDomainExceptionAsync(context, ex.Message);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            context.Response.StatusCode = 403;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("دسترسی به این عملیات مجاز نیست", statusCode: 403));
         }
         catch (Exception ex)
         {

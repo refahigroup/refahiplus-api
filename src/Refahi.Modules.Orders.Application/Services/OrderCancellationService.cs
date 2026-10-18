@@ -38,6 +38,13 @@ public sealed class OrderCancellationService(
         CancellationToken ct
     )
     {
+        if (order.PromotionReservationId.HasValue && order.PaymentState is PaymentState.Unpaid or PaymentState.Reserved)
+        {
+            var known = await mediator.Send(new Refahi.Modules.Wallets.Application.Contracts.Queries.FindOrderPaymentQuery(order.Id, $"order-reserve-{order.Id:N}"), ct);
+            if (known != null && order.PaymentState == PaymentState.Unpaid) order.MarkAsReserved(known.IntentId);
+            if (known?.Status == 2 && known.PaymentId.HasValue && order.PaymentState == PaymentState.Reserved) order.MarkAsPaid(known.PaymentId.Value);
+        }
+
         var normalizedReason = string.IsNullOrWhiteSpace(reason)
             ? "لغو سفارش و بازگشت وجه"
             : reason.Trim();
@@ -112,34 +119,8 @@ public sealed class OrderCancellationService(
             order.Cancel();
         }
 
+        order.RecordCancellation(paymentAction);
         await orderRepository.UpdateAsync(order, ct);
-
-        await publisher.Publish(
-            new OrderCancelledIntegrationEvent(
-                order.Id,
-                order.OrderNumber,
-                order.UserId,
-                order.SourceModule,
-                order.SourceReferenceId,
-                order.ReferenceType,
-                paymentAction,
-                DateTimeOffset.UtcNow
-            ),
-            ct
-        );
-
-        if (paymentAction == "Refunded")
-            await publisher.Publish(
-                new OrderRefundedIntegrationEvent(
-                    order.Id,
-                    order.OrderNumber,
-                    order.SourceOwnerId,
-                    order.SourceShopId,
-                    order.FinalAmountMinor,
-                    DateTimeOffset.UtcNow
-                ),
-                ct
-            );
 
         return new CancelOrderResponse(order.Id, "Cancelled", paymentAction);
     }

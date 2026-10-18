@@ -26,4 +26,5 @@
     <ProjectReference Include="..\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
   </ItemGroup>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Promotions.Application.Contracts/Refahi.Modules.Promotions.Application.Contracts.csproj" /></ItemGroup>
 </Project>

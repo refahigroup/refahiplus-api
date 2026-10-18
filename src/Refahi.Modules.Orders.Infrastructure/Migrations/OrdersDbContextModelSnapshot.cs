@@ -117,6 +117,41 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("payment_state");
 
+                    b.Property<Guid?>("PendingPromotionOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pending_promotion_operation_id");
+
+                    b.Property<long>("PricingVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L)
+                        .HasColumnName("pricing_version");
+
+                    b.Property<Guid?>("PromotionCampaignId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("promotion_campaign_id");
+
+                    b.Property<string>("PromotionCodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("promotion_code_hash");
+
+                    b.Property<DateTimeOffset?>("PromotionExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("promotion_expires_at");
+
+                    b.Property<Guid?>("PromotionFundingWalletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("promotion_funding_wallet_id");
+
+                    b.Property<Guid?>("PromotionReservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("promotion_reservation_id");
+
+                    b.Property<string>("PromotionSnapshotJson")
+                        .HasColumnType("text")
+                        .HasColumnName("promotion_snapshot_json");
+
                     b.Property<long?>("RecipientNetAmountMinor")
                         .HasColumnType("bigint")
                         .HasColumnName("recipient_net_amount_minor");
@@ -356,6 +391,48 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                     b.ToTable("order_payment_postings", "orders");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Orders.Domain.Entities.OrderPromotionOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CodeCiphertext")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasFilter("\"ResultJson\" IS NULL");
+
+                    b.HasIndex("OrderId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("promotion_operations", "orders");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Orders.Infrastructure.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -377,6 +454,18 @@ namespace Refahi.Modules.Orders.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("event_type");
+
+                    b.Property<Guid?>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
 
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone")

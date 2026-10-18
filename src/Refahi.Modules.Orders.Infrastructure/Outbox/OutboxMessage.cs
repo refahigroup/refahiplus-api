@@ -8,6 +8,9 @@ public class OutboxMessage
     public DateTimeOffset OccurredAt { get; set; }
     public int RetryCount { get; set; }
     public string Status { get; set; } = OutboxMessageStatus.Pending;
+    public Guid? LeaseId { get; set; }
+    public DateTimeOffset? LeaseUntil { get; set; }
+    public DateTimeOffset? NextAttemptAt { get; set; }
     public DateTimeOffset? ProcessedAt { get; set; } // null = هنوز پردازش نشده
     public string? Error { get; set; }
 }

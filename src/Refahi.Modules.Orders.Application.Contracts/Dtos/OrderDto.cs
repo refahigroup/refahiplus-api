@@ -33,7 +33,13 @@ public sealed record OrderDto(
     long? RecipientNetAmountMinor = null,
     bool CanPay = false,
     string? PaymentUnavailableReason = null,
-    DateTimeOffset? PayableUntil = null
+    DateTimeOffset? PayableUntil = null,
+    long SourceAmountMinor = 0,
+    long AmountBeforePromotionMinor = 0,
+    long PricingVersion = 1,
+    Guid? PromotionReservationId = null,
+    DateTimeOffset? PromotionExpiresAt = null,
+    bool PromotionsEnabled = false
 );
 
 public sealed record OrderSummaryDto(

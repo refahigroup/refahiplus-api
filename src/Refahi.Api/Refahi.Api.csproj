@@ -32,4 +32,5 @@
     <ProjectReference Include="..\Refahi.Modules.Wallets.Api\Refahi.Modules.Wallets.Api.csproj" />
     <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
   </ItemGroup>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Promotions.Api/Refahi.Modules.Promotions.Api.csproj" /></ItemGroup>
 </Project>

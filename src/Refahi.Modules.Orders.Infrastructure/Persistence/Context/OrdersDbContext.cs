@@ -14,6 +14,7 @@ public class OrdersDbContext : DbContext
     public OrdersDbContext(DbContextOptions<OrdersDbContext> options)
         : base(options) { }
 
+    public DbSet<OrderPromotionOperation> PromotionOperations => Set<OrderPromotionOperation>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<OrderPaymentPosting> OrderPaymentPostings => Set<OrderPaymentPosting>();
@@ -24,6 +25,7 @@ public class OrdersDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.HasDefaultSchema("orders");
+        modelBuilder.Entity<OrderPromotionOperation>(e => { e.ToTable("promotion_operations"); e.HasKey(x => x.Id); e.Property(x => x.IdempotencyKey).HasMaxLength(200); e.HasIndex(x => new { x.OrderId, x.IdempotencyKey }).IsUnique(); e.HasIndex(x => x.CreatedAt).HasFilter("\"ResultJson\" IS NULL"); });
 
         modelBuilder.ApplyConfiguration(new OrderConfiguration());
         modelBuilder.ApplyConfiguration(new OrderItemConfiguration());
@@ -43,15 +45,14 @@ public class OrdersDbContext : DbContext
             .ToList();
 
         var outboxMessages = domainEventEntities
-            .SelectMany(e => e.DomainEvents)
-            .Select(MapToOutboxMessage)
+            .SelectMany(e => e.DomainEvents.Select(evt => MapToOutboxMessage(evt, e)))
             .Where(message => message is not null)
             .Select(message => message!)
             .ToList();
 
-        static OutboxMessage? MapToOutboxMessage(Refahi.Shared.Domain.IDomainEvent evt)
+        static OutboxMessage? MapToOutboxMessage(Refahi.Shared.Domain.IDomainEvent evt, Order order)
         {
-            var integrationEvent = MapToIntegrationEvent(evt);
+            var integrationEvent = MapToIntegrationEvent(evt, order);
             if (integrationEvent is null)
                 return null;
 
@@ -66,7 +67,7 @@ public class OrdersDbContext : DbContext
             };
         }
 
-        static object? MapToIntegrationEvent(Refahi.Shared.Domain.IDomainEvent evt) =>
+        static object? MapToIntegrationEvent(Refahi.Shared.Domain.IDomainEvent evt, Order order) =>
             evt switch
             {
                 OrderPaidEvent paid => new OrderPaidIntegrationEvent(
@@ -79,8 +80,13 @@ public class OrdersDbContext : DbContext
                     paid.SagaId,
                     paid.PaymentId,
                     paid.AmountMinor,
-                    paid.OccurredAt
+                    paid.OccurredAt,
+                    paid.SourceAmountMinor,
+                    paid.AmountBeforePromotionMinor,
+                    paid.PromotionFundingMinor
                 ),
+                OrderCancelledEvent cancelled => new OrderCancelledIntegrationEvent(cancelled.OrderId, cancelled.OrderNumber, cancelled.UserId, order.SourceModule, order.SourceReferenceId, order.ReferenceType, cancelled.PaymentAction, cancelled.OccurredAt),
+                OrderRefundedEvent refunded => new OrderRefundedIntegrationEvent(refunded.OrderId, refunded.OrderNumber, refunded.SourceOwnerId, refunded.SourceShopId, refunded.AmountMinor, refunded.OccurredAt),
                 _ => evt,
             };
 
