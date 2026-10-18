@@ -1,3 +1,4 @@
+using Refahi.Modules.Promotions.Api;
 using System.Diagnostics;
 using System.Reflection;
 using MediatR;
@@ -122,7 +123,8 @@ builder
     .RegisterPaymentGatewayModule(builder.Configuration)
     .RegisterChargeModule(builder.Configuration)
     .RegisterCommerceModule(builder.Configuration)
-    .RegisterCinemaModule(builder.Configuration);
+    .RegisterCinemaModule(builder.Configuration)
+    .RegisterPromotionsModule(builder.Configuration);
 
 //}
 //catch(Exception ex)
@@ -148,8 +150,8 @@ app.UseApiExceptionMiddleware();
 app.UseResponseWrappingMiddleware();
 
 app.UseRouting();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 //if (app.Environment.IsDevelopment())
@@ -202,7 +204,8 @@ app.UseReferencesModule("/api/references")
     .UsePaymentGatewayModule("/api/payment-gateway")
     .UseChargeModule("/api/charge")
     .UseCommerceModule("/api/commerce")
-    .UseCinemaModule("/api/cinema");
+    .UseCinemaModule("/api/cinema")
+    .UsePromotionsModule("/api/promotions");
 
 //}
 //catch

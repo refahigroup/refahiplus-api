@@ -60,6 +60,13 @@
     <Project Path="src/Refahi.Modules.Organizations.Domain/Refahi.Modules.Organizations.Domain.csproj" />
     <Project Path="src/Refahi.Modules.Organizations.Infrastructure/Refahi.Modules.Organizations.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/01_Modules/Promotions/">
+    <Project Path="src/Refahi.Modules.Promotions.Api/Refahi.Modules.Promotions.Api.csproj" />
+    <Project Path="src/Refahi.Modules.Promotions.Application.Contracts/Refahi.Modules.Promotions.Application.Contracts.csproj" />
+    <Project Path="src/Refahi.Modules.Promotions.Application/Refahi.Modules.Promotions.Application.csproj" />
+    <Project Path="src/Refahi.Modules.Promotions.Domain/Refahi.Modules.Promotions.Domain.csproj" />
+    <Project Path="src/Refahi.Modules.Promotions.Infrastructure/Refahi.Modules.Promotions.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/01_Modules/References/">
     <Project Path="src/Refahi.Modules.References.Api/Refahi.Modules.References.Api.csproj" Id="3b960dc7-bd43-424e-ad4f-e9e267b766b0" />
     <Project Path="src/Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj" Id="d2727290-9cd6-44c3-8d26-79e6577bb6d9" />
@@ -111,6 +118,7 @@
     <Project Path="tests/Refahi.Modules.Media.Tests/Refahi.Modules.Media.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Orders.Tests/Refahi.Modules.Orders.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.PaymentGateway.Tests/Refahi.Modules.PaymentGateway.Tests.csproj" />
+    <Project Path="tests/Refahi.Modules.Promotions.Tests/Refahi.Modules.Promotions.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Store.Tests/Refahi.Modules.Store.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.SupplyChain.Tests/Refahi.Modules.SupplyChain.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Vendor.Tests/Refahi.Modules.Vendor.Tests.csproj" />

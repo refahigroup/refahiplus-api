@@ -52,7 +52,7 @@ public sealed class CapturePaymentIntentApplicationService
     )
     {
         var allocations = atomicResult
-            .Allocations.Select(a => new PaymentAllocationResponse(
+            .Allocations.Where(a => !a.IsAdditional).Select(a => new PaymentAllocationResponse(
                 a.WalletId,
                 a.AmountMinor,
                 a.LedgerEntryId

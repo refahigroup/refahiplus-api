@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+<ItemGroup>
+<FrameworkReference Include="Microsoft.AspNetCore.App" />
+<PackageReference Include="MediatR" Version="11.1.0" />
+<PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+<ProjectReference Include="../Refahi.Modules.Promotions.Domain/Refahi.Modules.Promotions.Domain.csproj" />
+<ProjectReference Include="../Refahi.Modules.Promotions.Application.Contracts/Refahi.Modules.Promotions.Application.Contracts.csproj" />
+<ProjectReference Include="../Refahi.Shared/Refahi.Shared.csproj" />
+<ProjectReference Include="../Refahi.Modules.Identity.Application.Contracts/Refahi.Modules.Identity.Application.Contracts.csproj" />
+<ProjectReference Include="../Refahi.Modules.Organizations.Application.Contracts/Refahi.Modules.Organizations.Application.Contracts.csproj" />
+<ProjectReference Include="../Refahi.Modules.Orders.Application.Contracts/Refahi.Modules.Orders.Application.Contracts.csproj" />
+</ItemGroup>
+</Project>

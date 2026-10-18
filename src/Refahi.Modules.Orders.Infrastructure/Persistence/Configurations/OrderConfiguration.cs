@@ -208,6 +208,16 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         // DomainEvents is an in-memory collection — EF must not map it
         builder.Ignore(o => o.DomainEvents);
+        builder.Ignore(o => o.SourceAmountMinor);
+        builder.Ignore(o => o.AmountBeforePromotionMinor);
+        builder.Property(o => o.PricingVersion).HasColumnName("pricing_version").HasDefaultValue(1L);
+        builder.Property(o => o.PromotionReservationId).HasColumnName("promotion_reservation_id");
+        builder.Property(o => o.PromotionCampaignId).HasColumnName("promotion_campaign_id");
+        builder.Property(o => o.PromotionFundingWalletId).HasColumnName("promotion_funding_wallet_id");
+        builder.Property(o => o.PromotionExpiresAt).HasColumnName("promotion_expires_at");
+        builder.Property(o => o.PromotionSnapshotJson).HasColumnName("promotion_snapshot_json");
+        builder.Property(o => o.PromotionCodeHash).HasColumnName("promotion_code_hash").HasMaxLength(64);
+        builder.Property(o => o.PendingPromotionOperationId).HasColumnName("pending_promotion_operation_id");
         builder.Ignore(o => o.Module);
         builder.Ignore(o => o.ReferenceId);
     }

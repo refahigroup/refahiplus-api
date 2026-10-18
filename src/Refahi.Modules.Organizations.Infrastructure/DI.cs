@@ -1,38 +1,19 @@
-﻿using System;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Refahi.Modules.Organizations.Domain;
 using Refahi.Shared.Extensions;
 using Refahi.Shared.Infrastructure;
-
 namespace Refahi.Modules.Organizations.Infrastructure;
 
 public static class DI
 {
-    public static IServiceCollection RegisterInfrastructure(
-        this IServiceCollection services,
-        IConfiguration configuration
-    )
+    public static IServiceCollection RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        //services.AddDbContext<OrganizationsDbContext>(options =>
-        //{
-        //    string connectionString = configuration.GetConnectionString();
-
-        //    options.UseNpgsql(connectionString);
-        //});
+        services.AddDbContext<OrganizationDbContext>(o => o.UseNpgsql(configuration.GetConnectionString()));
+        services.AddScoped<IOrganizationStore, OrganizationStore>();
 
         return services;
     }
-
-    public static void UseInfrastructure(this IServiceProvider provider, bool IsDevelopment)
-    {
-        //if (!IsDevelopment)
-        //    return;
-
-        //using var scope = provider.CreateScope();
-        //var tools = scope.ServiceProvider.GetRequiredService<IDbTools>();
-
-        //tools.ApplyMigrations<OrganizationsDbContext>();
-    }
+    public static void UseInfrastructure(this IServiceProvider provider, bool development) { using var scope = provider.CreateScope(); scope.ServiceProvider.GetRequiredService<IDbTools>().ApplyMigrations<OrganizationDbContext>(); }
 }

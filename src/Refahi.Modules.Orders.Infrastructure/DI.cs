@@ -24,6 +24,8 @@ public static class DI
         services.AddDbContext<OrdersDbContext>(options => options.UseNpgsql(connectionString));
 
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IOrderPromotionOperationStore, OrderPromotionOperationStore>();
+        services.AddHostedService<PromotionRecoveryWorker>();
         services.AddScoped<IOrderMutationLock>(_ => new PostgresOrderMutationLock(
             connectionString
         ));

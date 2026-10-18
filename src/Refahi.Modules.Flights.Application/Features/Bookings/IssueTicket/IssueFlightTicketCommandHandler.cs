@@ -209,7 +209,7 @@ public sealed class IssueFlightTicketCommandHandler
         if (order.UserId != booking.UserId)
             throw new InvalidOperationException("مالک سفارش با مالک رزرو پرواز همخوانی ندارد.");
 
-        if (order.FinalAmountMinor != booking.FareBreakdown.PayableAmount.Amount)
+        if (order.SourceAmountMinor != booking.FareBreakdown.PayableAmount.Amount)
             throw new InvalidOperationException("مبلغ سفارش با مبلغ رزرو پرواز همخوانی ندارد.");
 
         if (!string.Equals(order.PaymentState, "Paid", StringComparison.OrdinalIgnoreCase))

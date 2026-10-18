@@ -42,7 +42,7 @@ public sealed class PaymentIntegrityAuditWorker(
             new CommandDefinition(
                 """
                 with allocation_totals as (
-                  select intent_id, coalesce(sum(amount_minor),0) amount from wallets.payment_intent_allocations group by intent_id
+                  select intent_id, coalesce(sum(amount_minor),0) amount from wallets.payment_intent_allocations where not is_additional group by intent_id
                 ), ledger_totals as (
                   select wallet_id,
                     coalesce(sum(amount_minor) filter(where operation_type=1),0)

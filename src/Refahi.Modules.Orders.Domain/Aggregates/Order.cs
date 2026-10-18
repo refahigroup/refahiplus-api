@@ -73,6 +73,54 @@ public sealed class Order
     public DateTimeOffset? PayableUntil { get; private set; }
 
     // --- Optimistic Concurrency (PostgreSQL xmin) ---
+    public long SourceAmountMinor => checked(TotalAmountMinor - DiscountAmountMinor);
+    public long AmountBeforePromotionMinor => checked(SourceAmountMinor + ShippingFeeMinor);
+    public long PricingVersion { get; private set; } = 1;
+    public Guid? PromotionReservationId { get; private set; }
+    public Guid? PromotionCampaignId { get; private set; }
+    public Guid? PromotionFundingWalletId { get; private set; }
+    public DateTimeOffset? PromotionExpiresAt { get; private set; }
+    public string? PromotionSnapshotJson { get; private set; }
+    public string? PromotionCodeHash { get; private set; }
+    public Guid? PendingPromotionOperationId { get; private set; }
+
+    public void StartPromotionOperation(Guid operationId)
+    {
+        EnsurePromotionMutable();
+        if (PendingPromotionOperationId.HasValue) throw new OrderStateConflictException("عملیات تخفیف قبلی هنوز تکمیل نشده است");
+        PendingPromotionOperationId = operationId;
+    }
+    public void EnsurePromotionMutable()
+    {
+        if (Status != OrderStatus.Pending || PaymentState != PaymentState.Unpaid || PaymentIntentId.HasValue)
+            throw new OrderStateConflictException("در وضعیت فعلی تغییر کد تخفیف مجاز نیست");
+    }
+    public void ApplyPromotion(Guid reservationId, Guid campaignId, Guid fundingWalletId, long amount,
+        DateTimeOffset expiresAt, string snapshotJson, string codeHash, string maskedCode)
+    {
+        EnsurePromotionMutable();
+        if (amount <= 0 || amount > SourceAmountMinor || amount >= AmountBeforePromotionMinor || PromotionReservationId.HasValue)
+            throw new OrderStateConflictException("مبلغ یا وضعیت تخفیف معتبر نیست");
+        PromotionReservationId = reservationId; PromotionCampaignId = campaignId; PromotionFundingWalletId = fundingWalletId;
+        PromotionExpiresAt = expiresAt; PromotionSnapshotJson = snapshotJson; PromotionCodeHash = codeHash;
+        DiscountCode = maskedCode; DiscountCodeAmountMinor = amount;
+        PendingPromotionOperationId = null; PricingVersion++; RecalculateAmounts(); UpdatedAt = DateTimeOffset.UtcNow;
+    }
+    public void RemovePromotion()
+    {
+        EnsurePromotionMutable();
+        PromotionReservationId = null; PromotionCampaignId = null; PromotionFundingWalletId = null;
+        PromotionExpiresAt = null; PromotionSnapshotJson = null; PromotionCodeHash = null;
+        DiscountCode = null; DiscountCodeAmountMinor = 0; PendingPromotionOperationId = null;
+        PricingVersion++; RecalculateAmounts(); UpdatedAt = DateTimeOffset.UtcNow;
+    }
+    public void RecordCancellation(string paymentAction)
+    {
+        AddDomainEvent(new OrderCancelledEvent(Id, OrderNumber, UserId, paymentAction, DateTimeOffset.UtcNow));
+        if (paymentAction == "Refunded") AddDomainEvent(new OrderRefundedEvent(Id, OrderNumber, SourceOwnerId, SourceShopId, FinalAmountMinor, DateTimeOffset.UtcNow));
+    }
+    public void FinishPromotionOperation() => PendingPromotionOperationId = null;
+
     public uint RowVersion { get; private set; }
 
     // --- آیتم‌ها ---
@@ -94,6 +142,9 @@ public sealed class Order
     {
         if (Status != OrderStatus.Pending)
             return OrderPaymentEligibility.Unavailable("وضعیت سفارش برای پرداخت معتبر نیست");
+
+        if (PendingPromotionOperationId.HasValue)
+            return OrderPaymentEligibility.Unavailable("عملیات تخفیف هنوز تکمیل نشده است");
 
         if (PaymentState is not PaymentState.Unpaid and not PaymentState.Reserved)
             return OrderPaymentEligibility.Unavailable(
@@ -268,7 +319,10 @@ public sealed class Order
                 SagaId: SagaId,
                 PaymentId: paymentId,
                 AmountMinor: FinalAmountMinor,
-                OccurredAt: DateTimeOffset.UtcNow
+                OccurredAt: DateTimeOffset.UtcNow,
+                SourceAmountMinor: SourceAmountMinor,
+                AmountBeforePromotionMinor: AmountBeforePromotionMinor,
+                PromotionFundingMinor: DiscountCodeAmountMinor
             )
         );
     }

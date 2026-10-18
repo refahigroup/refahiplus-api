@@ -67,7 +67,9 @@ public sealed class CancelOrderCommandHandlerTests
         Assert.Equal(OrderStatus.Refunded, order.Status);
         Assert.Equal(PaymentState.Refunded, order.PaymentState);
         Assert.Equal(1, repository.UpdateCount);
-        Assert.Equal(2, mediator.PublishedCount); // cancellation + settlement refund reversal
+        Assert.Equal(0, mediator.PublishedCount); // Delivery happens after the durable outbox commit.
+        Assert.Single(order.DomainEvents.OfType<Refahi.Modules.Orders.Domain.Events.OrderCancelledEvent>());
+        Assert.Single(order.DomainEvents.OfType<Refahi.Modules.Orders.Domain.Events.OrderRefundedEvent>());
     }
 
     [Fact]

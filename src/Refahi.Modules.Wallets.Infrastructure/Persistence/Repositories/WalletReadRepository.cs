@@ -27,46 +27,24 @@ public sealed class WalletReadRepository : IWalletReadRepository
         _connectionString = connectionString;
     }
 
-    public async Task<WalletBalanceResponse?> GetWalletBalanceAsync(Guid walletId)
+    public Task<WalletBalanceResponse?> GetWalletBalanceAsync(Guid walletId) => GetWalletBalanceAsync(walletId,default);
+
+    public async Task<WalletBalanceResponse?> GetWalletBalanceAsync(Guid walletId,CancellationToken ct)
     {
-        await using var conn = new NpgsqlConnection(_connectionString);
-        await conn.OpenAsync();
-
-        var wallet = await conn.QuerySingleOrDefaultAsync<(Guid WalletId, string Currency)>(
-            @"select wallet_id as WalletId, currency as Currency
-              from wallets.wallets
-              where wallet_id = @WalletId",
-            new { WalletId = walletId }
-        );
-
-        if (wallet == default)
-            return null;
-
-        var balance = await conn.QuerySingleOrDefaultAsync<WalletBalanceResponse>(
-            @"select
-                wallet_id as WalletId,
-                currency as Currency,
-                available_minor as AvailableMinor,
-                pending_minor as PendingMinor,
-                version as Version,
-                updated_at as UpdatedAt
-              from wallets.wallet_balances
-              where wallet_id = @WalletId",
-            new { WalletId = walletId }
-        );
-
-        if (balance is not null)
-            return balance;
-
-        return new WalletBalanceResponse(
-            WalletId: walletId,
-            Currency: wallet.Currency,
-            AvailableMinor: 0,
-            PendingMinor: 0,
-            Version: 0,
-            UpdatedAt: DateTimeOffset.UtcNow
-        );
+        await using var conn=new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync(ct);
+        var wallet=await conn.QuerySingleOrDefaultAsync<(Guid WalletId,string Currency)>(new CommandDefinition(
+            "select wallet_id as WalletId,currency as Currency from wallets.wallets where wallet_id=@WalletId",
+            new{WalletId=walletId},cancellationToken:ct));
+        if(wallet==default)return null;
+        var balance=await conn.QuerySingleOrDefaultAsync<BalanceProjection>(new CommandDefinition(
+            "select wallet_id as WalletId,currency as Currency,available_minor as AvailableMinor,pending_minor as PendingMinor,version as Version,updated_at as UpdatedAt from wallets.wallet_balances where wallet_id=@WalletId",
+            new{WalletId=walletId},cancellationToken:ct));
+        return balance==null ? new(walletId,wallet.Currency,0,0,0,DateTimeOffset.UtcNow)
+            : new(balance.WalletId,balance.Currency,balance.AvailableMinor,balance.PendingMinor,balance.Version,
+                new DateTimeOffset(DateTime.SpecifyKind(balance.UpdatedAt,DateTimeKind.Utc)));
     }
+    private sealed record BalanceProjection(Guid WalletId,string Currency,long AvailableMinor,long PendingMinor,long Version,DateTime UpdatedAt);
 
     public async Task<IReadOnlyList<GetTransactionsResponse>?> GetWalletTransactionsAsync(
         Guid walletId,

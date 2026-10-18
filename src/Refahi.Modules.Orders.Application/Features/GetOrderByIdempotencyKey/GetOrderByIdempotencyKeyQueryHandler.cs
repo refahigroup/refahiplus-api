@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Refahi.Modules.Orders.Application.Contracts.Payments;
 using Refahi.Modules.Orders.Domain.Aggregates;
 using MediatR;
@@ -11,11 +12,13 @@ public class GetOrderByIdempotencyKeyQueryHandler
     : IRequestHandler<GetOrderByIdempotencyKeyQuery, OrderDto?>
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IConfiguration? _configuration;
     private readonly IEnumerable<IOrderPaymentParticipant> _participants;
 
-    public GetOrderByIdempotencyKeyQueryHandler(IOrderRepository orderRepository, IEnumerable<IOrderPaymentParticipant>? participants = null)
+    public GetOrderByIdempotencyKeyQueryHandler(IOrderRepository orderRepository, IEnumerable<IOrderPaymentParticipant>? participants = null,IConfiguration? configuration = null)
     {
         _orderRepository = orderRepository;
+        _configuration = configuration;
         _participants = participants ?? [];
     }
 
@@ -62,7 +65,7 @@ public class GetOrderByIdempotencyKeyQueryHandler
         if (paymentEligibility.CanPay)
         {
             var source = _participants.SingleOrDefault(p => p.SourceModule.Equals(order.SourceModule, StringComparison.OrdinalIgnoreCase));
-            var reason = source is null ? null : await source.GetUnavailableReasonAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.FinalAmountMinor), cancellationToken);
+            var reason = source is null ? null : await source.GetUnavailableReasonAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.SourceAmountMinor), cancellationToken);
             if (reason is not null) paymentEligibility = OrderPaymentEligibility.Unavailable(reason);
         }
 
@@ -98,7 +101,13 @@ public class GetOrderByIdempotencyKeyQueryHandler
             RecipientNetAmountMinor: order.RecipientNetAmountMinor,
             CanPay: paymentEligibility.CanPay,
             PaymentUnavailableReason: paymentEligibility.UnavailableReason,
-            PayableUntil: order.PayableUntil
+            PayableUntil: order.PayableUntil,
+            SourceAmountMinor: order.SourceAmountMinor,
+            AmountBeforePromotionMinor: order.AmountBeforePromotionMinor,
+            PricingVersion: order.PricingVersion,
+            PromotionReservationId: order.PromotionReservationId,
+            PromotionExpiresAt: order.PromotionExpiresAt,
+            PromotionsEnabled: bool.TryParse(_configuration?["Promotions:Enabled"],out var enabled) && enabled
         );
     }
 }

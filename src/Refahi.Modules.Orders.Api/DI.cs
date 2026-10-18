@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +19,21 @@ public static class DI
         IHostEnvironment? environment = null
     )
     {
+        services.AddSingleton<Refahi.Modules.Orders.Api.Endpoints.PromotionIpLimiter>();
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = 429;
+            options.OnRejected = async (context, ct) =>
+            {
+                context.HttpContext.Response.StatusCode = 429;
+                await context.HttpContext.Response.WriteAsJsonAsync(ApiResponseHelper.Error("تعداد تلاش‌ها بیش از حد مجاز است؛ کمی بعد تلاش کنید", statusCode: 429), ct);
+            };
+            options.AddPolicy("OrderPromotions", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? context.User.FindFirst("sub")?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true }));
+        });
         services.RegisterApplication(configuration).RegisterInfrastructure(configuration);
 
         return services;

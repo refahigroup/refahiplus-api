@@ -61,6 +61,16 @@ public sealed class CreatePaymentIntentApplicationService
                 );
         }
 
+        var funding = command.AdditionalFunding ?? Array.Empty<AllocationRequest>();
+        if (command.Allocations.Select(x => x.WalletId).Concat(funding.Select(x => x.WalletId)).Distinct().Count() != command.Allocations.Count + funding.Count)
+            throw new InvalidOperationException("کیف‌های تأمین مالی باید یکتا باشند");
+        foreach (var source in funding)
+        {
+            var wallet = await _walletReadRepo.GetByIdAsync(source.WalletId, ct);
+            if (source.AmountMinor <= 0 || wallet == null || wallet.WalletType != (short)WalletType.System || wallet.Status != 1 || wallet.Currency != currency)
+                throw new InvalidOperationException("کیف تأمین مالی سیستمی معتبر نیست");
+        }
+        var fundedTotal = checked(command.AmountMinor + funding.Sum(x => x.AmountMinor));
         var postings = command.Postings ?? Array.Empty<PaymentPostingRequest>();
         foreach (var posting in postings)
         {
@@ -87,7 +97,7 @@ public sealed class CreatePaymentIntentApplicationService
                 );
             var credits = postings.Where(x => x.Direction == 1).Sum(x => x.AmountMinor);
             var debits = postings.Where(x => x.Direction == 2).Sum(x => x.AmountMinor);
-            if (command.AmountMinor + debits != credits)
+            if (fundedTotal + debits != credits)
                 throw new InvalidOperationException("طرح ثبت‌های مالی تراز نیست.");
         }
 
@@ -148,6 +158,7 @@ public sealed class CreatePaymentIntentApplicationService
         // 4) Convert to Infrastructure input
         var allocInput = command
             .Allocations.Select(a => new AllocationInput(a.WalletId, a.AmountMinor))
+            .Concat(funding.Select(a => new AllocationInput(a.WalletId, a.AmountMinor, true)))
             .ToList();
 
         // 5) Delegate atomic execution to Infrastructure
@@ -185,7 +196,7 @@ public sealed class CreatePaymentIntentApplicationService
     )
     {
         var allocations = atomicResult
-            .Allocations.Select(a => new AllocationResponse(a.WalletId, a.AmountMinor))
+            .Allocations.Where(a => !a.IsAdditional).Select(a => new AllocationResponse(a.WalletId, a.AmountMinor))
             .ToList();
 
         var response = new CreatePaymentIntentResponse(

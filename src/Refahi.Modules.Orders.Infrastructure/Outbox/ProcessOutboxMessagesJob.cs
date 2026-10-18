@@ -4,168 +4,76 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
-using Refahi.Modules.Orders.Domain.Events;
 using Refahi.Modules.Orders.Infrastructure.Persistence.Context;
-
 namespace Refahi.Modules.Orders.Infrastructure.Outbox;
 
-public class ProcessOutboxMessagesJob : BackgroundService
+public sealed class ProcessOutboxMessagesJob(IServiceScopeFactory scopes, ILogger<ProcessOutboxMessagesJob> logger) : BackgroundService
 {
-    private const int MaxRetryCount = 10;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<ProcessOutboxMessagesJob> _logger;
-    private static readonly TimeSpan _interval = TimeSpan.FromSeconds(10);
-
-    public ProcessOutboxMessagesJob(
-        IServiceScopeFactory scopeFactory,
-        ILogger<ProcessOutboxMessagesJob> logger
-    )
+    protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        using var timer = new PeriodicTimer(_interval);
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        while (await timer.WaitForNextTickAsync(ct))
         {
-            await ProcessPendingMessagesAsync(stoppingToken);
+            try { for (var i = 0; i < 20; i++) if (!await ProcessOne(ct)) break; }
+            catch (Exception ex) when (!ct.IsCancellationRequested) { logger.LogError(ex, "Outbox scan failed; retrying next interval"); }
         }
     }
-
-    private async Task ProcessPendingMessagesAsync(CancellationToken ct)
+    private async Task<bool> ProcessOne(CancellationToken ct)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
-        var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
-
-        var messages = await context
-            .OutboxMessages.Where(m =>
-                m.ProcessedAt == null
-                && m.Status == OutboxMessageStatus.Pending
-                && m.RetryCount < MaxRetryCount
-            )
-            .OrderBy(m => m.OccurredAt)
-            .Take(20)
-            .ToListAsync(ct);
-
-        if (messages.Count == 0)
-            return;
-
-        foreach (var message in messages)
+        using var scope = scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
+        OutboxMessage? message;
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
         {
-            try
-            {
-                message.Status = OutboxMessageStatus.Processing;
-                message.Error = null;
-                await context.SaveOutboxChangesAsync(ct);
-
-                var eventType = Type.GetType(message.EventType);
-                if (eventType is null)
-                {
-                    _logger.LogWarning(
-                        "Outbox message type was not found. OutboxMessageId={OutboxMessageId}, EventType={EventType}, RetryCount={RetryCount}",
-                        message.Id,
-                        message.EventType,
-                        message.RetryCount
-                    );
-                    message.Error = $"Type not found: {message.EventType}";
-                    message.RetryCount++;
-                    message.Status =
-                        message.RetryCount >= MaxRetryCount
-                            ? OutboxMessageStatus.DeadLettered
-                            : OutboxMessageStatus.Pending;
-                    continue;
-                }
-
-                var evt = JsonSerializer.Deserialize(message.EventData, eventType);
-                if (evt is OrderPaidEvent paidEvent)
-                {
-                    var sourceModule = paidEvent.SourceModule;
-                    var sourceReferenceId = paidEvent.SourceReferenceId;
-                    var referenceType = paidEvent.ReferenceType;
-                    var sagaId = paidEvent.SagaId;
-
-                    if (
-                        string.IsNullOrWhiteSpace(sourceModule)
-                        || string.IsNullOrWhiteSpace(referenceType)
-                    )
-                    {
-                        var order = await context
-                            .Orders.AsNoTracking()
-                            .FirstOrDefaultAsync(o => o.Id == paidEvent.OrderId, ct);
-
-                        if (order is not null)
-                        {
-                            sourceModule = order.SourceModule;
-                            sourceReferenceId = order.SourceReferenceId;
-                            referenceType = order.ReferenceType;
-                            sagaId = order.SagaId;
-                        }
-                    }
-
-                    using var logScope = _logger.BeginScope(
-                        new Dictionary<string, object?>
-                        {
-                            ["SagaId"] = sagaId,
-                            ["OrderId"] = paidEvent.OrderId,
-                            ["UserId"] = paidEvent.UserId,
-                            ["HotelRequestId"] = sourceReferenceId,
-                            ["ProviderBookingCode"] = null,
-                        }
-                    );
-
-                    _logger.LogInformation(
-                        "Publishing OrderPaidIntegrationEvent from outbox. OutboxMessageId={OutboxMessageId}, RetryCount={RetryCount}",
-                        message.Id,
-                        message.RetryCount
-                    );
-
-                    await publisher.Publish(
-                        new OrderPaidIntegrationEvent(
-                            paidEvent.OrderId,
-                            paidEvent.OrderNumber,
-                            paidEvent.UserId,
-                            sourceModule ?? string.Empty,
-                            sourceReferenceId,
-                            referenceType ?? string.Empty,
-                            sagaId,
-                            paidEvent.PaymentId,
-                            paidEvent.AmountMinor,
-                            paidEvent.OccurredAt
-                        ),
-                        ct
-                    );
-                }
-                else if (evt is INotification notification)
-                {
-                    await publisher.Publish(notification, ct);
-                }
-
-                message.Status = OutboxMessageStatus.Processed;
-                message.ProcessedAt = DateTimeOffset.UtcNow;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Outbox message processing failed. OutboxMessageId={OutboxMessageId}, EventType={EventType}, RetryCount={RetryCount}",
-                    message.Id,
-                    message.EventType,
-                    message.RetryCount
-                );
-                message.Error = ex.Message[..Math.Min(ex.Message.Length, 2000)];
-                message.RetryCount++;
-                message.Status =
-                    message.RetryCount >= MaxRetryCount
-                        ? OutboxMessageStatus.DeadLettered
-                        : OutboxMessageStatus.Pending;
-            }
+            message = await db.OutboxMessages.FromSqlRaw("""
+                select * from orders.outbox_messages
+                where processed_at is null and retry_count < 10 and
+                    (status='Pending' or (status='Processing' and (lease_until is null or lease_until < now())))
+                    and (next_attempt_at is null or next_attempt_at <= now())
+                order by occurred_at for update skip locked limit 1
+                """).FirstOrDefaultAsync(ct);
+            if (message == null) return false;
+            message.Status = OutboxMessageStatus.Processing; message.LeaseId = Guid.NewGuid();
+            message.LeaseUntil = DateTimeOffset.UtcNow.AddMinutes(5);
+            await db.SaveOutboxChangesAsync(ct); await tx.CommitAsync(ct);
         }
-
-        // از SaveOutboxChangesAsync استفاده می‌کنیم تا domain event interceptor مجدداً اجرا نشود
-        await context.SaveOutboxChangesAsync(ct);
+        var lease = message.LeaseId;
+        try
+        {
+            var type = Type.GetType(message.EventType) ?? throw new InvalidOperationException("نوع رویداد ثبت‌شده یافت نشد");
+            var value = JsonSerializer.Deserialize(message.EventData, type);
+            if (value is Refahi.Modules.Orders.Domain.Events.OrderPaidEvent legacy)
+            {
+                var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == legacy.OrderId, ct);
+                value = new Refahi.Modules.Orders.Application.Contracts.IntegrationEvents.OrderPaidIntegrationEvent(
+                    legacy.OrderId, legacy.OrderNumber, legacy.UserId, order?.SourceModule ?? legacy.SourceModule,
+                    order?.SourceReferenceId ?? legacy.SourceReferenceId, order?.ReferenceType ?? legacy.ReferenceType,
+                    order?.SagaId ?? legacy.SagaId, legacy.PaymentId, legacy.AmountMinor, legacy.OccurredAt,
+                    order?.SourceAmountMinor ?? legacy.SourceAmountMinor, order?.AmountBeforePromotionMinor ?? legacy.AmountBeforePromotionMinor,
+                    order?.DiscountCodeAmountMinor ?? legacy.PromotionFundingMinor);
+            }
+            if (value is Refahi.Modules.Orders.Application.Contracts.IntegrationEvents.OrderPaidIntegrationEvent paid)
+            {
+                var current = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.Id == paid.OrderId, ct);
+                if (current == null || current.PaymentState != Refahi.Modules.Orders.Domain.Enums.PaymentState.Paid || current.PaymentId != paid.PaymentId)
+                    value = null;
+            }
+            if (value is INotification notification) await scope.ServiceProvider.GetRequiredService<IPublisher>().Publish(notification, ct);
+            await db.OutboxMessages.Where(x => x.Id == message.Id && x.LeaseId == lease).ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.Status, OutboxMessageStatus.Processed).SetProperty(x => x.ProcessedAt, DateTimeOffset.UtcNow)
+                .SetProperty(x => x.LeaseId, (Guid?)null).SetProperty(x => x.LeaseUntil, (DateTimeOffset?)null).SetProperty(x => x.Error, (string?)null), ct);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            logger.LogError(ex, "Outbox delivery failed. OutboxMessageId={OutboxMessageId} RetryCount={RetryCount}", message.Id, message.RetryCount);
+            var retry = message.RetryCount + 1;
+            var status = retry >= 10 ? OutboxMessageStatus.DeadLettered : OutboxMessageStatus.Pending;
+            var error = ex.GetType().Name;
+            var next = DateTimeOffset.UtcNow.AddSeconds(Math.Min(300, Math.Pow(2, retry)));
+            await db.OutboxMessages.Where(x => x.Id == message.Id && x.LeaseId == lease).ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.Status, status).SetProperty(x => x.RetryCount, retry).SetProperty(x => x.Error, error)
+                .SetProperty(x => x.NextAttemptAt, next).SetProperty(x => x.LeaseId, (Guid?)null).SetProperty(x => x.LeaseUntil, (DateTimeOffset?)null), ct);
+        }
+        return true;
     }
 }
