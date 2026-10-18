@@ -56,7 +56,7 @@ public sealed class CinemaOrder
         if (string.IsNullOrWhiteSpace(id) || total <= 0 || subtotal < 0 || discount < 0 || fee < 0 || tax < 0
             || checked(subtotal - discount + fee + tax) != total)
             throw new InvalidOperationException("مبلغ رزرو تأمین‌کننده معتبر نیست");
-        ProviderOrderId = id; TicketCode = code; PayableUntil = deadline; SubtotalMinor = subtotal;
+        ProviderOrderId = id; TicketCode = code; PayableUntil = deadline?.ToUniversalTime(); SubtotalMinor = subtotal;
         DiscountMinor = discount; FeeMinor = fee; TaxMinor = tax; TotalMinor = total;
         IssuanceStatus = "Reserved"; Message = null; Touch();
     }

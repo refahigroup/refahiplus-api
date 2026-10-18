@@ -15,6 +15,22 @@ namespace Refahi.Modules.Cinema.Tests;
 public sealed class CinemaLifecycleTests
 {
     private const string Schedule = "01m4442930npemsr3a8c7nxfyt", Seat = "01ktm9ahkjsyr3cc8b3n1046r1";
+    [Theory]
+    [InlineData(0)]
+    [InlineData(210)]
+    [InlineData(-240)]
+    public async Task Provider_expiry_is_stored_in_utc_without_changing_the_payment_window(int offsetMinutes)
+    {
+        var f = new Fixture();
+        f.Provider.Expiry = DateTimeOffset.UtcNow.AddMinutes(10).ToOffset(TimeSpan.FromMinutes(offsetMinutes));
+        var result = await f.Reserve();
+        Assert.Equal(f.Provider.Expiry.Value.AddSeconds(-60), result.PayableUntil);
+        Assert.Equal(TimeSpan.Zero, result.PayableUntil!.Value.Offset);
+        Assert.True(result.CanCheckout);
+        var checkout = await f.Service.CheckoutAsync(result.Id, f.User, result.Version, result.TotalMinor, default);
+        Assert.Equal(result.PayableUntil, f.Mediator.Create!.PayableUntil);
+        Assert.Equal(result.TotalMinor, checkout.TotalMinor);
+    }
     [Fact]
     public async Task Concurrent_reservations_share_one_provider_call()
     {

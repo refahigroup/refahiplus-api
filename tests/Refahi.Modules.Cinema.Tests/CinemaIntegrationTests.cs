@@ -9,6 +9,29 @@ namespace Refahi.Modules.Cinema.Tests;
 public sealed class CinemaIntegrationTests
 {
     [CinemaPostgresFact]
+    public async Task Reservation_with_provider_offset_can_be_saved_and_reloaded()
+    {
+        var options = new DbContextOptionsBuilder<CinemaDbContext>()
+            .UseNpgsql(Environment.GetEnvironmentVariable("CINEMA_TEST_POSTGRES")!).Options;
+        await using var db = new CinemaDbContext(options);
+        await db.Database.MigrateAsync();
+        var order = CinemaOrder.Create(Guid.NewGuid(), "iticket", "schedule", Guid.NewGuid().ToString("N"), "hash", "{}", "[]", "cinema");
+        var repository = new CinemaOrderRepository(db);
+        order.BeginAttempt("reserve");
+        await repository.AddAsync(order, default);
+        var deadline = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds())
+            .ToOffset(TimeSpan.FromMinutes(210));
+        order.Reserve("provider-" + order.Id, "ticket", deadline, 100, 0, 0, 0, 100);
+        await repository.SaveAsync(default);
+        db.ChangeTracker.Clear();
+        var saved = await repository.GetAsync(order.Id, default);
+        Assert.Equal(deadline, saved!.PayableUntil);
+        Assert.Equal(TimeSpan.Zero, saved.PayableUntil!.Value.Offset);
+        Assert.Equal("Reserved", saved.IssuanceStatus);
+        Assert.True(saved.IsPayable(DateTimeOffset.UtcNow));
+    }
+
+    [CinemaPostgresFact]
     public async Task Migration_unique_indexes_concurrency_and_cross_connection_lock_work_on_postgres()
     {
         var connection=Environment.GetEnvironmentVariable("CINEMA_TEST_POSTGRES")!;

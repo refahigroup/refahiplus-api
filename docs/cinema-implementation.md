@@ -30,6 +30,18 @@ node tests/Refahi.Modules.Cinema.Tests/bin/Debug/net10.0/.playwright/package/cli
 
 ## Operational recovery
 
+### Reservation 503 caused by provider timezone — 2026-10-18
+
+The production log confirmed `Cannot write DateTimeOffset with Offset=03:30:00` in `CinemaDbContext.SaveChangesAsync`. iTicket returns timestamps with the Tehran offset; Npgsql accepts only UTC DateTimeOffset values for `timestamp with time zone`. A successful supplier reservation could therefore fail while persisting `PayableUntil`, and the subsequent failure-state save would fail on the same timestamp. The endpoint returned its generic 503.
+
+`CinemaOrder.Reserve` now normalizes the deadline to UTC while preserving the instant, purchase-end cap and safety margin. Provider snapshots retain their original timestamps. Deploy the rebuilt API; no database migration or configuration change is required.
+
+Unexpected endpoint failures now log the endpoint name, request trace ID, exception types and stack traces, and return the same trace ID in the error response. Exception messages, request bodies and raw supplier errors are excluded from this diagnostic event.
+
+Existing affected reservation intents must follow the lost-reserve-response recovery below: the external reservation may exist even though its reference was not saved locally. Do not replay supplier reservation POSTs or reset idempotency keys automatically. Reconcile the supplier state before attempting another purchase.
+
+Regression verification: the PostgreSQL test failed with the exact production exception before the fix and passes after it. Lifecycle tests cover UTC, Tehran and negative offsets through the Orders checkout handoff; endpoint tests cover safe correlated diagnostics, known rejections and cancellation propagation.
+
 The local reservation intent is durable before the external POST. Every mutating provider operation has an attempt recorded as Started/Completed/Failed/Ambiguous. Reads may retry; mutations never retry blindly.
 
 - Lost reserve response without a provider ID: NeedsReview, no second reserve. Locate the booking through supplier support using the schedule/customer context. Do not refund or invent a provider ID based on guesswork.
