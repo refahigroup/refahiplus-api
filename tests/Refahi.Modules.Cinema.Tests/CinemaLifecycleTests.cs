@@ -122,10 +122,13 @@ public sealed class CinemaLifecycleTests
         Assert.Equal(0, f.Provider.CancelCalls);
     }
     [Theory]
-    [InlineData("None")]
-    [InlineData("Pending")]
-    [InlineData("Rejected")]
-    public async Task Expired_provider_reservation_allows_financial_compensation_without_cancel_post(string cancellation)
+    [InlineData("None", "expired")]
+    [InlineData("Pending", "expired")]
+    [InlineData("Rejected", "expired")]
+    [InlineData("None", "reservation_expired")]
+    [InlineData("Pending", "reservation_expired")]
+    [InlineData("Rejected", "reservation_expired")]
+    public async Task Expired_provider_reservation_allows_financial_compensation_without_cancel_post(string cancellation, string providerStatus)
     {
         var f = new Fixture(cancellationEnabled: false); var r = await f.Reserve();
         var checkout = await f.Service.CheckoutAsync(r.Id, f.User, r.Version, r.TotalMinor, default);
@@ -136,7 +139,7 @@ public sealed class CinemaLifecycleTests
             order.BeginAttempt("cancel").Fail(false);
             order.RejectCancellation();
         }
-        f.Provider.Status = "expired";
+        f.Provider.Status = providerStatus;
         var participant = new CinemaCancellationParticipant(new Gate(), f.Service);
         var context = new Refahi.Modules.Orders.Application.Contracts.Cancellation.OrderCancellationContext(
             checkout.OrderId, f.User, "Cinema", r.Id, "CinemaOrder", "Paid", "بازیابی سفارش");
@@ -249,7 +252,7 @@ public sealed class CinemaLifecycleTests
         public DateTimeOffset? Expiry = DateTimeOffset.UtcNow.AddMinutes(10); private string status = "reserved";
         private CinemaReservation Reservation() => new("provider", MissingTicketCode ? "" : "ticket", status, Expiry, 100000, 0, 10000, 5000, 115000, MissingTicketCode ? null : "samfa", 1);
         public bool IsReserved(string s) => s == "reserved"; public bool IsConfirmed(string s) => s == "confirmed"; public bool IsCancelled(string s) => s == "cancelled";
-        public bool IsExpired(string s) => s == "expired";
+        public bool IsExpired(string s) => s is "expired" or "reservation_expired";
         public Task<CinemaSeatMap> SeatsAsync(string schedule, CancellationToken ct) => Task.FromResult(new CinemaSeatMap(schedule, new("show", "فیلم", "cinema", null, null, null, null, 90, null, []), new("place", "سینما", null, null), "سالن", DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(1), [new(Seat, "block", "1", "1", 0, 0, 100000, "available", true, null)]));
         public Task<CinemaSeatStatuses> StatusAsync(string schedule, CancellationToken ct) => Task.FromResult(new CinemaSeatStatuses(new Dictionary<string, string> { { Seat, "available" } }));
         public Task<CinemaReservation> ReserveAsync(string schedule, IReadOnlyList<string> seats, CinemaCustomer customer, CancellationToken ct) { ReserveCalls++; if (AmbiguousReserve) throw new CinemaProviderAmbiguousException(new TimeoutException()); return Task.FromResult(Reservation()); }

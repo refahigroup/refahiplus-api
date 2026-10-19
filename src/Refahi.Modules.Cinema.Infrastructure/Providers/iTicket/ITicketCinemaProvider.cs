@@ -19,7 +19,7 @@ public sealed class CinemaProviderSettings
     public string[] ReservedStatuses { get; set; } = ["reserved"];
     public string[] ConfirmedStatuses { get; set; } = ["confirmed"];
     public string[] CancelledStatuses { get; set; } = ["cancelled", "canceled"];
-    public string[] ExpiredStatuses { get; set; } = ["expired"];
+    public string[] ExpiredStatuses { get; set; } = ["expired", "reservation_expired"];
 }
 public sealed class CinemaProviderFactory(IEnumerable<ICinemaProvider> providers) : ICinemaProviderFactory
 {
