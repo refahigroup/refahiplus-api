@@ -30,6 +30,14 @@ node tests/Refahi.Modules.Cinema.Tests/bin/Debug/net10.0/.playwright/package/cli
 
 ## Operational recovery
 
+### Paid orders blocked before supplier confirmation — 2026-10-19
+
+The production stack trace showed `DbUpdateConcurrencyException` while saving the new `confirm` attempt, before calling iTicket. Attempt IDs are assigned by the domain, but EF's generated-key convention tracked attempts added to existing orders as Modified instead of Added. EF tried to update a nonexistent attempt; retries could continue until the supplier reservation expired. The same mapping also prevented new cancellation attempts from being saved.
+
+`CinemaProviderAttempt.Id` now uses `ValueGeneratedNever`; the model snapshot is aligned. This changes EF tracking only and requires no database schema migration. Deploy the rebuilt API. Tracking tests cover both confirm and cancel, and a PostgreSQL regression saves, reloads and completes both operations on existing paid orders. Before the fix, the PostgreSQL regression reproduced the production concurrency exception.
+
+Deployment resumes background reconciliation for existing failed orders, which can now reach the supplier cancellation path and, on authoritative cancellation, the Orders refund path. This fix does not replay confirmation for failed orders or directly refund payments. Reconcile affected orders with the supplier and verify their financial state after deployment; recovery of an already-cancelled supplier reservation still depends on the supplier's cancellation response.
+
 ### Reservation 503 caused by provider timezone — 2026-10-18
 
 The production log confirmed `Cannot write DateTimeOffset with Offset=03:30:00` in `CinemaDbContext.SaveChangesAsync`. iTicket returns timestamps with the Tehran offset; Npgsql accepts only UTC DateTimeOffset values for `timestamp with time zone`. A successful supplier reservation could therefore fail while persisting `PayableUntil`, and the subsequent failure-state save would fail on the same timestamp. The endpoint returned its generic 503.
