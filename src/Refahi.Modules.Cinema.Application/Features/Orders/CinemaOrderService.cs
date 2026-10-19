@@ -132,18 +132,15 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
             throw new CinemaException("لغو بلیط پرداخت‌شده هنوز فعال نشده است");
         var provider = Provider(order);
         using var correlation = logger.BeginScope(new Dictionary<string, object?> { { "CinemaOrderId", order.Id }, { "OrderId", order.OrderId }, { "ProviderOrderId", order.ProviderOrderId }, { "Operation", "cancel" } });
-        if (order.Attempts.Any(a => a.Operation == "confirm" && a.Outcome is "Started" or "Ambiguous") || order.CancellationStatus == "Pending")
-        {
-            var known = await provider.GetReservationAsync(order.ProviderOrderId, ct);
-            if (provider.IsCancelled(known.Status)) { order.MarkCancelled(); await repository.SaveAsync(ct); return true; }
-            if (order.CancellationStatus == "Pending") return false;
-            if (!provider.IsConfirmed(known.Status) && !provider.IsReserved(known.Status)) return false;
-        }
+        var known = await provider.GetReservationAsync(order.ProviderOrderId, ct);
+        if (provider.IsCancelled(known.Status)) { order.MarkCancelled(); await repository.SaveAsync(ct); return true; }
+        if (order.CancellationStatus == "Pending") return false;
+        if (!provider.IsConfirmed(known.Status) && !provider.IsReserved(known.Status)) return false;
         if (order.Attempts.Any(a => a.Operation == "cancel" && a.Outcome == "Failed")) return false;
         order.BeginCancellation(); var attempt = order.BeginAttempt("cancel"); await repository.SaveAsync(ct);
         try { await provider.CancelAsync(order.ProviderOrderId, ct); attempt.Complete(); order.MarkCancelled(); await repository.SaveAsync(CancellationToken.None); return true; }
         catch (CinemaProviderAmbiguousException) { attempt.Fail(true); await repository.SaveAsync(CancellationToken.None); logger.LogWarning("Cinema cancellation outcome ambiguous. CinemaOrderId={CinemaOrderId}", order.Id); return false; }
-        catch (CinemaException) { attempt.Fail(false); order.RejectCancellation(); await repository.SaveAsync(CancellationToken.None); return false; }
+        catch (CinemaException) { attempt.Fail(false); order.RejectCancellation(); await repository.SaveAsync(CancellationToken.None); logger.LogWarning("Cinema cancellation rejected by provider. CinemaOrderId={CinemaOrderId}", order.Id); return false; }
     }
     public async Task FinalizeAsync(Guid id, CancellationToken ct)
     {

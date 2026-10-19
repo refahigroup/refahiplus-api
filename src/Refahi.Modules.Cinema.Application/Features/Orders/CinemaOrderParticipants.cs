@@ -43,6 +43,9 @@ public sealed class CinemaCancellationParticipant(ICinemaMutationLock gate,Cinem
         if(order.OrderId!=context.OrderId)return new(false,"مرجع سفارش مالی معتبر نیست");
         if(context.PaymentState=="Paid")order.MarkPaid();
         var complete=await service.CancelProviderAsync(order,ct);
-        return new(complete,complete?null:"نتیجه لغو تأمین‌کننده هنوز مشخص نیست");
+        if (complete) return new(true);
+        return new(false, order.Attempts.Any(a => a.Operation == "cancel" && a.Outcome == "Failed")
+            ? "لغو سفارش توسط تأمین‌کننده پذیرفته نشد"
+            : "نتیجه لغو تأمین‌کننده هنوز مشخص نیست");
     }
 }

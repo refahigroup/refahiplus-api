@@ -36,7 +36,13 @@ The production stack trace showed `DbUpdateConcurrencyException` while saving th
 
 `CinemaProviderAttempt.Id` now uses `ValueGeneratedNever`; the model snapshot is aligned. This changes EF tracking only and requires no database schema migration. Deploy the rebuilt API. Tracking tests cover both confirm and cancel, and a PostgreSQL regression saves, reloads and completes both operations on existing paid orders. Before the fix, the PostgreSQL regression reproduced the production concurrency exception.
 
-Deployment resumes background reconciliation for existing failed orders, which can now reach the supplier cancellation path and, on authoritative cancellation, the Orders refund path. This fix does not replay confirmation for failed orders or directly refund payments. Reconcile affected orders with the supplier and verify their financial state after deployment; recovery of an already-cancelled supplier reservation still depends on the supplier's cancellation response.
+Deployment resumes background reconciliation for existing failed orders, which can now reach the supplier cancellation path and, on authoritative cancellation, the Orders refund path. This fix does not replay confirmation for failed orders or directly refund payments. Reconcile affected orders with the supplier and verify their financial state after deployment.
+
+### Cancellation state conflicts — 2026-10-19
+
+Cancellation now looks up the supplier reservation before submitting a cancellation POST. An authoritative cancelled status completes local cancellation even after an earlier rejected POST; a second POST is unnecessary. Pending cancellations and rejected attempts are never blindly reissued, and unknown statuses do not authorize refunds. The Orders API now distinguishes a supplier rejection from an ambiguous outcome. An expired local deadline alone does not prove supplier cancellation.
+
+Deploy the rebuilt API; no admin UI change or migration is required. Existing affected orders can recover through the same Orders cancellation path when the supplier reports a configured cancelled status. A continuing rejection or unknown supplier status still requires supplier investigation. Lifecycle regression tests cover already-cancelled reservations, reconciliation after rejection, pending and unknown statuses, and the rejection message.
 
 ### Reservation 503 caused by provider timezone — 2026-10-18
 
