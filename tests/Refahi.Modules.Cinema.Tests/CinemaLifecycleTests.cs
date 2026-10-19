@@ -121,6 +121,49 @@ public sealed class CinemaLifecycleTests
         Assert.Equal("Cancelled", f.Repository.Order!.CancellationStatus);
         Assert.Equal(0, f.Provider.CancelCalls);
     }
+    [Theory]
+    [InlineData("None")]
+    [InlineData("Pending")]
+    [InlineData("Rejected")]
+    public async Task Expired_provider_reservation_allows_financial_compensation_without_cancel_post(string cancellation)
+    {
+        var f = new Fixture(cancellationEnabled: false); var r = await f.Reserve();
+        var checkout = await f.Service.CheckoutAsync(r.Id, f.User, r.Version, r.TotalMinor, default);
+        var order = f.Repository.Order!;
+        if (cancellation != "None") order.BeginCancellation();
+        if (cancellation == "Rejected")
+        {
+            order.BeginAttempt("cancel").Fail(false);
+            order.RejectCancellation();
+        }
+        f.Provider.Status = "expired";
+        var participant = new CinemaCancellationParticipant(new Gate(), f.Service);
+        var context = new Refahi.Modules.Orders.Application.Contracts.Cancellation.OrderCancellationContext(
+            checkout.OrderId, f.User, "Cinema", r.Id, "CinemaOrder", "Paid", "بازیابی سفارش");
+        Assert.True((await participant.PrepareAsync(context, default)).CanContinue);
+        Assert.True((await participant.PrepareAsync(context, default)).CanContinue);
+        Assert.Equal("Cancelled", order.CancellationStatus);
+        Assert.Equal("Paid", order.PaymentStatus);
+        Assert.False(order.HasTicket);
+        Assert.Equal(0, f.Provider.CancelCalls);
+    }
+    [Fact]
+    public async Task Disabled_paid_cancellation_still_blocks_active_provider_ticket()
+    {
+        var f = new Fixture(cancellationEnabled: false); await f.Reserve();
+        f.Repository.Order!.MarkPaid(); f.Provider.Status = "confirmed";
+        await Assert.ThrowsAsync<CinemaException>(() => f.Service.CancelProviderAsync(f.Repository.Order, default));
+        Assert.Equal("None", f.Repository.Order.CancellationStatus);
+        Assert.Equal(0, f.Provider.CancelCalls);
+    }
+    [Fact]
+    public async Task Local_expiry_does_not_complete_cancellation_when_provider_outcome_is_ambiguous()
+    {
+        var f = new Fixture(); f.Provider.Expiry = DateTimeOffset.UtcNow.AddMinutes(-1); await f.Reserve();
+        f.Provider.AmbiguousCancel = true;
+        Assert.False(await f.Service.CancelProviderAsync(f.Repository.Order!, default));
+        Assert.Equal("Pending", f.Repository.Order!.CancellationStatus);
+    }
     [Fact]
     public async Task Rejected_cancellation_is_reconciled_when_provider_later_reports_cancelled()
     {
@@ -180,7 +223,7 @@ public sealed class CinemaLifecycleTests
     {
         public Guid User = Guid.NewGuid(); public Repo Repository = new(); public Provider Provider = new(); public Mediator Mediator;
         public CinemaOrderService Service;
-        public Fixture() { Mediator = new(Repository); Service = new(Repository, Provider, new Gate(), Mediator, Options.Create(new CinemaOptions { PurchaseEnabled = true, CancellationEnabled = true }), NullLogger<CinemaOrderService>.Instance); }
+        public Fixture(bool cancellationEnabled = true) { Mediator = new(Repository); Service = new(Repository, Provider, new Gate(), Mediator, Options.Create(new CinemaOptions { PurchaseEnabled = true, CancellationEnabled = cancellationEnabled }), NullLogger<CinemaOrderService>.Instance); }
         public Task<CinemaOrderView> Reserve() => Service.ReserveAsync(User, Schedule, [Seat], "key", default);
     }
     private sealed class Repo : ICinemaOrderRepository
@@ -206,6 +249,7 @@ public sealed class CinemaLifecycleTests
         public DateTimeOffset? Expiry = DateTimeOffset.UtcNow.AddMinutes(10); private string status = "reserved";
         private CinemaReservation Reservation() => new("provider", MissingTicketCode ? "" : "ticket", status, Expiry, 100000, 0, 10000, 5000, 115000, MissingTicketCode ? null : "samfa", 1);
         public bool IsReserved(string s) => s == "reserved"; public bool IsConfirmed(string s) => s == "confirmed"; public bool IsCancelled(string s) => s == "cancelled";
+        public bool IsExpired(string s) => s == "expired";
         public Task<CinemaSeatMap> SeatsAsync(string schedule, CancellationToken ct) => Task.FromResult(new CinemaSeatMap(schedule, new("show", "فیلم", "cinema", null, null, null, null, 90, null, []), new("place", "سینما", null, null), "سالن", DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(1), [new(Seat, "block", "1", "1", 0, 0, 100000, "available", true, null)]));
         public Task<CinemaSeatStatuses> StatusAsync(string schedule, CancellationToken ct) => Task.FromResult(new CinemaSeatStatuses(new Dictionary<string, string> { { Seat, "available" } }));
         public Task<CinemaReservation> ReserveAsync(string schedule, IReadOnlyList<string> seats, CinemaCustomer customer, CancellationToken ct) { ReserveCalls++; if (AmbiguousReserve) throw new CinemaProviderAmbiguousException(new TimeoutException()); return Task.FromResult(Reservation()); }

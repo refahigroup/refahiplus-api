@@ -53,6 +53,7 @@ public interface ICinemaProvider
     bool IsReserved(string status);
     bool IsConfirmed(string status);
     bool IsCancelled(string status);
+    bool IsExpired(string status);
 }
 public interface ICinemaProviderFactory { ICinemaProvider Get(string key); }
 public interface ICinemaMutationLock { Task<IAsyncDisposable> AcquireAsync(Guid id, CancellationToken ct); }

@@ -128,14 +128,19 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
     {
         if (order.CancellationStatus == "Cancelled") return true;
         if (order.ProviderOrderId == null) throw new CinemaException("نتیجه رزرو ابتدا باید مشخص شود");
-        if (order.PaymentStatus == "Paid" && !options.Value.CancellationEnabled && order.IssuanceStatus != "Failed" && order.CancellationStatus != "Pending")
-            throw new CinemaException("لغو بلیط پرداخت‌شده هنوز فعال نشده است");
         var provider = Provider(order);
         using var correlation = logger.BeginScope(new Dictionary<string, object?> { { "CinemaOrderId", order.Id }, { "OrderId", order.OrderId }, { "ProviderOrderId", order.ProviderOrderId }, { "Operation", "cancel" } });
         var known = await provider.GetReservationAsync(order.ProviderOrderId, ct);
-        if (provider.IsCancelled(known.Status)) { order.MarkCancelled(); await repository.SaveAsync(ct); return true; }
+        if (provider.IsCancelled(known.Status) || provider.IsExpired(known.Status)) { order.MarkCancelled(); await repository.SaveAsync(ct); return true; }
+        if (!provider.IsConfirmed(known.Status) && !provider.IsReserved(known.Status))
+        {
+            logger.LogWarning("Cinema cancellation blocked by unrecognized provider status. CinemaOrderId={CinemaOrderId} OrderId={OrderId} ProviderStatus={ProviderStatus}",
+                order.Id, order.OrderId, known.Status);
+            return false;
+        }
         if (order.CancellationStatus == "Pending") return false;
-        if (!provider.IsConfirmed(known.Status) && !provider.IsReserved(known.Status)) return false;
+        if (order.PaymentStatus == "Paid" && !options.Value.CancellationEnabled && order.IssuanceStatus != "Failed")
+            throw new CinemaException("لغو بلیط پرداخت‌شده هنوز فعال نشده است");
         if (order.Attempts.Any(a => a.Operation == "cancel" && a.Outcome == "Failed")) return false;
         order.BeginCancellation(); var attempt = order.BeginAttempt("cancel"); await repository.SaveAsync(ct);
         try { await provider.CancelAsync(order.ProviderOrderId, ct); attempt.Complete(); order.MarkCancelled(); await repository.SaveAsync(CancellationToken.None); return true; }
