@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Refahi.Modules.Orders.Application\Refahi.Modules.Orders.Application.csproj" />
+    <ProjectReference Include="..\..\src\Refahi.Modules.Orders.Api\Refahi.Modules.Orders.Api.csproj" />
   </ItemGroup>
 </Project>
