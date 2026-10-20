@@ -22,7 +22,7 @@ public sealed class PostgresCatalogueFactAttribute : FactAttribute
     }
 }
 
-public sealed class FlightSearchCatalogueTests
+public sealed partial class FlightSearchCatalogueTests
 {
     [PostgresCatalogueFact]
     public async Task SqlAndSeeder_AreIdempotentAndRollbackPreservesExistingData()
@@ -170,11 +170,13 @@ public sealed class FlightSearchCatalogueTests
                 .UseNpgsql(builder.ConnectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "flights")).Options);
             try
             {
+                await ReferenceGeographyFixture.InstallAsync(db);
                 if (manualSchema)
                 {
                     await db.GetService<IMigrator>().MigrateAsync("20260721052246_FlightAirportsReferenceData");
                     await ExecuteScript(db, "01-schema.sql");
                     await ExecuteScript(db, "01-schema.sql");
+                    await db.Database.MigrateAsync();
                     Assert.Empty(await db.Database.GetPendingMigrationsAsync());
                 }
                 else await db.Database.MigrateAsync();

@@ -18,5 +18,8 @@ public sealed record FlightAirportDto(
     bool IsPopular,
     string CountryNameFa,
     string CountryNameEn,
-    string? IcaoCode
+    string? IcaoCode,
+    int? GeographicReferenceCityId = null,
+    int? GeographicReferenceProvinceId = null,
+    string? GeographicReferenceCountryCode = null
 );

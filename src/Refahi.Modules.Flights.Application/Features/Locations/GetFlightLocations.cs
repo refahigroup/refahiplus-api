@@ -8,7 +8,9 @@ public sealed record GetFlightLocationsQuery(bool IsDomestic, string? Query, int
     : IRequest<GetFlightLocationsResponse>;
 public sealed record FlightLocationDto(string Code, string Type, string CityCode, string CityNameFa,
     string CityNameEn, string CountryCode, string CountryNameFa, string CountryNameEn,
-    int AirportCount, string? AirportNameFa, string? AirportNameEn);
+    int AirportCount, string? AirportNameFa, string? AirportNameEn,
+    int? CommercialReferenceCityId = null, int? CommercialReferenceProvinceId = null,
+    string? CommercialReferenceCountryCode = null);
 public sealed record GetFlightLocationsResponse(IReadOnlyCollection<FlightLocationDto> Locations);
 
 public sealed class GetFlightLocationsValidator : AbstractValidator<GetFlightLocationsQuery>
@@ -27,7 +29,8 @@ public sealed class GetFlightLocationsHandler(IFlightLocationRepository reposito
         var rows = await repository.SearchAsync(request.IsDomestic, request.Query, request.Limit, ct);
         return new(rows.Select(r => new FlightLocationDto(r.Code, r.Type, r.CityCode, r.CityNameFa,
             r.CityNameEn, r.CountryCode, r.CountryNameFa, r.CountryNameEn, r.AirportCount,
-            r.AirportNameFa, r.AirportNameEn)).ToList());
+            r.AirportNameFa, r.AirportNameEn, r.CommercialReferenceCityId,
+            r.CommercialReferenceProvinceId, r.CommercialReferenceCountryCode)).ToList());
     }
 }
 

@@ -15,6 +15,7 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Media.Application.Contracts\Refahi.Modules.Media.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Flights.Application.Contracts\Refahi.Modules.Flights.Application.Contracts.csproj" />

@@ -14,6 +14,8 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Refahi.Modules.References.Infrastructure\Refahi.Modules.References.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Refahi.Modules.References.Application\Refahi.Modules.References.Application.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Flights.Application\Refahi.Modules.Flights.Application.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Flights.Infrastructure\Refahi.Modules.Flights.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />

@@ -25,5 +25,11 @@ public sealed record SearchFlightsResponse(
     DateTime OffersExpireAtUtc,
     IReadOnlyCollection<FlightOfferDto> Offers,
     string? OriginCityName = null,
-    string? DestinationCityName = null
+    string? DestinationCityName = null,
+    int? OriginCommercialReferenceCityId = null,
+    int? OriginCommercialReferenceProvinceId = null,
+    string? OriginCommercialReferenceCountryCode = null,
+    int? DestinationCommercialReferenceCityId = null,
+    int? DestinationCommercialReferenceProvinceId = null,
+    string? DestinationCommercialReferenceCountryCode = null
 );

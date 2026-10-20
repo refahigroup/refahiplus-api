@@ -36,17 +36,24 @@ public sealed class FlightFarePersistenceTests
                 .UseNpgsql(settings.ConnectionString, options => options.MigrationsHistoryTable("__EFMigrationsHistory", "flights"))
                 .Options);
             var migrator = db.GetService<IMigrator>();
+            await ReferenceGeographyFixture.InstallAsync(db);
             await migrator.MigrateAsync("20260906194439_FlightSearchCatalogue");
             var now = DateTime.UtcNow;
+            // Insert the historical schema directly; the current EF model also has later pricing columns.
+            Task<int> InsertLegacy(FlightOfferSnapshot offer) => db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO flights.flight_search_offer_snapshots(id,offer_token,provider_name,provider_fare_source_code,
+                  provider_search_id,provider_trace_id,total_fare_amount,currency,public_offer_snapshot,provider_snapshot,created_at_utc,expires_at_utc)
+                VALUES({offer.Id},{offer.OfferToken},{offer.ProviderName},{offer.ProviderFareSourceCode},
+                  {offer.ProviderSearchId},{offer.ProviderTraceId},{offer.TotalFareAmount},{offer.Currency},
+                  CAST({offer.PublicOfferSnapshotJson} AS jsonb),CAST({offer.ProviderSnapshotJson} AS jsonb),{offer.CreatedAtUtc},{offer.ExpiresAtUtc})
+                """);
             var existing = Offer("existing", "short-fare", now);
-            db.FlightOfferSnapshots.Add(existing);
-            await db.SaveChangesAsync();
+            await InsertLegacy(existing);
 
             var fareCode = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(6000));
             var longOffer = Offer("long", fareCode, now);
-            db.FlightOfferSnapshots.Add(longOffer);
-            var error = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
-            Assert.Equal(PostgresErrorCodes.StringDataRightTruncation, Assert.IsType<PostgresException>(error.InnerException).SqlState);
+            var error = await Assert.ThrowsAsync<PostgresException>(() => InsertLegacy(longOffer));
+            Assert.Equal(PostgresErrorCodes.StringDataRightTruncation, error.SqlState);
             db.ChangeTracker.Clear();
 
             await db.Database.MigrateAsync();
