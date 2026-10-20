@@ -1,8 +1,9 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Refahi.Modules.Hotels.Application.Contracts.Catalogue;
 using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.CreateHotelRequest;
 using Refahi.Modules.Hotels.Domain.Abstraction.Repositories;
@@ -13,65 +14,79 @@ using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
 namespace Refahi.Modules.Hotels.Application.Features.Catalogue;
 
-public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, IHotelCatalogueProviderRegistry providers,
+public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repository, IHotelCatalogueProviderRegistry providers,
     IHotelSalePriceCalculator pricing, IHotelRequestRepository requests, IHotelBookingSagaRepository sagas,
-    IMediator mediator, ILogger<HotelCatalogueService> logger)
+    IMediator mediator, ILogger<HotelCatalogueService> logger, IOptions<HotelLifecycleOptions>? lifecycle = null)
 {
+    private HotelLifecycleOptions Policy => lifecycle?.Value ?? new();
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     internal static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Json);
     internal static T Read<T>(string json) => JsonSerializer.Deserialize<T>(json, Json) ?? throw new InvalidOperationException("اطلاعات رزرو معتبر نیست.");
     public async Task<IReadOnlyList<HotelCityDto>> CitiesAsync(string? name, CancellationToken ct)
     {
-        await using var held = await repository.LockAsync("catalogue", ct);
-        var known = (await repository.CitiesAsync(ct)).ToList();
-        foreach (var provider in providers.Active)
-        {
-            try
-            {
-                foreach (var city in await provider.CitiesAsync(ct))
-                {
-                    if (known.Any(x => x.Provider == provider.Name && x.NativeId == city.Id)) continue;
-                    var match = city.LegacyId is null ? null : known.FirstOrDefault(x => x.LegacyId == city.LegacyId);
-                    var row = HotelCityReference.Create(match?.CityKey ?? Guid.NewGuid(), provider.Name, city.Id, city.Name, city.LegacyId);
-                    repository.AddCity(row); known.Add(row);
-                }
-                await repository.SaveAsync(ct);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            { logger.LogWarning("Hotel city catalogue unavailable Provider={Provider} ErrorType={ErrorType}", provider.Name, ex.GetType().Name); }
-        }
-        if (known.Count == 0) throw new HotelCatalogueUnavailableException("فهرست شهرهای هتل در دسترس نیست.");
-        return known.GroupBy(x => x.CityKey).Select(x => new HotelCityDto(x.Key, x.First().Name, x.Select(r => r.LegacyId).FirstOrDefault(r => r.HasValue)))
-            .Where(x => string.IsNullOrWhiteSpace(name) || x.Name.Contains(name.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
+        var response = await mediator.Send(new Refahi.Modules.References.Application.Contracts.Queries.GetCitiesQuery(ActiveOnly: true), ct);
+        var term = NormalizeCityName(name);
+        return response.Cities.Where(x => x.IsActive && (term.Length == 0
+                || NormalizeCityName(x.Name).Contains(term, StringComparison.OrdinalIgnoreCase)
+                || NormalizeCityName(x.NameEn).Contains(term, StringComparison.OrdinalIgnoreCase)))
+            .Select(x => new HotelCityDto(x.Id, x.Name, x.NameEn, x.ProvinceId, x.ProvinceName)).ToArray();
     }
+    private static string NormalizeCityName(string? name) => string.Join(" ", (name ?? "").Replace('ي', 'ی').Replace('ك', 'ک')
+        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
     public async Task<HotelSearchResponse> SearchAsync(SearchHotelCatalogueQuery query, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         ValidateTravel(query.Travel);
-        await CitiesAsync(null, ct);
-        var cities = await repository.CitiesAsync(ct);
-        var key = query.CityKey ?? cities.FirstOrDefault(x => x.Provider == "SnappTrip" && x.LegacyId == query.LegacyCityId)?.CityKey;
-        if (key is null) throw new InvalidOperationException("شهر مقصد معتبر نیست.");
+        var city = await mediator.Send(new Refahi.Modules.References.Application.Contracts.Queries.GetCityByIdQuery(query.ReferenceCityId), ct);
+        if (city is null || !city.IsActive) throw new FluentValidation.ValidationException("شهر مقصد معتبر نیست.");
+        if (providers.Active.Count == 0) throw new HotelCatalogueUnavailableException("جست‌وجوی هتل در دسترس نیست.");
         var tasks = providers.Active.Select(async provider =>
         {
-            var city = cities.FirstOrDefault(x => x.CityKey == key && x.Provider == provider.Name);
-            if (city is null) return (provider, offers: (IReadOnlyList<ProviderHotelOffer>)[], failed: false, attempted: false);
-            try { return (provider, offers: await provider.SearchAsync(city.NativeId, query.Travel, ct), failed: false, attempted: true); }
+            var offers = new List<ProviderHotelOffer>();
+            var succeeded = 0;
+            var failed = 0;
+            var started = System.Diagnostics.Stopwatch.StartNew();
+            IReadOnlyList<string> nativeIds;
+            try { nativeIds = await provider.ResolveCityIdsAsync(query.ReferenceCityId, ct); }
             catch (Exception ex) when (!ct.IsCancellationRequested)
-            { logger.LogWarning("Hotel search unavailable Provider={Provider} ErrorType={ErrorType}", provider.Name, ex.GetType().Name); return (provider, offers: (IReadOnlyList<ProviderHotelOffer>)[], failed: true, attempted: true); }
+            {
+                logger.LogWarning("Hotel city mapping failed ReferenceCityId={ReferenceCityId} Provider={Provider} ErrorType={ErrorType}", query.ReferenceCityId, provider.Name, ex.GetType().Name);
+                return (provider, offers: (IReadOnlyList<ProviderHotelOffer>)offers, succeeded, failed: 1);
+            }
+            foreach (var nativeId in nativeIds.Distinct(StringComparer.Ordinal))
+            {
+                ct.ThrowIfCancellationRequested();
+                try { offers.AddRange(await provider.SearchAsync(nativeId, query.Travel, ct)); succeeded++; }
+                catch (Exception ex) when (!ct.IsCancellationRequested)
+                {
+                    failed++;
+                    logger.LogWarning("Hotel search failed ReferenceCityId={ReferenceCityId} Provider={Provider} NativeCityId={NativeCityId} ErrorType={ErrorType}",
+                        query.ReferenceCityId, provider.Name, nativeId, ex.GetType().Name);
+                }
+            }
+            logger.LogInformation("Hotel search ReferenceCityId={ReferenceCityId} Provider={Provider} MappingCount={MappingCount} Succeeded={Succeeded} Failed={Failed} DurationMs={DurationMs}",
+                query.ReferenceCityId, provider.Name, nativeIds.Count, succeeded, failed, started.ElapsedMilliseconds);
+            return (provider, offers: (IReadOnlyList<ProviderHotelOffer>)offers, succeeded, failed);
         });
         var results = await Task.WhenAll(tasks);
-        if (!results.Any(x => x.attempted && !x.failed)) throw new HotelCatalogueUnavailableException("جست‌وجوی هتل در دسترس نیست. دوباره تلاش کنید.");
+        ct.ThrowIfCancellationRequested();
+        if (results.Sum(x => x.failed) > 0 && results.Sum(x => x.succeeded) == 0)
+            throw new HotelCatalogueUnavailableException("جست‌وجوی هتل در دسترس نیست. دوباره تلاش کنید.");
+        var partial = results.Any(x => x.failed > 0);
+        if (results.All(x => x.offers.Count == 0))
+            return new([], partial, partial ? "بخشی از نتایج در دسترس نیست." : null);
         var offers = new List<HotelOfferDto>();
         await using var held = await repository.LockAsync("catalogue", ct);
         foreach (var result in results)
         {
-            foreach (var offer in result.offers)
+            foreach (var offer in result.offers.DistinctBy(x => (x.Hotel.Id, x.RoomId, x.RatePlanId, x.AgencyProviderId)))
             {
                 var price = pricing.CalculateFinalPrice(offer);
                 if (query.MinPrice is not null && price < query.MinPrice || query.MaxPrice is not null && price > query.MaxPrice
                     || query.Stars is { Length: > 0 } && !query.Stars.Contains(offer.Hotel.Stars)
                     || query.Accommodations is { Length: > 0 } && !query.Accommodations.Contains(offer.Hotel.AccommodationType, StringComparer.OrdinalIgnoreCase)) continue;
-                var listing = await repository.ListingAsync(key.Value, result.provider.Name, offer.Hotel.Id, offer.Hotel.CityId, ct);
+                var listing = await repository.ListingAsync(query.ReferenceCityId, result.provider.Name, offer.Hotel.Id, offer.Hotel.CityId, ct);
                 var snapshot = HotelOfferSnapshot.Create(Convert.ToHexString(RandomNumberGenerator.GetBytes(24)), listing.HotelKey,
                     result.provider.Name, Serialize(offer), Serialize(query.Travel), DateTime.UtcNow.AddMinutes(20));
                 repository.AddOffer(snapshot); offers.Add(PublicOffer(snapshot, offer));
@@ -79,7 +94,6 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
         }
         await repository.SaveAsync(ct);
         var sorted = query.Sort switch { "price-desc" => offers.OrderByDescending(x => x.PriceMinor), "stars" => offers.OrderByDescending(x => x.Stars), _ => offers.OrderBy(x => x.PriceMinor) };
-        var partial = results.Any(x => x.failed);
         return new(sorted.ToArray(), partial, partial ? "بخشی از نتایج در دسترس نیست." : null);
     }
     public async Task<HotelDetailsResponse> DetailsAsync(Guid key, HotelTravel travel, CancellationToken ct)
@@ -110,7 +124,9 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
     }
     private HotelOfferDto PublicOffer(HotelOfferSnapshot snapshot, ProviderHotelOffer offer) => new(snapshot.HotelKey, snapshot.Token,
         offer.Hotel.Name, offer.Hotel.Address, offer.Hotel.Stars, offer.Hotel.Images, offer.RoomName, offer.BoardType, offer.Capacity,
-        pricing.CalculateFinalPrice(offer), snapshot.ExpiresAtUtc, providers.Get(snapshot.Provider).Capabilities.Purchase);
+        pricing.CalculateFinalPrice(offer), snapshot.ExpiresAtUtc, providers.Get(snapshot.Provider).Capabilities.Purchase
+            && providers.Get(snapshot.Provider).IsOfferEligible(offer, Read<HotelTravel>(snapshot.TravelJson))
+            && (snapshot.Provider != "Lamasoo" || offer.SupplyPriceMinor <= pricing.CalculateFinalPrice(offer)));
     public async Task<HotelOfferDto> QuoteAsync(string token, HotelTravel travel, CancellationToken ct)
     {
         ValidateTravel(travel);
@@ -140,9 +156,8 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
         {
             if (existing.RequestFingerprint != hash) throw new HotelCatalogueConflictException("کلید تکرارپذیری با اطلاعات دیگری استفاده شده است.");
             var known = await repository.ReservationAsync(existing.Id, ct);
-            if (known is not null && known.State != HotelExternalState.Reserved && known.State != HotelExternalState.Confirmed)
-                throw new HotelCatalogueConflictException("نتیجه رزرو هنوز مشخص نیست یا رزرو قابل پرداخت نیست.");
-            return Response(existing);
+            var order = existing.OrderId is Guid orderId ? await mediator.Send(new GetOrderByIdQuery(orderId, existing.UserId, "User"), ct) : null;
+            return Response(existing, known, order?.PaymentState ?? "Unpaid", order?.CanPay ?? true);
         }
         var snapshot = await ValidOfferAsync(command.OfferToken, ct);
         var provider = providers.Get(snapshot.Provider);
@@ -158,6 +173,10 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
         current = await provider.ValidateOfferAsync(current, command.Travel, ct);
         var price = pricing.CalculateFinalPrice(current);
         if (price != command.ExpectedTotalPriceMinor) throw new HotelPriceChangedException(price);
+        if (!provider.IsOfferEligible(current, command.Travel, command.Guests))
+            throw new HotelCatalogueConflictException("این پیشنهاد با مشخصات مسافران قابل رزرو نیست.");
+        if (snapshot.Provider == "Lamasoo" && current.SupplyPriceMinor > price)
+            throw new HotelCatalogueConflictException("این پیشنهاد دیگر قابل خرید نیست. دوباره جست‌وجو کنید.");
         var travelJson = Serialize(new
         {
             cityId = int.TryParse(current.Hotel.CityId, out var cityId) ? cityId : 0,
@@ -199,7 +218,10 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
         }
         var reservation = HotelExternalReservation.Create(hotelRequest.Id, snapshot.Provider, hash,
             Serialize(new HotelSubmitRequest(hotelRequest.Id.ToString("N"), current, command.Travel, command.Guests, command.Phone, command.Email)));
-        repository.AddReservation(reservation); reservation.StartSubmit(); await repository.SaveAsync(ct);
+        await using var reservationLease = await repository.LockAsync("reservation:" + hotelRequest.Id, ct);
+        repository.AddReservation(reservation); reservation.StartSubmit();
+        var operation = HotelExternalOperation.Start(reservation, HotelExternalOperationKind.Submit);
+        repository.AddOperation(operation); await repository.SaveAsync(ct);
         using var submitScope = logger.BeginScope(new Dictionary<string, object?>
         {
             ["Provider"] = provider.Name, ["HotelRequestId"] = hotelRequest.Id, ["ReferenceId"] = reservation.ReferenceId
@@ -210,16 +232,31 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
         {
             var submitted = await provider.SubmitAsync(Read<HotelSubmitRequest>(reservation.SubmitJson), ct);
             receivedSubmitResponse = true;
+            operation.Finish(HotelExternalOperationState.Succeeded, submitted.Snapshot);
             reservation.Reserve(submitted.SupplyPriceMinor, submitted.FeeMinor, submitted.LockedUntilUtc, submitted.Snapshot);
-            hotelRequest.SetPayableUntil(submitted.LockedUntilUtc.AddSeconds(-60)); await repository.SaveAsync(ct);
+            if (submitted.SupplyPriceMinor > price) reservation.BlockPayment("SUPPLY_EXCEEDS_SALE");
+            if (submitted.LockedUntilUtc <= DateTime.UtcNow.AddSeconds(Policy.PaymentSafetySeconds))
+                reservation.MarkUnknown("LOCK_TOO_SHORT");
+            else hotelRequest.SetPayableUntil(submitted.LockedUntilUtc.AddSeconds(-Policy.PaymentSafetySeconds));
+            await repository.SaveAsync(ct);
             logger.LogInformation("Hotel Submit reserved Provider={Provider} HotelRequestId={RequestId} ReferenceId={ReferenceId} PayableUntil={PayableUntil}", provider.Name, hotelRequest.Id, reservation.ReferenceId, hotelRequest.ExpireAt);
         }
         catch (Exception ex)
         {
-            if (receivedSubmitResponse || ex is HotelExternalOutcomeUnknownException or OperationCanceledException) reservation.MarkUnknown(); else reservation.Fail();
-            await repository.SaveAsync(CancellationToken.None); throw;
+            if (!receivedSubmitResponse && ex is HotelProviderRejectedException rejected)
+            {
+                operation.Finish(HotelExternalOperationState.Rejected, rejected.Snapshot, errorCode: rejected.Code);
+                reservation.Fail(rejected.Code); hotelRequest.MarkFailed(DateTime.UtcNow);
+            }
+            else
+            {
+                operation.Finish(HotelExternalOperationState.Unknown, errorCode: "SUBMIT_UNKNOWN");
+                reservation.MarkUnknown("SUBMIT_UNKNOWN");
+            }
+            await repository.SaveAsync(CancellationToken.None);
+            logger.LogWarning("Hotel Submit outcome requires follow-up RequestId={RequestId} State={State}", hotelRequest.Id, reservation.State);
         }
-        return Response(hotelRequest);
+        return Response(hotelRequest, reservation);
     }
     public async Task FinalizeAsync(Guid orderId, Guid userId, CancellationToken ct)
     {
@@ -231,7 +268,7 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
         if (request.UserId != userId || order?.PaymentState != "Paid" || order.SourceModule != "Hotel" || order.SourceReferenceId != request.Id || order.ReferenceType != "HotelRequest"
             || order.FinalAmountMinor != request.TotalPrice) throw new InvalidOperationException("پرداخت رزرو تأیید نشده است.");
         if (reservation.State == HotelExternalState.Confirmed) return;
-        if (reservation.State != HotelExternalState.Reserved) throw new HotelExternalOutcomeUnknownException("رزرو در حال بررسی است.");
+        if (reservation.State != HotelExternalState.Reserved || reservation.PaymentBlocked) throw new HotelExternalOutcomeUnknownException("رزرو در حال بررسی است.");
         if (reservation.LockedUntilUtc <= DateTime.UtcNow)
         {
             reservation.MarkUnknown(); await repository.SaveAsync(ct);
@@ -244,56 +281,35 @@ public sealed class HotelCatalogueService(IHotelCatalogueRepository repository, 
             ["Provider"] = reservation.Provider, ["HotelRequestId"] = request.Id, ["ReferenceId"] = reservation.ReferenceId,
             ["OrderId"] = orderId, ["SagaId"] = saga?.SagaId
         });
-        reservation.StartConfirm(); await repository.SaveAsync(ct);
+        reservation.StartConfirm();
+        var operation = HotelExternalOperation.Start(reservation, HotelExternalOperationKind.Confirm);
+        repository.AddOperation(operation); await repository.SaveAsync(ct);
         logger.LogInformation("Hotel Confirm started Provider={Provider} HotelRequestId={RequestId} OrderId={OrderId} ReferenceId={ReferenceId}", reservation.Provider, request.Id, orderId, reservation.ReferenceId);
         try
         {
             var confirmed = await providers.Get(reservation.Provider).ConfirmAsync(reservation.ReferenceId, ct);
+            if (confirmed.Status != "Confirmed" || string.IsNullOrWhiteSpace(confirmed.ReservationId))
+                throw new HotelExternalOutcomeUnknownException("پاسخ تأیید رزرو معتبر نیست.");
+            operation.Finish(HotelExternalOperationState.Succeeded, confirmed.Snapshot ?? Serialize(confirmed));
             reservation.Confirm(confirmed.ReservationId); request.MarkProviderConfirmed(confirmed.ReservationId, DateTime.UtcNow); request.Complete(DateTime.UtcNow);
             if (saga is not null) { saga.MarkProviderBookingConfirmed(DateTime.UtcNow); saga.Complete(DateTime.UtcNow); }
             await repository.SaveAsync(ct);
         }
-        catch
+        catch (Exception ex)
         {
-            reservation.MarkUnknown(); await repository.SaveAsync(CancellationToken.None);
+            operation.Finish(ex is HotelProviderRejectedException ? HotelExternalOperationState.Rejected : HotelExternalOperationState.Unknown,
+                ex is HotelProviderRejectedException rejection ? rejection.Snapshot : null,
+                errorCode: ex is HotelProviderRejectedException rejected ? rejected.Code : "CONFIRM_UNKNOWN");
+            reservation.MarkUnknown(ex is HotelProviderRejectedException e ? e.Code : "CONFIRM_UNKNOWN"); await repository.SaveAsync(CancellationToken.None);
             logger.LogError("Hotel confirmation requires reconciliation Provider={Provider} HotelRequestId={RequestId} OrderId={OrderId}", reservation.Provider, request.Id, orderId);
-            throw;
+            throw new HotelExternalOutcomeUnknownException("وضعیت رزرو نیاز به پیگیری دارد.");
         }
     }
-    private static CreateHotelRequestResponse Response(HotelRequest request) => new(request.Id, request.Status.ToString(), request.ExpireAt, request.TotalPrice, request.Currency);
-    public async Task RecoverAsync(CancellationToken ct)
+    private CreateHotelRequestResponse Response(HotelRequest request, HotelExternalReservation? reservation = null, string payment = "Unpaid", bool orderCanPay = true)
     {
-        var paidReservations = new List<(Guid OrderId, Guid UserId)>();
-        foreach (var candidate in await repository.RecoveryAsync(ct))
-        {
-            await using var held = await repository.LockAsync("reservation:" + candidate.HotelRequestId, ct);
-            var reservation = await repository.ReservationAsync(candidate.HotelRequestId, ct);
-            if (reservation is null) continue;
-            if (reservation.State is HotelExternalState.Submitting or HotelExternalState.Confirming
-                && reservation.UpdatedAtUtc < DateTime.UtcNow.AddMinutes(-2))
-            {
-                reservation.MarkUnknown();
-                logger.LogError("Hotel external operation needs manual reconciliation Provider={Provider} HotelRequestId={RequestId}", reservation.Provider, reservation.HotelRequestId);
-            }
-            if (reservation.State == HotelExternalState.Reserved)
-            {
-                var request = await requests.GetAsync(reservation.HotelRequestId, ct);
-                var order = request?.OrderId is Guid orderId ? await mediator.Send(new GetOrderByIdQuery(orderId, request.UserId, "User"), ct) : null;
-                if (order?.PaymentState == "Paid")
-                {
-                    if (reservation.LockedUntilUtc <= DateTime.UtcNow) reservation.MarkUnknown();
-                    else paidReservations.Add((order.Id, request!.UserId));
-                }
-                else if (reservation.LockedUntilUtc <= DateTime.UtcNow) reservation.Expire();
-            }
-            await repository.SaveAsync(ct);
-        }
-        foreach (var paid in paidReservations)
-        {
-            try { await FinalizeAsync(paid.OrderId, paid.UserId, ct); }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
-            { logger.LogError("Hotel paid reservation recovery requires reconciliation OrderId={OrderId} ErrorType={ErrorType}", paid.OrderId, ex.GetType().Name); }
-        }
+        var status = PublicStatus(request, reservation, payment);
+        return new(request.Id, request.Status.ToString(), request.ExpireAt, request.TotalPrice, request.Currency,
+            status, orderCanPay && payment is not ("Paid" or "Refunded") && CanProceed(request, reservation));
     }
     internal static void ValidateTravel(HotelTravel travel)
     {

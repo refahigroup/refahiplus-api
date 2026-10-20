@@ -18,4 +18,12 @@
     <ProjectReference Include="..\..\src\Refahi.Modules.Hotels.Infrastructure\Refahi.Modules.Hotels.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../../src/Refahi.Modules.Hotels.Api/Refahi.Modules.Hotels.Api.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../scripts/hotels/geography/fixtures/reference-geography.sql" Link="TestData/reference-geography.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../scripts/hotels/geography/2026-10-19-v4/2026-10-19-v4-complete.sql" Link="TestData/geography-v4.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

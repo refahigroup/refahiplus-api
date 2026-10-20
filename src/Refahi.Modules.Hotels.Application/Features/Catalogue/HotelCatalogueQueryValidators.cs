@@ -15,7 +15,7 @@ public sealed class SearchHotelCatalogueValidator : AbstractValidator<SearchHote
 {
     public SearchHotelCatalogueValidator()
     {
-        RuleFor(x => x).Must(x => x.CityKey.HasValue && x.CityKey != Guid.Empty || x.LegacyCityId > 0).WithMessage("شهر مقصد الزامی است.");
+        RuleFor(x => x.ReferenceCityId).GreaterThan(0).WithMessage("شهر مقصد الزامی است.");
         RuleFor(x => x.Travel).NotNull().WithMessage("شرایط اقامت الزامی است.").SetValidator(new HotelTravelValidator());
         RuleFor(x => x.MinPrice).GreaterThanOrEqualTo(0).WithMessage("حداقل قیمت معتبر نیست.");
         RuleFor(x => x.MaxPrice).GreaterThanOrEqualTo(0).WithMessage("حداکثر قیمت معتبر نیست.");
@@ -48,4 +48,12 @@ public sealed class HotelOfferCatalogueValidator : AbstractValidator<GetHotelOff
 public sealed class HotelCitiesCatalogueValidator : AbstractValidator<GetHotelCitiesQuery>
 {
     public HotelCitiesCatalogueValidator() => RuleFor(x => x.Name).MaximumLength(100).WithMessage("نام شهر معتبر نیست.");
+}
+public sealed class HotelBookingStatusValidator : AbstractValidator<GetHotelBookingStatusQuery>
+{
+    public HotelBookingStatusValidator()
+    {
+        RuleFor(x => x.RequestId).NotEmpty().WithMessage("شناسه درخواست معتبر نیست.");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("شناسه کاربر معتبر نیست.");
+    }
 }

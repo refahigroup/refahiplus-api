@@ -6,11 +6,11 @@
 
 جست‌وجوی دو پرووایدر مستقل و هم‌زمان است. هر نتیجه یک HotelKey مستقل دارد، حتی وقتی شناسه یا نام هتل در دو منبع یکسان باشد. فیلتر و مرتب‌سازی پس از دریافت نتایج اعمال می‌شوند. شکست یک منبع پاسخ ناقص با پیام عمومی می‌دهد؛ شکست همه منابعِ قابل جست‌وجو 503 است. نبود نگاشت شهر، پاسخ سالم خالی محسوب نمی‌شود.
 
-خرید واقعی لاماسو فعال نشده است. مستند عمومی [لاماسو](https://docs.lamasoo.com/) و کالکشن منتشرشده آن (2024-11-05) Inventory، Cities، Availability، Submit، Confirm و Resubmit دارند؛ قرارداد قابل اتکای inquiry، cancellation، voucher و wallet reconciliation ندارند. قابلیت Purchase عمداً false است؛ تغییر `PurchaseEnabled` یا `ContractVerified` به‌تنهایی آن را فعال نمی‌کند. ابتدا باید قرارداد و adapterهای واقعی بازیابی/کنسلی و تأمین از کیف پول خارجی تکمیل و تست شوند. Endpoint فرضی ساخته نشده و Resubmit خودکار وجود ندارد.
+خرید واقعی لاماسو فعال نشده است. مستند عمومی [لاماسو](https://docs.lamasoo.com/) و کالکشن منتشرشده آن (2024-11-05) Inventory، Cities، Availability، Submit، Confirm و Resubmit دارند؛ قرارداد قابل اتکای inquiry، cancellation، voucher و wallet reconciliation ندارند. قابلیت Purchase تا وجود آداپتر واقعی و تأییدشده چرخه‌عمر بسته است؛ تغییر `PurchaseEnabled` یا `ContractVerified` به‌تنهایی آن را فعال نمی‌کند. ابتدا باید قرارداد و adapterهای واقعی بازیابی/کنسلی و تأمین از کیف پول خارجی تکمیل و تست شوند. Endpoint فرضی ساخته نشده و Resubmit خودکار وجود ندارد.
 
 ## قرارداد و مالکیت داده
 
-- `CityKey` و `HotelKey` GUID هستند. نگاشت شهرها فقط از فهرست تأییدشده انجام می‌شود؛ نام مشابه مبنای تطبیق نیست.
+- `ReferenceCityId` شناسه عددی شهر فعال رفاهی و `HotelKey` شناسه GUID هتل است. نگاشت بومی هر پرووایدر از جدول اختصاصی V4 خوانده می‌شود؛ CityKey تاریخی منبع جستجو نیست.
 - شناسه اصلی هتل، اتاق، نرخ و واسطه رشته‌ای است. داده تاریخی عددی حذف نشده است.
 - OfferToken تصادفی 192بیتی فقط Snapshot سمت سرور را معرفی می‌کند. قیمت، پرووایدر و RatePlan مرورگر مرجع خرید نیستند.
 - Snapshot پیشنهاد تاریخ انقضای 20دقیقه‌ای دارد؛ قیمت پیش از ثبت درخواست دوباره و بدون Cache استعلام می‌شود. تغییر سن کودک نیاز به quote تازه دارد.
@@ -19,8 +19,8 @@
 
 | مسیر | رفتار |
 |---|---|
-| GET `/api/hotels/v2/cities?name=...` | مقصد عمومی و شناسه قدیمی اختیاری |
-| GET `/api/hotels/v2/availability/city` | cityKey یا cityId، checkin/checkout، parties JSON، minPrice/maxPrice به ریال، stars تکراری، accommodations تکراری، sort=price/price-desc/stars |
+| GET `/api/hotels/v2/cities?name=...` | شهر فعال مرجع: referenceCityId، name، nameEn، provinceId، provinceName |
+| GET `/api/hotels/v2/availability/city` | referenceCityId، checkin/checkout، parties JSON، minPrice/maxPrice به ریال، stars تکراری، accommodations تکراری، sort=price/price-desc/stars |
 | GET `/api/hotels/v2/{hotelKey}` | جزئیات و پیشنهادها با همان منبع و شرایط سفر |
 | GET `/api/hotels/v2/offers/{token}` | خواندن پیشنهاد معتبر |
 | POST `/api/hotels/v2/offers/{token}/quote` | بدنه HotelTravel؛ پیشنهاد تازه برای ترکیب فعلی |
@@ -52,16 +52,13 @@ Worker عملیات رهاشده Submitting/Confirming را Unknown می‌کن�
   "PurchaseEnabled": false,
   "ContractVerified": false,
   "IncludeAgencyProvider": false,
-  "TimeoutSeconds": 8,
-  "CityMappings": {},
-  "CityCountries": {},
-  "CityCodes": {}
+  "TimeoutSeconds": 8
 }
 ```
 
-برای هر نگاشت تأییدشده، `CityMappings[nativeCityId]` شناسه SnappTrip، `CityCountries[nativeCityId]` کشور IR و `CityCodes[nativeCityId]` کد واقعی منتشرشده شهر است. فقط وقتی هر سه با داده دریافتی مطابقت داشته باشند مقصد مشترک ساخته می‌شود. شناسه‌ها/کدهای مستند نمونه نباید حدس زده یا خودکار وارد تنظیمات شوند. این فهرست را پیش از اولین sync کاتالوگ تنظیم کنید؛ اصلاح نگاشتِ قبلاً ذخیره‌شده نیاز به migration بازبینی‌شده برای حفظ کلیدهای عمومی قبلی دارد.
+نگاشت‌های زمان اجرا از جدول‌های hotels.snapptrip_city_mappings و hotels.lamaso_city_mappings خوانده می‌شوند؛ IsEnabled لاماسو رعایت می‌شود. تنظیمات CityMappings/CityCountries/CityCodes دیگر مصرف نمی‌شوند. برای قرارداد مرجع، migration و ترتیب انتشار، [راهنمای شهر مرجع](hotels-reference-city-search.md) را بخوانید.
 
-Availability حداکثر 60ثانیه و با کلید کامل شرایط سفر در حافظه Cache می‌شود. Inventory و تصاویر در جدول provider_inventory نگهداری و با اولین دسترسی پس از 24ساعت تازه می‌شوند. کاتالوگ شهرها روزانه از منبع خوانده می‌شود؛ ارجاعات موجود پایدار می‌مانند. Circuit Breaker هر منبع مستقل است. SnappTrip نیز `SearchEnabled`، `PurchaseEnabled` و `SearchTimeoutSeconds` مستقل دارد؛ خرید جدید غیرفعال شود، مسیر پیگیری رزروهای قبلی همچنان قابل استفاده است.
+Availability حداکثر 60ثانیه و با کلید کامل شرایط سفر در حافظه Cache می‌شود. Inventory و تصاویر در جدول provider_inventory نگهداری و با اولین دسترسی پس از 24ساعت تازه می‌شوند. فهرست شهرها مستقیماً از مرجع رفاهی و نگاشت‌ها بدون Cache از جداول V4 خوانده می‌شوند. Circuit Breaker هر منبع مستقل است. SnappTrip نیز `SearchEnabled`، `PurchaseEnabled` و `SearchTimeoutSeconds` مستقل دارد؛ خرید جدید غیرفعال شود، مسیر پیگیری رزروهای قبلی همچنان قابل استفاده است.
 
 دو Migration افزایشی در schema hotels اضافه شده‌اند:
 
@@ -88,3 +85,8 @@ Service Worker بررسی شد: API network-only و navigation network-first ا�
 - با API Fixture و اجرای واقعی WebApp، جست‌وجو بدون city-key پاسخ 200 داد؛ دو لینک مستقل هتل مشترک و پیام پاسخ ناقص در HTML اولیه موجود بود. جزئیات GUID نیز پیشنهاد، توکن انتخاب و ساعت ورود را در HTML اولیه نمایش داد.
 - EF گزارش کرد Model و Migration Snapshot هماهنگ‌اند. دیتابیس و سرویس واقعی لاماسو در این آزمون تغییر نکردند.
 - Meter با نام `Refahi.Hotels.Providers`، شمار درخواست و مدت عملیات را با برچسب provider/operation/outcome منتشر می‌کند. collector محیط بهره‌برداری باید این Meter را دریافت کند؛ نام مسافر، توکن پیشنهاد و شناسه‌های پرتنوع برچسب متریک نیستند.
+
+
+## تکمیل چرخه خرید — ۲۰۲۶-۱۰-۲۰
+
+مدل تلاش خارجی، Migration محافظه‌کارانه به lamaso_reservations، API پیگیری درخواست، کنترل زیان، بازیابی و تفکیک پرداخت از رزرو در کلاینت اضافه شدند. خرید واقعی همچنان به قرارداد تکمیلی وابسته است. جزئیات رفتار، تنظیمات، انتشار و محدودیت‌ها در [سند چرخه خرید](hotels-lamaso-booking-lifecycle.md) ثبت شده‌اند. Migration این مرحله روی PostgreSQL دورریختنی آزموده شده است؛ production تغییر نکرده است.

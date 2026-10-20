@@ -11,7 +11,8 @@ public sealed class HotelCatalogueHandlers(HotelCatalogueService service) :
     IRequestHandler<GetHotelOfferQuery, HotelOfferDto>,
     IRequestHandler<QuoteHotelOfferQuery, HotelOfferDto>,
     IRequestHandler<CreateHotelCatalogueRequestCommand, CreateHotelRequestResponse>,
-    IRequestHandler<FinalizeHotelCatalogueCommand>, IRequestHandler<RecoverHotelCatalogueCommand>
+    IRequestHandler<FinalizeHotelCatalogueCommand>, IRequestHandler<RecoverHotelCatalogueCommand>,
+    IRequestHandler<GetHotelBookingStatusQuery, HotelBookingStatusDto>
 {
     public Task<IReadOnlyList<HotelCityDto>> Handle(GetHotelCitiesQuery q, CancellationToken ct) => service.CitiesAsync(q.Name, ct);
     public Task<HotelSearchResponse> Handle(SearchHotelCatalogueQuery q, CancellationToken ct) => service.SearchAsync(q, ct);
@@ -20,7 +21,8 @@ public sealed class HotelCatalogueHandlers(HotelCatalogueService service) :
     public Task<HotelOfferDto> Handle(QuoteHotelOfferQuery q, CancellationToken ct) => service.QuoteAsync(q.OfferToken, q.Travel, ct);
     public Task<CreateHotelRequestResponse> Handle(CreateHotelCatalogueRequestCommand q, CancellationToken ct) => service.CreateAsync(q, ct);
     public async Task<Unit> Handle(FinalizeHotelCatalogueCommand q, CancellationToken ct) { await service.FinalizeAsync(q.OrderId, q.UserId, ct); return Unit.Value; }
-    public async Task<Unit> Handle(RecoverHotelCatalogueCommand q, CancellationToken ct) { await service.RecoverAsync(ct); return Unit.Value; }
+    public async Task<Unit> Handle(RecoverHotelCatalogueCommand q, CancellationToken ct) { await service.RecoverAsync(ct, q.ReconciliationOnly); return Unit.Value; }
+    public Task<HotelBookingStatusDto> Handle(GetHotelBookingStatusQuery q, CancellationToken ct) => service.StatusAsync(q, ct);
 }
 public sealed class CreateHotelCatalogueRequestValidator : AbstractValidator<CreateHotelCatalogueRequestCommand>
 {

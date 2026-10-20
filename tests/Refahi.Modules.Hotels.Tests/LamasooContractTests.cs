@@ -33,6 +33,34 @@ public sealed class LamasooContractTests
     private static IReadOnlyList<LamasooHotel> Inventory => [new() { Id = "hotel-native", Name = "Hotel", City = "city-native", Images = [new() { Url = "https://example.org/hotel.jpg" }] }];
 
     [Fact]
+    public async Task NullableAggregateExtraGuestPrices_DoNotPreventNightlyAvailabilityPricing()
+    {
+        // Matches the live Tehran response: aggregate extra-guest fields are null, nightly amounts are numeric.
+        var payload = Fixture.Replace("\"price\":{\"display_price\":999999,\"price_to_pay\":888888}",
+            "\"price\":{\"display_price\":999999,\"price_to_pay\":888888,\"extra_guest_price\":null,\"extra_guest_final_price\":null,\"extra_guest_price_to_pay\":null}");
+        var handler = new FakeHttpHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        { Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json") }));
+        var api = new LamasooApiClient(new HttpClient(handler) { BaseAddress = new("https://example.org/") }, NullLogger<LamasooApiClient>.Instance);
+        var availability = await api.SendAsync<LamasooAvailability>(HttpMethod.Post, "booking/booking_availability_v2", new { }, false, default);
+        var offer = Assert.Single(LamasooHotelMapper.Map(availability, Inventory, Travel(new HotelParty(2, []))));
+        Assert.Equal(3000, offer.DisplayPriceMinor);
+        Assert.Equal(2727, offer.SupplyPriceMinor);
+        Assert.Equal(27, offer.FeeMinor);
+        Assert.Equal(1, handler.Calls);
+    }
+
+    [Theory]
+    [InlineData("display_price", "1000")]
+    [InlineData("price_to_pay", "900")]
+    [InlineData("extra_guest_price", "100")]
+    [InlineData("extra_guest_price_to_pay", "80")]
+    public void NullNightlyAmounts_AreNotSilentlyConvertedToZero(string field, string value)
+    {
+        var payload = Fixture.Replace($"\"{field}\":{value}", $"\"{field}\":null");
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<LamasooAvailability>(payload, LamasooApiClient.Json));
+    }
+
+    [Fact]
     public void DailyPrices_MultipleRooms_KeepSaleCostAndFeeSeparate_WithoutDoubleSummingTotals()
     {
         var offer = Assert.Single(LamasooHotelMapper.Map(Availability(), Inventory, Travel(new HotelParty(2, []), new HotelParty(3, []))));
@@ -161,10 +189,58 @@ public sealed class LamasooContractTests
         using var cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions());
         var api = new LamasooApiClient(new HttpClient(), NullLogger<LamasooApiClient>.Instance);
         var options = Microsoft.Extensions.Options.Options.Create(new LamasooOptions { SearchEnabled = true, PurchaseEnabled = true, ContractVerified = true });
-        var provider = new LamasooHotelProvider(api, options, cache, new Refahi.Modules.Hotels.Infrastructure.Providers.Catalogue.HotelInventoryStore(null!));
+        var provider = new LamasooHotelProvider(api, options, cache, new Refahi.Modules.Hotels.Infrastructure.Providers.Catalogue.HotelInventoryStore(null!), null!);
         Assert.True(provider.Capabilities.Search); Assert.False(provider.Capabilities.Purchase);
         Assert.False(provider.Capabilities.Inquiry); Assert.False(provider.Capabilities.Cancellation); Assert.False(provider.Capabilities.Voucher);
     }
+
+    [Theory]
+    [InlineData(3, "OFFER_UNAVAILABLE")]
+    [InlineData(6, "PROVIDER_CONTRACT_UNAVAILABLE")]
+    [InlineData(13, "PROVIDER_CREDIT_UNAVAILABLE")]
+    public async Task DocumentedRejectionHasInternalCodeAndDurableEvidence(int code, string expected)
+    {
+        var handler = new FakeHttpHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+            { Content = JsonContent(code) }));
+        var client = new LamasooApiClient(new HttpClient(handler) { BaseAddress = new("https://example.org/") }, NullLogger<LamasooApiClient>.Instance);
+        var rejection = await Assert.ThrowsAsync<HotelProviderRejectedException>(() => client.SendAsync<LamasooSubmitResponse>(HttpMethod.Post, "booking/async/booking_submit", new { }, true, default));
+        Assert.Equal(expected, rejection.Code); Assert.Contains(code.ToString(), rejection.Snapshot); Assert.Equal(1, handler.Calls);
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(12)]
+    [InlineData(21)]
+    public async Task AmbiguousOrDuplicateReferenceCodeNeverAuthorizesRetry(int code)
+    {
+        var handler = new FakeHttpHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = JsonContent(code) }));
+        var client = new LamasooApiClient(new HttpClient(handler) { BaseAddress = new("https://example.org/") }, NullLogger<LamasooApiClient>.Instance);
+        await Assert.ThrowsAsync<HotelExternalOutcomeUnknownException>(() => client.SendAsync<LamasooSubmitResponse>(HttpMethod.Post, "booking/async/booking_submit", new { }, true, default));
+        Assert.Equal(1, handler.Calls);
+    }
+
+    [Theory]
+    [InlineData(true, true, true, true)]
+    [InlineData(false, true, true, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(true, true, false, false)]
+    public void PurchaseRequiresAllContractAndLifecycleGates(bool purchase, bool contract, bool ready, bool expected)
+    {
+        using var cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions());
+        var options = Microsoft.Extensions.Options.Options.Create(new LamasooOptions { PurchaseEnabled = purchase, ContractVerified = contract });
+        var provider = new LamasooHotelProvider(new(new HttpClient(), NullLogger<LamasooApiClient>.Instance), options, cache,
+            new Refahi.Modules.Hotels.Infrastructure.Providers.Catalogue.HotelInventoryStore(null!), null!, [new Lifecycle(ready)]);
+        Assert.Equal(expected, provider.Capabilities.Purchase);
+        Assert.False(provider.IsOfferEligible(null!, Travel(new HotelParty(2, []))));
+    }
+    private sealed class Lifecycle(bool ready) : IHotelReservationLifecycleAdapter
+    {
+        public string Provider => "Lamasoo";
+        public bool IsReady => ready;
+        public bool IsOfferEligible(ProviderHotelOffer offer, HotelTravel travel, IReadOnlyList<HotelGuest>? guests) => false;
+        public Task<HotelInquiryResult> InquireAsync(string referenceId, CancellationToken ct) => Task.FromResult(new HotelInquiryResult(HotelInquiryState.Unsupported));
+    }
+    private static StringContent JsonContent(int code) => new(System.Text.Json.JsonSerializer.Serialize(new { code }), System.Text.Encoding.UTF8, "application/json");
 
     private sealed class FakeHttpHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> send) : HttpMessageHandler
     {

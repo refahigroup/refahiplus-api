@@ -21,15 +21,20 @@ public sealed class HotelRequestRepository : IHotelRequestRepository
         return request;
     }
 
-    public Task<HotelRequest?> GetForUserAsync(
+    public async Task<HotelRequest?> GetForUserAsync(
         Guid id,
         Guid userId,
         CancellationToken cancellationToken = default
-    ) =>
-        _dbContext.HotelRequests.FirstOrDefaultAsync(
+    )
+    {
+        var request = await _dbContext.HotelRequests.FirstOrDefaultAsync(
             r => r.Id == id && r.UserId == userId,
             cancellationToken
         );
+        if (request is not null && _dbContext.Entry(request).State == EntityState.Unchanged)
+            await _dbContext.Entry(request).ReloadAsync(cancellationToken);
+        return request;
+    }
 
     public async Task<HotelRequest?> GetByOrderIdAsync(Guid orderId, CancellationToken cancellationToken = default)
     {

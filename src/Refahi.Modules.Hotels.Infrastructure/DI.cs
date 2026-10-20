@@ -43,13 +43,19 @@ public static class DI
         services.AddScoped<IHotelCatalogueRepository, HotelCatalogueRepository>();
         services.AddMemoryCache();
         services.AddSingleton<Providers.Catalogue.HotelInventoryStore>();
+        services.AddSingleton<Domain.Abstraction.Repositories.IHotelCityMappingRepository, Persistence.Repositories.HotelCityMappingRepository>();
         services.Configure<Providers.Lamasoo.LamasooOptions>(configuration.GetSection("Hotels:Providers:Lamasoo"));
+        services.AddOptions<Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelLifecycleOptions>()
+            .Bind(configuration.GetSection("Hotels:Lifecycle"))
+            .Validate(x => x.SubmitTimeoutSeconds is >= 1 and <= 120 && x.ConfirmTimeoutSeconds is >= 1 and <= 120
+                && x.InquiryTimeoutSeconds is >= 1 and <= 60 && x.PaymentSafetySeconds > x.ConfirmTimeoutSeconds + x.RecoveryIntervalSeconds
+                && x.PaymentSafetySeconds < 600 && x.RecoveryIntervalSeconds is >= 1 and <= 60, "Hotel lifecycle deadlines are invalid.").ValidateOnStart();
         services.PostConfigure<Providers.Lamasoo.LamasooOptions>(o => o.ApiKey = o.ApiKey.ReplaceWithEnvironmentVariables());
         services.AddHttpClient<Providers.Lamasoo.LamasooApiClient>((sp, client) =>
         {
             var o = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Providers.Lamasoo.LamasooOptions>>().Value;
             if (!Uri.TryCreate(o.BaseUrl, UriKind.Absolute, out var uri) || uri.Scheme != "https") throw new InvalidOperationException("نشانی لاماسو معتبر نیست.");
-            client.BaseAddress = uri; client.Timeout = TimeSpan.FromSeconds(Math.Clamp(o.TimeoutSeconds, 1, 60));
+            client.BaseAddress = uri; client.Timeout = Timeout.InfiniteTimeSpan;
             client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", o.ApiKey);
             if (o.IncludeAgencyProvider) client.DefaultRequestHeaders.Add("x-include-agency-provider", "true");
         }).AddPolicyHandler(Polly.Extensions.Http.HttpPolicyExtensions.HandleTransientHttpError().CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
