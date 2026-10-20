@@ -33,6 +33,7 @@ public static class DI
 
         services.AddScoped<IProvinceRepository, ProvinceRepository>();
         services.AddScoped<ICityRepository, CityRepository>();
+        services.AddScoped<Refahi.Modules.References.Application.Contracts.Queries.ICityGeographyReader, CityGeographyReader>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
 
         return services;

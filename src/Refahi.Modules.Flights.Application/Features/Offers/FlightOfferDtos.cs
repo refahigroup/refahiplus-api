@@ -38,7 +38,13 @@ public sealed record FlightSegmentDto(
     bool? IsCharter,
     bool? IsReturn,
     string? MarketingAirlineLogoUrl = null,
-    string? OperatingAirlineLogoUrl = null
+    string? OperatingAirlineLogoUrl = null,
+    int? DepartureGeographicReferenceCityId = null,
+    int? DepartureGeographicReferenceProvinceId = null,
+    string? DepartureGeographicReferenceCountryCode = null,
+    int? ArrivalGeographicReferenceCityId = null,
+    int? ArrivalGeographicReferenceProvinceId = null,
+    string? ArrivalGeographicReferenceCountryCode = null
 );
 
 public sealed record FlightOfferDto(

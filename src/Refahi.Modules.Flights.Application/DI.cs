@@ -17,6 +17,8 @@ public static class DI
 
         services.AddMediatR(assembly).AddValidatorsFromAssembly(assembly);
         services.AddScoped<IAirlineLogoResolver, AirlineLogoResolver>();
+        services.AddScoped<Refahi.Modules.Flights.Application.Contracts.Providers.IFlightGeographyService,
+            Features.Locations.FlightGeographyService>();
 
         return services;
     }

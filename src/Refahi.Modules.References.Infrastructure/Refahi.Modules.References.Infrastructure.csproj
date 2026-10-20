@@ -20,6 +20,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.References.Domain\Refahi.Modules.References.Domain.csproj" />
     <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
   </ItemGroup>
