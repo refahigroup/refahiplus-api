@@ -434,3 +434,16 @@ FodyWeavers.xsd
 
 
 .DS_Store
+
+# Local geography source archives, credentials, backups and transient API exports.
+# Released SQL, curated evidence, mapping reports and test fixtures stay versioned.
+/scripts/hotels/geography/.local/
+/scripts/hotels/geography/**/*.raw.json
+/scripts/hotels/geography/**/*.dump
+/scripts/hotels/geography/**/*.backup
+/scripts/hotels/geography/**/*.sql.gz
+/scripts/hotels/geography/**/refahidb-*.sql
+/scripts/hotels/geography/**/*.zip
+/scripts/hotels/geography/2026-10-19-live-inventory/cities.csv
+/scripts/hotels/geography/2026-10-19-live-inventory/hotels.csv
+/scripts/hotels/geography/2026-10-19-live-inventory/validation.json

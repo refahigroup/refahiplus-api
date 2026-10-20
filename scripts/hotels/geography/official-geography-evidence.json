@@ -1,0 +1,25 @@
+{
+  "review_date": "2026-10-19",
+  "note": "Tourism pages alone cannot identify a provider record. Ras Al Khaimah additionally requires the native RKT code, matching airport municipality/country and coordinate proximity. Belek, Kemer and Lara remain proposals.",
+  "places": [
+    {
+      "native_name": "راس الخیمه",
+      "english": "Ras Al Khaimah",
+      "country": "AE",
+      "admin1": "AE.05",
+      "feature": "PPLA",
+      "kind": "city",
+      "required_iata": "RKT",
+      "source_url": "https://visitrasalkhaimah.com/about-ras-al-khaimah/geography/",
+      "fact": "The tourism authority places Ras Al Khaimah in the UAE; the matched GeoNames city and RKT airport are in Ras Al Khaimah emirate. Native caption alias reviewed together with native RKT code."
+    }
+  ],
+  "inventory_address_cases": [
+    {
+      "native_city_id": "62baf098cdd379fe8dbb73bd",
+      "hotel_id": "669cbc24a2ed1c0292e7cf89",
+      "expected_address_prefix": "مازندران محموداباد",
+      "province_name": "مازندران"
+    }
+  ]
+}

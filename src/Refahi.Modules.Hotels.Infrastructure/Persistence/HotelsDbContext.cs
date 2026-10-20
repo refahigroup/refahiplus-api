@@ -21,6 +21,7 @@ public sealed class HotelsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("hotels");
+        HotelCatalogueConfiguration.Configure(modelBuilder);
 
         modelBuilder.ApplyConfiguration(new BookingEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new HotelRequestEntityTypeConfiguration());

@@ -20,6 +20,10 @@ public sealed class HotelRequest
     public string ProviderName { get; private set; } = string.Empty;
     public long ProviderHotelId { get; private set; }
     public long ProviderRoomId { get; private set; }
+    public string? NativeHotelId { get; private set; }
+    public string? NativeRoomId { get; private set; }
+    public string? OfferToken { get; private set; }
+    public string? RequestFingerprint { get; private set; }
     public string? ProviderBookingCode { get; private set; }
     public DateTime? ProviderConfirmedAt { get; private set; }
 
@@ -53,14 +57,16 @@ public sealed class HotelRequest
         string guestInfoSnapshot,
         DateTime nowUtc,
         DateTime expireAtUtc,
-        string idempotencyKey
+        string idempotencyKey,
+        string? nativeHotelId = null,
+        string? nativeRoomId = null
     )
     {
         if (userId == Guid.Empty)
             throw new DomainException("UserId is required.");
-        if (providerHotelId <= 0)
+        if (providerHotelId <= 0 && string.IsNullOrWhiteSpace(nativeHotelId))
             throw new DomainException("Provider hotel id is required.");
-        if (providerRoomId <= 0)
+        if (providerRoomId <= 0 && string.IsNullOrWhiteSpace(nativeRoomId))
             throw new DomainException("Provider room id is required.");
         if (totalPrice <= 0)
             throw new DomainException("Total price must be greater than zero.");
@@ -78,6 +84,8 @@ public sealed class HotelRequest
                 : providerName.Trim(),
             ProviderHotelId = providerHotelId,
             ProviderRoomId = providerRoomId,
+            NativeHotelId = nativeHotelId,
+            NativeRoomId = nativeRoomId,
             SearchCriteriaSnapshot = NormalizeJson(searchCriteriaSnapshot),
             SelectedHotelSnapshot = NormalizeJson(selectedHotelSnapshot),
             SelectedRoomSnapshot = NormalizeJson(selectedRoomSnapshot),
@@ -95,6 +103,19 @@ public sealed class HotelRequest
             ExpireAt = expireAtUtc,
             IdempotencyKey = idempotencyKey.Trim(),
         };
+    }
+
+    public void AttachCatalogue(string token, string fingerprint, string hotel, string room)
+    {
+        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(fingerprint) || string.IsNullOrWhiteSpace(hotel) || string.IsNullOrWhiteSpace(room))
+            throw new DomainException("ارجاع پیشنهاد هتل معتبر نیست.");
+        OfferToken = token; RequestFingerprint = fingerprint; NativeHotelId = hotel; NativeRoomId = room;
+    }
+
+    public void SetPayableUntil(DateTime until)
+    {
+        if (OrderId.HasValue || until <= DateTime.UtcNow) throw new DomainException("مهلت پرداخت معتبر نیست.");
+        ExpireAt = until;
     }
 
     public void MarkExpired(DateTime nowUtc)

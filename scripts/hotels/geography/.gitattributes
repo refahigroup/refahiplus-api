@@ -1,0 +1,7 @@
+# Published data hashes and evidence must survive checkout on every OS unchanged.
+*.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+*.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+*.py text eol=lf
+*.md text eol=lf
+.gitattributes text eol=lf

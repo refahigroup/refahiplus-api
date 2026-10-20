@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using MediatR;
@@ -25,6 +25,8 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
     private readonly IHotelBookingSagaRepository _sagaRepository;
     private readonly IHotelProviderBookingCacheRepository _providerBookingCacheRepository;
     private readonly IHotelProvider _provider;
+    private readonly IHotelProviderFactory? _providerFactory;
+    private readonly IHotelCatalogueRepository? _catalogue;
     private readonly IMediator _mediator;
     private readonly ILogger<FinalizeHotelBookingAfterPaymentCommandHandler> _logger;
 
@@ -34,13 +36,17 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         IHotelProviderBookingCacheRepository providerBookingCacheRepository,
         IHotelProvider provider,
         IMediator mediator,
-        ILogger<FinalizeHotelBookingAfterPaymentCommandHandler> logger
+        ILogger<FinalizeHotelBookingAfterPaymentCommandHandler> logger,
+        IHotelProviderFactory? providerFactory = null,
+        IHotelCatalogueRepository? catalogue = null
     )
     {
         _repository = repository;
         _sagaRepository = sagaRepository;
         _providerBookingCacheRepository = providerBookingCacheRepository;
         _provider = provider;
+        _providerFactory = providerFactory;
+        _catalogue = catalogue;
         _mediator = mediator;
         _logger = logger;
     }
@@ -53,6 +59,15 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         var hotelRequest = await _repository.GetByOrderIdAsync(request.OrderId, cancellationToken);
         if (hotelRequest is null)
             return Unit.Value;
+        if (hotelRequest.ProviderName == "Lamasoo")
+        {
+            await _mediator.Send(new Refahi.Modules.Hotels.Application.Contracts.Catalogue.FinalizeHotelCatalogueCommand(request.OrderId, request.UserId), cancellationToken);
+            return Unit.Value;
+        }
+        await using var reservationLock = _catalogue is null ? null : await _catalogue.LockAsync("reservation:" + hotelRequest.Id, cancellationToken);
+        hotelRequest = await _repository.GetByOrderIdAsync(request.OrderId, cancellationToken) ?? hotelRequest;
+        var provider = _providerFactory?.GetProvider(Enum.Parse<HotelProviderType>(hotelRequest.ProviderName, true)) ?? _provider;
+
 
         var saga = request.SagaId.HasValue
             ? await _sagaRepository.GetAsync(request.SagaId.Value, cancellationToken)
@@ -194,6 +209,14 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             cancellationToken
         );
         cacheEntry.EnsureSameRequest(requestHash);
+        if (cacheEntry.Status == ProviderBookingCacheStatus.ExternallyUnresolved)
+            throw new Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException("رزرو نیاز به پیگیری عملیاتی دارد.");
+        if (hotelRequest.OfferToken is not null && cacheEntry.AttemptCount > 0 && string.IsNullOrWhiteSpace(cacheEntry.ProviderBookingCode))
+        {
+            cacheEntry.MarkExternallyUnresolved("Prior attempt has no authoritative outcome.", DateTime.UtcNow);
+            await _providerBookingCacheRepository.SaveChangesAsync(cancellationToken);
+            throw new Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException("نتیجه رزرو قبلی مشخص نیست.");
+        }
         cacheEntry.MarkAttemptStarted(DateTime.UtcNow);
         await _providerBookingCacheRepository.SaveChangesAsync(cancellationToken);
 
@@ -202,7 +225,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             var providerBookingCode = cacheEntry.ProviderBookingCode;
             if (string.IsNullOrWhiteSpace(providerBookingCode))
             {
-                var providerResult = await _provider.CreateBookingAsync(draft);
+                var providerResult = await provider.CreateBookingAsync(draft);
                 providerBookingCode = providerResult.BookingCode;
                 cacheEntry.MarkCompleted(
                     providerResult.BookingCode,
@@ -212,7 +235,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 await _providerBookingCacheRepository.SaveChangesAsync(cancellationToken);
             }
 
-            await ConfirmOrReconcileProviderBookingAsync(providerBookingCode, cancellationToken);
+            await ConfirmOrReconcileProviderBookingAsync(provider, providerBookingCode, cancellationToken);
 
             var confirmedAt = DateTime.UtcNow;
             hotelRequest.MarkProviderConfirmed(providerBookingCode, confirmedAt);
@@ -239,6 +262,14 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 hotelRequest.Id
             );
 
+            if (ex is Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException or OperationCanceledException
+                || hotelRequest.OfferToken is not null && !string.IsNullOrWhiteSpace(cacheEntry.ProviderBookingCode))
+            {
+                cacheEntry.MarkExternallyUnresolved("External result requires authoritative reconciliation.", DateTime.UtcNow);
+                saga.RecordRecoverableFailure("External result unknown; do not repeat or refund.", DateTime.UtcNow);
+                await _repository.SaveChangesAsync(CancellationToken.None);
+                throw;
+            }
             if (string.IsNullOrWhiteSpace(cacheEntry.ProviderBookingCode))
             {
                 cacheEntry.MarkFailed(
@@ -317,6 +348,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
     }
 
     private async Task ConfirmOrReconcileProviderBookingAsync(
+        IHotelProvider provider,
         string providerBookingCode,
         CancellationToken cancellationToken
     )
@@ -324,7 +356,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         BookingStatusDto? status = null;
         try
         {
-            status = await _provider.GetBookingStatusAsync(providerBookingCode);
+            status = await provider.GetBookingStatusAsync(providerBookingCode);
         }
         catch (Exception ex)
         {
@@ -343,7 +375,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             return;
         }
 
-        await _provider.ConfirmBookingAsync(providerBookingCode);
+        await provider.ConfirmBookingAsync(providerBookingCode);
     }
 
     private async Task ExecuteCompensationAsync(
@@ -409,12 +441,9 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
                 draft.Email,
                 draft.Phone,
                 Guests = draft
-                    .Guests.Select(g => new
-                    {
-                        g.FullName,
-                        g.Age,
-                        g.Type,
-                    })
+                    .Guests.Select(g => g.RoomIndex.HasValue
+                        ? (object)new { g.FullName, g.Age, g.Type, g.RoomIndex, g.FirstName, g.LastName, g.Nationality, draft.RoomAdultCapacity }
+                        : new { g.FullName, g.Age, g.Type })
                     .ToArray(),
             }
         );
@@ -441,6 +470,7 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
         return new BookingDraftDto
         {
             HotelId = request.ProviderHotelId,
+            RoomAdultCapacity = ReadInt(room.RootElement, "adultCapacity"),
             RoomId = request.ProviderRoomId,
             CheckIn =
                 ReadDateOnly(search.RootElement, "checkIn")
@@ -470,6 +500,10 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             FullName = ReadString(element, "fullName") ?? ReadString(element, "full_name") ?? "",
             Age = ReadInt(element, "age") ?? 30,
             Type = ReadString(element, "type") ?? "Adult",
+            RoomIndex = ReadInt(element, "roomIndex"),
+            FirstName = ReadString(element, "firstName"),
+            LastName = ReadString(element, "lastName"),
+            Nationality = ReadString(element, "nationality"),
         };
 
     private static string? ReadString(JsonElement element, string propertyName)

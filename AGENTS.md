@@ -637,3 +637,19 @@ Always verify paths/files before relying on them.
 If something cannot be found:
 - report clearly
 - continue with grounded assumptions only
+
+---
+
+# 31. Provider Table Ownership and Naming
+
+Provider-owned data MUST be stored in the schema of the consuming business module.
+Provider-owned tables MUST start with the provider's stable SQL prefix.
+For Hotels, use `hotels.snapptrip_*` and `hotels.lamaso_*`.
+This includes provider-native geography mappings, inventory, payload snapshots,
+external reservation details and provider operation records.
+Canonical countries/provinces/cities remain owned by `references`.
+Common business aggregates remain owned by their module; provider-specific payloads
+inside common tables must be reported and planned for extraction into provider-prefixed tables.
+Do not rename a multi-provider table to one provider without separating its rows,
+updating consumers and preserving idempotency, recovery and historical identifiers.
+Archive migrations and upgrade fixtures retain their historical table names.

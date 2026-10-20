@@ -1,0 +1,11 @@
+﻿city_id,name,code,mapping_status,result,hotel_count,previous_hotel_count,global_inventory_hotel_count,matches_global_inventory,city_present_in_current_catalog,checked_at_utc,error
+61935fd44c2feab141868998,استانبول,IST,needs_provider_or_more_evidence,has_hotels,104,104,104,True,True,2026-10-19T19:32:40.100389+00:00,
+63fb45c108425256687889b1,دوبی,DXB,needs_provider_or_more_evidence,has_hotels,73,73,73,True,True,2026-10-19T19:33:21.111726+00:00,
+66a4bc1c484b40ce7afccc32,رضوانشهر,RZV,needs_provider_or_more_evidence,has_hotels,7,7,7,True,True,2026-10-19T19:33:21.814873+00:00,
+668a5eb8ff7361384b289242,بودروم,BDR,needs_provider_or_more_evidence,has_hotels,3,3,3,True,True,2026-10-19T19:33:23.186233+00:00,
+6a8697b2b18cc21d6d5061ba,اسکله,ike,needs_provider_or_more_evidence,has_hotels,2,2,2,True,True,2026-10-19T19:33:23.544509+00:00,
+61334980972c64489139ec72,**,IZM,exclude_invalid_record,has_hotels,1,1,1,True,True,2026-10-19T19:33:23.918412+00:00,
+6767c2b16c1c40825bc25fcb,بالی,BLI,needs_provider_or_more_evidence,has_hotels,1,1,1,True,True,2026-10-19T19:33:24.263173+00:00,
+66a8d5cdbc3af39cb33c1d8d,غیرفعال,غیرفعال,exclude_invalid_record,has_hotels,1,1,1,True,True,2026-10-19T19:33:24.622154+00:00,
+66efc0e3f43e2c33c7e39a38,لنگ کاوی,LAN,needs_provider_or_more_evidence,has_hotels,1,1,1,True,True,2026-10-19T19:33:24.970718+00:00,
+613349bc972c64489139ec73,کوش‌آداسی,ّKUS,needs_provider_or_more_evidence,has_hotels,1,1,1,True,True,2026-10-19T19:33:26.356097+00:00,

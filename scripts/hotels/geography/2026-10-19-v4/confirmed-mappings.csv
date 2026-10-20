@@ -1,0 +1,11 @@
+﻿provider_city_id,name,canonical_name,city_id,country,province_id,enabled
+66a4bc1c484b40ce7afccc32,رضوانشهر,رضوانشهر,1063,IR,25,True
+61935fd44c2feab141868998,استانبول,استانبول,1335,TR,32,True
+63fb45c108425256687889b1,دوبی,دوبی,1336,AE,37,True
+6a8697b2b18cc21d6d5061ba,اسکله,اسکله,1415,TR,32,True
+61334980972c64489139ec72,**,ازمیر,1322,TR,32,True
+6767c2b16c1c40825bc25fcb,بالی,بالی,1416,ID,61,True
+66a8d5cdbc3af39cb33c1d8d,غیرفعال,بندر عسلویه,327,IR,7,False
+66efc0e3f43e2c33c7e39a38,لنگ کاوی,لنکاوی,1417,MY,39,True
+613349bc972c64489139ec73,کوش‌آداسی,کوش‌آداسی,1418,TR,32,True
+668a5eb8ff7361384b289242,بودروم,بودروم,1419,TR,32,True

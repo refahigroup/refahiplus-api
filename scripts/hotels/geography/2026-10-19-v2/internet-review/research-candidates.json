@@ -1,0 +1,4965 @@
+{
+  "date": "2026-10-19",
+  "scope": "Internet research: one evidence-supported resolution and remaining proposals/exclusions. Existing SQL is unchanged; provider confirmation has not been requested or received.",
+  "summary": {
+    "further_research_required": 57,
+    "multiple_iran_source_candidates": 28,
+    "single_iran_source_candidate": 153,
+    "exclude_invalid_record": 11,
+    "resolved_with_primary_hotel_evidence": 1,
+    "province_record_not_city": 2,
+    "official_geography_proposal": 4
+  },
+  "iran_source": {
+    "repository": "https://github.com/sajaddp/list-of-cities-in-Iran",
+    "commit": "ace21bb251f96ced350bbc01541acffd71121feb",
+    "download_date": "2026-10-19",
+    "files": [
+      {
+        "file": "cities.json",
+        "url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json",
+        "sha256": "74cada3e81024bd9d253ba1e5c9d62a1b2310368c3dc6c615239c077b6efcd83"
+      },
+      {
+        "file": "provinces.json",
+        "url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/provinces.json",
+        "sha256": "01964b1c357eb21b0152382475357b40d3ca08057f08bba1a09b41161ac31a41"
+      },
+      {
+        "file": "counties.json",
+        "url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/counties.json",
+        "sha256": "974d3d041db344aab653ce4ef84a6858f46864ce69fecb6f285f38972e4db8b9"
+      }
+    ]
+  },
+  "source_caveat": "The Iran list is a community-maintained dataset; an exact match is a candidate, not proof of native provider ID identity.",
+  "records": [
+    {
+      "external_id": "5aac2943fc907a1c64953e10",
+      "name": "جزیره سیری",
+      "code": "SXI",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5c879f5f98432fb242bb399f",
+      "name": "میناب (مازاد)",
+      "code": "MNB",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5aac2943fc907a1c64953e27",
+      "name": "بندر بهرگان",
+      "code": "IAQ",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5aac2943fc907a1c64953df9",
+      "name": "خرم آباد",
+      "code": "KHD",
+      "original_reason": "ambiguous_geography",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خرم آباد",
+          "country": "IR",
+          "province_name": "مازندران",
+          "source_id": 1020005001162,
+          "kind": "city",
+          "reference_city_candidates": [
+            1173
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "خرم آباد",
+          "country": "IR",
+          "province_name": "لرستان",
+          "source_id": 1150003001496,
+          "kind": "city",
+          "reference_city_candidates": [
+            1107
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "5aac2943fc907a1c64953e0f",
+      "name": "لاوان",
+      "code": "LVP",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5aac2943fc907a1c64953e11",
+      "name": "ابوموسی",
+      "code": "AEU",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ابوموسی",
+          "country": "IR",
+          "province_name": "هرمزگان",
+          "source_id": 1220001001563,
+          "kind": "city",
+          "reference_city_candidates": [
+            1251
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "5c87abcc98432fb242bb3a11",
+      "name": "غیرفعال",
+      "code": "deactive",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5ae5ab74734a9af40a7ab325",
+      "name": "آستارا",
+      "code": "--",
+      "original_reason": "conflicting_inventory_province",
+      "status": "resolved_with_primary_hotel_evidence",
+      "provider_identity_confirmed": true,
+      "candidates": [
+        {
+          "name": "آستارا",
+          "country": "IR",
+          "province_name": "گیلان",
+          "reference_city_candidates": [
+            1056
+          ],
+          "reference_province_id": 25,
+          "source_url": "https://espinashotels.com/astara/",
+          "additional_source_url": "https://espinashotels.com/en/astara/",
+          "provider_hotel_id": "5c91ffb72e26b2c624adb602",
+          "provider_hotel_name": "هتل بین المللی اسپیناس آستارا",
+          "incorrect_inventory_field": {
+            "province": "تهران"
+          },
+          "provider_address": "جاده رشت آستارا، 5 کیلومتری بندر آستارا",
+          "official_address_summary": "وب‌سایت رسمی اسپیناس، هتل آستارا را در استان گیلان و جاده رشت–آستارا، پنج کیلومتری بندر آستارا معرفی می‌کند."
+        }
+      ],
+      "identity_basis": "Provider Inventory city_id plus matching official hotel identity and address. This is an evidence-based research conclusion, not a confirmation received from Lamasoo."
+    },
+    {
+      "external_id": "5a660161ae55998d79436926",
+      "name": "هرمزگان",
+      "code": "HMG",
+      "original_reason": "province_without_city_evidence",
+      "status": "province_record_not_city",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5c87ac72c466dcb243cada28",
+      "name": "گیلان",
+      "code": "GLN",
+      "original_reason": "province_without_city_evidence",
+      "status": "province_record_not_city",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5aac2943fc907a1c64953dff",
+      "name": "لارستان",
+      "code": "LRR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "لارستان",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700011,
+          "kind": "county_destination",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/counties.json"
+        }
+      ]
+    },
+    {
+      "external_id": "5ae5a8014bd2c3f420346800",
+      "name": "میگون (مازاد)",
+      "code": "--",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "5ae80fcc3e132339ed282c07",
+      "name": "بدرود",
+      "code": "--",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "608e5585c095c9608b1b932e",
+      "name": "-",
+      "code": "JLF",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "6092589dc095c9608b6923cc",
+      "name": "فیروزآباد",
+      "code": "FRZ",
+      "original_reason": "ambiguous_geography",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "فیروزآباد",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 1070009001313,
+          "kind": "city",
+          "reference_city_candidates": [
+            765
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "فیروزآباد",
+          "country": "IR",
+          "province_name": "لرستان",
+          "source_id": 1150009002367,
+          "kind": "city",
+          "reference_city_candidates": [
+            1120
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "فیروزآباد",
+          "country": "IR",
+          "province_name": "اردبیل",
+          "source_id": 1240007001073,
+          "kind": "city",
+          "reference_city_candidates": [
+            137
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "609faba2c095c9608b86ad25",
+      "name": "علیصدر",
+      "code": "ALS",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "609facbcc095c9608b86d64a",
+      "name": "دیزین",
+      "code": "DZN",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "609fad6cc095c9608b86e63c",
+      "name": "میگون",
+      "code": "MGN",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "6117bc094c2feab141d7fe75",
+      "name": "تست ",
+      "code": "تست",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "61334980972c64489139ec72",
+      "name": "**",
+      "code": "IZM",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "613349bc972c64489139ec73",
+      "name": "کوش‌آداسی",
+      "code": "ّKUS",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "61336c2b22438d506f1bcb8a",
+      "name": "سنتر",
+      "code": "CNT",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "61336cf52689bb129a66d4ac",
+      "name": "بلک",
+      "code": "BLK",
+      "original_reason": "missing_country_evidence",
+      "status": "official_geography_proposal",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name_en": "Belek",
+          "country": "TR",
+          "province_name": "Antalya",
+          "location_kind": "destination",
+          "source_url": "https://goturkiye.com/tr/antalya/gor"
+        }
+      ]
+    },
+    {
+      "external_id": "61336d7722438d88851cb00b",
+      "name": "کمر",
+      "code": "KMR",
+      "original_reason": "missing_country_evidence",
+      "status": "official_geography_proposal",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name_en": "Kemer",
+          "country": "TR",
+          "province_name": "Antalya",
+          "location_kind": "destination",
+          "source_url": "https://goturkiye.com/tr/antalya/gor"
+        }
+      ]
+    },
+    {
+      "external_id": "613376c922438de1aa21c1c6",
+      "name": "لارا",
+      "code": "ّLARA",
+      "original_reason": "missing_country_evidence",
+      "status": "official_geography_proposal",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name_en": "Lara",
+          "country": "TR",
+          "province_name": "Antalya",
+          "location_kind": "destination",
+          "source_url": "https://goturkiye.com/tr/antalya/gor"
+        }
+      ]
+    },
+    {
+      "external_id": "61935fd44c2feab141868998",
+      "name": "استانبول",
+      "code": "IST",
+      "original_reason": "missing_geography",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "62baf098cdd379fe8dbb73bd",
+      "name": "محمودآباد",
+      "code": "ّMHD",
+      "original_reason": "ambiguous_geography",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "محمودآباد",
+          "country": "IR",
+          "province_name": "مازندران",
+          "source_id": 10200018001150,
+          "kind": "city",
+          "reference_city_candidates": [
+            1146
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "محمودآباد",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 10400011002591,
+          "kind": "city",
+          "reference_city_candidates": [
+            98
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "62eb74ef7008251a62e00e6b",
+      "name": "سنت پترزبورگ",
+      "code": "SPE",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "63da93e003736a359fb46fb3",
+      "name": "محمود آباد (مازاد)",
+      "code": "MAH",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "63da9432a9e6520919126f2a",
+      "name": "غیرفعال",
+      "code": "deactivate",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "63fb45c108425256687889b1",
+      "name": "دوبی",
+      "code": "DXB",
+      "original_reason": "missing_geography",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "64d7881be18d9d4b1615105e",
+      "name": "راس الخیمه",
+      "code": "RKT",
+      "original_reason": "missing_country_evidence",
+      "status": "official_geography_proposal",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name_en": "Ras Al Khaimah",
+          "country": "AE",
+          "province_name": "Ras Al Khaimah",
+          "location_kind": "destination",
+          "source_url": "https://visitrasalkhaimah.com/about-ras-al-khaimah/geography/"
+        }
+      ]
+    },
+    {
+      "external_id": "668a5eb8ff7361384b289242",
+      "name": "بودروم",
+      "code": "BDR",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a3e1cf3cf3397b106d0d46",
+      "name": "زرنه",
+      "code": "ZRN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زرنه",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 1160007002476,
+          "kind": "city",
+          "reference_city_candidates": [
+            306
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a49e98484b40ce7a949d7b",
+      "name": "تازه كند",
+      "code": "TAZ",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4a02aa100d862a70cc638",
+      "name": "عنبران",
+      "code": "ANB",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "عنبران",
+          "country": "IR",
+          "province_name": "اردبیل",
+          "source_id": 1240008002576,
+          "kind": "city",
+          "reference_city_candidates": [
+            135
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4a6043cf3397b10c90e25",
+      "name": "كوراييم",
+      "code": "VRA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "کوراییم",
+          "country": "IR",
+          "province_name": "اردبیل",
+          "source_id": 1240009002636,
+          "kind": "city",
+          "reference_city_candidates": [
+            140
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4a6e78b98b18e62893565",
+      "name": "مرادلو",
+      "code": "MRA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "مرادلو",
+          "country": "IR",
+          "province_name": "اردبیل",
+          "source_id": 1240004002723,
+          "kind": "city",
+          "reference_city_candidates": [
+            144
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4a7cfa034856bddacb908",
+      "name": "هیر",
+      "code": "HR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "هیر",
+          "country": "IR",
+          "province_name": "اردبیل",
+          "source_id": 1240001002299,
+          "kind": "city",
+          "reference_city_candidates": [
+            150
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4a8f03cf3397b10d54c4b",
+      "name": "ابوزیدآباد",
+      "code": "ABV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ابوزیدآباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000018002279,
+          "kind": "city",
+          "reference_city_candidates": [
+            226
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4a935a100d862a72e8dc6",
+      "name": "اژیه",
+      "code": "AZH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "اژیه",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000028002248,
+          "kind": "city",
+          "reference_city_candidates": [
+            253
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4aaaf42e724a6abb02557",
+      "name": "افوس",
+      "code": "AFV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "افوس",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000024002250,
+          "kind": "city",
+          "reference_city_candidates": [
+            250
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4b108484b40ce7ad7fffd",
+      "name": "تودشک",
+      "code": "TVD",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "تودشک",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000025002513,
+          "kind": "city",
+          "reference_city_candidates": [
+            243
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4b83e9a802f3b4c3a335c",
+      "name": "جندق",
+      "code": "JND",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "جندق",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000023002203,
+          "kind": "city",
+          "reference_city_candidates": [
+            241
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4b87a8b98b18e62cef3f7",
+      "name": "جوشقان وكامو",
+      "code": "JVS",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4b92da034856bddf10e76",
+      "name": "حسن آباد",
+      "code": "HSN",
+      "original_reason": "ambiguous_geography",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حسن آباد",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 1070003002082,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حسن‌آباد",
+          "country": "IR",
+          "province_name": "تهران",
+          "source_id": 1230003002167,
+          "kind": "city",
+          "reference_city_candidates": [
+            377
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حسن آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900028001023,
+          "kind": "city",
+          "reference_city_candidates": [
+            542
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4b9dca034856bddf2a60f",
+      "name": "خوراسگان",
+      "code": "KHV",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4ba4042e724a6abe98535",
+      "name": "درچه پیاز",
+      "code": "DRC",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4ba6d3cf3397b10181ee1",
+      "name": "دولت آباد",
+      "code": "DVL",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "دولت آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900035002135,
+          "kind": "city",
+          "reference_city_candidates": [
+            493
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "دولت آباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000022001400,
+          "kind": "city",
+          "reference_city_candidates": [
+            171
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4bc1c484b40ce7afccc32",
+      "name": "رضوانشهر",
+      "code": "RZV",
+      "original_reason": "ambiguous_geography",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "رضوانشهر",
+          "country": "IR",
+          "province_name": "گیلان",
+          "source_id": 10100014001122,
+          "kind": "city",
+          "reference_city_candidates": [
+            1063
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "رضوانشهر",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000019002573,
+          "kind": "city",
+          "reference_city_candidates": [
+            252
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4bcad484b40ce7afdfd3a",
+      "name": "زاينده رود",
+      "code": "ZAN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زاینده رود",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000012002504,
+          "kind": "city",
+          "reference_city_candidates": [
+            211
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4bd023cf3397b101df122",
+      "name": "زاینده رود",
+      "code": "ZAN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زاینده رود",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000012002504,
+          "kind": "city",
+          "reference_city_candidates": [
+            211
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4bd26741c3ac8b83b92b3",
+      "name": "زواره",
+      "code": "ZVA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زواره",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 1100001001396,
+          "kind": "city",
+          "reference_city_candidates": [
+            215
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4be01a100d862a779cde1",
+      "name": "شاپورآباد",
+      "code": "SHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شاپورآباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000022002094,
+          "kind": "city",
+          "reference_city_candidates": [
+            227
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4be579a802f3b4c48957e",
+      "name": "طالخونچه",
+      "code": "TAL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "طالخونچه",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000017002204,
+          "kind": "city",
+          "reference_city_candidates": [
+            210
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4be828b98b18e62df48f6",
+      "name": "علویچه",
+      "code": "ALV",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4be97484b40ce7a05bc8f",
+      "name": "فرخی",
+      "code": "FRK",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "فرخی",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000023002077,
+          "kind": "city",
+          "reference_city_candidates": [
+            255
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4c3798b98b18e62f0e604",
+      "name": "گزبرخوار",
+      "code": "GZB",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "گزبرخوار",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000016001402,
+          "kind": "city",
+          "reference_city_candidates": [
+            175
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4c3b58b98b18e62f1fbaa",
+      "name": "گلشن",
+      "code": "GLS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "گلشن",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000021002093,
+          "kind": "city",
+          "reference_city_candidates": [
+            235
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4c3e13cf3397b1036eac3",
+      "name": "گلشهر",
+      "code": "GLS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "گلشهر",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000011002511,
+          "kind": "city",
+          "reference_city_candidates": [
+            212
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4c6049a802f3b4c67b4c4",
+      "name": "محمدآباد",
+      "code": "MHM",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "محمدآباد",
+          "country": "IR",
+          "province_name": "کرمان",
+          "source_id": 10800017002316,
+          "kind": "city",
+          "reference_city_candidates": [
+            890
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "محمدآباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000026002247,
+          "kind": "city",
+          "reference_city_candidates": [
+            236
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "محمدآباد",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 11100016002354,
+          "kind": "city",
+          "reference_city_candidates": [
+            738
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4c67042e724a6ab139a83",
+      "name": "میمه",
+      "code": "MMH",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "میمه",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 1160003001504,
+          "kind": "city",
+          "reference_city_candidates": [
+            304
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "میمه",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000016001408,
+          "kind": "city",
+          "reference_city_candidates": [
+            231
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4c6c2741c3ac8b8617c9e",
+      "name": "نصرآباد",
+      "code": "NSR",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نصرآباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090006002342,
+          "kind": "city",
+          "reference_city_candidates": [
+            505
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "نصرآباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000026002512,
+          "kind": "city",
+          "reference_city_candidates": [
+            223
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4c72e9a802f3b4c6c9540",
+      "name": "نیک آباد",
+      "code": "NBA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نیک آباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000026002186,
+          "kind": "city",
+          "reference_city_candidates": [
+            185
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4cf408b98b18e62150db5",
+      "name": "وزوان",
+      "code": "VZV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "وزوان",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000016001409,
+          "kind": "city",
+          "reference_city_candidates": [
+            225
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4cfa69a802f3b4c84c9ab",
+      "name": "هرند",
+      "code": "HRN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "هرند",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000028001405,
+          "kind": "city",
+          "reference_city_candidates": [
+            181
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4d06a484b40ce7a3ed515",
+      "name": "سیف آباد",
+      "code": "SFB",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4d3cf42e724a6ab41e131",
+      "name": "-",
+      "code": "SFB",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4d5158b98b18e622f0388",
+      "name": "ماهدشت",
+      "code": "MAH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ماهدشت",
+          "country": "IR",
+          "province_name": "البرز",
+          "source_id": 1300001002118,
+          "kind": "city",
+          "reference_city_candidates": [
+            274
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4d5469a802f3b4c9d738d",
+      "name": "مشكين دشت",
+      "code": "MSH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "مشکین‌دشت",
+          "country": "IR",
+          "province_name": "البرز",
+          "source_id": 1300006002271,
+          "kind": "city",
+          "reference_city_candidates": [
+            275
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4d585a100d862a7cfcaf9",
+      "name": "شهرجدید هشتکرد",
+      "code": "HSH",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4d7a0741c3ac8b89dcd10",
+      "name": "غیرفعال",
+      "code": "DEACTIVE",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4d7b3741c3ac8b89e1c97",
+      "name": "غیرفعال",
+      "code": "DEACTIVE",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4d86642e724a6ab56f8ce",
+      "name": "توحید",
+      "code": "TVH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "توحید",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 11600011002574,
+          "kind": "city",
+          "reference_city_candidates": [
+            303
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4d9268b98b18e6241507c",
+      "name": "زرنه",
+      "code": "ZRN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زرنه",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 1160007002476,
+          "kind": "city",
+          "reference_city_candidates": [
+            306
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4d977741c3ac8b8a4d6b3",
+      "name": "صالح آباد",
+      "code": "SAL",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "صالح آباد",
+          "country": "IR",
+          "province_name": "همدان",
+          "source_id": 1130007002216,
+          "kind": "city",
+          "reference_city_candidates": [
+            1284
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "صالح آباد",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 1160005001509,
+          "kind": "city",
+          "reference_city_candidates": [
+            307
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "صالح آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900040001362,
+          "kind": "city",
+          "reference_city_candidates": [
+            498
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4d9c5a100d862a7e20611",
+      "name": "موسیان",
+      "code": "MVS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "موسیان",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 1160003001506,
+          "kind": "city",
+          "reference_city_candidates": [
+            302
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4d9f242e724a6ab5d7f9c",
+      "name": "ميمه",
+      "code": "MMH",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "میمه",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 1160003001504,
+          "kind": "city",
+          "reference_city_candidates": [
+            304
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "میمه",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000016001408,
+          "kind": "city",
+          "reference_city_candidates": [
+            231
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4e7448b98b18e6264b77b",
+      "name": "بناب جديد",
+      "code": "BNA",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4e7a942e724a6ab7f5972",
+      "name": "ترک",
+      "code": "TR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ترک",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300010002402,
+          "kind": "city",
+          "reference_city_candidates": [
+            15
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4e7c18b98b18e62656a73",
+      "name": "تركمانچای",
+      "code": "TRM",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ترکمانچای",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300010002144,
+          "kind": "city",
+          "reference_city_candidates": [
+            16
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4e807a100d862a7058199",
+      "name": "تیكمه داش",
+      "code": "TMH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "تیکمه داش",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300013002295,
+          "kind": "city",
+          "reference_city_candidates": [
+            18
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4e851a100d862a7060a68",
+      "name": "خاروانا",
+      "code": "KHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خاروانا",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300024002398,
+          "kind": "city",
+          "reference_city_candidates": [
+            22
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4e85f42e724a6ab803bf1",
+      "name": "خامنه",
+      "code": "KHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خامنه",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300014001209,
+          "kind": "city",
+          "reference_city_candidates": [
+            23
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4e879a034856bdd84c982",
+      "name": "خراجو",
+      "code": "KHR",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4e8c3741c3ac8b8cab3b5",
+      "name": "خواجه",
+      "code": "KHV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خواجه",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300016002146,
+          "kind": "city",
+          "reference_city_candidates": [
+            27
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4e905741c3ac8b8cbd373",
+      "name": "زرنق",
+      "code": "ZRN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زرنق",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300016002147,
+          "kind": "city",
+          "reference_city_candidates": [
+            32
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4ec698b98b18e62760f7a",
+      "name": "سيه رود",
+      "code": "SHR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سیه رود",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300019002497,
+          "kind": "city",
+          "reference_city_candidates": [
+            38
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4f04b42e724a6aba1cbeb",
+      "name": "-÷",
+      "code": "-",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a4f1bf42e724a6aba68d15",
+      "name": "نظركهريزی",
+      "code": "NZR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نظرکهریزی",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300011002590,
+          "kind": "city",
+          "reference_city_candidates": [
+            63
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4f21c484b40ce7ab0aa03",
+      "name": "ورزقان",
+      "code": "VRZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ورزقان",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300024002142,
+          "kind": "city",
+          "reference_city_candidates": [
+            65
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4f3c0a034856bddb2add8",
+      "name": "هوراند",
+      "code": "HVR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "هوراند",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300027002294,
+          "kind": "city",
+          "reference_city_candidates": [
+            69
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a4f5ed42e724a6abb351aa",
+      "name": "آواجیق",
+      "code": "VAJ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "آواجیق",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 10400014002549,
+          "kind": "city",
+          "reference_city_candidates": [
+            112
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cb3334f9287518fdb4e3",
+      "name": "چهاربرج",
+      "code": "CHH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "چهاربرج",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 10400018002232,
+          "kind": "city",
+          "reference_city_candidates": [
+            90
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cba2f0e41e960fd4dbcf",
+      "name": "خليفان",
+      "code": "KHL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خلیفان",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040007002734,
+          "kind": "city",
+          "reference_city_candidates": [
+            117
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cbf3f0e41e960fd634a6",
+      "name": "ربط",
+      "code": "RBT",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ربط",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040004002547,
+          "kind": "city",
+          "reference_city_candidates": [
+            87
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cc08cd67b345ff214c56",
+      "name": "سردشت",
+      "code": "SRD",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040004001240,
+          "kind": "city",
+          "reference_city_candidates": [
+            81
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060006002500,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "چهارمحال و بختیاری",
+          "source_id": 1140004002840,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "هرمزگان",
+          "source_id": 12200013002061,
+          "kind": "city",
+          "reference_city_candidates": [
+            1265
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cc1df0e41e960fd6ee13",
+      "name": "سرو",
+      "code": "SRV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سرو",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040001002404,
+          "kind": "city",
+          "reference_city_candidates": [
+            111
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cc5c7208e67b98e4bd6a",
+      "name": "سيمينه",
+      "code": "SMN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سیمینه",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 10400010002548,
+          "kind": "city",
+          "reference_city_candidates": [
+            115
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cd3cf0e41e960fdbfd5b",
+      "name": "قطور",
+      "code": "GHT",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قطور",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040003002044,
+          "kind": "city",
+          "reference_city_candidates": [
+            100
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cd54bc3af39cb31b1d68",
+      "name": "قوشچي",
+      "code": "GHV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قوشچی",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040001002150,
+          "kind": "city",
+          "reference_city_candidates": [
+            108
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cd69452055963725c6bd",
+      "name": "كشاورز",
+      "code": "SHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "کشاورز",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 10400011002407,
+          "kind": "city",
+          "reference_city_candidates": [
+            103
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8cd804127d9413fdc4eb5",
+      "name": "گردكشانه",
+      "code": "GRD",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a8ce1bbc3af39cb31eb980",
+      "name": "ميرآباد",
+      "code": "MRB",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "میرآباد",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 10400020002406,
+          "kind": "city",
+          "reference_city_candidates": [
+            99
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "میرآباد",
+          "country": "IR",
+          "province_name": "کرمانشاه",
+          "source_id": 10500012002977,
+          "kind": "city",
+          "reference_city_candidates": [
+            991
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8d1e97208e67b98f9b32e",
+      "name": "بردخون",
+      "code": "BRD",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "بردخون",
+          "country": "IR",
+          "province_name": "بوشهر",
+          "source_id": 1180005002483,
+          "kind": "city",
+          "reference_city_candidates": [
+            341
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8d37af0e41e960ff3d31c",
+      "name": "تنگ ارم",
+      "code": "TNG",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "تنگ ارم",
+          "country": "IR",
+          "province_name": "بوشهر",
+          "source_id": 1180003002618,
+          "kind": "city",
+          "reference_city_candidates": [
+            348
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8d54d452055963743d5e4",
+      "name": "شنبه",
+      "code": "SHN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شنبه",
+          "country": "IR",
+          "province_name": "بوشهر",
+          "source_id": 1180004002050,
+          "kind": "city",
+          "reference_city_candidates": [
+            350
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8d5cdbc3af39cb33c1d8d",
+      "name": "غیرفعال",
+      "code": "غیرفعال",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a8d7cdcf12dd93c670eca3",
+      "name": "باغستان",
+      "code": "BAG",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "باغستان",
+          "country": "IR",
+          "province_name": "تهران",
+          "source_id": 1230009002632,
+          "kind": "city",
+          "reference_city_candidates": [
+            368
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "باغستان",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290007001002,
+          "kind": "city",
+          "reference_city_candidates": [
+            461
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8dba1cf12dd93c67e20ec",
+      "name": "كهريزك",
+      "code": "HRZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "کهریزک",
+          "country": "IR",
+          "province_name": "تهران",
+          "source_id": 1230003002488,
+          "kind": "city",
+          "reference_city_candidates": [
+            388
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8dc2034f928751839ae27",
+      "name": "نصيرآباد",
+      "code": "NSR",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a8dc30f0e41e960f107748",
+      "name": "وحيديه",
+      "code": "VHD",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "وحیدیه",
+          "country": "IR",
+          "province_name": "تهران",
+          "source_id": 1230009002293,
+          "kind": "city",
+          "reference_city_candidates": [
+            378
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8e95445205596378f0c0d",
+      "name": "ارسك",
+      "code": "ARS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ارسک",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290008002726,
+          "kind": "city",
+          "reference_city_candidates": [
+            459
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8e9967208e67b984faff6",
+      "name": "اسفدن",
+      "code": "ASF",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "اسفدن",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290004002643,
+          "kind": "city",
+          "reference_city_candidates": [
+            455
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8e9be7208e67b9850103e",
+      "name": "آرين شهر",
+      "code": "RNS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "آرین شهر",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290004002645,
+          "kind": "city",
+          "reference_city_candidates": [
+            454
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ea707208e67b9851f6fb",
+      "name": "حاجي آباد",
+      "code": "HAJ",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حاجی آباد",
+          "country": "IR",
+          "province_name": "هرمزگان",
+          "source_id": 1220008001566,
+          "kind": "city",
+          "reference_city_candidates": [
+            1225
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حاجی آباد",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290009002347,
+          "kind": "city",
+          "reference_city_candidates": [
+            445
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حاجی آباد",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700019001302,
+          "kind": "city",
+          "reference_city_candidates": [
+            781
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8eaad34f92875186e6eab",
+      "name": "خضري دشت بياض",
+      "code": "KHZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خضری دشت بیاض",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290004001374,
+          "kind": "city",
+          "reference_city_candidates": [
+            447
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8eb21cf12dd93c6b72655",
+      "name": "زهان",
+      "code": "ZHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زهان",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290009002644,
+          "kind": "city",
+          "reference_city_candidates": [
+            465
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8eb6a452055963795399c",
+      "name": "شوسف",
+      "code": "SHV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شوسف",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290005002441,
+          "kind": "city",
+          "reference_city_candidates": [
+            457
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8eb8a34f9287518710b73",
+      "name": "طبس مسينا",
+      "code": "TBS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "طبس مسینا",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290002002052,
+          "kind": "city",
+          "reference_city_candidates": [
+            451
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ebeff0e41e960f46d88d",
+      "name": "قهستان",
+      "code": "GHH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قهستان",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290002002051,
+          "kind": "city",
+          "reference_city_candidates": [
+            463
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ec0fcf12dd93c6b9e7b9",
+      "name": "گزيك",
+      "code": "GZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "گزیک",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290002002725,
+          "kind": "city",
+          "reference_city_candidates": [
+            464
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8eccd34f9287518751379",
+      "name": "احمدآبادصولت",
+      "code": "AHM",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "احمدآباد صولت",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090006002067,
+          "kind": "city",
+          "reference_city_candidates": [
+            501
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ecf5cd67b345ff97ca1b",
+      "name": "انابد",
+      "code": "ANA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "انابد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900023002440,
+          "kind": "city",
+          "reference_city_candidates": [
+            509
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ed34cd67b345ff988f62",
+      "name": "باجگيران",
+      "code": "BAJ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "باجگیران",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900013001376,
+          "kind": "city",
+          "reference_city_candidates": [
+            563
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ed4fcf12dd93c6be1385",
+      "name": "باخرز",
+      "code": "BAK",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "باخرز",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900037002134,
+          "kind": "city",
+          "reference_city_candidates": [
+            496
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ed5d34f9287518762802",
+      "name": "بار",
+      "code": "BAR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "بار",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900017002041,
+          "kind": "city",
+          "reference_city_candidates": [
+            529
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ed7e45205596379bae43",
+      "name": "بايگ",
+      "code": "BAG",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66a8edc534f9287518771fb4",
+      "name": "بيدخت",
+      "code": "BDK",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "بیدخت",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900015001383,
+          "kind": "city",
+          "reference_city_candidates": [
+            516
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ee49f0e41e960f4dbcf0",
+      "name": "جنگل",
+      "code": "JNG",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "جنگل",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900027002606,
+          "kind": "city",
+          "reference_city_candidates": [
+            507
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ee9e7208e67b985cf59a",
+      "name": "چكنه",
+      "code": "CHN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "چکنه",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900017002564,
+          "kind": "city",
+          "reference_city_candidates": [
+            558
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8eecff0e41e960f4f9e43",
+      "name": "خرو",
+      "code": "KHR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خرو",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900042002349,
+          "kind": "city",
+          "reference_city_candidates": [
+            487
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ef24cf12dd93c6c25fdb",
+      "name": "درود",
+      "code": "DRV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "درود",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900042001393,
+          "kind": "city",
+          "reference_city_candidates": [
+            513
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ef4acf12dd93c6c2b80a",
+      "name": "دولت آباد",
+      "code": "DVL",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "دولت آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900035002135,
+          "kind": "city",
+          "reference_city_candidates": [
+            493
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "دولت آباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000022001400,
+          "kind": "city",
+          "reference_city_candidates": [
+            171
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8ef6ecd67b345ff9ee05a",
+      "name": "رباط سنگ",
+      "code": "RBA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "رباط سنگ",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090005002434,
+          "kind": "city",
+          "reference_city_candidates": [
+            556
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f08f7208e67b98631fea",
+      "name": "رضويه",
+      "code": "RZV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "رضویه",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900016002436,
+          "kind": "city",
+          "reference_city_candidates": [
+            497
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f09d4520559637a41d84",
+      "name": "روداب",
+      "code": "RVD",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "روداب",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090008002245,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f0c04520559637a482b2",
+      "name": "ريوش",
+      "code": "RVS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ریوش",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900041002348,
+          "kind": "city",
+          "reference_city_candidates": [
+            514
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f0edcf12dd93c6c77f10",
+      "name": "سفيدسنگ",
+      "code": "SFD",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سفید سنگ",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900022002608,
+          "kind": "city",
+          "reference_city_candidates": [
+            510
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f10c7208e67b98647e08",
+      "name": "سلطان آباد",
+      "code": "SLT",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سلطان آباد",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600010002921,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "سلطان آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900038002343,
+          "kind": "city",
+          "reference_city_candidates": [
+            511
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f12c34f9287518821c00",
+      "name": "شادمهر",
+      "code": "SHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شادمهر",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900030002069,
+          "kind": "city",
+          "reference_city_candidates": [
+            527
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f13a34f92875188238be",
+      "name": "شانديز",
+      "code": "SHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شاندیز",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900032001388,
+          "kind": "city",
+          "reference_city_candidates": [
+            486
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f162f0e41e960f57dedd",
+      "name": "شهرآباد",
+      "code": "SHH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شهرآباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900023002090,
+          "kind": "city",
+          "reference_city_candidates": [
+            548
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f18b7208e67b986566d9",
+      "name": "شهرزو",
+      "code": "SHH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شهر زو",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900028002609,
+          "kind": "city",
+          "reference_city_candidates": [
+            530
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f19ecf12dd93c6c9308a",
+      "name": "صالح آباد",
+      "code": "SAL",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "صالح آباد",
+          "country": "IR",
+          "province_name": "همدان",
+          "source_id": 1130007002216,
+          "kind": "city",
+          "reference_city_candidates": [
+            1284
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "صالح آباد",
+          "country": "IR",
+          "province_name": "ایلام",
+          "source_id": 1160005001509,
+          "kind": "city",
+          "reference_city_candidates": [
+            307
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "صالح آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900040001362,
+          "kind": "city",
+          "reference_city_candidates": [
+            498
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f1c0f0e41e960f58da61",
+      "name": "عشق آباد",
+      "code": "ASH",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "عشق آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900045002438,
+          "kind": "city",
+          "reference_city_candidates": [
+            550
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "عشق آباد",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 12900011002345,
+          "kind": "city",
+          "reference_city_candidates": [
+            453
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f1cfcf12dd93c6c97aa6",
+      "name": "فرهادگرد",
+      "code": "FRH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "فرهادگرد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900022002566,
+          "kind": "city",
+          "reference_city_candidates": [
+            499
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f1e97208e67b986651d8",
+      "name": "فيروزه",
+      "code": "FRV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "فیروزه",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900033002220,
+          "kind": "city",
+          "reference_city_candidates": [
+            512
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f2164520559637a79530",
+      "name": "قدمگاه",
+      "code": "GHD",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قدمگاه",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900042002246,
+          "kind": "city",
+          "reference_city_candidates": [
+            541
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f22334f928751884ece5",
+      "name": "قلندرآباد",
+      "code": "GHL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قلندر آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900022002442,
+          "kind": "city",
+          "reference_city_candidates": [
+            519
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f24934f9287518855f56",
+      "name": "كاريز",
+      "code": "ARZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "کاریز",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090004002562,
+          "kind": "city",
+          "reference_city_candidates": [
+            491
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f26ce1dc5f760cb50d5c",
+      "name": "كدكن",
+      "code": "DN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "کدکن",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090005002243,
+          "kind": "city",
+          "reference_city_candidates": [
+            531
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66a8f2d47208e67b9868fa92",
+      "name": "مزدآوند",
+      "code": "MZD",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "مزدآوند",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900020002607,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adf4ae8cdc3f7f0f40f9ac",
+      "name": "يونسي",
+      "code": "VNS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "یونسی",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900031002610,
+          "kind": "city",
+          "reference_city_candidates": [
+            537
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adf51a2e1fae9e9a299325",
+      "name": "نشتيفان",
+      "code": "NSH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نشتیفان",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900019002565,
+          "kind": "city",
+          "reference_city_candidates": [
+            495
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adf7182f187ad8c6967634",
+      "name": "نصر آباد",
+      "code": "NSR",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نصرآباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090006002342,
+          "kind": "city",
+          "reference_city_candidates": [
+            505
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "نصرآباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000026002512,
+          "kind": "city",
+          "reference_city_candidates": [
+            223
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adf7494459a938f93a42bf",
+      "name": "نوخندان",
+      "code": "NVK",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نوخندان",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090007001366,
+          "kind": "city",
+          "reference_city_candidates": [
+            544
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adf774b11eb0d25b1e6871",
+      "name": "نيل شهر",
+      "code": "NLS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نیل شهر",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 1090006002655,
+          "kind": "city",
+          "reference_city_candidates": [
+            506
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adf789ab8ae43cbf4ba291",
+      "name": "همت آباد",
+      "code": "HMT",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "همت آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900033002066,
+          "kind": "city",
+          "reference_city_candidates": [
+            559
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adf9f308a7668add01c880",
+      "name": "ايور",
+      "code": "AVR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ایور",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280007002053,
+          "kind": "city",
+          "reference_city_candidates": [
+            576
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfa372f187ad8c6a51569",
+      "name": "پيش قلعه",
+      "code": "PSH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "پیش قلعه",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 12800010002568,
+          "kind": "city",
+          "reference_city_candidates": [
+            585
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfa962f187ad8c6a69cd8",
+      "name": "تيتكانلو",
+      "code": "TTA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "تیتکانلو",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280005002079,
+          "kind": "city",
+          "reference_city_candidates": [
+            578
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfac84459a938f948e1dc",
+      "name": "حصارگرمخان",
+      "code": "HSA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حصارگرمخان",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280002002431,
+          "kind": "city",
+          "reference_city_candidates": [
+            586
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfae7ab8ae43cbf591771",
+      "name": "درق",
+      "code": "DRG",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "درق",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280007002641,
+          "kind": "city",
+          "reference_city_candidates": [
+            574
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfaf908a7668add04d180",
+      "name": "راز",
+      "code": "RAZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "راز",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280008002132,
+          "kind": "city",
+          "reference_city_candidates": [
+            573
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfb7308a7668add06ff5d",
+      "name": "شوقان",
+      "code": "SHV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "شوقان",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280003002433,
+          "kind": "city",
+          "reference_city_candidates": [
+            583
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfbb32e1fae9e9a4550f2",
+      "name": "صفي آباد",
+      "code": "SFB",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "صفی آباد",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060008002418,
+          "kind": "city",
+          "reference_city_candidates": [
+            620
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "صفی آباد",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280009002430,
+          "kind": "city",
+          "reference_city_candidates": [
+            579
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfbe38cdc3f7f0f5efa08",
+      "name": "قاضي",
+      "code": "GHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قاضی",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280006002567,
+          "kind": "city",
+          "reference_city_candidates": [
+            582
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66adfc17b11eb0d25b32253b",
+      "name": "لوجلي",
+      "code": "LVJ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "لوجلی",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280004002435,
+          "kind": "city",
+          "reference_city_candidates": [
+            587
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae0c924459a938f997db77",
+      "name": "اروندكنار",
+      "code": "ARV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "اروندکنار",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060001001269,
+          "kind": "city",
+          "reference_city_candidates": [
+            623
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae0ca608a7668add513af5",
+      "name": "الوان",
+      "code": "ALV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "الوان",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600028002314,
+          "kind": "city",
+          "reference_city_candidates": [
+            628
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae0e264459a938f9a04802",
+      "name": "جايزان",
+      "code": "JAZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "جایزان",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600016002420,
+          "kind": "city",
+          "reference_city_candidates": [
+            639
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae1249b11eb0d25b968e81",
+      "name": "چمران",
+      "code": "CHM",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "چمران",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060005002311,
+          "kind": "city",
+          "reference_city_candidates": [
+            605
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae126d4459a938f9b35ea2",
+      "name": "چوئبده",
+      "code": "CHV",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66ae12f8ab8ae43cbfc14dc7",
+      "name": "حسينيه",
+      "code": "HSN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حسینیه",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060002002595,
+          "kind": "city",
+          "reference_city_candidates": [
+            643
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae130cf9011eda1f9dc295",
+      "name": "حمزه",
+      "code": "HMZ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حمزه",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060008002035,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae168208a7668add7e0d09",
+      "name": "دزآب",
+      "code": "DZB",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66ae1768f9011eda1fafdeaa",
+      "name": "رفيع",
+      "code": "RFA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "رفیع",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600023002313,
+          "kind": "city",
+          "reference_city_candidates": [
+            635
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae17822f187ad8c6221a85",
+      "name": "زهره",
+      "code": "ZHR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زهره",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600018002650,
+          "kind": "city",
+          "reference_city_candidates": [
+            646
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae19e008a7668add8ab1d7",
+      "name": "سالند",
+      "code": "SAL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سالند",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060008002416,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae19ff2f187ad8c62bd683",
+      "name": "سردشت",
+      "code": "SRD",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040004001240,
+          "kind": "city",
+          "reference_city_candidates": [
+            81
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060006002500,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "چهارمحال و بختیاری",
+          "source_id": 1140004002840,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "سردشت",
+          "country": "IR",
+          "province_name": "هرمزگان",
+          "source_id": 12200013002061,
+          "kind": "city",
+          "reference_city_candidates": [
+            1265
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae1a172e1fae9e9ac75ee4",
+      "name": "سماله",
+      "code": "SMA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سماله",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600020002715,
+          "kind": "city",
+          "reference_city_candidates": [
+            644
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae1d544459a938f9de2294",
+      "name": "صالح شهر",
+      "code": "SAL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "صالح شهر",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600020002009,
+          "kind": "city",
+          "reference_city_candidates": [
+            625
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae1f2f4459a938f9e5eea9",
+      "name": "صالح مشطط",
+      "code": "SAL",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66ae20368cdc3f7f0ff33ed4",
+      "name": "صفي آباد",
+      "code": "SFB",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "صفی آباد",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060008002418,
+          "kind": "city",
+          "reference_city_candidates": [
+            620
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "صفی آباد",
+          "country": "IR",
+          "province_name": "خراسان شمالی",
+          "source_id": 1280009002430,
+          "kind": "city",
+          "reference_city_candidates": [
+            579
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae21a94459a938f9eea0ba",
+      "name": "صيدون",
+      "code": "SDV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "صیدون",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600030002596,
+          "kind": "city",
+          "reference_city_candidates": [
+            629
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae21d78cdc3f7f0ffa2a65",
+      "name": "قلعه تل",
+      "code": "GHL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قلعه تل",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600015002551,
+          "kind": "city",
+          "reference_city_candidates": [
+            619
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae224ab11eb0d25bd7b9d8",
+      "name": "گوريه",
+      "code": "GVR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "گوریه",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600012002714,
+          "kind": "city",
+          "reference_city_candidates": [
+            637
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae22a14459a938f9f1e510",
+      "name": "مقاومت",
+      "code": "MGH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "مقاومت",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 1060007002334,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae22f02f187ad8c650ce6d",
+      "name": "ميداود",
+      "code": "MDA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "میداود",
+          "country": "IR",
+          "province_name": "خوزستان",
+          "source_id": 10600015002720,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2bdc727492a7074b0b47",
+      "name": "ارمغانخانه",
+      "code": "ARM",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ارمغانخانه",
+          "country": "IR",
+          "province_name": "زنجان",
+          "source_id": 1190004002038,
+          "kind": "city",
+          "reference_city_candidates": [
+            677
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2c80fd2a8abde7dc2c71",
+      "name": "چورزق",
+      "code": "CHV",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "چورزق",
+          "country": "IR",
+          "province_name": "زنجان",
+          "source_id": 1190008002486,
+          "kind": "city",
+          "reference_city_candidates": [
+            678
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2c952e97abc40fe1df74",
+      "name": "حلب",
+      "code": "HLB",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حلب",
+          "country": "IR",
+          "province_name": "زنجان",
+          "source_id": 1190006002485,
+          "kind": "city",
+          "reference_city_candidates": [
+            679
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2cc557da983f4b2b9b4a",
+      "name": "دندي",
+      "code": "DND",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "دندی",
+          "country": "IR",
+          "province_name": "زنجان",
+          "source_id": 1190009002261,
+          "kind": "city",
+          "reference_city_candidates": [
+            672
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2d48727492a707514db3",
+      "name": "زرين رود",
+      "code": "ZRN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زرین رود",
+          "country": "IR",
+          "province_name": "زنجان",
+          "source_id": 1190003002376,
+          "kind": "city",
+          "reference_city_candidates": [
+            668
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2db30b0a3d80d91b6ab3",
+      "name": "سهرورد",
+      "code": "SHR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سهرورد",
+          "country": "IR",
+          "province_name": "زنجان",
+          "source_id": 1190003002039,
+          "kind": "city",
+          "reference_city_candidates": [
+            670
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2dc62e97abc40fe670bb",
+      "name": "صائين قلعه",
+      "code": "SAN",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66ae2dfd8dc5b7b02ee940dd",
+      "name": "گرماب",
+      "code": "GRM",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "گرماب",
+          "country": "IR",
+          "province_name": "زنجان",
+          "source_id": 1190003002260,
+          "kind": "city",
+          "reference_city_candidates": [
+            673
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "گرماب",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900033001018,
+          "kind": "city",
+          "reference_city_candidates": [
+            522
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2e492e97abc40fe87df3",
+      "name": "اميريه",
+      "code": "AMR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "امیریه",
+          "country": "IR",
+          "province_name": "سمنان",
+          "source_id": 1200001002263,
+          "kind": "city",
+          "reference_city_candidates": [
+            697
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2e650b0a3d80d91ebf05",
+      "name": "ايوانكي",
+      "code": "AVA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ایوانکی",
+          "country": "IR",
+          "province_name": "سمنان",
+          "source_id": 1200004001548,
+          "kind": "city",
+          "reference_city_candidates": [
+            686
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2edb57da983f4b33c65c",
+      "name": "درجزين",
+      "code": "DRJ",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "درجزین",
+          "country": "IR",
+          "province_name": "سمنان",
+          "source_id": 1200005002022,
+          "kind": "city",
+          "reference_city_candidates": [
+            689
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2f608dc5b7b02eef7334",
+      "name": "كلاته خيج",
+      "code": "LAT",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "کلاته خیج",
+          "country": "IR",
+          "province_name": "سمنان",
+          "source_id": 1200003002160,
+          "kind": "city",
+          "reference_city_candidates": [
+            693
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2f8fdc8a3146f0b95f36",
+      "name": "مجن",
+      "code": "MJN",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "مجن",
+          "country": "IR",
+          "province_name": "سمنان",
+          "source_id": 1200003001546,
+          "kind": "city",
+          "reference_city_candidates": [
+            694
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66ae2fc9fd2a8abde7e8d903",
+      "name": "ميامي",
+      "code": "MAM",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "میامی",
+          "country": "IR",
+          "province_name": "سمنان",
+          "source_id": 1200007002162,
+          "kind": "city",
+          "reference_city_candidates": [
+            698
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af24bf8dc5b7b02e0a5d2a",
+      "name": "جالق",
+      "code": "JAL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "جالق",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 11100024002191,
+          "kind": "city",
+          "reference_city_candidates": [
+            708
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af28b38a52a9f723a078d2",
+      "name": "زرآباد",
+      "code": "ZRB",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "زرآباد",
+          "country": "IR",
+          "province_name": "آذربایجان غربی",
+          "source_id": 1040003002735,
+          "kind": "city",
+          "reference_city_candidates": [
+            116
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "زرآباد",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 11100026002739,
+          "kind": "city",
+          "reference_city_candidates": [
+            733
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af29cc8a52a9f723a5efc0",
+      "name": "علي اكبر",
+      "code": "ALA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "علی اکبر",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 11100016002046,
+          "kind": "city",
+          "reference_city_candidates": [
+            729
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af2a452e97abc40f1d5d08",
+      "name": "محمدان",
+      "code": "MHM",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "محمدان",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 11100020002049,
+          "kind": "city",
+          "reference_city_candidates": [
+            717
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af2a5a57da983f4b5db691",
+      "name": "محمد آباد",
+      "code": "MHM",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "محمدآباد",
+          "country": "IR",
+          "province_name": "کرمان",
+          "source_id": 10800017002316,
+          "kind": "city",
+          "reference_city_candidates": [
+            890
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "محمدآباد",
+          "country": "IR",
+          "province_name": "اصفهان",
+          "source_id": 11000026002247,
+          "kind": "city",
+          "reference_city_candidates": [
+            236
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "محمدآباد",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 11100016002354,
+          "kind": "city",
+          "reference_city_candidates": [
+            738
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af2a670b0a3d80d9497e2e",
+      "name": "محمدي",
+      "code": "MHM",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "محمدی",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 1110006002047,
+          "kind": "city",
+          "reference_city_candidates": [
+            724
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af2a868a52a9f723a8b6b8",
+      "name": "نصرت آباد",
+      "code": "NSR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "نصرت آباد",
+          "country": "IR",
+          "province_name": "سیستان و بلوچستان",
+          "source_id": 1110005002454,
+          "kind": "city",
+          "reference_city_candidates": [
+            726
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af336afd2a8abde7331f1d",
+      "name": "امام شهر",
+      "code": "AMA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "امام شهر",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700020002011,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af342b8dc5b7b02e44b1f5",
+      "name": "اهل",
+      "code": "AHL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "اهل",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700015002235,
+          "kind": "city",
+          "reference_city_candidates": [
+            796
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af36112e97abc40f496c89",
+      "name": "بالاده",
+      "code": "BAL",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "بالاده",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700010002423,
+          "kind": "city",
+          "reference_city_candidates": [
+            789
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af36be8a52a9f723d478b8",
+      "name": "بنارويه",
+      "code": "BNA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "بنارویه",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700011002182,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af374e8a52a9f723d6705b",
+      "name": "بيضا",
+      "code": "BZA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "بیضا",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700031002503,
+          "kind": "city",
+          "reference_city_candidates": [
+            780
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af37fe8dc5b7b02e540825",
+      "name": "حاجي آباد",
+      "code": "HAJ",
+      "original_reason": "missing_country_evidence",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حاجی آباد",
+          "country": "IR",
+          "province_name": "هرمزگان",
+          "source_id": 1220008001566,
+          "kind": "city",
+          "reference_city_candidates": [
+            1225
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حاجی آباد",
+          "country": "IR",
+          "province_name": "خراسان جنوبی",
+          "source_id": 1290009002347,
+          "kind": "city",
+          "reference_city_candidates": [
+            445
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حاجی آباد",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700019001302,
+          "kind": "city",
+          "reference_city_candidates": [
+            781
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af380c8dc5b7b02e542fe5",
+      "name": "حسامي",
+      "code": "HSA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حسامی",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700032002095,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af381ddc8a3146f01932db",
+      "name": "حسن آباد",
+      "code": "HSN",
+      "original_reason": "ambiguous_geography",
+      "status": "multiple_iran_source_candidates",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "حسن آباد",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 1070003002082,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حسن‌آباد",
+          "country": "IR",
+          "province_name": "تهران",
+          "source_id": 1230003002167,
+          "kind": "city",
+          "reference_city_candidates": [
+            377
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        },
+        {
+          "name": "حسن آباد",
+          "country": "IR",
+          "province_name": "خراسان رضوی",
+          "source_id": 10900028001023,
+          "kind": "city",
+          "reference_city_candidates": [
+            542
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af3994727492a707b8d660",
+      "name": "خاوران",
+      "code": "KHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خاوران",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700034001300,
+          "kind": "city",
+          "reference_city_candidates": [
+            797
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af3a0b2e97abc40f58cde4",
+      "name": "دبيران",
+      "code": "DBR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "دبیران",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700019002651,
+          "kind": "city",
+          "reference_city_candidates": [
+            787
+          ],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af3a1d2e97abc40f592fd6",
+      "name": "دژكرد",
+      "code": "DZH",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "دژکرد",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 1070003002014,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af3b458dc5b7b02e605681",
+      "name": "سورمق",
+      "code": "SVR",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سورمق",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 1070001002597,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af3b8e2e97abc40f5f12a4",
+      "name": "سيدان",
+      "code": "SDA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "سیدان",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700012002336,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66af3cc48dc5b7b02e6765ce",
+      "name": "ششده",
+      "code": "SHS",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "ششده",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 1070008002180,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66b4b8537d54924c63a97095",
+      "name": "علامرودشت",
+      "code": "ALA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "علامرودشت",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700015002236,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66b4b86cb5a7262251846684",
+      "name": "عمادده",
+      "code": "AMA",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66b4b883b5a726225184a766",
+      "name": "فدامی",
+      "code": "FDA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "فدامی",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 1070005002016,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66b4b97dc9e661bbd37d2a14",
+      "name": "قطرويه",
+      "code": "GHT",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "قطرویه",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700014002058,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66b4ba1748929cecdc41e91b",
+      "name": "كره ای",
+      "code": "RHA",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "کره ای",
+          "country": "IR",
+          "province_name": "فارس",
+          "source_id": 10700032002557,
+          "kind": "city",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/cities.json"
+        }
+      ]
+    },
+    {
+      "external_id": "66efbf368ddcbda5622e5ac2",
+      "name": "لنکاوی",
+      "code": "LAG",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc0aaf43e2c33c7e1cf06",
+      "name": "لنکاوی",
+      "code": "LAG",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc0e3f43e2c33c7e39a38",
+      "name": "لنگ کاوی",
+      "code": "LAN",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc183d912df469ab95f37",
+      "name": "پنانگ",
+      "code": "PEN",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc2394f31c4e6b740c4c8",
+      "name": "سنگاپور",
+      "code": "SGN",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc2ed4f31c4e6b7450fe1",
+      "name": "کوتا",
+      "code": "KUT",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc5649f5d456f72539166",
+      "name": "-",
+      "code": "KUT",
+      "original_reason": "invalid_or_test_destination",
+      "status": "exclude_invalid_record",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc597fdb67248617bbcf3",
+      "name": "لجیان",
+      "code": "LEG",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc5ccfdb67248617da664",
+      "name": "سمینیاک",
+      "code": "SMY",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc5f4bd6047bf833e39b5",
+      "name": "نوسا دوا",
+      "code": "NDA",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc6218ddcbda5625dd459",
+      "name": "جیمباران",
+      "code": "JMB",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66efc65bf43e2c33c706f8b5",
+      "name": "ابود",
+      "code": "UBD",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f284b5497ec4224fe8e217",
+      "name": "قبرس شمالی",
+      "code": "NCP",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f28aad497ec4224fe93ef2",
+      "name": "الاچاتی",
+      "code": "ALC",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2ad05be19ea3af10c9ef3",
+      "name": "دیدیم",
+      "code": "DMD",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2b2e849bb727b197565c5",
+      "name": "فتیه",
+      "code": "FTH",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2b448be19ea3af10e078c",
+      "name": "مارماریس",
+      "code": "MAR",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2b53cbe19ea3af10e1eed",
+      "name": "قونیه",
+      "code": "KNY",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2b6ab49bb727b1975d3fc",
+      "name": "سلیمانیه",
+      "code": "SLM",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2b7d5497ec4224fecf3d2",
+      "name": "بنتوتا",
+      "code": "BNT",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2b96e49bb727b197693da",
+      "name": "کولومبو",
+      "code": "CLM",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "66f2b9d8497ec4224fed64ba",
+      "name": "کندی",
+      "code": "CND",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "6767c2b16c1c40825bc25fcb",
+      "name": "بالی",
+      "code": "BLI",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "688b2d74bc9def43803acab9",
+      "name": "مدینه",
+      "code": "MDNH",
+      "original_reason": "missing_country_evidence",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    },
+    {
+      "external_id": "6891d392469e42b4bd56d206",
+      "name": "خدا آفرین",
+      "code": "KDAF",
+      "original_reason": "missing_country_evidence",
+      "status": "single_iran_source_candidate",
+      "provider_identity_confirmed": false,
+      "candidates": [
+        {
+          "name": "خدا آفرین",
+          "country": "IR",
+          "province_name": "آذربایجان شرقی",
+          "source_id": 10300026,
+          "kind": "county_destination",
+          "reference_city_candidates": [],
+          "source_url": "https://raw.githubusercontent.com/sajaddp/list-of-cities-in-Iran/ace21bb251f96ced350bbc01541acffd71121feb/dist/json/counties.json"
+        }
+      ]
+    },
+    {
+      "external_id": "6a8697b2b18cc21d6d5061ba",
+      "name": "اسکله",
+      "code": "ike",
+      "original_reason": "missing_geography",
+      "status": "further_research_required",
+      "provider_identity_confirmed": false,
+      "candidates": []
+    }
+  ]
+}

@@ -24,6 +24,9 @@ internal static class DI
             options.ApiKey = options.ApiKey.ReplaceWithEnvironmentVariables();
         });
 
+        var policyOptions = config.GetSection("Hotels:Providers:SnappTrip").Get<SnappTripOptions>() ?? new SnappTripOptions();
+        var discoveryPolicy = CreateResiliencePolicy(policyOptions, false);
+        var bookingPolicy = CreateResiliencePolicy(policyOptions, true);
         services
             .AddHttpClient<SnappTripApiClient>(
                 (sp, client) =>
@@ -35,16 +38,15 @@ internal static class DI
                     client.Timeout = TimeSpan.FromSeconds(opts.Value.TimeoutSeconds);
                 }
             )
-            .AddPolicyHandler((sp, _) => CreateResiliencePolicy(sp));
+            .AddPolicyHandler((_, request) => request.RequestUri?.AbsolutePath.StartsWith("/booking/", StringComparison.OrdinalIgnoreCase) == true && request.Method != HttpMethod.Get ? bookingPolicy : discoveryPolicy);
 
         services.AddScoped<SnappTripHotelProvider>();
 
         return services;
     }
 
-    private static IAsyncPolicy<HttpResponseMessage> CreateResiliencePolicy(IServiceProvider sp)
+    private static IAsyncPolicy<HttpResponseMessage> CreateResiliencePolicy(SnappTripOptions opts, bool mutation)
     {
-        var opts = sp.GetRequiredService<IOptionsMonitor<SnappTripOptions>>().CurrentValue;
 
         // Bulkhead: محدود کردن تعداد درخواست‌های همزمان
         var bulkhead = Policy.BulkheadAsync<HttpResponseMessage>(
@@ -75,6 +77,6 @@ internal static class DI
         );
 
         // ترتیب مهم است: اول Bulkhead، بعد Retry، بعد CircuitBreaker، بعد Timeout
-        return Policy.WrapAsync(bulkhead, retry, circuitBreaker, timeout);
+        return mutation ? Policy.WrapAsync(bulkhead, circuitBreaker, timeout) : Policy.WrapAsync(bulkhead, retry, circuitBreaker, timeout);
     }
 }
