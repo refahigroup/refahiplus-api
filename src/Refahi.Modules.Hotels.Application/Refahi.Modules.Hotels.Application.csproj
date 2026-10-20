@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageReference Include="MediatR" Version="11.1.0" />
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
@@ -17,5 +18,6 @@
     <ProjectReference Include="..\Refahi.Modules.Hotels.Application.Contracts\Refahi.Modules.Hotels.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Hotels.Domain\Refahi.Modules.Hotels.Domain.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Orders.Application.Contracts\Refahi.Modules.Orders.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />
   </ItemGroup>
 </Project>

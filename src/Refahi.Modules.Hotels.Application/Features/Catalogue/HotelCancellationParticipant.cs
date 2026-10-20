@@ -20,7 +20,8 @@ public sealed class HotelCancellationParticipant(IHotelCatalogueRepository catal
                 return new(false, "نتیجه رزرو خارجی مشخص نیست؛ بازگشت وجه نیاز به پیگیری دارد.");
             return new(true);
         }
-        if (context.PaymentState == "Paid" || external.State is HotelExternalState.Submitting or HotelExternalState.Confirming or HotelExternalState.Unknown or HotelExternalState.Confirmed)
+        if (external.NoExternalLiability && external.State is HotelExternalState.Failed or HotelExternalState.Cancelled) return new(true);
+        if (context.PaymentState == "Paid" || external.PaymentBlocked || external.State is HotelExternalState.Submitting or HotelExternalState.Confirming or HotelExternalState.Unknown or HotelExternalState.Confirmed)
             return new(false, "لغو و بازگشت وجه این رزرو نیاز به بررسی وضعیت تأمین‌کننده دارد.");
         return new(true);
     }

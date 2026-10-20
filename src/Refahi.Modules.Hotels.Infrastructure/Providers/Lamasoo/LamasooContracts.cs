@@ -38,7 +38,8 @@ internal sealed class LamasooChildPolicy { public decimal From { get; set; } pub
 internal sealed class LamasooRate
 {
     public string RoomTypeId { get; set; } = ""; public string RatePlanId { get; set; } = ""; public string Currency { get; set; } = "";
-    public List<LamasooPrice> Prices { get; set; } = []; public LamasooPrice Price { get; set; } = new();
+    // Only nightly prices are consumed. Aggregate price contains nullable, non-additive totals.
+    public List<LamasooPrice> Prices { get; set; } = [];
 }
 internal sealed class LamasooPrice
 {

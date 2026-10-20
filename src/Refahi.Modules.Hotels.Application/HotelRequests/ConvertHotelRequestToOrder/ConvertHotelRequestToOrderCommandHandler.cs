@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Refahi.Modules.Hotels.Application.Contracts.Catalogue;
 using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.ConvertHotelRequestToOrder;
 using Refahi.Modules.Hotels.Domain.Abstraction.Repositories;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg;
@@ -18,13 +20,15 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
     private readonly IMediator _mediator;
     private readonly ILogger<ConvertHotelRequestToOrderCommandHandler> _logger;
     private readonly IHotelCatalogueRepository? _catalogue;
+    private readonly HotelLifecycleOptions _policy;
 
     public ConvertHotelRequestToOrderCommandHandler(
         IHotelRequestRepository repository,
         IHotelBookingSagaRepository sagaRepository,
         IMediator mediator,
         ILogger<ConvertHotelRequestToOrderCommandHandler> logger,
-        IHotelCatalogueRepository? catalogue = null
+        IHotelCatalogueRepository? catalogue = null,
+        IOptions<HotelLifecycleOptions>? policy = null
     )
     {
         _repository = repository;
@@ -32,6 +36,7 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
         _mediator = mediator;
         _logger = logger;
         _catalogue = catalogue;
+        _policy = policy?.Value ?? new();
     }
 
     public async Task<ConvertHotelRequestToOrderResponse> Handle(
@@ -39,15 +44,20 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
         CancellationToken cancellationToken
     )
     {
+        await using var held = _catalogue is null ? null : await _catalogue.LockAsync("reservation:" + request.RequestId, cancellationToken);
         var hotelRequest =
             await _repository.GetForUserAsync(request.RequestId, request.UserId, cancellationToken)
             ?? throw new InvalidOperationException("درخواست هتل یافت نشد");
 
         var now = DateTime.UtcNow;
+        if (hotelRequest.OrderId is Guid existingOrderId)
+            return new(hotelRequest.Id, existingOrderId, null, hotelRequest.TotalPrice, hotelRequest.Status.ToString());
         if (hotelRequest.ProviderName == "Lamasoo")
         {
             var reservation = _catalogue is null ? null : await _catalogue.ReservationAsync(hotelRequest.Id, cancellationToken);
-            if (reservation?.State != Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.HotelExternalState.Reserved)
+            if (reservation?.State != Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.HotelExternalState.Reserved
+                || reservation.PaymentBlocked || reservation.NoExternalLiability || reservation.SupplyPriceMinor > hotelRequest.TotalPrice
+                || reservation.LockedUntilUtc <= now.AddSeconds(_policy.PaymentSafetySeconds))
                 throw new InvalidOperationException("وضعیت رزرو اجازه ایجاد سفارش نمی‌دهد.");
         }
 

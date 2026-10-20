@@ -18,14 +18,8 @@ internal sealed class BoundedHotelCatalogueProvider(IHotelCatalogueProvider inne
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         { throw new HotelCatalogueUnavailableException("مهلت پاسخ تأمین‌کننده هتل به پایان رسید."); }
     }
-    public async Task<IReadOnlyList<ProviderCity>> CitiesAsync(CancellationToken ct)
-    {
-        var key = $"hotels:{Name}:cities";
-        if (cache.TryGetValue<IReadOnlyList<ProviderCity>>(key, out var cities) && cities is not null) return cities;
-        cities = await ReadAsync(inner.CitiesAsync, ct);
-        cache.Set(key, cities, TimeSpan.FromDays(1));
-        return cities;
-    }
+    public Task<IReadOnlyList<string>> ResolveCityIdsAsync(int referenceCityId, CancellationToken ct) =>
+        inner.ResolveCityIdsAsync(referenceCityId, ct);
     public async Task<IReadOnlyList<ProviderHotelOffer>> SearchAsync(string cityId, HotelTravel travel, CancellationToken ct)
     {
         var key = $"hotels:{Name}:availability:{cityId}:{JsonSerializer.Serialize(travel)}";
@@ -42,4 +36,6 @@ internal sealed class BoundedHotelCatalogueProvider(IHotelCatalogueProvider inne
         ReadAsync(token => inner.ValidateOfferAsync(offer, travel, token), ct);
     public Task<HotelSubmitResult> SubmitAsync(HotelSubmitRequest request, CancellationToken ct) => inner.SubmitAsync(request, ct);
     public Task<HotelConfirmResult> ConfirmAsync(string referenceId, CancellationToken ct) => inner.ConfirmAsync(referenceId, ct);
+    public Task<HotelInquiryResult> InquireAsync(string referenceId, CancellationToken ct) => inner.InquireAsync(referenceId, ct);
+    public bool IsOfferEligible(ProviderHotelOffer offer, HotelTravel travel, IReadOnlyList<HotelGuest>? guests = null) => inner.IsOfferEligible(offer, travel, guests);
 }

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Refahi.Modules.Hotels.Application.Contracts.Catalogue;
 using Refahi.Modules.Hotels.Application.Contracts.Providers;
 using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs.Availability.AvailabilityByCity;
@@ -9,12 +9,12 @@ using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 using Microsoft.Extensions.Caching.Memory;
 namespace Refahi.Modules.Hotels.Infrastructure.Providers.Catalogue;
 
-public sealed class SnappTripCatalogueProvider(SnappTripHotelProvider provider, SnappTripApiClient api, IMemoryCache cache) : IHotelCatalogueProvider
+public sealed class SnappTripCatalogueProvider(SnappTripHotelProvider provider, SnappTripApiClient api, IMemoryCache cache, Refahi.Modules.Hotels.Domain.Abstraction.Repositories.IHotelCityMappingRepository mappings) : IHotelCatalogueProvider
 {
     public string Name => "SnappTrip";
     public HotelProviderCapabilities Capabilities => new(true, true, true, false, true);
-    public async Task<IReadOnlyList<ProviderCity>> CitiesAsync(CancellationToken ct) =>
-        (await provider.GetAllCities(null, ct)).Select(x => new ProviderCity(x.Id.ToString(CultureInfo.InvariantCulture), x.Name, null, "IR", x.Id)).ToArray();
+    public Task<IReadOnlyList<string>> ResolveCityIdsAsync(int referenceCityId, CancellationToken ct) =>
+        mappings.SnappTripCityIdsAsync(referenceCityId, ct);
     public async Task<IReadOnlyList<ProviderHotelOffer>> SearchAsync(string city, HotelTravel travel, CancellationToken ct)
     {
         var response = await provider.GetAvailabilityByCity(new GetAvailabilityByCityQuery(int.Parse(city, CultureInfo.InvariantCulture),

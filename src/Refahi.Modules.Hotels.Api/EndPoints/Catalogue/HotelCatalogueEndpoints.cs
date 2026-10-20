@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -22,7 +22,7 @@ public sealed class HotelCatalogueEndpoints : IEndpoint
             await Execute(async () => await sender.Send(new GetHotelCitiesQuery(name), ct)))
             .WithName("Hotels.V2.Cities").WithTags("Hotels");
         v2.MapGet("/availability/city", async (HttpRequest request, ISender sender, CancellationToken ct) =>
-            await Execute(async () => await sender.Send(new SearchHotelCatalogueQuery(ParseGuid(request, "cityKey"), ParseInt(request, "cityId"), Travel(request),
+            await Execute(async () => await sender.Send(new SearchHotelCatalogueQuery(ReferenceCityId(request), Travel(request),
                 ParseLong(request, "minPrice"), ParseLong(request, "maxPrice"), request.Query["stars"].Select(x => int.Parse(x!)).ToArray(), request.Query["sort"].FirstOrDefault() ?? "price",
                 request.Query["accommodations"].Select(x => x!).ToArray()), ct)))
             .WithName("Hotels.V2.Search").WithTags("Hotels");
@@ -39,13 +39,27 @@ public sealed class HotelCatalogueEndpoints : IEndpoint
             return await Execute(async () => await sender.Send(new CreateHotelCatalogueRequestCommand(id, body.OfferToken, body.Travel,
                 body.Guests, body.Phone, body.Email, body.ExpectedTotalPriceMinor, context.Request.Headers["Idempotency-Key"].ToString()), ct));
         }).RequireAuthorization("UserOrAdmin").WithName("Hotels.V2.CreateRequest").WithTags("Hotels");
+        v2.MapGet("/requests/{requestId:guid}", async (Guid requestId, HttpContext context, ISender sender, CancellationToken ct) =>
+        {
+            var claim = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? context.User.FindFirstValue("sub");
+            if (!Guid.TryParse(claim, out var user)) return Results.Json(ApiResponseHelper.Error("احراز هویت انجام نشده است.", statusCode: 401), statusCode: 401);
+            return await Execute(async () => await sender.Send(new GetHotelBookingStatusQuery(requestId, user, context.User.IsInRole("Admin")), ct));
+        }).RequireAuthorization("UserOrAdmin").WithName("Hotels.V2.RequestStatus").WithTags("Hotels");
         v2.MapPost("/offers/{token}/quote", async (string token, HotelTravel travel, ISender sender, CancellationToken ct) =>
             await Execute(async () => await sender.Send(new QuoteHotelOfferQuery(token, travel), ct)))
             .WithName("Hotels.V2.Quote").WithTags("Hotels");
     }
     private static async Task<IResult> Execute<T>(Func<Task<T>> action)
     {
-        try { return Results.Ok(ApiResponseHelper.Success(await action())); }
+        try
+        {
+            var result = await action();
+            if (result is Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.CreateHotelRequest.CreateHotelRequestResponse created
+                && created.BookingStatus is "Preparing" or "NeedsReview")
+                return Results.Json(ApiResponseHelper.Success(result), statusCode: 202);
+            return Results.Ok(ApiResponseHelper.Success(result));
+        }
+        catch (KeyNotFoundException) { return Results.NotFound(ApiResponseHelper.Error("درخواست هتل یافت نشد.", statusCode: 404)); }
         catch (HotelCatalogueConflictException ex) { return Results.Json(ApiResponseHelper.Error(ex.Message, new() { ["code"] = ["OFFER_CONFLICT"] }, statusCode: 409), statusCode: 409); }
         catch (HotelExternalOutcomeUnknownException) { return Results.Json(ApiResponseHelper.Error("نتیجه رزرو در حال بررسی است. درخواست جدید ثبت نکنید.", new() { ["code"] = ["EXTERNAL_UNKNOWN"] }, statusCode: 409), statusCode: 409); }
         catch (Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.CreateHotelRequest.HotelPriceChangedException ex)
@@ -54,7 +68,7 @@ public sealed class HotelCatalogueEndpoints : IEndpoint
         catch (FluentValidation.ValidationException ex)
         {
             var errors = ex.Errors.GroupBy(x => x.PropertyName).ToDictionary(x => x.Key, x => x.Select(e => e.ErrorMessage).ToArray());
-            if (errors.Count == 0) errors["travel"] = ["شرایط اقامت و مسافران معتبر نیست."];
+            if (errors.Count == 0) errors["request"] = [ex.Message];
             return Results.BadRequest(ApiResponseHelper.ValidationError(errors));
         }
         catch (HttpRequestException) { return Results.Json(ApiResponseHelper.Error("سرویس هتل در دسترس نیست.", statusCode: 503), statusCode: 503); }
@@ -62,7 +76,13 @@ public sealed class HotelCatalogueEndpoints : IEndpoint
         catch (FormatException) { return Results.BadRequest(ApiResponseHelper.Error("پارامترهای جست‌وجو معتبر نیستند.", statusCode: 400)); }
         catch (JsonException) { return Results.BadRequest(ApiResponseHelper.Error("ترکیب اتاق‌ها معتبر نیست.", statusCode: 400)); }
     }
-    private static Guid? ParseGuid(HttpRequest request, string name) => Guid.TryParse(request.Query[name], out var value) ? value : null;
+    private static int ReferenceCityId(HttpRequest request)
+    {
+        if (request.Query.ContainsKey("cityId") || request.Query.ContainsKey("cityKey")
+            || !int.TryParse(request.Query["referenceCityId"], out var id) || id <= 0)
+            throw new FluentValidation.ValidationException("لطفاً مقصد را دوباره انتخاب کنید.");
+        return id;
+    }
     private static int? ParseInt(HttpRequest request, string name) => int.TryParse(request.Query[name], out var value) ? value : null;
     private static long? ParseLong(HttpRequest request, string name) => long.TryParse(request.Query[name], out var value) ? value : null;
     private static HotelTravel Travel(HttpRequest request)

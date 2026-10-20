@@ -1,26 +1,24 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Hotels.Application.Contracts.Catalogue;
 namespace Refahi.Modules.Hotels.Infrastructure.Providers.Lamasoo;
 
 public sealed class LamasooHotelProvider(LamasooApiClient api, IOptions<LamasooOptions> options, IMemoryCache cache,
-    Catalogue.HotelInventoryStore inventoryStore) : IHotelCatalogueProvider
+    Catalogue.HotelInventoryStore inventoryStore, Refahi.Modules.Hotels.Domain.Abstraction.Repositories.IHotelCityMappingRepository mappings,
+    IEnumerable<IHotelReservationLifecycleAdapter>? lifecycleAdapters = null) : IHotelCatalogueProvider
 {
+    private IHotelReservationLifecycleAdapter? Lifecycle => lifecycleAdapters?.SingleOrDefault(x => x.Provider == "Lamasoo" && x.IsReady);
     public string Name => "Lamasoo";
     // Public documentation does not provide inquiry/cancellation. Purchase stays disabled until those adapters exist.
-    public HotelProviderCapabilities Capabilities => new(options.Value.SearchEnabled, false, false, false, false);
-    public async Task<IReadOnlyList<ProviderCity>> CitiesAsync(CancellationToken ct)
-    {
-        var cities = await api.SendAsync<LamasooCities>(HttpMethod.Get, "booking/cities", null, false, ct);
-        return cities.Cities.Select(x =>
-        {
-            var country = options.Value.CityCountries.GetValueOrDefault(x.Id) ?? "";
-            var reviewed = country == "IR" && options.Value.CityCodes.TryGetValue(x.Id, out var code) && code == x.Code;
-            return new ProviderCity(x.Id, x.Name, x.Code, country,
-                reviewed && options.Value.CityMappings.TryGetValue(x.Id, out var legacy) ? legacy : null);
-        }).ToArray();
-    }
+    public HotelProviderCapabilities Capabilities => new(options.Value.SearchEnabled,
+        options.Value.PurchaseEnabled && options.Value.ContractVerified && Lifecycle is not null, Lifecycle is not null, false, false);
+    public bool IsOfferEligible(ProviderHotelOffer offer, HotelTravel travel, IReadOnlyList<HotelGuest>? guests = null) =>
+        Lifecycle?.IsOfferEligible(offer, travel, guests) == true;
+    public Task<HotelInquiryResult> InquireAsync(string referenceId, CancellationToken ct) =>
+        Lifecycle?.InquireAsync(referenceId, ct) ?? Task.FromResult(new HotelInquiryResult(HotelInquiryState.Unsupported));
+    public Task<IReadOnlyList<string>> ResolveCityIdsAsync(int referenceCityId, CancellationToken ct) =>
+        mappings.LamasoCityIdsAsync(referenceCityId, ct);
     private async Task<IReadOnlyList<LamasooHotel>> InventoryAsync(string city, CancellationToken ct)
     {
         var key = $"hotels:lamasoo:inventory:{city}";

@@ -10,7 +10,4 @@ public sealed class LamasooOptions
     public bool IncludeAgencyProvider { get; set; }
     public int TimeoutSeconds { get; set; } = 8;
     // Explicit, reviewed city mapping: Lamasoo city id -> existing SnappTrip city id.
-    public Dictionary<string, int> CityMappings { get; set; } = new();
-    public Dictionary<string, string> CityCountries { get; set; } = new();
-    public Dictionary<string, string> CityCodes { get; set; } = new();
 }

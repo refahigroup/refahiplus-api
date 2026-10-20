@@ -61,7 +61,15 @@ public sealed class FinalizeHotelBookingAfterPaymentCommandHandler
             return Unit.Value;
         if (hotelRequest.ProviderName == "Lamasoo")
         {
-            await _mediator.Send(new Refahi.Modules.Hotels.Application.Contracts.Catalogue.FinalizeHotelCatalogueCommand(request.OrderId, request.UserId), cancellationToken);
+            try
+            {
+                await _mediator.Send(new Refahi.Modules.Hotels.Application.Contracts.Catalogue.FinalizeHotelCatalogueCommand(request.OrderId, request.UserId), cancellationToken);
+            }
+            catch (Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException)
+            {
+                // The durable reservation now belongs to reconciliation, not an Outbox retry of Confirm.
+                _logger.LogWarning("Hotel finalization handed to reconciliation OrderId={OrderId} RequestId={RequestId}", request.OrderId, hotelRequest.Id);
+            }
             return Unit.Value;
         }
         await using var reservationLock = _catalogue is null ? null : await _catalogue.LockAsync("reservation:" + hotelRequest.Id, cancellationToken);
