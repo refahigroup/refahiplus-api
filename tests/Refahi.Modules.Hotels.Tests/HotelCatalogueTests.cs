@@ -452,6 +452,63 @@ public sealed class HotelCatalogueTests
         Assert.Equal(HotelExternalState.Confirmed, row.State); Assert.Equal("final", row.ReservationId);
     }
 
+    [Fact]
+    public async Task CrashAfterStartingConfirm_IsRecoveredAsUnknownWithoutRepeatingConfirm()
+    {
+        var state = new RequestHarness(); await state.Service.CreateAsync(state.Command, default);
+        var row = state.Requests.Rows.Single(); row.ConvertToOrder(Guid.NewGuid(), DateTime.UtcNow);
+        var external = state.Catalogue.Reservations.Single(); external.StartConfirm();
+        var operation = HotelExternalOperation.Start(external, HotelExternalOperationKind.Confirm); state.Catalogue.AddOperation(operation);
+        typeof(HotelExternalReservation).GetProperty(nameof(external.UpdatedAtUtc))!.SetValue(external, DateTime.UtcNow.AddMinutes(-2));
+        typeof(HotelExternalOperation).GetProperty(nameof(operation.StartedAtUtc))!.SetValue(operation, DateTime.UtcNow.AddMinutes(-2));
+        await state.Service.RecoverAsync(default);
+        Assert.Equal(HotelExternalState.Unknown, external.State); Assert.Equal(HotelExternalOperationState.Unknown, operation.State);
+        Assert.Equal(0, state.Provider.ConfirmCalls); Assert.Empty(state.Mediator.RefundKeys);
+    }
+
+    [Fact]
+    public async Task PaymentDiscoveredAfterLockExpiry_DoesNotConfirmOrRefundBlindly()
+    {
+        var state = new RequestHarness(); await state.Service.CreateAsync(state.Command, default);
+        var row = state.Requests.Rows.Single(); row.ConvertToOrder(Guid.NewGuid(), DateTime.UtcNow);
+        var external = state.Catalogue.Reservations.Single();
+        typeof(HotelExternalReservation).GetProperty(nameof(external.LockedUntilUtc))!.SetValue(external, DateTime.UtcNow.AddSeconds(-1));
+        await Assert.ThrowsAsync<HotelExternalOutcomeUnknownException>(() => state.Service.FinalizeAsync(row.OrderId.Value, row.UserId, default));
+        Assert.Equal(HotelExternalState.Unknown, external.State); Assert.Equal(0, state.Provider.ConfirmCalls); Assert.Empty(state.Mediator.RefundKeys);
+    }
+
+    [Fact]
+    public async Task ConcurrentPaidEvents_SendOnlyOneConfirm()
+    {
+        var state = new RequestHarness(); await state.Service.CreateAsync(state.Command, default);
+        var row = state.Requests.Rows.Single(); row.ConvertToOrder(Guid.NewGuid(), DateTime.UtcNow);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        state.Provider.OnConfirmAsync = async _ => { started.SetResult(); await release.Task; return new("final", "Confirmed"); };
+        var first = state.Service.FinalizeAsync(row.OrderId.Value, row.UserId, default); await started.Task;
+        var second = state.Service.FinalizeAsync(row.OrderId.Value, row.UserId, default); release.SetResult();
+        await Task.WhenAll(first, second); Assert.Equal(1, state.Provider.ConfirmCalls);
+        Assert.Equal(HotelExternalState.Confirmed, state.Catalogue.Reservations.Single().State);
+    }
+
+    [Fact]
+    public async Task OrderCreatedBeforeCrash_IsReattachedEvenAfterHoldExpiry()
+    {
+        var state = new RequestHarness(); await state.Service.CreateAsync(state.Command, default);
+        var row = state.Requests.Rows.Single(); var orderId = Guid.NewGuid();
+        state.Mediator.OrphanOrder = new(orderId, "TEST", row.UserId, row.TotalPrice, 0, 0, null, 0, row.TotalPrice,
+            "Pending", "Unpaid", "Hotel", row.Id, "HotelRequest", null, null, null, 0, [], DateTimeOffset.UtcNow);
+        typeof(HotelRequest).GetProperty(nameof(row.ExpireAt))!.SetValue(row, DateTime.UtcNow.AddSeconds(-1));
+        state.Catalogue.Reservations.Single().MarkUnknown();
+        var handler = new Refahi.Modules.Hotels.Application.HotelRequests.ConvertHotelRequestToOrder.ConvertHotelRequestToOrderCommandHandler(
+            state.Requests, new MemorySagas(), state.Mediator,
+            NullLogger<Refahi.Modules.Hotels.Application.HotelRequests.ConvertHotelRequestToOrder.ConvertHotelRequestToOrderCommandHandler>.Instance, state.Catalogue);
+        var result = await handler.Handle(new(row.Id, row.UserId, "convert"), default);
+        Assert.Equal(orderId, result.OrderId); Assert.Equal(orderId, row.OrderId);
+        Assert.Equal(Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.Enums.HotelRequestStatus.Expired, row.Status);
+        Assert.Equal(1, state.Provider.SubmitCalls);
+    }
+
     private sealed class RequestHarness
     {
         public MemoryCatalogue Catalogue { get; } = new();
@@ -533,12 +590,14 @@ public sealed class HotelCatalogueTests
         { SubmitCalls++; return OnSubmitAsync is null ? OnSubmit(request) : await OnSubmitAsync(request, ct); }
         public int ConfirmCalls { get; private set; }
         public Func<string, HotelConfirmResult> OnConfirm { get; set; } = _ => new("reservation-final", "Confirmed");
-        public Task<HotelConfirmResult> ConfirmAsync(string referenceId, CancellationToken ct) { ConfirmCalls++; return Task.FromResult(OnConfirm(referenceId)); }
+        public Func<string, Task<HotelConfirmResult>>? OnConfirmAsync { get; set; }
+        public async Task<HotelConfirmResult> ConfirmAsync(string referenceId, CancellationToken ct) { ConfirmCalls++; return OnConfirmAsync is null ? OnConfirm(referenceId) : await OnConfirmAsync(referenceId); }
     }
 
     private sealed class PaidMediator(MemoryRequests requests, List<Refahi.Modules.References.Application.Contracts.Dtos.CityDto>? referenceCities = null) : MediatR.IMediator
     {
         public string Payment { get; set; } = "Paid";
+        public Refahi.Modules.Orders.Application.Contracts.Dtos.OrderDto? OrphanOrder { get; set; }
         public List<string> RefundKeys { get; } = [];
         public Task<TResponse> Send<TResponse>(MediatR.IRequest<TResponse> query, CancellationToken ct = default)
         {
@@ -548,10 +607,12 @@ public sealed class HotelCatalogueTests
                 return Task.FromResult((TResponse)(object)(referenceCities ?? [city]).FirstOrDefault(x => x.Id == getCity.Id)!);
             if (query is Refahi.Modules.References.Application.Contracts.Queries.GetCitiesQuery)
                 return Task.FromResult((TResponse)(object)new Refahi.Modules.References.Application.Contracts.Queries.GetCitiesResponse(referenceCities ?? [city]));
+            if (query is Refahi.Modules.Orders.Application.Contracts.Queries.GetOrderByIdempotencyKeyQuery)
+                return Task.FromResult((TResponse)(object)OrphanOrder!);
             if (query is Refahi.Modules.Orders.Application.Contracts.Commands.CancelOrderCommand cancel)
             {
                 RefundKeys.Add(cancel.IdempotencyKey); Payment = "Refunded";
-                return Task.FromResult((TResponse)(object)new Refahi.Modules.Orders.Application.Contracts.Commands.CancelOrderResponse(cancel.OrderId, "Cancelled", "Refund"));
+                return Task.FromResult((TResponse)(object)new Refahi.Modules.Orders.Application.Contracts.Commands.CancelOrderResponse(cancel.OrderId, "Cancelled", "Refunded"));
             }
             if (query is not Refahi.Modules.Orders.Application.Contracts.Queries.GetOrderByIdQuery) throw new NotSupportedException("No refunds or new orders expected.");
             var request = requests.Rows.Single();

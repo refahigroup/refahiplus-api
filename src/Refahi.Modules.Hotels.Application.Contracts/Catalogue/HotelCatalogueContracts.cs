@@ -27,7 +27,7 @@ public sealed record HotelSubmitRequest(string ReferenceId, ProviderHotelOffer O
     IReadOnlyList<HotelGuest> Guests, string Phone, string? Email);
 public sealed record HotelSubmitResult(string ReferenceId, long SupplyPriceMinor, long FeeMinor, DateTime LockedUntilUtc,
     string Snapshot);
-public sealed record HotelConfirmResult(string ReservationId, string Status);
+public sealed record HotelConfirmResult(string ReservationId, string Status, string? Snapshot = null);
 public enum HotelInquiryState { Unsupported, Pending, Reserved, Confirmed, Rejected, Cancelled, Unknown }
 public sealed record HotelInquiryResult(HotelInquiryState State, string? ReservationId = null,
     DateTime? LockedUntilUtc = null, long? SupplyPriceMinor = null, long? FeeMinor = null,

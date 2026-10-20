@@ -84,6 +84,6 @@ public sealed class LamasooHotelProvider(LamasooApiClient api, IOptions<LamasooO
         var result = await api.SendAsync<LamasooConfirmResponse>(HttpMethod.Post, "booking/async/booking_confirm", new { reference_id = referenceId }, true, ct);
         if (result.Status != "hotel-confirmed" || string.IsNullOrWhiteSpace(result.ReservationId))
             throw new HotelExternalOutcomeUnknownException("تأیید نهایی رزرو نیاز به بررسی دارد.");
-        return new(result.ReservationId, "Confirmed");
+        return new(result.ReservationId, "Confirmed", JsonSerializer.Serialize(result, LamasooApiClient.Json));
     }
 }

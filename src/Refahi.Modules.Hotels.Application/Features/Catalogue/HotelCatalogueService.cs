@@ -156,7 +156,8 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
         {
             if (existing.RequestFingerprint != hash) throw new HotelCatalogueConflictException("کلید تکرارپذیری با اطلاعات دیگری استفاده شده است.");
             var known = await repository.ReservationAsync(existing.Id, ct);
-            return Response(existing, known);
+            var order = existing.OrderId is Guid orderId ? await mediator.Send(new GetOrderByIdQuery(orderId, existing.UserId, "User"), ct) : null;
+            return Response(existing, known, order?.PaymentState ?? "Unpaid", order?.CanPay ?? true);
         }
         var snapshot = await ValidOfferAsync(command.OfferToken, ct);
         var provider = providers.Get(snapshot.Provider);
@@ -289,7 +290,7 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
             var confirmed = await providers.Get(reservation.Provider).ConfirmAsync(reservation.ReferenceId, ct);
             if (confirmed.Status != "Confirmed" || string.IsNullOrWhiteSpace(confirmed.ReservationId))
                 throw new HotelExternalOutcomeUnknownException("پاسخ تأیید رزرو معتبر نیست.");
-            operation.Finish(HotelExternalOperationState.Succeeded, Serialize(confirmed));
+            operation.Finish(HotelExternalOperationState.Succeeded, confirmed.Snapshot ?? Serialize(confirmed));
             reservation.Confirm(confirmed.ReservationId); request.MarkProviderConfirmed(confirmed.ReservationId, DateTime.UtcNow); request.Complete(DateTime.UtcNow);
             if (saga is not null) { saga.MarkProviderBookingConfirmed(DateTime.UtcNow); saga.Complete(DateTime.UtcNow); }
             await repository.SaveAsync(ct);
@@ -304,11 +305,11 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
             throw new HotelExternalOutcomeUnknownException("وضعیت رزرو نیاز به پیگیری دارد.");
         }
     }
-    private CreateHotelRequestResponse Response(HotelRequest request, HotelExternalReservation? reservation = null)
+    private CreateHotelRequestResponse Response(HotelRequest request, HotelExternalReservation? reservation = null, string payment = "Unpaid", bool orderCanPay = true)
     {
-        var status = PublicStatus(request, reservation, "Unpaid");
+        var status = PublicStatus(request, reservation, payment);
         return new(request.Id, request.Status.ToString(), request.ExpireAt, request.TotalPrice, request.Currency,
-            status, CanProceed(request, reservation));
+            status, orderCanPay && payment is not ("Paid" or "Refunded") && CanProceed(request, reservation));
     }
     internal static void ValidateTravel(HotelTravel travel)
     {

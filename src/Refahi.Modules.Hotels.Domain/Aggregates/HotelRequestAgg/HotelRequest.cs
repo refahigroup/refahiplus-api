@@ -163,6 +163,16 @@ public sealed class HotelRequest
         UpdatedAt = nowUtc;
     }
 
+    public void RecoverExistingOrderLink(Guid orderId, DateTime nowUtc)
+    {
+        if (orderId == Guid.Empty || OrderId.HasValue && OrderId != orderId)
+            throw new DomainException("ارتباط سفارش با درخواست معتبر نیست.");
+        OrderId = orderId;
+        if (Status == HotelRequestStatus.Created)
+            Status = ExpireAt <= nowUtc ? HotelRequestStatus.Expired : HotelRequestStatus.ConvertedToOrder;
+        UpdatedAt = nowUtc;
+    }
+
     public void MarkProviderConfirmed(string providerBookingCode, DateTime nowUtc)
     {
         if (

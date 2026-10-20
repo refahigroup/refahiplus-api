@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Refahi.Modules.Hotels.Application.Contracts.Catalogue;
 using Refahi.Modules.Hotels.Domain.Aggregates.Catalogue;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
+using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg.Enums;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.Enums;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
@@ -42,7 +43,7 @@ public sealed partial class HotelCatalogueService
         var order = request.OrderId is Guid orderId ? await mediator.Send(new GetOrderByIdQuery(orderId, request.UserId, "User"), ct) : null;
         var payment = order?.PaymentState ?? "Unpaid";
         return new(request.Id, request.OrderId, payment, PublicStatus(request, reservation, payment),
-            payment != "Paid" && payment != "Refunded" && CanProceed(request, reservation), request.ExpireAt,
+            payment != "Paid" && payment != "Refunded" && (order is null || order.CanPay) && CanProceed(request, reservation), request.ExpireAt,
             reservation?.UpdatedAtUtc ?? request.UpdatedAt,
             payment == "Paid" && PublicStatus(request, reservation, payment) == "Confirmed" ? reservation?.ReservationId ?? request.ProviderBookingCode : null);
     }
@@ -59,8 +60,17 @@ public sealed partial class HotelCatalogueService
             var reservation = await repository.ReservationAsync(candidate.HotelRequestId, ct);
             var request = await requests.GetAsync(candidate.HotelRequestId, ct);
             if (reservation is null || request is null || reservation.NextRecoveryAtUtc > DateTime.UtcNow) continue;
-            var order = request.OrderId is Guid id ? await mediator.Send(new GetOrderByIdQuery(id, request.UserId, "User"), ct) : null;
-            var isPaid = order?.PaymentState == "Paid";
+            var order = request.OrderId is Guid id ? await mediator.Send(new GetOrderByIdQuery(id, request.UserId, "User"), ct)
+                : await mediator.Send(new GetOrderByIdempotencyKeyQuery($"hotel-request-order-{request.Id:N}", request.UserId, "Hotel"), ct);
+            if (!request.OrderId.HasValue && order is not null)
+            {
+                if (order.UserId != request.UserId || order.SourceModule != "Hotel" || order.SourceReferenceId != request.Id
+                    || order.ReferenceType != "HotelRequest" || order.FinalAmountMinor != request.TotalPrice)
+                    throw new InvalidOperationException("ارتباط سفارش بازیابی‌شده معتبر نیست.");
+                request.RecoverExistingOrderLink(order.Id, DateTime.UtcNow);
+            }
+            var isPaid = order?.PaymentState == "Paid" && order.SourceModule == "Hotel" && order.ReferenceType == "HotelRequest"
+                && order.SourceReferenceId == request.Id && order.FinalAmountMinor == request.TotalPrice;
             logger.LogInformation("Hotel recovery candidate RequestId={RequestId} OrderId={OrderId} Provider={Provider} State={State} IsPaid={IsPaid} AgeSeconds={AgeSeconds} Lane={Lane}",
                 request.Id, request.OrderId, reservation.Provider, reservation.State, isPaid,
                 (DateTime.UtcNow - reservation.UpdatedAtUtc).TotalSeconds, reconciliationOnly ? "inquiry" : "payment");
@@ -80,7 +90,8 @@ public sealed partial class HotelCatalogueService
             }
             if (reservation.State == HotelExternalState.Reserved)
             {
-                if (reservation.LockedUntilUtc <= DateTime.UtcNow)
+                if (reservation.PaymentBlocked) reservation.MarkUnknown(reservation.ReviewReason);
+                else if (reservation.LockedUntilUtc <= DateTime.UtcNow)
                 {
                     reservation.MarkUnknown("LOCK_EXPIRED_NEEDS_RECONCILIATION");
                 }
@@ -89,7 +100,15 @@ public sealed partial class HotelCatalogueService
             if (reservation.NoExternalLiability && reservation.State is HotelExternalState.Failed or HotelExternalState.Cancelled)
             {
                 if (isPaid) refunds.Add((order!.Id, request.Id));
-                else reservation.StopRecovery();
+                else
+                {
+                    if (order?.PaymentState == "Refunded")
+                    {
+                        var saga = await sagas.GetByHotelRequestIdAsync(request.Id, ct);
+                        saga?.Compensate("Orders confirmed original-allocation refund.", DateTime.UtcNow);
+                    }
+                    reservation.StopRecovery();
+                }
             }
             await repository.SaveAsync(ct);
         }
@@ -127,45 +146,54 @@ public sealed partial class HotelCatalogueService
         repository.AddOperation(attempt); await repository.SaveAsync(ct);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(TimeSpan.FromSeconds(Policy.InquiryTimeoutSeconds));
-        try
-        {
-            var result = await provider.InquireAsync(reservation.ReferenceId, deadline.Token);
-            attempt.Finish(HotelExternalOperationState.Succeeded, result.Snapshot);
-            if (result.State == HotelInquiryState.Unsupported) { reservation.ScheduleRecovery(300); return; }
-            if (!result.OperationCompleted || string.IsNullOrWhiteSpace(result.Snapshot)) return;
-            foreach (var previous in await repository.OperationsAsync(request.Id, ct))
-                if (previous.State == HotelExternalOperationState.Started)
-                    previous.Finish(HotelExternalOperationState.Unknown, errorCode: "RECOVERED_BY_INQUIRY");
-            if (result.State == HotelInquiryState.Confirmed && isPaid && !string.IsNullOrWhiteSpace(result.ReservationId))
-            {
-                reservation.ReconcileConfirmed(result.ReservationId, result.Snapshot);
-                request.MarkProviderConfirmed(result.ReservationId, DateTime.UtcNow); request.Complete(DateTime.UtcNow);
-                var saga = await sagas.GetByHotelRequestIdAsync(request.Id, ct);
-                if (saga is not null)
-                {
-                    saga.MarkPaid(request.OrderId!.Value, DateTime.UtcNow); saga.MarkProviderBookingStarted(DateTime.UtcNow);
-                    saga.MarkProviderBookingConfirmed(DateTime.UtcNow); saga.Complete(DateTime.UtcNow);
-                }
-            }
-            else if (result.State == HotelInquiryState.Reserved && result.SupplyPriceMinor is > 0 && result.FeeMinor is >= 0
-                && result.LockedUntilUtc > DateTime.UtcNow.AddSeconds(Policy.PaymentSafetySeconds)
-                && (!reservation.ConfirmationAttempted || result.SafeToConfirmAgain))
-            {
-                reservation.ReconcileReserved(result.SupplyPriceMinor.Value, result.FeeMinor.Value, result.LockedUntilUtc.Value, result.Snapshot, result.SafeToConfirmAgain);
-                if (result.SupplyPriceMinor > request.TotalPrice) reservation.BlockPayment("SUPPLY_EXCEEDS_SALE");
-                if (!request.OrderId.HasValue) request.SetPayableUntil(result.LockedUntilUtc.Value.AddSeconds(-Policy.PaymentSafetySeconds));
-            }
-            else if (result.State is HotelInquiryState.Rejected or HotelInquiryState.Cancelled && result.NoExternalLiability)
-            {
-                reservation.ReconcileNoLiability(result.State == HotelInquiryState.Cancelled, result.Snapshot);
-                if (request.Status is not (HotelRequestStatus.Completed or HotelRequestStatus.ProviderConfirmed)) request.MarkFailed(DateTime.UtcNow);
-            }
-        }
+        HotelInquiryResult result;
+        try { result = await provider.InquireAsync(reservation.ReferenceId, deadline.Token); }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
             attempt.Finish(HotelExternalOperationState.Unknown, errorCode: "INQUIRY_UNKNOWN");
             reservation.ScheduleRecovery(60);
             logger.LogWarning("Hotel inquiry incomplete RequestId={RequestId} ErrorType={ErrorType}", request.Id, ex.GetType().Name);
+            return;
+        }
+        if (result.Snapshot is not null)
+        {
+            try { using var evidence = System.Text.Json.JsonDocument.Parse(result.Snapshot); }
+            catch (System.Text.Json.JsonException) { attempt.Finish(HotelExternalOperationState.Unknown, errorCode: "INQUIRY_MALFORMED"); return; }
+        }
+        attempt.Finish(HotelExternalOperationState.Succeeded, result.Snapshot);
+        if (result.State == HotelInquiryState.Unsupported) { reservation.ScheduleRecovery(300); return; }
+        if (!result.OperationCompleted || string.IsNullOrWhiteSpace(result.Snapshot)) return;
+        foreach (var previous in await repository.OperationsAsync(request.Id, ct))
+            if (previous.State == HotelExternalOperationState.Started)
+                previous.Finish(HotelExternalOperationState.Unknown, errorCode: "RECOVERED_BY_INQUIRY");
+        if (result.State == HotelInquiryState.Confirmed && isPaid && !string.IsNullOrWhiteSpace(result.ReservationId))
+        {
+            var saga = await sagas.GetByHotelRequestIdAsync(request.Id, ct);
+            if (request.Status is not (HotelRequestStatus.ConvertedToOrder or HotelRequestStatus.ProviderConfirmed or HotelRequestStatus.Completed)
+                || saga?.Status is HotelBookingSagaStatus.Failed or HotelBookingSagaStatus.Compensated)
+            { reservation.BlockPayment("LOCAL_STATE_REQUIRES_REVIEW"); return; }
+            reservation.ReconcileConfirmed(result.ReservationId, result.Snapshot);
+            request.MarkProviderConfirmed(result.ReservationId, DateTime.UtcNow); request.Complete(DateTime.UtcNow);
+            if (saga is not null)
+            {
+                saga.MarkPaid(request.OrderId!.Value, DateTime.UtcNow); saga.MarkProviderBookingStarted(DateTime.UtcNow);
+                saga.MarkProviderBookingConfirmed(DateTime.UtcNow); saga.Complete(DateTime.UtcNow);
+            }
+        }
+        else if (result.State == HotelInquiryState.Reserved && result.SupplyPriceMinor is > 0 && result.FeeMinor is >= 0 && result.FeeMinor <= result.SupplyPriceMinor
+            && result.LockedUntilUtc > DateTime.UtcNow.AddSeconds(Policy.PaymentSafetySeconds)
+            && (!reservation.ConfirmationAttempted || result.SafeToConfirmAgain))
+        {
+            if (request.Status is not (HotelRequestStatus.Created or HotelRequestStatus.ConvertedToOrder))
+            { reservation.BlockPayment("LOCAL_STATE_REQUIRES_REVIEW"); return; }
+            reservation.ReconcileReserved(result.SupplyPriceMinor.Value, result.FeeMinor.Value, result.LockedUntilUtc.Value, result.Snapshot, result.SafeToConfirmAgain);
+            if (result.SupplyPriceMinor > request.TotalPrice) reservation.BlockPayment("SUPPLY_EXCEEDS_SALE");
+            if (!request.OrderId.HasValue) request.SetPayableUntil(result.LockedUntilUtc.Value.AddSeconds(-Policy.PaymentSafetySeconds));
+        }
+        else if (result.State is HotelInquiryState.Rejected or HotelInquiryState.Cancelled && result.NoExternalLiability)
+        {
+            reservation.ReconcileNoLiability(result.State == HotelInquiryState.Cancelled, result.Snapshot);
+            if (request.Status is not (HotelRequestStatus.Completed or HotelRequestStatus.ProviderConfirmed)) request.MarkFailed(DateTime.UtcNow);
         }
     }
 }

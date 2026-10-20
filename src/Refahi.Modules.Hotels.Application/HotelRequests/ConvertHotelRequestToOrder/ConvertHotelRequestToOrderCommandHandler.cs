@@ -9,6 +9,7 @@ using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.Enums;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
+using Refahi.Modules.Orders.Application.Contracts.Queries;
 
 namespace Refahi.Modules.Hotels.Application.HotelRequests.ConvertHotelRequestToOrder;
 
@@ -54,6 +55,16 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
             return new(hotelRequest.Id, existingOrderId, null, hotelRequest.TotalPrice, hotelRequest.Status.ToString());
         if (hotelRequest.ProviderName == "Lamasoo")
         {
+            var prior = await _mediator.Send(new GetOrderByIdempotencyKeyQuery($"hotel-request-order-{hotelRequest.Id:N}", request.UserId, "Hotel"), cancellationToken);
+            if (prior is not null)
+            {
+                if (prior.UserId != hotelRequest.UserId || prior.SourceReferenceId != hotelRequest.Id || prior.ReferenceType != "HotelRequest"
+                    || prior.SourceModule != "Hotel" || prior.FinalAmountMinor != hotelRequest.TotalPrice)
+                    throw new InvalidOperationException("سفارش قبلی با درخواست هتل مطابقت ندارد.");
+                hotelRequest.RecoverExistingOrderLink(prior.Id, now);
+                await _repository.SaveChangesAsync(cancellationToken);
+                return new(hotelRequest.Id, prior.Id, prior.OrderNumber, prior.FinalAmountMinor, hotelRequest.Status.ToString());
+            }
             var reservation = _catalogue is null ? null : await _catalogue.ReservationAsync(hotelRequest.Id, cancellationToken);
             if (reservation?.State != Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.HotelExternalState.Reserved
                 || reservation.PaymentBlocked || reservation.NoExternalLiability || reservation.SupplyPriceMinor > hotelRequest.TotalPrice
@@ -105,28 +116,6 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
         if (hotelRequest.Status == HotelRequestStatus.Failed)
             throw new InvalidOperationException("درخواست هتل ناموفق شده است");
 
-        if (hotelRequest.OrderId.HasValue)
-        {
-            saga.MarkOrderCreated(hotelRequest.OrderId.Value, now);
-            if (hotelRequest.Status == HotelRequestStatus.ConvertedToOrder)
-                saga.MarkPaymentPending(now);
-            await _repository.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Hotel request order conversion replayed. SagaId={SagaId}, HotelRequestId={HotelRequestId}, OrderId={OrderId}",
-                saga.SagaId,
-                hotelRequest.Id,
-                hotelRequest.OrderId.Value
-            );
-
-            return new ConvertHotelRequestToOrderResponse(
-                hotelRequest.Id,
-                hotelRequest.OrderId.Value,
-                null,
-                hotelRequest.TotalPrice,
-                hotelRequest.Status.ToString()
-            );
-        }
 
         CreateOrderResponse order;
         try
