@@ -1,0 +1,85 @@
+﻿Id,Name,NameEn,CountryCode,ProvinceId,ProvinceName,LocationKind
+1320,کتالم,,IR,27,مازندران,destination
+1321,ترابزون,Trabzon,TR,32,Trabzon,city
+1322,ازمیر,Izmir,TR,33,İzmir Province,city
+1323,اربیل,Erbil,IQ,34,Erbil,city
+1324,باکو,Baku,AZ,35,Baki,city
+1325,مسقط,Muscat,OM,36,Muscat,city
+1326,ابوظبی,Abu Dhabi,AE,37,Abu Dhabi,city
+1327,بانکوک,Bangkok,TH,38,Bangkok,city
+1328,کوالالامپور,Kuala Lumpur,MY,39,Kuala Lumpur,city
+1329,پاتایا,Pattaya,TH,40,Chon Buri,city
+1330,پوکت,Phuket,TH,41,Phuket,city
+1331,باتومی,Batumi,GE,42,Adjara,city
+1332,ایروان,Yerevan,AM,43,Yerevan,city
+1333,وان,Van,TR,44,Van,city
+1334,تفلیس,Tbilisi,GE,45,Tbilisi,city
+1335,استانبول,Istanbul,TR,46,Istanbul,city
+1336,دوبی,Dubai,AE,47,Dubai,city
+1337,کاظمین,Kadhimiya,IQ,48,Baghdad,destination
+1338,کربلا,Karbala,IQ,49,Karbala,city
+1339,نجف,Najaf,IQ,50,Najaf,city
+1340,جاده آب پری ، نور,,IR,27,مازندران,destination
+1341,صدوق,,IR,31,یزد,destination
+1342,بختگان,,IR,17,فارس,destination
+1343,ایج,Ij,IR,17,فارس,city
+1344,خرم بید,,IR,17,فارس,destination
+1345,بویین و میاندشت,,IR,4,اصفهان,destination
+1346,سعادت شهر,Sa'adat Shahr,IR,17,فارس,city
+1347,بوانات,,IR,17,فارس,destination
+1348,پاسارگاد,,IR,17,فارس,destination
+1349,سرچهان,,IR,17,فارس,destination
+1350,سواد کوه,,IR,27,مازندران,destination
+1351,فاروق,Faruq,IR,17,فارس,city
+1352,شاهدیه,,IR,31,یزد,destination
+1353,سیراف,,IR,7,بوشهر,destination
+1354,مادر سلیمان,Madar Soleyman,IR,17,فارس,city
+1355,شفت,Shaft,IR,25,گیلان,city
+1356,خزر آباد,,IR,27,مازندران,destination
+1357,کیار,,IR,9,چهارمحال و بختیاری,destination
+1358,تنگستان,,IR,7,بوشهر,destination
+1359,جزیره هرمز,Hormuz Island,IR,29,هرمزگان,destination
+1360,چالکرود,Chalakrud,IR,27,مازندران,destination
+1361,خزرشهر,Khazar Shahr,IR,27,مازندران,destination
+1362,ابیانه,Abyaneh,IR,4,اصفهان,destination
+1363,چمخاله,Chamkhaleh,IR,25,گیلان,city
+1364,سریزد,Saryazd,IR,31,یزد,destination
+1365,کامفیروز,Kamfiruz,IR,17,فارس,destination
+1366,آغاجاری,Aghajari,IR,13,خوزستان,city
+1367,چلندر,Chalandar,IR,27,مازندران,city
+1368,آنتالیا,Antalya,TR,51,Antalya,city
+1369,لندن,London,GB,52,England,city
+1370,مسکو,Moscow,RU,53,Moscow,city
+1371,دوحه,Doha,QA,54,Baladiyat ad Dawhah,city
+1372,آنکارا,Ankara,TR,55,Ankara,city
+1373,تازه كندانگوت,Angut,IR,3,اردبیل,city
+1374,ابريشم,Abrisham,IR,4,اصفهان,city
+1375,بوئین ومیاندشت,Miandasht,IR,4,اصفهان,city
+1376,خسروشهر,Khosrowshahr,IR,1,آذربایجان شرقی,city
+1377,تجريش,Tajrish,IR,8,تهران,city
+1378,فرادنبه,Faradonbeh,IR,9,چهارمحال و بختیاری,city
+1379,نقنه,Naqneh,IR,9,چهارمحال و بختیاری,city
+1380,اشكنان,Eshkanan,IR,17,فارس,city
+1381,افزر,Efzar,IR,17,فارس,city
+1382,ايزدخواست,Izad Khvast,IR,17,فارس,city
+1383,آباده طشك,Abadeh Tashk,IR,17,فارس,city
+1384,بهمن,Bahman,IR,17,فارس,city
+1385,جنت شهر,Jannat Shahr,IR,17,فارس,city
+1386,خومه زار,Khumeh Zar,IR,17,فارس,city
+1387,دوبرجي,Do Borji,IR,17,فارس,city
+1388,دوزه,Duzeh,IR,17,فارس,city
+1389,رامجرد,Ramjerd,IR,17,فارس,city
+1390,رونيز,Runiz,IR,17,فارس,city
+1391,زاهدشهر,Zahed Shahr,IR,17,فارس,city
+1392,شهر جديد صدرا,Shahr-e Sadra,IR,17,فارس,city
+1393,شهرپير,Shahr-e Pir,IR,17,فارس,city
+1394,صغاد,Soghad,IR,17,فارس,city
+1395,صفاشهر,Safashahr,IR,17,فارس,city
+1396,قادرآباد,Qaderabad,IR,17,فارس,city
+1397,قائمیه,Qa'emiyeh,IR,17,فارس,city
+1398,كارزین,Karzin,IR,17,فارس,city
+1399,بغداد,Baghdad,IQ,48,Baghdad,city
+1400,موصل,Mosul,IQ,56,Nineveh,city
+1401,بصره,Basrah,IQ,57,Basra,city
+1402,فاماگوستا,Famagusta,CY,58,Ammochostos,city
+1403,کایرنیا,Kyrenia,CY,59,Keryneia,city

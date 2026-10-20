@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-19",
+  "unit_tests_passed": 22,
+  "postgresql_version": 17,
+  "integration_result": "passed",
+  "cases": [
+    "complete fresh installation",
+    "V1 and V2 complete upgrade",
+    "V3 direct upgrade",
+    "V4 complete/direct replay",
+    "all ten user-confirmed mappings",
+    "V3 city IDs and native IDs preserved",
+    "Iran province separation",
+    "one synthetic province per foreign country",
+    "province before-images and FK/logical reference migration",
+    "disabled identity mapping remains disabled",
+    "sequence high-water mark",
+    "snapshot drift rollback",
+    "city name collision rollback",
+    "existing mapping conflict rollback",
+    "new city ID collision rollback"
+  ],
+  "files": [
+    {
+      "file": "2026-10-19-v4-complete.sql",
+      "sha256": "a1764667ff7b403ad81f1a2347c7cc71cc533263cff7077db49afd1172844076"
+    },
+    {
+      "file": "2026-10-19-v4-upgrade.sql",
+      "sha256": "b7dccf1bb0f298282ecd5357a8c3cf9ab54a808e5ff637e272eeeec6a31da996"
+    }
+  ],
+  "source_hashes_verified": true,
+  "production_database_modified": false,
+  "runtime_changes": false
+}
