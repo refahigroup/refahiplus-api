@@ -23,6 +23,72 @@ namespace Refahi.Modules.Media.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Refahi.Modules.Media.Domain.Aggregates.ExternalMediaOrigin", b =>
+                {
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Module")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("SourceId", "Module", "Provider");
+
+                    b.HasIndex("Provider");
+
+                    b.HasIndex("Module", "Provider");
+
+                    b.ToTable("external_source_origins", "media");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Media.Domain.Aggregates.ExternalMediaSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("LastAccessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RefreshAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceUrl")
+                        .IsRequired()
+                        .HasMaxLength(8192)
+                        .HasColumnType("character varying(8192)");
+
+                    b.Property<DateTime>("StateChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("FileName")
+                        .IsUnique();
+
+                    b.ToTable("external_sources", "media");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Media.Domain.Aggregates.MediaAsset", b =>
                 {
                     b.Property<Guid>("Id")
@@ -89,6 +155,15 @@ namespace Refahi.Modules.Media.Infrastructure.Migrations
                         .HasDatabaseName("ix_media_assets_entity");
 
                     b.ToTable("media_assets", "media");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Media.Domain.Aggregates.ExternalMediaOrigin", b =>
+                {
+                    b.HasOne("Refahi.Modules.Media.Domain.Aggregates.ExternalMediaSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

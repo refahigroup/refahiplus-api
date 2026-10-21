@@ -48,7 +48,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
                 SourceItemId: i.SourceItemId,
                 CategoryCode: i.CategoryCode,
                 Tags: i.Tags,
-                MetadataJson: i.MetadataJson,
+                MetadataJson: order.SourceModule == "Hotel" ? Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelPublicMetadata.WithoutExternalImages(i.MetadataJson) : i.MetadataJson,
                 DeliveryMethod: (short)i.DeliveryMethod
             ))
             .ToList();

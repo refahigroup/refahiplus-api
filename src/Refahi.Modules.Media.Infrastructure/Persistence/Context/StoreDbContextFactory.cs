@@ -10,7 +10,7 @@ public class StoreDbContextFactory : IDesignTimeDbContextFactory<MediaDbContext>
         var optionsBuilder = new DbContextOptionsBuilder<MediaDbContext>();
         optionsBuilder.UseNpgsql(
             "Host=localhost;Database=refahi;Username=refahi;Password=refahi",
-            o => o.MigrationsHistoryTable("__EFMigrationsHistory", "store")
+            o => o.MigrationsHistoryTable("__EFMigrationsHistory", "media")
         );
 
         return new MediaDbContext(optionsBuilder.Options);
