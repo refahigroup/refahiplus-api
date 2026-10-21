@@ -1,3 +1,4 @@
+using Refahi.Modules.Cinema.Application.Features.Catalog;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -13,7 +14,7 @@ using Refahi.Modules.Orders.Application.Contracts.Queries;
 namespace Refahi.Modules.Cinema.Application.Features.Orders;
 
 public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinemaProviderFactory factory,
-    ICinemaMutationLock gate, IMediator mediator, IOptions<CinemaOptions> options, ILogger<CinemaOrderService> logger)
+    ICinemaMutationLock gate, IMediator mediator, IOptions<CinemaOptions> options, ILogger<CinemaOrderService> logger, CinemaMediaPublisher? media = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public static CinemaSeatMap Snapshot(CinemaOrder order) => JsonSerializer.Deserialize<CinemaSeatMap>(order.SnapshotJson, Json)!;
@@ -39,6 +40,11 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
         order.DiscountMinor, order.FeeMinor, order.TaxMinor, Snapshot(order), SeatIds(order), order.TicketCode, order.SamfaCode,
         order.IsPayable(DateTimeOffset.UtcNow) && order.OrderId == null, order.HasTicket,
         order.CancellationStatus == "None" && order.IssuanceStatus is "Reserved" or "Issued" && (order.PaymentStatus != "Paid" || cancellationEnabled), order.Message);
+    private async Task<CinemaOrderView> PublicViewAsync(CinemaOrder order, CancellationToken ct)
+    {
+        var view = View(order, options.Value.CancellationEnabled);
+        return view with { Snapshot = await (media ?? new CinemaMediaPublisher()).PublishAsync(view.Snapshot, order.ProviderKey, ct) };
+    }
     public async Task<CinemaOrderView> GetAsync(Guid id, Guid user, CancellationToken ct)
     {
         var order = await Owned(id, user, ct);
@@ -50,7 +56,7 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
             if (financial?.PaymentState == "Refunded" && order.PaymentStatus != "Refunded")
             { await using var lease = await gate.AcquireAsync(id, ct); order.MarkRefunded(); await repository.SaveAsync(ct); }
         }
-        return View(order, options.Value.CancellationEnabled);
+        return await PublicViewAsync(order, ct);
     }
     public async Task<CinemaOrderView> ReserveAsync(Guid user, string schedule, string[] seats, string key, CancellationToken ct)
     {
@@ -60,7 +66,7 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
         var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(schedule + ":" + string.Join(",", seats.Order()))));
         var old = await repository.FindAsync(user, key, ct);
         if (old != null)
-        { if (old.Fingerprint != fingerprint) throw new CinemaException("کلید درخواست قبلاً برای سفارش دیگری استفاده شده است"); return View(old, options.Value.CancellationEnabled); }
+        { if (old.Fingerprint != fingerprint) throw new CinemaException("کلید درخواست قبلاً برای سفارش دیگری استفاده شده است"); return await PublicViewAsync(old, ct); }
         var customer = await mediator.Send(new GetUserCommerceContactQuery(user), ct);
         if (customer?.MobileNumber is not string mobile || !System.Text.RegularExpressions.Regex.IsMatch(mobile, "^09[0-9]{9}$"))
             throw new CinemaException("شماره همراه معتبر در حساب کاربری ثبت نشده است", 400);
@@ -93,7 +99,7 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
             else order.RequireReview("پاسخ رزرو نیازمند بررسی است"); await repository.SaveAsync(CancellationToken.None);
             logger.LogWarning("Cinema reservation requires attention. CinemaOrderId={CinemaOrderId} Outcome={Outcome}", order.Id, attempt.Outcome);
         }
-        return View(order, options.Value.CancellationEnabled);
+        return await PublicViewAsync(order, ct);
     }
     public async Task<CinemaCheckoutResult> CheckoutAsync(Guid id, Guid user, long version, long amount, CancellationToken ct)
     {
@@ -122,7 +128,7 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
         }
         await using var lease = await gate.AcquireAsync(id, ct);
         await CancelProviderAsync(order, ct);
-        return View(order, options.Value.CancellationEnabled);
+        return await PublicViewAsync(order, ct);
     }
     public async Task<bool> CancelProviderAsync(CinemaOrder order, CancellationToken ct)
     {

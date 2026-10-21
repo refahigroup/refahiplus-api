@@ -10,11 +10,38 @@ using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg.Enums;
 using Refahi.Modules.Orders.Application.Contracts.Payments;
+using Refahi.Modules.Media.Application.Contracts.External;
 
 namespace Refahi.Modules.Hotels.Tests;
 
 public sealed class HotelCatalogueTests
 {
+    [Fact]
+    public async Task LamasooSearchDetailsOfferAndQuotePublishImagesThroughMedia()
+    {
+        const string source = "https://s3.ir-thr-at1.arvanstorage.com/lamasoo-test/hotel.webp";
+        var offer = Offer() with { Hotel = Offer().Hotel with { Images = [source] } };
+        var provider = new FakeProvider("Lamasoo", [offer]); var repo = new MemoryCatalogue(); var media = new ImageRegistry();
+        var service = new HotelCatalogueService(repo, new Registry([provider]), new HotelSalePriceCalculator(), null!, null!,
+            new PaidMediator(new MemoryRequests()), NullLogger<HotelCatalogueService>.Instance, media: media);
+        var search = Assert.Single((await service.SearchAsync(new(1, Travel), default)).Offers);
+        var details = await service.DetailsAsync(search.HotelKey, Travel, default);
+        var stored = await service.OfferAsync(search.OfferToken, default);
+        var quote = await service.QuoteAsync(search.OfferToken, Travel, default);
+        Assert.All(new[] { search.Images, details.Images, stored.Images, quote.Images }, images => Assert.Equal([ImageRegistry.PublicUrl], images));
+        Assert.All(media.Origins, origin => Assert.Equal(new ExternalMediaOrigin("Hotels", "Lamasoo"), origin));
+        Assert.Contains(source, provider.Offers[0].Hotel.Images);
+    }
+
+    private sealed class ImageRegistry : IExternalMediaService
+    {
+        public const string PublicUrl = "https://media.refahi.test/media/external/11111111111111111111111111111111";
+        public List<ExternalMediaOrigin?> Origins = [];
+        public Task<string?> GetPublicUrlAsync(string sourceUrl, ExternalMediaOrigin? origin = null, CancellationToken ct = default)
+            => throw new InvalidOperationException("Use batch registration.");
+        public Task<IReadOnlyList<string>> GetPublicUrlsAsync(IEnumerable<string> urls, ExternalMediaOrigin? origin = null, CancellationToken ct = default)
+        { Origins.Add(origin); return Task.FromResult<IReadOnlyList<string>>(urls.Distinct().Select(_ => PublicUrl).ToArray()); }
+    }
     private static HotelTravel Travel => new(DateOnly.FromDateTime(DateTime.Now.AddDays(3)), DateOnly.FromDateTime(DateTime.Now.AddDays(5)), [new(2, [])]);
     private static ProviderHotelOffer Offer(string id = "1", long price = 1000) => new(new(id, "1", "Same Hotel", "Address", 4, []), "1", "Room", "rate", "BedBreakfast", 2, price, 900, 10);
 

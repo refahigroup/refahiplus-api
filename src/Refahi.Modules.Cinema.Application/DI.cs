@@ -18,6 +18,7 @@ public static class DI
     {
         services.Configure<CinemaOptions>(configuration.GetSection("Cinema"));
         services.AddScoped<CinemaOrderService>();
+        services.AddScoped<Features.Catalog.CinemaMediaPublisher>();
         services.AddScoped<IOrderPaymentParticipant,CinemaPaymentParticipant>();
         services.AddScoped<IOrderCancellationParticipant,CinemaCancellationParticipant>();
         var assembly = typeof(DI).Assembly;
