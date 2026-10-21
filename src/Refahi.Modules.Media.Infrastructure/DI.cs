@@ -22,7 +22,10 @@ public static class DI
     {
         services.AddOptions<ExternalMediaOptions>().Bind(configuration.GetSection("ExternalMedia"))
             .Validate(x => Uri.TryCreate(x.PublicBaseUrl, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.IsLoopback)
-                && x.MaxImageBytes > 0 && x.MaxBytes > x.MaxImageBytes + 4096 && x.ConcurrentDownloads is > 0 and <= 16
+                && x.MaxImageBytes > 0 && x.MaxSourceBytes >= x.MaxImageBytes
+                && x.MaxSourceBytes <= 100 * 1024 * 1024 && x.MaxBytes > (long)x.MaxSourceBytes + x.MaxImageBytes + 8192
+                && x.MaxImageDimension is > 0 and <= 1600 && x.MaxSourcePixels is > 0 and <= 40_000_000
+                && x.ConcurrentDownloads is > 0 and <= 16
                 && x.QueueLimit > 0 && x.MaxEntries > 0 && x.MinFreeBytes >= 0 && x.FreshHours > 0 && x.SlidingExpirationHours > 0 && x.ActivityFlushMinutes > 0 && x.CleanupMinutes > 0 && x.QueueWaitSeconds > 0 && x.ConnectSeconds > 0 && x.DownloadSeconds > 0 && x.NegativeSeconds > 0 && !string.IsNullOrWhiteSpace(x.CachePath) && !PathsOverlap(x.CachePath, configuration["MediaStorage:BasePath"]), "تنظیمات کش مدیا معتبر نیست.").ValidateOnStart();
         services.AddScoped<ExternalMediaRegistry>();
         services.AddScoped<Refahi.Modules.Media.Application.Contracts.External.IExternalMediaService>(sp => sp.GetRequiredService<ExternalMediaRegistry>());
