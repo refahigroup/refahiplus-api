@@ -1,3 +1,4 @@
+using Refahi.Modules.Media.Application.Contracts.External;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -16,7 +17,7 @@ namespace Refahi.Modules.Hotels.Application.Features.Catalogue;
 
 public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repository, IHotelCatalogueProviderRegistry providers,
     IHotelSalePriceCalculator pricing, IHotelRequestRepository requests, IHotelBookingSagaRepository sagas,
-    IMediator mediator, ILogger<HotelCatalogueService> logger, IOptions<HotelLifecycleOptions>? lifecycle = null)
+    IMediator mediator, ILogger<HotelCatalogueService> logger, IOptions<HotelLifecycleOptions>? lifecycle = null, IExternalMediaService? media = null)
 {
     private HotelLifecycleOptions Policy => lifecycle?.Value ?? new();
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -76,6 +77,8 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
         var partial = results.Any(x => x.failed > 0);
         if (results.All(x => x.offers.Count == 0))
             return new([], partial, partial ? "بخشی از نتایج در دسترس نیست." : null);
+        if (media is not null)
+            foreach (var result in results) await media.GetPublicUrlsAsync(result.offers.SelectMany(x => x.Hotel.Images), new("Hotels", result.provider.Name), ct);
         var offers = new List<HotelOfferDto>();
         await using var held = await repository.LockAsync("catalogue", ct);
         foreach (var result in results)
@@ -89,7 +92,7 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
                 var listing = await repository.ListingAsync(query.ReferenceCityId, result.provider.Name, offer.Hotel.Id, offer.Hotel.CityId, ct);
                 var snapshot = HotelOfferSnapshot.Create(Convert.ToHexString(RandomNumberGenerator.GetBytes(24)), listing.HotelKey,
                     result.provider.Name, Serialize(offer), Serialize(query.Travel), DateTime.UtcNow.AddMinutes(20));
-                repository.AddOffer(snapshot); offers.Add(PublicOffer(snapshot, offer));
+                repository.AddOffer(snapshot); offers.Add(await PublicOfferAsync(snapshot, offer, ct));
             }
         }
         await repository.SaveAsync(ct);
@@ -112,18 +115,26 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
             catch (HotelCatalogueConflictException) { continue; }
             var snapshot = HotelOfferSnapshot.Create(Convert.ToHexString(RandomNumberGenerator.GetBytes(24)), key, provider.Name,
                 Serialize(offer), Serialize(travel), DateTime.UtcNow.AddMinutes(20));
-            repository.AddOffer(snapshot); offers.Add(PublicOffer(snapshot, offer));
+            repository.AddOffer(snapshot); offers.Add(await PublicOfferAsync(snapshot, offer, ct));
         }
         await repository.SaveAsync(ct);
-        return new(key, hotel.Name, hotel.Address, hotel.Description, hotel.Stars, hotel.Images, hotel.Facilities ?? [], hotel.Policies,
+        return new(key, hotel.Name, hotel.Address, hotel.Description, hotel.Stars, await PublishImagesAsync(provider.Name, hotel.Images, ct), hotel.Facilities ?? [], hotel.Policies,
             new(offers, false, null), hotel.CheckInTime, hotel.CheckOutTime);
     }
     public async Task<HotelOfferDto> OfferAsync(string token, CancellationToken ct)
     {
-        var snapshot = await ValidOfferAsync(token, ct); return PublicOffer(snapshot, Read<ProviderHotelOffer>(snapshot.OfferJson));
+        var snapshot = await ValidOfferAsync(token, ct); return await PublicOfferAsync(snapshot, Read<ProviderHotelOffer>(snapshot.OfferJson), ct);
     }
-    private HotelOfferDto PublicOffer(HotelOfferSnapshot snapshot, ProviderHotelOffer offer) => new(snapshot.HotelKey, snapshot.Token,
-        offer.Hotel.Name, offer.Hotel.Address, offer.Hotel.Stars, offer.Hotel.Images, offer.RoomName, offer.BoardType, offer.Capacity,
+    private readonly Dictionary<string, IReadOnlyList<string>> publishedImages = new(StringComparer.Ordinal);
+    private async Task<IReadOnlyList<string>> PublishImagesAsync(string provider, IEnumerable<string> images, CancellationToken ct)
+    {
+        if (media is null) return [];
+        var list = images.ToArray(); var key = provider + "\n" + string.Join("\n", list);
+        if (!publishedImages.TryGetValue(key, out var result)) publishedImages[key] = result = await media.GetPublicUrlsAsync(list, new("Hotels", provider), ct);
+        return result;
+    }
+    private async Task<HotelOfferDto> PublicOfferAsync(HotelOfferSnapshot snapshot, ProviderHotelOffer offer, CancellationToken ct) => new(snapshot.HotelKey, snapshot.Token,
+        offer.Hotel.Name, offer.Hotel.Address, offer.Hotel.Stars, await PublishImagesAsync(snapshot.Provider, offer.Hotel.Images, ct), offer.RoomName, offer.BoardType, offer.Capacity,
         pricing.CalculateFinalPrice(offer), snapshot.ExpiresAtUtc, providers.Get(snapshot.Provider).Capabilities.Purchase
             && providers.Get(snapshot.Provider).IsOfferEligible(offer, Read<HotelTravel>(snapshot.TravelJson))
             && (snapshot.Provider != "Lamasoo" || offer.SupplyPriceMinor <= pricing.CalculateFinalPrice(offer)));
@@ -138,7 +149,7 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
         offer = await providers.Get(original.Provider).ValidateOfferAsync(offer, travel, ct);
         var snapshot = HotelOfferSnapshot.Create(Convert.ToHexString(RandomNumberGenerator.GetBytes(24)), original.HotelKey, original.Provider,
             Serialize(offer), Serialize(travel), DateTime.UtcNow.AddMinutes(20));
-        repository.AddOffer(snapshot); await repository.SaveAsync(ct); return PublicOffer(snapshot, offer);
+        repository.AddOffer(snapshot); await repository.SaveAsync(ct); return await PublicOfferAsync(snapshot, offer, ct);
     }
     private async Task<HotelOfferSnapshot> ValidOfferAsync(string token, CancellationToken ct)
     {

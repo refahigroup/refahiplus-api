@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -207,7 +207,7 @@ public sealed class ConvertHotelRequestToOrderCommandHandler
                 native_room_id = request.NativeRoomId,
                 offer_token = request.OfferToken,
                 search_criteria_snapshot = request.SearchCriteriaSnapshot,
-                selected_hotel_snapshot = request.SelectedHotelSnapshot,
+                selected_hotel_snapshot = HotelPublicMetadata.WithoutExternalImages(request.SelectedHotelSnapshot),
                 selected_room_snapshot = request.SelectedRoomSnapshot,
                 breakdown = request.Breakdown,
                 fees = request.Fees,
