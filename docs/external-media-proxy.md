@@ -30,10 +30,14 @@ CacheEnabled=false retains bounded proxy streaming without disk writes. A URL is
 AllowedHosts is a **flat list of exact hostnames**, selected solely by the source URL. Example:
 
 ```json
-"AllowedHosts": ["store.snapptrip.com"]
+"AllowedHosts": ["store.snapptrip.com", "s3.ir-thr-at1.arvanstorage.com"]
 ```
 
 Remove the previous provider-keyed AllowedHosts settings, including environment variables such as `ExternalMedia__AllowedHosts__SnappTrip__0`. Use `ExternalMedia__AllowedHosts__0`, `...__1`, etc. Approve the actual image hosts from real supplier responses before adding them; the supplier API host is not necessarily an image host. Administrative provider labels never grant access. Every redirect is checked against the same host allowlist and public-IP restrictions. No wildcards, browser credentials or upstream redirect headers are passed through.
+
+Actual SnappTrip hotel images also use `s3.ir-thr-at1.arvanstorage.com` (verified against the Tochal hotel source). Preserve that exact host as AllowedHosts index 1 when configuring Production environment variables. `fs.snapptrip.com` returned by some records is a bare HTML homepage, not an image; it is not added to the allowlist.
+
+Image MIME is derived from recognized JPEG/PNG/GIF/WebP signatures, not from the supplier's Content-Type or filename extension. Real supplier records include JPEG bytes labeled application/octet-stream and PNG bytes labeled image/jpeg. The proxy returns the detected canonical image type. HTML, empty responses and unrecognized content remain rejected, and the 5 MiB size cap is unchanged. Logs include ImageTooLarge or UnsupportedImageContent reason codes without leaking source URLs. Negative-cache hits do not extend the retry deadline.
 
 ## Administrative cache purge
 Admin-only endpoint: `DELETE /api/media/external-cache?module=Hotels&provider=SnappTrip`.
