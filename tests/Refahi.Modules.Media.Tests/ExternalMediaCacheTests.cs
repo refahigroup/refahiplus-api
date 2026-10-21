@@ -62,7 +62,7 @@ public class ExternalMediaCacheTests
         var dir=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N")); Directory.CreateDirectory(dir);
         var partial=Path.Combine(dir,Guid.NewGuid().ToString("N")+".bin.part"); File.WriteAllText(partial,"partial");
         try {
-            using var media=new ExternalMedia(Options.Create(new ExternalMediaOptions { CachePath=dir, MinFreeBytes=0,MaxBytes=16384,MaxImageBytes=1024,MaxEntries=1 }),new Handler());
+            using var media=new ExternalMedia(Options.Create(new ExternalMediaOptions { CachePath=dir, MinFreeBytes=0,MaxBytes=16384,MaxImageBytes=1024,MaxSourceBytes=1024,MaxEntries=1 }),new Handler());
             await media.StartAsync(default); Assert.False(File.Exists(partial));
             var source=new ExternalMediaSource(new Uri("https://store.snapptrip.com/a.jpeg"));
             using (var image=await media.OpenAsync(Guid.NewGuid(),source,default)) { }

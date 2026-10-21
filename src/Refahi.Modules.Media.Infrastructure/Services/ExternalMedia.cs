@@ -20,6 +20,9 @@ public sealed class ExternalMediaOptions
     public long MaxBytes { get; set; } = 1L << 30;
     public long MinFreeBytes { get; set; } = 2L << 30;
     public int MaxImageBytes { get; set; } = 5 << 20;
+    public int MaxSourceBytes { get; set; } = 20 << 20;
+    public int MaxImageDimension { get; set; } = 1600;
+    public long MaxSourcePixels { get; set; } = 40_000_000;
     public int ConcurrentDownloads { get; set; } = 4;
     public int QueueLimit { get; set; } = 32;
     public int MaxEntries { get; set; } = 20000;
@@ -57,12 +60,14 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
     private readonly HttpClient client;
     private readonly SemaphoreSlim slots;
+    private readonly SemaphoreSlim processing = new(1);
     private readonly SemaphoreSlim[] stripes = Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
     private readonly object gate = new();
     private readonly Dictionary<Guid, Entry> entries = new();
     private readonly Dictionary<Guid, DateTime> failures = new();
     private FileStream? ownership;
     private long reserved;
+    private int pendingWrites;
     private readonly Dictionary<Guid, int> readers = [];
     private int waiting;
     private bool writable;
@@ -76,6 +81,7 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
         meter.CreateObservableGauge("external_media.cache_entries", () => { lock (gate) return entries.Count; });
         meter.CreateObservableGauge("external_media.reserved_bytes", () => { lock (gate) return reserved; });
         meter.CreateObservableGauge("external_media.waiting", () => Volatile.Read(ref waiting));
+        meter.CreateObservableGauge("external_media.processing", () => 1 - processing.CurrentCount);
         clock = time ?? TimeProvider.System; o = options.Value; slots = new(o.ConcurrentDownloads);
         client = new(handler ?? new SocketsHttpHandler {
             AllowAutoRedirect = false, UseCookies = false, UseProxy = false,
@@ -226,46 +232,44 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
                     uri = new Uri(uri, location);
                 }
                 if (!response.IsSuccessStatusCode) throw new ExternalMediaException(502, "UpstreamStatus" + (int)response.StatusCode);
-                if (response.Content.Headers.ContentLength > o.MaxImageBytes) throw new ExternalMediaException(502, "ImageTooLarge");
+                if (response.Content.Headers.ContentLength > o.MaxSourceBytes) throw new ExternalMediaException(502, "ImageTooLarge");
                 var stream = await response.Content.ReadAsStreamAsync(deadline.Token);
                 var prefix = new byte[12]; var length = 0;
                 while (length < prefix.Length) { var n = await stream.ReadAsync(prefix.AsMemory(length), deadline.Token); if (n == 0) break; length += n; }
                 // Supplier headers can be missing, generic, or wrong. Only recognized image bytes determine the served MIME type.
                 var type = DetectContentType(prefix.AsSpan(0, length));
                 var target = Path.Combine(Path.GetFullPath(o.CachePath), source.FileName + ".bin");
+                var reservation = (long)o.MaxSourceBytes + o.MaxImageBytes + 8192;
                 var save = false;
                 lock (gate)
                 {
-                    Sweep(o.MaxImageBytes + 4096);
-                    if (writable && entries.Count < o.MaxEntries && entries.Values.Sum(x => x.Bytes) + reserved + o.MaxImageBytes + 8192 <= o.MaxBytes
-                        && new DriveInfo(Path.GetPathRoot(Path.GetFullPath(o.CachePath))!).AvailableFreeSpace >= o.MinFreeBytes + o.MaxImageBytes + 4096)
-                    { reserved += o.MaxImageBytes + 4096; save = true; }
+                    Sweep(reservation);
+                    if (writable && entries.Count + pendingWrites < o.MaxEntries && entries.Values.Sum(x => x.Bytes) + reserved + reservation <= o.MaxBytes
+                        && FreeCacheSpace() >= o.MinFreeBytes + reserved + reservation)
+                    { reserved += reservation; pendingWrites++; save = true; }
                 }
                 if (save)
                 {
                     try
                     {
-                        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                        long total = length;
-                        await using (var output = new FileStream(target + ".part", FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
-                        {
-                            await output.WriteAsync(prefix.AsMemory(0, length), deadline.Token); hash.AppendData(prefix.AsSpan(0, length));
-                            var buffer = new byte[81920]; int n;
-                            while ((n = await stream.ReadAsync(buffer, deadline.Token)) != 0)
-                            { total += n; if (total > o.MaxImageBytes) throw new ExternalMediaException(502, "ImageTooLarge"); hash.AppendData(buffer.AsSpan(0,n)); await output.WriteAsync(buffer.AsMemory(0,n), deadline.Token); }
-                        }
-                        var etag = "\"" + Convert.ToHexString(hash.GetHashAndReset()) + "\"";
-                        lock (gate)
-                        {
-                            if (readers.ContainsKey(id)) throw new ExternalMediaException(503);
-                            File.Move(target + ".part", target, true);
-                            var entry = new Entry(id, target, type, etag, total + 4096, Now.AddHours(o.FreshHours), Now, Now.AddHours(o.SlidingExpirationHours));
-                            File.WriteAllText(Path.ChangeExtension(target, ".json"), JsonSerializer.Serialize(entry)); entries[id] = entry;
-                        }
-                        return Hit(id) ?? throw new ExternalMediaException(502);
+                        return await DownloadToCacheAsync(id, target, stream, prefix.AsMemory(0, length), type, deadline.Token);
                     }
-                    finally { lock (gate) { reserved -= o.MaxImageBytes + 4096; try { File.Delete(target + ".part"); } catch (IOException) { } } }
+                    finally
+                    {
+                        // Keep the reservation until every temporary file is gone, including after cancellation.
+                        var cleaned = true;
+                        foreach (var temporary in new[] { target + ".input.part", target + ".part", Path.ChangeExtension(target, ".json.part") })
+                        {
+                            try { File.Delete(temporary); }
+                            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { cleaned = false; }
+                        }
+                        lock (gate) { pendingWrites--; if (cleaned) reserved -= reservation; }
+                        if (!cleaned) logger.LogWarning("External image scratch cleanup failed MediaId={MediaId}; reservation retained until restart", id);
+                    }
                 }
+                // Without safe scratch space we can still stream small images, but cannot optimize large ones.
+                if (response.Content.Headers.ContentLength > o.MaxImageBytes)
+                    throw new ExternalMediaException(503, "ImageProcessingStorageUnavailable");
                 // The response owns its upstream slot until the browser finishes reading.
                 var lifetime = CancellationTokenSource.CreateLinkedTokenSource(ct); lifetime.CancelAfter(TimeSpan.FromSeconds(o.DownloadSeconds));
                 var ownedResponse = response; response = null; slot = false; transferred = true;
@@ -298,6 +302,82 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
         }
         finally { if (slot) slots.Release(); if (held) stripe.Release(); if (!transferred) Interlocked.Decrement(ref waiting); }
     }
+    private long FreeCacheSpace()
+    {
+        var path = Path.GetFullPath(o.CachePath);
+        // On Linux the bind mount may be on a different device from the container root filesystem.
+        var drive = DriveInfo.GetDrives().Where(d => path == d.Name.TrimEnd(Path.DirectorySeparatorChar)
+            || path.StartsWith(d.Name.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            .OrderByDescending(d => d.Name.Length).First();
+        return drive.AvailableFreeSpace;
+    }
+
+    private async Task<ExternalImage> DownloadToCacheAsync(Guid id, string target, Stream source, ReadOnlyMemory<byte> prefix, string type, CancellationToken ct)
+    {
+        var input = target + ".input.part";
+        long total = prefix.Length;
+        if (total > o.MaxSourceBytes) throw new ExternalMediaException(502, "ImageTooLarge");
+        await using (var output = new FileStream(input, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
+        {
+            await output.WriteAsync(prefix, ct);
+            var buffer = new byte[81920]; int count;
+            while ((count = await source.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, o.MaxSourceBytes - total + 1)), ct)) != 0)
+            {
+                total += count;
+                if (total > o.MaxSourceBytes) throw new ExternalMediaException(502, "ImageTooLarge");
+                await output.WriteAsync(buffer.AsMemory(0, count), ct);
+            }
+        }
+        if (total > o.MaxImageBytes)
+        {
+            if (!await processing.WaitAsync(TimeSpan.FromSeconds(o.QueueWaitSeconds), ct))
+                throw new ExternalMediaException(503, "ImageProcessingBusy");
+            try
+            {
+                // Do not abandon a native codec task on cancellation: its memory and slot must stay owned until it exits.
+                await Task.Run(() => ExternalImageOptimizer.Optimize(input, target + ".part", o, ct), ct);
+                type = "image/webp";
+                events.Add(1, new KeyValuePair<string, object?>("kind", "optimized"));
+            }
+            finally { processing.Release(); }
+            File.Delete(input);
+        }
+        else File.Move(input, target + ".part");
+
+        ct.ThrowIfCancellationRequested();
+        total = new FileInfo(target + ".part").Length;
+        await using var completed = new FileStream(target + ".part", FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+        var etag = "\"" + Convert.ToHexString(await SHA256.HashDataAsync(completed, ct)) + "\"";
+        await completed.DisposeAsync();
+        var entry = new Entry(id, target, type, etag, total + 4096, Now.AddHours(o.FreshHours), Now, Now.AddHours(o.SlidingExpirationHours));
+        await File.WriteAllTextAsync(Path.ChangeExtension(target, ".json.part"), JsonSerializer.Serialize(entry), ct);
+        lock (gate)
+        {
+            if (readers.ContainsKey(id)) throw new ExternalMediaException(503);
+            var previous = entries.GetValueOrDefault(id);
+            try
+            {
+                File.Move(target + ".part", target, true);
+                File.Move(Path.ChangeExtension(target, ".json.part"), Path.ChangeExtension(target, ".json"), true);
+                entries[id] = entry;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                entries.Remove(id);
+                // A failed metadata publish must not leave new pixels paired with old MIME/ETag metadata.
+                try { File.Delete(Path.ChangeExtension(target, ".json")); File.Delete(target); }
+                catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException)
+                {
+                    reserved += Math.Max(entry.Bytes, previous?.Bytes ?? 0);
+                    logger.LogWarning("External image publish cleanup failed MediaId={MediaId}; reservation retained until restart", id);
+                }
+                throw;
+            }
+        }
+        return Hit(id) ?? throw new ExternalMediaException(502);
+    }
+
     private void Observe(Guid id, ExternalMediaStatus status, DateTime? accessed = null, DateTime? refreshAfter = null)
         => activity?.Record(new(id, Now, accessed, accessed?.AddHours(o.SlidingExpirationHours), refreshAfter, status));
 

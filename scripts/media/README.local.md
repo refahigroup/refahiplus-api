@@ -6,7 +6,7 @@ The local API and web application run in Development with the trusted localhost 
 - Web: https://localhost:5271/trip/hotels
 - Database: `refahi-media-local` in the existing local `postgres` Docker container, port 5432.
 - Disposable image cache: `artifacts/media-local/cache`, 128 MiB, with a 2 GiB free-space floor.
-- Image size limit: 5 MiB. Sliding expiration: 5 hours. Database activity flush: up to 5 minutes.
+- Input limit: 20 MiB; final image limit: 5 MiB. Heavy images are optimized to WebP within 1600×1600, with one processor and reserved scratch space. Sliding expiration: 5 hours. Database activity flush: up to 5 minutes.
 
 The database was prepared from the schema and migration history of the existing local `refahi-db`, copying only reference/geography data and hotel city/province mappings. Transactional records, users, payments, reservations and supplier credentials were not copied. The new Media migration is applied in this isolated database. The original database and its migration history are unchanged.
 
@@ -37,7 +37,7 @@ After starting the API:
 This idempotently registers the two public sample URLs supplied for this task, exclusively in `refahi-media-local`, under Module=LocalMediaTest and Provider=SnappTrip. It prints their local public URLs. It does not create an unauthenticated registration API.
 
 - Gallery sample (`.../galleries/hotel/2920/52092.jpeg`): about 123 KiB; verified successful local GET 200, HEAD 200 and conditional GET 304.
-- Cover sample (`.../3233/1b3d9c81-59d3-4ab6-9de8-a1a9402d1c34.jpeg`): about 8.4 MiB; expected rejection (502) under the agreed 5 MiB cap. This is a size-limit test, not an unavailable source. The frontend should display its local fallback.
+- Cover sample (`.../3233/1b3d9c81-59d3-4ab6-9de8-a1a9402d1c34.jpeg`): about 8.4 MiB input. A live service regression produced a 232,600-byte WebP at 1600×900, a reusable cache entry, and no remaining temporary files. Expected local GET is now 200 with image/webp when scratch capacity is available; no re-registration is required. HEAD alone does not exercise optimization.
 
 ## Verified full flow
 
