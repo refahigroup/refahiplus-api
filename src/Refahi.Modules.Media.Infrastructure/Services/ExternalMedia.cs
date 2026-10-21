@@ -33,7 +33,11 @@ public sealed class ExternalMediaOptions
     public int NegativeSeconds { get; set; } = 30;
     public string[] AllowedHosts { get; set; } = ["store.snapptrip.com"];
 }
-public sealed class ExternalMediaException(int status) : Exception("تصویر در دسترس نیست.") { public int Status { get; } = status; }
+public sealed class ExternalMediaException(int status, string reason = "ImageUnavailable") : Exception("تصویر در دسترس نیست.")
+{
+    public int Status { get; } = status;
+    public string Reason { get; } = reason;
+}
 public sealed class ExternalImage(Stream stream, string type, string? etag, IDisposable? owner = null) : IDisposable
 {
     public Stream Stream { get; } = stream;
@@ -221,12 +225,13 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
                     if (redirects == 2 || location is null) throw new ExternalMediaException(502);
                     uri = new Uri(uri, location);
                 }
-                if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > o.MaxImageBytes) throw new ExternalMediaException(502);
-                var type = response.Content.Headers.ContentType?.MediaType ?? "";
+                if (!response.IsSuccessStatusCode) throw new ExternalMediaException(502, "UpstreamStatus" + (int)response.StatusCode);
+                if (response.Content.Headers.ContentLength > o.MaxImageBytes) throw new ExternalMediaException(502, "ImageTooLarge");
                 var stream = await response.Content.ReadAsStreamAsync(deadline.Token);
                 var prefix = new byte[12]; var length = 0;
                 while (length < prefix.Length) { var n = await stream.ReadAsync(prefix.AsMemory(length), deadline.Token); if (n == 0) break; length += n; }
-                Validate(prefix[..length], type);
+                // Supplier headers can be missing, generic, or wrong. Only recognized image bytes determine the served MIME type.
+                var type = DetectContentType(prefix.AsSpan(0, length));
                 var target = Path.Combine(Path.GetFullPath(o.CachePath), source.FileName + ".bin");
                 var save = false;
                 lock (gate)
@@ -247,7 +252,7 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
                             await output.WriteAsync(prefix.AsMemory(0, length), deadline.Token); hash.AppendData(prefix.AsSpan(0, length));
                             var buffer = new byte[81920]; int n;
                             while ((n = await stream.ReadAsync(buffer, deadline.Token)) != 0)
-                            { total += n; if (total > o.MaxImageBytes) throw new ExternalMediaException(502); hash.AppendData(buffer.AsSpan(0,n)); await output.WriteAsync(buffer.AsMemory(0,n), deadline.Token); }
+                            { total += n; if (total > o.MaxImageBytes) throw new ExternalMediaException(502, "ImageTooLarge"); hash.AppendData(buffer.AsSpan(0,n)); await output.WriteAsync(buffer.AsMemory(0,n), deadline.Token); }
                         }
                         var etag = "\"" + Convert.ToHexString(hash.GetHashAndReset()) + "\"";
                         lock (gate)
@@ -277,10 +282,18 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
         catch (UnauthorizedAccessException) { throw new ExternalMediaException(502); }
         catch (ExternalMediaException ex)
         {
-            logger.LogWarning("External image failure MediaId={MediaId} Status={Status}", id, ex.Status);
+            logger.LogWarning("External image failure MediaId={MediaId} Status={Status} Reason={Reason}", id, ex.Status, ex.Reason);
             Observe(id, ExternalMediaStatus.Failed);
             events.Add(1, new KeyValuePair<string, object?>("kind", "failure"));
-            lock (gate) { if (failures.Count >= o.MaxEntries) failures.Clear(); failures[id] = Now.AddSeconds(30); }
+            lock (gate)
+            {
+                // Requests served from the negative cache must not keep postponing the next retry.
+                if (ex.Status != 503 && (!failures.TryGetValue(id, out var until) || until <= Now))
+                {
+                    if (failures.Count >= o.MaxEntries) failures.Clear();
+                    failures[id] = Now.AddSeconds(o.NegativeSeconds);
+                }
+            }
             throw;
         }
         finally { if (slot) slots.Release(); if (held) stripe.Release(); if (!transferred) Interlocked.Decrement(ref waiting); }
@@ -303,14 +316,13 @@ public sealed class ExternalMedia : BackgroundService, IExternalMediaUrls
         }
         finally { stripe.Release(); }
     }
-    public static void Validate(byte[] b, string type)
+    public static string DetectContentType(ReadOnlySpan<byte> bytes)
     {
-        bool ok = type switch {
-            "image/jpeg" or "image/jpg" => b.Length >= 3 && b[0] == 255 && b[1] == 216 && b[2] == 255,
-            "image/png" => b.AsSpan().StartsWith(new byte[] {137,80,78,71,13,10,26,10}),
-            "image/gif" => b.AsSpan().StartsWith("GIF87a"u8) || b.AsSpan().StartsWith("GIF89a"u8),
-            "image/webp" => b.Length >= 12 && b.AsSpan(0,4).SequenceEqual("RIFF"u8) && b.AsSpan(8,4).SequenceEqual("WEBP"u8), _ => false };
-        if (!ok) throw new ExternalMediaException(502);
+        if (bytes.StartsWith(new byte[] { 255, 216, 255 })) return "image/jpeg";
+        if (bytes.StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })) return "image/png";
+        if (bytes.StartsWith("GIF87a"u8) || bytes.StartsWith("GIF89a"u8)) return "image/gif";
+        if (bytes.Length >= 12 && bytes[..4].SequenceEqual("RIFF"u8) && bytes.Slice(8, 4).SequenceEqual("WEBP"u8)) return "image/webp";
+        throw new ExternalMediaException(502, "UnsupportedImageContent");
     }
     protected override async Task ExecuteAsync(CancellationToken ct)
     { using var timer = new PeriodicTimer(TimeSpan.FromMinutes(o.CleanupMinutes)); while (await timer.WaitForNextTickAsync(ct)) Sweep(); }
