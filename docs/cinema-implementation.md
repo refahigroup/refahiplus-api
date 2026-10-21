@@ -16,6 +16,8 @@ Set `iTicket:BaseUrl=https://console.iticket.ir/api/v1/` and supply `iTicket:Acc
 
 `Cinema:SafetySeconds` defaults 60 (minimum 60). PayableUntil is provider expiry, capped by purchase-end, minus this margin. Missing provider expiry never produces a payable order. `WorkerSeconds` defaults 15 (minimum 5). All amounts are long IRR; IRT is multiplied by 10 with checked arithmetic. Unsupported currencies fail closed.
 
+Public images are registered with the generic Media contract by CinemaMediaPublisher in Application, after supplier mapping. Landing/catalog/detail/places/seat maps and order/ticket projections cover posters, covers, artist portraits, banners and place images. Labels are Cinema / iticket, used only for administration. Keep `console.iticket.ir` in the flat ExternalMedia:AllowedHosts list (index 2 in the default configuration). Existing historical Cinema snapshots are projected without rewriting audit data. Optional image registration failure omits the image; it cannot return a supplier URL or reverse/fail an already completed reservation. Raw summary/description fields use sanitized presentation HTML rather than exposing source image tags. See [external-media-proxy.md](external-media-proxy.md) for resource limits, optimization and rollout; no new migration is needed for this integration.
+
 Apply generated migrations using the normal host migration mechanism, or generate a reviewed SQL script:
 
 ```sh

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging.Abstractions;
 using Refahi.Modules.Cinema.Domain;
 using Refahi.Modules.Cinema.Application.Contracts;
+using Refahi.Modules.Cinema.Application.Features.Catalog;
 using Refahi.Modules.Cinema.Application.Features.Orders;
 using Refahi.Modules.Identity.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
@@ -14,6 +15,19 @@ namespace Refahi.Modules.Cinema.Tests;
 
 public sealed class CinemaLifecycleTests
 {
+    [Fact]
+    public async Task HistoricalOrderProjectsMediaWithoutRewritingItsAuditSnapshot()
+    {
+        var media = new RecordingCinemaMedia();
+        var f = new Fixture(media: new CinemaMediaPublisher(media));
+        var map = CinemaMediaTests.Map;
+        var stored = JsonSerializer.Serialize(map, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        f.Repository.Order = CinemaOrder.Create(f.User, "iticket", Schedule, "historical", "fingerprint", stored, "[]", "cinema");
+        var result = await f.Service.GetAsync(f.Repository.Order.Id, f.User, default);
+        Assert.DoesNotContain("console.iticket.ir", JsonSerializer.Serialize(result));
+        Assert.Equal(stored, f.Repository.Order.SnapshotJson);
+        Assert.Equal(1, media.Calls);
+    }
     private const string Schedule = "01m4442930npemsr3a8c7nxfyt", Seat = "01ktm9ahkjsyr3cc8b3n1046r1";
     [Theory]
     [InlineData(0)]
@@ -226,7 +240,7 @@ public sealed class CinemaLifecycleTests
     {
         public Guid User = Guid.NewGuid(); public Repo Repository = new(); public Provider Provider = new(); public Mediator Mediator;
         public CinemaOrderService Service;
-        public Fixture(bool cancellationEnabled = true) { Mediator = new(Repository); Service = new(Repository, Provider, new Gate(), Mediator, Options.Create(new CinemaOptions { PurchaseEnabled = true, CancellationEnabled = cancellationEnabled }), NullLogger<CinemaOrderService>.Instance); }
+        public Fixture(bool cancellationEnabled = true, CinemaMediaPublisher? media = null) { Mediator = new(Repository); Service = new(Repository, Provider, new Gate(), Mediator, Options.Create(new CinemaOptions { PurchaseEnabled = true, CancellationEnabled = cancellationEnabled }), NullLogger<CinemaOrderService>.Instance, media); }
         public Task<CinemaOrderView> Reserve() => Service.ReserveAsync(User, Schedule, [Seat], "key", default);
     }
     private sealed class Repo : ICinemaOrderRepository

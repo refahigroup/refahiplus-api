@@ -48,12 +48,25 @@ Production rollout: publish the API image with these dependencies and keep the e
 AllowedHosts is a **flat list of exact hostnames**, selected solely by the source URL. Example:
 
 ```json
-"AllowedHosts": ["store.snapptrip.com", "s3.ir-thr-at1.arvanstorage.com"]
+"AllowedHosts": ["store.snapptrip.com", "s3.ir-thr-at1.arvanstorage.com", "console.iticket.ir"]
 ```
 
 Remove the previous provider-keyed AllowedHosts settings, including environment variables such as `ExternalMedia__AllowedHosts__SnappTrip__0`. Use `ExternalMedia__AllowedHosts__0`, `...__1`, etc. Approve the actual image hosts from real supplier responses before adding them; the supplier API host is not necessarily an image host. Administrative provider labels never grant access. Every redirect is checked against the same host allowlist and public-IP restrictions. No wildcards, browser credentials or upstream redirect headers are passed through.
 
 Actual SnappTrip hotel images also use `s3.ir-thr-at1.arvanstorage.com` (verified against the Tochal hotel source). Preserve that exact host as AllowedHosts index 1 when configuring Production environment variables. `fs.snapptrip.com` returned by some records is a bare HTML homepage, not an image; it is not added to the allowlist.
+
+## Consumer coverage
+
+| Consumer | Administrative labels | Public image path |
+| --- | --- | --- |
+| Hotels.SnappTrip | Hotels / SnappTrip | Existing Media registration in catalogue and legacy hotel projections |
+| Hotels.Lamasso (internal provider key Lamasoo) | Hotels / Lamasoo | Same provider-neutral Hotels registration; search, details, offer and quote covered by regression test |
+| Cinema.iTicket | Cinema / iticket | Application projections batch-register posters, covers, artist portraits, banners and place covers; seat-map and order/ticket responses use the same projection |
+| Flights.SnappTrip | No external-source registration currently needed | Supplier contracts return airline codes, not image URLs. AirlineLogoResolver resolves existing Refahi files under airline-logos/flightaware_logos and airline-logos/radarbox_logos through Media's uploaded-file contract; do not proxy Refahi's own files through the external endpoint |
+
+On 2026-10-21, a read-only Lamasoo inventory request returned 225 hotels and 1127 image URLs, all HTTPS on `s3.ir-thr-at1.arvanstorage.com`. Two samples returned valid WebP bytes with application/octet-stream headers. The existing exact allowlist entry and signature detection already support these sources. `lamasoo.com` and the API host are not added merely because they identify the supplier. iTicket's real seat-map fixture and public cinema page use `console.iticket.ir`; a sample image returned valid WebP bytes, and that exact hostname is added at AllowedHosts index 2 in base/Development configuration. Preserve all three exact hosts in deployment configuration; for an explicit environment override use `ExternalMedia__AllowedHosts__2=console.iticket.ir` alongside indices 0 and 1.
+
+Cinema provider adapters remain unaware of Media. CinemaMediaPublisher batches distinct valid sources once per public response, including landing sections with repeated shows. No binary download occurs while building JSON. Missing/failing Media registration drops optional images instead of returning original URLs or failing a completed financial operation. Raw Summary/Description fields use the existing sanitized presentation fields so unrendered supplier HTML cannot retain embedded image sources; historical snapshots without those fields omit optional raw HTML. Navigation links are not image sources and remain navigation links. Cinema's stored audit snapshots stay unchanged; order, reserve, cancel and ticket projections replace their image fields at response time. No new database migration, route or render mode is introduced. Provider names are administrative labels only and never select transport/cache rules.
 
 Image MIME is derived from recognized JPEG/PNG/GIF/WebP signatures, not from the supplier's Content-Type or filename extension. Real supplier records include JPEG bytes labeled application/octet-stream and PNG bytes labeled image/jpeg. The proxy returns the detected canonical image type, or image/webp for optimized images. HTML, empty responses and unrecognized content remain rejected; the final output cap stays 5 MiB. Logs include ImageTooLarge, UnsupportedImageContent, ImagePixelLimit, InvalidImageContent, AnimatedImageTooLarge, OptimizedImageTooLarge, ImageProcessingBusy or ImageProcessingStorageUnavailable without leaking source URLs. Negative-cache hits do not extend the retry deadline.
 
