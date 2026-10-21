@@ -14,6 +14,8 @@ variables:
   API_CSPROJ: "src/Refahi.Api/Refahi.Api.csproj"
   SERVICE_NAME: "api"
   PUBLISH_DIR: "publish/api"
+  # Must match the architecture/libc of the ASP.NET runtime image.
+  API_RUNTIME: "linux-x64"
 
   # NuGet
   NUGET_PACKAGES: ".nuget/packages"
@@ -144,16 +146,29 @@ build_publish:
 
       rm -rf "./$PUBLISH_DIR"
 
+      # Restore for the target RID so native dependencies from other platforms are excluded.
+      time dotnet restore "./$API_CSPROJ" \
+        --runtime "$API_RUNTIME" \
+        --configfile ./NuGet.CI.Config \
+        --packages "$NUGET_PACKAGES" \
+        -p:SelfContained=false \
+        -p:UseAppHost=false
+
       time dotnet publish "./$API_CSPROJ" \
         -c Release \
-        --no-build \
+        --runtime "$API_RUNTIME" \
+        --self-contained false \
         --no-restore \
+        -p:UseAppHost=false \
+        -p:PlaywrightPlatform="$API_RUNTIME" \
+        -p:CopyOutputSymbolsToPublishDirectory=false \
         -o "./$PUBLISH_DIR"
 
       echo ""
       echo "=== Validate Publish ==="
 
       test -f "./$PUBLISH_DIR/Refahi.Api.dll"
+      test -f "./$PUBLISH_DIR/libSkiaSharp.so"
 
       du -sh "./$PUBLISH_DIR"
 
