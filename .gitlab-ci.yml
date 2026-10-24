@@ -141,6 +141,12 @@ build_publish:
         --no-build \
         --no-restore
 
+      time dotnet test \
+        tests/Refahi.Modules.Cinema.Tests/Refahi.Modules.Cinema.Tests.csproj \
+        -c Release \
+        --no-build \
+        --no-restore
+
       echo ""
       echo "=== Publish API ==="
 
@@ -227,6 +233,19 @@ docker_build_push:
       EXPOSE 8080
 
       COPY . .
+
+      ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+      RUN playwright_node=$(find /app/.playwright/node -type f -name node | head -n 1) \
+          && "$playwright_node" /app/.playwright/package/cli.js install --with-deps chromium \
+          && "$playwright_node" -e 'const { chromium } = require("./.playwright/package"); (async () => { \
+              const browser = await chromium.launch({ headless: true }); \
+              try { \
+                  const page = await browser.newPage(); \
+                  await page.setContent("<!doctype html><p>Cinema PDF smoke test</p>"); \
+                  const pdf = await page.pdf({ format: "A4" }); \
+                  if (pdf.subarray(0, 5).toString() !== "%PDF-") throw new Error("Invalid PDF"); \
+              } finally { await browser.close(); } \
+          })().catch(error => { console.error(error); process.exit(1); });'
 
       ENTRYPOINT ["dotnet", "Refahi.Api.dll"]
       EOF
