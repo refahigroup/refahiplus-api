@@ -15,17 +15,19 @@ namespace Refahi.Modules.Orders.Tests;
 
 public sealed class PayOrderCommandHandlerConcurrencyTests
 {
-    [Fact]
-    public async Task Concurrent_requests_with_different_request_keys_create_one_financial_intent()
+    [Theory]
+    [InlineData("StoreInPerson")]
+    [InlineData("StoreOrder")]
+    public async Task Concurrent_requests_with_different_request_keys_create_one_financial_intent(string referenceType)
     {
         var userId = Guid.NewGuid();
         var walletId = Guid.NewGuid();
         var order = Order.Create(
             userId,
             "Store",
-            null,
+            referenceType == "StoreOrder" ? Guid.NewGuid() : null,
             "create-order-key",
-            "StoreInPerson",
+            referenceType,
             [
                 new OrderItemData(
                     "خرید حضوری",

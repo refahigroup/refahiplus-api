@@ -444,12 +444,16 @@ public sealed class Order
         IReadOnlyList<OrderPaymentPostingData>? postings
     )
     {
-        var isInPerson = string.Equals(
+        var isLegacyInPerson = string.Equals(
             ReferenceType,
             "StoreInPerson",
             StringComparison.OrdinalIgnoreCase
         );
-        if (!isInPerson)
+        var isStoreOrderWithPaymentPlan =
+            string.Equals(SourceModule, "Store", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(ReferenceType, "StoreOrder", StringComparison.OrdinalIgnoreCase)
+            && (snapshot is not null || postings is { Count: > 0 });
+        if (!isLegacyInPerson && !isStoreOrderWithPaymentPlan)
         {
             if (snapshot is not null || postings is { Count: > 0 })
                 throw new OrderDomainException(
@@ -465,7 +469,9 @@ public sealed class Order
             || _items[0].DiscountAmountMinor != 0
             || ShippingFeeMinor != 0
             || DiscountCodeAmountMinor != 0
-            || SourceReferenceId.HasValue
+            || (isStoreOrderWithPaymentPlan
+                ? !SourceReferenceId.HasValue || SourceReferenceId == Guid.Empty
+                : SourceReferenceId.HasValue)
             || !_items[0].SourceItemId.HasValue
         )
             throw new OrderDomainException(
