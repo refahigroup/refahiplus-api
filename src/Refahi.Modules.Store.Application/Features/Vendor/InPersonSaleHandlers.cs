@@ -435,10 +435,15 @@ public sealed class StartInPersonOrderHandler(
         if (order.PaymentState != "Paid" && string.IsNullOrWhiteSpace(storeOrder.OtpReferenceCode))
         {
             if (storeOrder.OtpDispatchStartedAt.HasValue)
-                throw new StoreDomainException(
-                    "وضعیت ارسال کد تایید نامشخص است؛ از گزینه ارسال مجدد استفاده کنید",
-                    "OTP_DELIVERY_REQUIRES_RESEND"
+            {
+                logger.LogWarning(
+                    "In-person OTP delivery requires explicit resend. StoreOrderId={StoreOrderId} OrderId={OrderId}",
+                    storeOrder.Id,
+                    order.Id
                 );
+                // Return the existing order so the vendor can explicitly resend without creating another sale.
+                return InPersonOrderMapping.ToDto(storeOrder, order, mobile);
+            }
             storeOrder.BeginOtpDispatch();
             await storeOrders.UpdateAsync(storeOrder, ct);
             var challenge = await notification.SendOtp(
