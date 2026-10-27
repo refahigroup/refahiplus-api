@@ -9,7 +9,8 @@ using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 using Microsoft.Extensions.Caching.Memory;
 namespace Refahi.Modules.Hotels.Infrastructure.Providers.Catalogue;
 
-public sealed class SnappTripCatalogueProvider(SnappTripHotelProvider provider, SnappTripApiClient api, IMemoryCache cache, Refahi.Modules.Hotels.Domain.Abstraction.Repositories.IHotelCityMappingRepository mappings) : IHotelCatalogueProvider
+public sealed class SnappTripCatalogueProvider(SnappTripHotelProvider provider, SnappTripApiClient api, IMemoryCache cache, Refahi.Modules.Hotels.Domain.Abstraction.Repositories.IHotelCityMappingRepository mappings,
+    IHotelLocalContentReader? local = null) : IHotelCatalogueProvider
 {
     public string Name => "SnappTrip";
     public HotelProviderCapabilities Capabilities => new(true, true, true, false, true);
@@ -34,6 +35,22 @@ public sealed class SnappTripCatalogueProvider(SnappTripHotelProvider provider, 
     }
     public async Task<ProviderHotelOffer> ValidateOfferAsync(ProviderHotelOffer offer, HotelTravel travel, CancellationToken ct)
     {
+        if (local is not null)
+        {
+            var id = await local.ResolveLegacyKeyAsync(long.Parse(offer.Hotel.Id, CultureInfo.InvariantCulture), ct);
+            if (id.HasValue && await local.UsesLocalAsync(id.Value, ct))
+            {
+                var profile = await local.ProfileAsync(id.Value, ct);
+                var staticRoom = profile?.Content?.Rooms.SingleOrDefault(x => x.Id == offer.RoomId)
+                    ?? throw new HotelCatalogueUnavailableException("اطلاعات اتاق در حال به‌روزرسانی است.");
+                if (!staticRoom.Adults.HasValue || !staticRoom.Children.HasValue || !staticRoom.ExtraBeds.HasValue)
+                    throw new HotelCatalogueUnavailableException("اطلاعات ظرفیت اتاق کامل نیست.");
+                if (travel.Rooms.Any(x => x.Adults > staticRoom.Adults + staticRoom.ExtraBeds || x.ChildrenAges.Count > staticRoom.Children
+                    || x.Adults + x.ChildrenAges.Count > staticRoom.Adults + staticRoom.Children + staticRoom.ExtraBeds))
+                    throw new HotelCatalogueConflictException("ظرفیت اتاق با مسافران مطابقت ندارد.");
+                return offer with { BoardType = staticRoom.BoardType ?? offer.BoardType, Capacity = staticRoom.Adults.Value + staticRoom.Children.Value, AdultCapacity = staticRoom.Adults };
+            }
+        }
         var key = $"hotels:SnappTrip:rooms:{offer.Hotel.Id}";
         if (!cache.TryGetValue<IReadOnlyList<SnappTripRoomItem>>(key, out var rooms) || rooms is null)
         {

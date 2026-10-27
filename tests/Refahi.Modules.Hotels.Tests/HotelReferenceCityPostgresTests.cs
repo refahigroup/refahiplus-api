@@ -58,7 +58,15 @@ public sealed class HotelReferenceCityPostgresTests
         var unexpected = await Assert.ThrowsAsync<PostgresException>(() => db.Database.MigrateAsync());
         Assert.Contains("Unexpected provider", unexpected.MessageText);
         await db.Database.ExecuteSqlRawAsync("UPDATE hotels.external_reservations SET \"Provider\" = 'Lamasoo'");
+        await migrator.MigrateAsync(db.Database.GetMigrations().Single(x=>x.EndsWith("HotelsDiscovery")));
+        var oldSuccess=DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds()-3600);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO hotels.snapptrip_discovery_sync_states("NativeCityId","LastSuccessAtUtc","NextAttemptAtUtc","Status")
+            VALUES ('migration-fixture',{oldSuccess},{oldSuccess.AddHours(24)},'ready')
+            """);
         await db.Database.MigrateAsync();
+        var sync=await db.Set<SnappTripDiscoverySyncState>().SingleAsync(x=>x.NativeCityId=="migration-fixture");
+        Assert.Equal(oldSuccess,sync.LastSuccessAtUtc);Assert.True(sync.NextAttemptAtUtc<=DateTimeOffset.UtcNow);
         var migrated = await db.Set<HotelExternalReservation>().SingleAsync(x => x.HotelRequestId == reservationId);
         Assert.Equal("historic-reference", migrated.ReferenceId); Assert.Equal("historic-hash", migrated.RequestHash);
         Assert.Equal("{}", migrated.SubmitJson); Assert.Equal(891, migrated.HotelShareMinor);
@@ -94,6 +102,8 @@ public sealed class HotelReferenceCityPostgresTests
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => contender.SaveChangesAsync());
         var evidence = await contender.Set<HotelExternalOperation>().SingleAsync();
         Assert.Equal(attempt.Id, evidence.Id); Assert.Equal("historic-reference", evidence.ReferenceId);
+        await HotelDiscoveryPostgresChecks.Run(db, canonical);
+        await HotelLocalContentPostgresChecks.Run(db, canonical);
         var downgrade = await Assert.ThrowsAsync<PostgresException>(() => migrator.MigrateAsync(db.Database.GetMigrations().Single(x => x.EndsWith("HotelsReferenceCitySearch"))));
         Assert.Contains("Cannot downgrade", downgrade.MessageText);
     }

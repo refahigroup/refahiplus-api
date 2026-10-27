@@ -39,7 +39,7 @@ public sealed class CommerceProviderRegistrationTests
 
         var expectedKeys = new List<string>();
         if (aabsarEnabled) expectedKeys.Add("aabsar");
-        if (touristPanelEnabled) expectedKeys.Add("touristpanel");
+        Assert.DoesNotContain(factory.GetEnabledProviders(), x => x.Key == "touristpanel");
         Assert.Equal(expectedKeys, factory.GetEnabledProviders().Select(x => x.Key).OrderBy(x => x));
         foreach (var instance in factory.GetEnabledProviders())
             Assert.Same(instance, factory.GetRequired(instance.Key.ToUpperInvariant()));

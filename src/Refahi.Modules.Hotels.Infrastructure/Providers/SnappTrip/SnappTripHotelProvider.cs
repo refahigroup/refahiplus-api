@@ -8,6 +8,7 @@ using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs.Booking;
 using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs.Hotel;
 using Refahi.Modules.Hotels.Application.Contracts.Providers.Queries;
 using Refahi.Modules.Hotels.Application.Contracts.Services.Statics.Cities;
+using Refahi.Modules.Hotels.Application.Contracts.Catalogue;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Api;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
@@ -17,14 +18,17 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
     {
         private readonly SnappTripApiClient _apiClient;
         private readonly ILogger<SnappTripHotelProvider> _logger;
+        private readonly IHotelLocalContentReader? _local;
 
         public SnappTripHotelProvider(
             SnappTripApiClient apiClient,
-            ILogger<SnappTripHotelProvider> logger
+            ILogger<SnappTripHotelProvider> logger,
+            IHotelLocalContentReader? local = null
         )
         {
             _apiClient = apiClient;
             _logger = logger;
+            _local = local;
         }
 
         // ---------------------------------------------------------
@@ -392,9 +396,9 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
             // 2. صدا زدن API
             var response = await _apiClient.SearchCityAvailabilityAsync(request, ct);
-            var hotelImages = await GetSearchResultImagesAsync(
-                response.items.Select(x => (long)x.hotel.id), ct
-            );
+            var localHotels = _local is null ? null : await _local.ProviderHotelsAsync("SnappTrip", query.CityId.ToString(System.Globalization.CultureInfo.InvariantCulture), ct);
+            var hotelImages = localHotels is null ? await GetSearchResultImagesAsync(response.items.Select(x => (long)x.hotel.id), ct)
+                : localHotels.Where(x => long.TryParse(x.NativeId, out _)).ToDictionary(x => long.Parse(x.NativeId!), x => x.Images);
 
             // 3. Mapping response به Application DTO
             var availabilityItems = response
@@ -520,7 +524,9 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 from.ToString("yyyy-MM-dd"),
                 to.ToString("yyyy-MM-dd")
             );
-            var name =
+            var localKey = _local is null ? null : await _local.ResolveLegacyKeyAsync(hotelId, CancellationToken.None);
+            var useLocal = localKey.HasValue && await _local!.UsesLocalAsync(localKey.Value, CancellationToken.None);
+            var name = useLocal ? (await _local!.ProfileAsync(localKey!.Value, CancellationToken.None))?.Title ?? string.Empty :
                 (await _apiClient.GetHotelsDetailsAsync(new[] { hotelId }))
                     ?.FirstOrDefault()
                     ?.hotel?.title

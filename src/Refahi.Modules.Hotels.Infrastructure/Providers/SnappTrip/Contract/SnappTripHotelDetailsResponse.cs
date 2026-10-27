@@ -1,4 +1,4 @@
-﻿namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
+namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
 public sealed class SnappTripHotelDetailsResponse
 {
@@ -19,6 +19,7 @@ public sealed class SnappTripHotelDetail
     public int stars { get; set; }
     public string address { get; set; } = default!;
     public SnappTripCity city { get; set; } = new();
+    [System.Text.Json.Serialization.JsonConverter(typeof(SnappTripLocationConverter))]
     public SnappTripHotelDetailLocation location { get; set; } = new();
     public List<SnappTripHotelDetailFacility> facilities { get; set; } = new();
     public SnappTripHotelDetailPolicy policies { get; set; } = new();
@@ -28,8 +29,8 @@ public sealed class SnappTripHotelDetail
 
 public sealed class SnappTripHotelDetailReviews
 {
-    public float ratings { get; set; } = 0.0f;
-    public int reviews { get; set; } = 0;
+    public float? ratings { get; set; }
+    public int? reviews { get; set; }
 }
 
 public sealed class SnappTripCity
@@ -46,8 +47,8 @@ public sealed class SnappTripHotelDetailFacility
 
 public sealed class SnappTripHotelDetailLocation
 {
-    public decimal lat { get; set; } = 0;
-    public decimal lon { get; set; } = 0;
+    public decimal? lat { get; set; }
+    public decimal? lon { get; set; }
 }
 
 public sealed class SnappTripHotelDetailGalleryItem
@@ -59,11 +60,11 @@ public sealed class SnappTripHotelDetailGalleryItem
 
 public sealed class SnappTripHotelDetailPolicy
 {
-    public int child_age { get; set; } = 0;
-    public int infant_age { get; set; } = 0;
+    public int? child_age { get; set; }
+    public int? infant_age { get; set; }
     public string check_in_time { get; set; } = default!;
     public string check_out_time { get; set; } = default!;
-    public bool foreigners_fee { get; set; } = false;
+    public bool? foreigners_fee { get; set; }
     public string cancellation { get; set; } = default!;
 }
 

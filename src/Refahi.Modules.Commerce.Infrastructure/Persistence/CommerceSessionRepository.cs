@@ -9,7 +9,7 @@ public sealed class CommerceSessionRepository(CommerceDbContext db) : ICommerceS
     public async Task AddAsync(CommerceCheckoutSession session, CancellationToken ct) => await db.CheckoutSessions.AddAsync(session, ct);
     public Task SaveAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
     public async Task<IReadOnlyList<CommerceCheckoutSession>> GetExpiredAsync(CancellationToken ct) => await db.CheckoutSessions
-        .Where(x => (x.Status == CommerceSessionStatus.Reserved || x.Status == CommerceSessionStatus.Releasing)
+        .Where(x => x.ProviderKey != "touristpanel" && (x.Status == CommerceSessionStatus.Reserved || x.Status == CommerceSessionStatus.Releasing)
             && x.CommerceOrderId == null && x.PayableUntil < DateTimeOffset.UtcNow)
         .OrderBy(x => x.CreatedAt).Take(25).ToListAsync(ct);
     public async Task<IReadOnlyList<CommerceCheckoutSession>> GetForRedactionAsync(DateTimeOffset createdBefore, CancellationToken ct) => await db.CheckoutSessions

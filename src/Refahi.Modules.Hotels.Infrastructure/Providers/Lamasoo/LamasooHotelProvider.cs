@@ -6,7 +6,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.Lamasoo;
 
 public sealed class LamasooHotelProvider(LamasooApiClient api, IOptions<LamasooOptions> options, IMemoryCache cache,
     Catalogue.HotelInventoryStore inventoryStore, Refahi.Modules.Hotels.Domain.Abstraction.Repositories.IHotelCityMappingRepository mappings,
-    IEnumerable<IHotelReservationLifecycleAdapter>? lifecycleAdapters = null) : IHotelCatalogueProvider
+    IEnumerable<IHotelReservationLifecycleAdapter>? lifecycleAdapters = null, IHotelLocalContentReader? local = null) : IHotelCatalogueProvider
 {
     private IHotelReservationLifecycleAdapter? Lifecycle => lifecycleAdapters?.SingleOrDefault(x => x.Provider == "Lamasoo" && x.IsReady);
     public string Name => "Lamasoo";
@@ -21,6 +21,11 @@ public sealed class LamasooHotelProvider(LamasooApiClient api, IOptions<LamasooO
         mappings.LamasoCityIdsAsync(referenceCityId, ct);
     private async Task<IReadOnlyList<LamasooHotel>> InventoryAsync(string city, CancellationToken ct)
     {
+        var localHotels = local is null ? null : await local.ProviderHotelsAsync(Name, city, ct);
+        if (localHotels is not null) return localHotels.Select(x => new LamasooHotel {
+            Id = x.NativeId ?? throw new InvalidOperationException("شناسه هتل معتبر نیست."), Name = x.Title, City = city, Address = x.Address, Desc = x.Description, Star = x.Stars,
+            Images = x.Images.Select(url => new LamasooImage { Url = url }).ToList()
+        }).ToArray();
         var key = $"hotels:lamasoo:inventory:{city}";
         if (cache.TryGetValue<IReadOnlyList<LamasooHotel>>(key, out var value) && value is not null) return value;
         var payload = await inventoryStore.GetAsync(Name, city, async () =>

@@ -83,6 +83,26 @@ public sealed class ApiExceptionMiddleware
             _logger.LogWarning(ex, "Order domain rule violation");
             await HandleDomainExceptionAsync(context, ex.Message);
         }
+        catch (Refahi.Modules.Entertainments.Application.Contracts.Discovery.EntertainmentUnavailableException ex)
+        {
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: 503));
+        }
+        catch (Refahi.Modules.Entertainments.Application.Contracts.Providers.Exceptions.EntertainmentProviderAmbiguousException)
+        {
+            context.Response.StatusCode = 409;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("وضعیت عملیات نیاز به پیگیری دارد؛ از همان نشست ادامه دهید", statusCode: 409));
+        }
+        catch (Refahi.Modules.Entertainments.Application.Contracts.Providers.Exceptions.EntertainmentProviderUnavailableException)
+        {
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("ارتباط با تأمین‌کننده خدمات تفریحی موقتاً در دسترس نیست؛ دوباره تلاش کنید", statusCode: 503));
+        }
+        catch (Refahi.Modules.Entertainments.Domain.EntertainmentDomainException ex)
+        {
+            context.Response.StatusCode = 409;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: 409));
+        }
         catch (CommerceDomainException ex)
         {
             _logger.LogWarning("Commerce domain rule violation. Code={Code}", ex.ErrorCode);

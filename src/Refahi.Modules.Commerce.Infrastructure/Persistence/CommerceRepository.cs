@@ -40,7 +40,8 @@ public sealed class CommerceRepository(CommerceDbContext db) : ICommerceReposito
 
     public async Task<IReadOnlyList<CommerceOrder>> GetPendingFulfillmentAsync(int take, CancellationToken ct = default)
     {
-        return await Query().Where(x => x.Status == CommerceOrderStatus.FulfillmentPending || x.Status == CommerceOrderStatus.Fulfilling || x.Status == CommerceOrderStatus.CompensationPending
+        // Retired TouristPanel test purchases must not occupy Aabsar's issuance batch.
+        return await Query().Where(x => x.Items.All(i => i.ProviderKey != "touristpanel")).Where(x => x.Status == CommerceOrderStatus.FulfillmentPending || x.Status == CommerceOrderStatus.Fulfilling || x.Status == CommerceOrderStatus.CompensationPending
                             || x.Status == CommerceOrderStatus.ReconciliationPending && x.Fulfillments.Any(f => f.NextCheckAt <= DateTimeOffset.UtcNow))
                             .OrderBy(x => x.CreatedAt)
                             .Take(take)

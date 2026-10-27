@@ -17,6 +17,13 @@
     <Project Path="src/Refahi.Modules.Commerce.Domain/Refahi.Modules.Commerce.Domain.csproj" />
     <Project Path="src/Refahi.Modules.Commerce.Infrastructure/Refahi.Modules.Commerce.Infrastructure.csproj" Id="f524376b-8421-4972-a920-4488a503e5a3" />
   </Folder>
+  <Folder Name="/01_Modules/Entertainment/">
+    <Project Path="src/Refahi.Modules.Entertainments.Api/Refahi.Modules.Entertainments.Api.csproj" Id="8f235d8e-390e-4bc3-b80e-47f661fb3e7a" />
+    <Project Path="src/Refahi.Modules.Entertainments.Application.Contracts/Refahi.Modules.Entertainments.Application.Contracts.csproj" Id="eba241e2-784e-466b-8d09-904d2234f68c" />
+    <Project Path="src/Refahi.Modules.Entertainments.Application/Refahi.Modules.Entertainments.Application.csproj" Id="597c8fc7-d895-46d2-b2d6-03b3dcdd159e" />
+    <Project Path="src/Refahi.Modules.Entertainments.Domain/Refahi.Modules.Entertainments.Domain.csproj" Id="d604bb93-68cb-472d-98ad-4cdc1a1814fe" />
+    <Project Path="src/Refahi.Modules.Entertainments.Infrastructure/Refahi.Modules.Entertainments.Infrastructure.csproj" Id="b1165846-9577-4fa1-96e6-8c05acb8faa7" />
+  </Folder>
   <Folder Name="/01_Modules/Flights/">
     <Project Path="src/Refahi.Modules.Flights.Api/Refahi.Modules.Flights.Api.csproj" />
     <Project Path="src/Refahi.Modules.Flights.Application.Contracts/Refahi.Modules.Flights.Application.Contracts.csproj" />
@@ -103,11 +110,11 @@
     <Project Path="src/Refahi.Modules.PaymentGateway.Infrastructure/Refahi.Modules.PaymentGateway.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/01_Modules/Cinema/">
-    <Project Path="src/Refahi.Modules.Cinema.Domain/Refahi.Modules.Cinema.Domain.csproj" />
-    <Project Path="src/Refahi.Modules.Cinema.Application/Refahi.Modules.Cinema.Application.csproj" />
-    <Project Path="src/Refahi.Modules.Cinema.Application.Contracts/Refahi.Modules.Cinema.Application.Contracts.csproj" />
-    <Project Path="src/Refahi.Modules.Cinema.Infrastructure/Refahi.Modules.Cinema.Infrastructure.csproj" />
     <Project Path="src/Refahi.Modules.Cinema.Api/Refahi.Modules.Cinema.Api.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Application.Contracts/Refahi.Modules.Cinema.Application.Contracts.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Application/Refahi.Modules.Cinema.Application.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Domain/Refahi.Modules.Cinema.Domain.csproj" />
+    <Project Path="src/Refahi.Modules.Cinema.Infrastructure/Refahi.Modules.Cinema.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/02_Tests/">
     <Project Path="tests/Refahi.Modules.Charge.Tests/Refahi.Modules.Charge.Tests.csproj" />
@@ -126,7 +133,16 @@
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/tests/">
+    <Project Path="tests/Refahi.Modules.Catalogue.Tests/Refahi.Modules.Catalogue.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Cinema.Tests/Refahi.Modules.Cinema.Tests.csproj" />
+    <Project Path="tests/Refahi.Modules.Entertainments.Tests/Refahi.Modules.Entertainments.Tests.csproj" />
   </Folder>
+<Folder Name="/01_Modules/Catalogue/">
+  <Project Path="src/Refahi.Modules.Catalogue.Api/Refahi.Modules.Catalogue.Api.csproj" />
+  <Project Path="src/Refahi.Modules.Catalogue.Application.Contracts/Refahi.Modules.Catalogue.Application.Contracts.csproj" />
+  <Project Path="src/Refahi.Modules.Catalogue.Application/Refahi.Modules.Catalogue.Application.csproj" />
+  <Project Path="src/Refahi.Modules.Catalogue.Domain/Refahi.Modules.Catalogue.Domain.csproj" />
+  <Project Path="src/Refahi.Modules.Catalogue.Infrastructure/Refahi.Modules.Catalogue.Infrastructure.csproj" />
+</Folder>
   <Project Path="src/Refahi.Api/Refahi.Api.csproj" />
 </Solution>

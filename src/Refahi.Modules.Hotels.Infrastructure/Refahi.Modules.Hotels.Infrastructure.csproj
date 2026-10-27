@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Refahi.Modules.Hotels.Application.Contracts\Refahi.Modules.Hotels.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Media.Application.Contracts\Refahi.Modules.Media.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Hotels.Domain\Refahi.Modules.Hotels.Domain.csproj" />
   </ItemGroup>
 
@@ -43,4 +44,4 @@
     <Folder Include="Migrations\" />
     <InternalsVisibleTo Include="Refahi.Modules.Hotels.Tests" />
   </ItemGroup>
-</Project>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Catalogue.Application.Contracts/Refahi.Modules.Catalogue.Application.Contracts.csproj"/><ProjectReference Include="../Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj"/></ItemGroup><ItemGroup><PackageReference Include="FluentValidation" Version="12.1.1" /></ItemGroup></Project>
