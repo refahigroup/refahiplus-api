@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Refahi.Modules.Commerce.Application.Contracts.Providers;
 using Refahi.Modules.Commerce.Infrastructure.Providers.TouristPanel;
 using Xunit;
 
@@ -6,6 +8,35 @@ namespace Refahi.Modules.Commerce.Tests;
 
 public sealed class TouristPanelOptionsTests
 {
+    [Theory]
+    [InlineData("appsettings.json")]
+    [InlineData("appsettings.Development.json")]
+    public void Shipped_configuration_does_not_require_unconfigured_provider(string fileName)
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Path.Combine(AppContext.BaseDirectory, "Configuration"))
+            .AddJsonFile(fileName)
+            .Build();
+        var options = configuration.GetSection(TouristPanelOptions.SectionName).Get<TouristPanelOptions>()!;
+
+        Assert.False(options.Enabled);
+        Assert.False(options.SalesEnabled);
+        var services = new ServiceCollection();
+        services.AddTouristPanelProvider(configuration);
+        Assert.DoesNotContain(services, service => service.ServiceType == typeof(ICommerceProvider));
+    }
+
+    [Fact]
+    public void Enabled_provider_still_rejects_missing_connection_settings()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Commerce:Providers:TouristPanel:Enabled"] = "true"
+        }).Build();
+
+        Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddTouristPanelProvider(configuration));
+    }
+
     [Fact]
     public void Disabled_provider_has_no_implicit_sale_configuration()
     {

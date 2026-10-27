@@ -18,4 +18,8 @@
     <ProjectReference Include="..\..\src\Refahi.Modules.Commerce.Application\Refahi.Modules.Commerce.Application.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Commerce.Infrastructure\Refahi.Modules.Commerce.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\Refahi.Api\appsettings.json;..\..\src\Refahi.Api\appsettings.Development.json"
+          Link="Configuration\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
