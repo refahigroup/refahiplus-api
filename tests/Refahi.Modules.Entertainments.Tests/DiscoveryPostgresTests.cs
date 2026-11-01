@@ -129,6 +129,22 @@ public sealed class DiscoveryPostgresTests
         await db.Database.ExecuteSqlRawAsync("UPDATE entertainments.touristpanel_programs SET \"ObservedAtUtc\"=CURRENT_TIMESTAMP");
         Assert.Null(await reader.ProfileAsync(key, default));
         Assert.Null(await reader.ResolveNativeAsync(key.ToString(), default));
+
+        // Exercise real EF tracking, orphan removal and the unique cart-selection index during upgrade.
+        db.ChangeTracker.Clear();
+        var cart = EntertainmentCart.Create(Guid.NewGuid());
+        var selection = new EntertainmentCartItemSnapshot("touristpanel", "supplier", "program", "offer", "legacy", "title", "supplier", "program", null, "ticket", "offer", 1, 100, 100);
+        cart.AddOrReplace(selection); db.Carts.Add(cart); await db.SaveChangesAsync();
+        var originalId = cart.Items.Single().Id;
+        cart.AddOrReplace(selection with { PurchaseOptionKey = "stable" }, ["legacy"]); await db.SaveChangesAsync();
+        Assert.Equal(originalId, cart.Items.Single().Id);
+        cart.AddOrReplace(selection with { PurchaseOptionKey = "legacy2" }); await db.SaveChangesAsync();
+        cart.AddOrReplace(selection with { PurchaseOptionKey = "stable", Quantity = 2 }, ["legacy", "legacy2"]); await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        var persistedCart = await new EntertainmentRepository(db).GetCartAsync(cart.UserId);
+        Assert.Equal(originalId, Assert.Single(persistedCart!.Items).Id);
+        Assert.Equal("stable", persistedCart.Items[0].PurchaseOptionKey); Assert.Equal(2, persistedCart.Items[0].Quantity);
+
     }
     private sealed class Geography : ISender
     {

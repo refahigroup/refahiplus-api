@@ -1,0 +1,70 @@
+{
+  "observedAtUtc": "2026-10-29T11:56:37.6577852+00:00",
+  "note": "Read-only live price samples; no credentials or customer data. Program/ticket identity in unit tests is synthetic.",
+  "samples": [
+    {
+      "program": "سرزمین افسانه ها",
+      "ticket": "ورودی سرزمین افسانه ها",
+      "price": {
+        "buyPrice": 2962500.0,
+        "ticketPrice": 2962500,
+        "commissionPrice": 0.0,
+        "discountPrice": 0,
+        "commissionPriceCategory": {
+          "commissionPriceCategoryId": "16a0317a-be50-4d0d-8ce8-039d162a55bc",
+          "title": "شبکه سراسری فروش",
+          "currency": 1,
+          "type": 2
+        }
+      }
+    },
+    {
+      "program": "تله سیژ توچال",
+      "ticket": "تله سیژ (رفت وبرگشت)",
+      "price": {
+        "buyPrice": 1963000.0,
+        "ticketPrice": 2000000,
+        "commissionPrice": 37000.0,
+        "discountPrice": 0,
+        "commissionPriceCategory": {
+          "commissionPriceCategoryId": "fa23360d-fba7-4667-8627-7819c4b7de4a",
+          "title": "شبکه سراسری فروش",
+          "currency": 1,
+          "type": 2
+        }
+      }
+    },
+    {
+      "program": "تله کابین ",
+      "ticket": "رفت",
+      "price": {
+        "buyPrice": 975150.0,
+        "ticketPrice": 990000,
+        "commissionPrice": 14850.0,
+        "discountPrice": 0,
+        "commissionPriceCategory": {
+          "commissionPriceCategoryId": "5eb26f12-57c8-4f13-81a1-5eb48362413e",
+          "title": "شبکه سراسری فروش",
+          "currency": 1,
+          "type": 2
+        }
+      }
+    },
+    {
+      "program": "ایلوژنا",
+      "ticket": "ورودی مجموعه ایلوژنا",
+      "price": {
+        "buyPrice": 4500000.0,
+        "ticketPrice": 4500000,
+        "commissionPrice": 0.0,
+        "discountPrice": 0,
+        "commissionPriceCategory": {
+          "commissionPriceCategoryId": "f33bfb48-d89c-48c2-909a-c01ad56dc27c",
+          "title": "شبکه سراسری فروش",
+          "currency": 1,
+          "type": 2
+        }
+      }
+    }
+  ]
+}

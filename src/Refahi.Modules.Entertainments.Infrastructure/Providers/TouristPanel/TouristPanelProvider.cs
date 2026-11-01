@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Refahi.Modules.Entertainments.Application.Contracts.Discovery;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -16,7 +17,7 @@ using System.Text.Json;
 namespace Refahi.Modules.Entertainments.Infrastructure.Providers.TouristPanel;
 
 public sealed partial class TouristPanelProvider(TouristPanelClient client, TouristPanelCatalog catalog,
-    TouristPanelReadCache readCache, IOptions<TouristPanelOptions> options, IEntertainmentPricingService pricing, EntertainmentDbContext db, IEntertainmentSecretProtector secrets, IEntertainmentDiscovery discovery)
+    TouristPanelReadCache readCache, IOptions<TouristPanelOptions> options, IEntertainmentPricingService pricing, EntertainmentDbContext db, IEntertainmentSecretProtector secrets, IEntertainmentDiscovery discovery, ILogger<TouristPanelProvider>? logger = null)
     : IEntertainmentProvider, IEntertainmentOfferProvider, IEntertainmentReservationProvider, IEntertainmentFulfillmentStatusProvider
 {
     public string Key => "touristpanel";
@@ -151,7 +152,10 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
                 throw Error("شناسه سانس معتبر نیست");
 
             // A 30-day calendar is lightweight. Ticket details are loaded only for an explicit range.
-            var types = e.TicketTypes ?? (start.HasValue ? await readCache.GetEventTicketsAsync(e.EventId!, p.SupplyChainHojreId!, null, ct) : []);
+            // Embedded event prices can differ from the account-specific ticket endpoint used by checkout.
+            var types = start.HasValue
+                ? await readCache.GetEventTicketsAsync(e.EventId!, p.SupplyChainHojreId!, null, ct)
+                : e.TicketTypes ?? [];
 
             result.Add(
                 MakeOffer(
@@ -169,6 +173,11 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
     }
     private EntertainmentOfferDto MakeOffer(TpProgramDto p, string key, string title, DateTimeOffset? starts, int? capacity, IReadOnlyList<TpTicketTypeDto> types)
     {
+        var options = types.Select(t => NormalizeTicketType(t)).Where(t => ValidTicketType(p, t)).Select(t => PurchaseOption(p, key, t)).ToArray();
+        foreach (var group in options.Where(x => !x.IsAvailable).GroupBy(x => x.UnavailableReasonCode))
+            logger?.LogInformation("TouristPanel unavailable options Program={Program} Offer={Offer} Reason={Reason} Count={Count}", p.Id, key, group.Key, group.Count());
+        var invalidTypes = types.Count - options.Length;
+        if (invalidTypes > 0) logger?.LogWarning("TouristPanel invalid ticket identities Program={Program} Count={Count}", p.Id, invalidTypes);
         return new(
             Key,
             p.SupplyChainHojreId!,
@@ -178,41 +187,67 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
             null,
             starts,
             capacity,
-            Category(p) ?? "",
-            types.Where(t => ValidTicketType(p, t))
-                 .SelectMany(t => Options(p, t))
-                 .ToArray()
+            Category(p),
+            options
         );
 
     }
 
-    private IEnumerable<EntertainmentPurchaseOptionDto> Options(TpProgramDto program, TpTicketTypeDto type)
+    private EntertainmentPurchaseOptionDto PurchaseOption(TpProgramDto program, string offerKey, TpTicketTypeDto type)
     {
-        var prices = EligiblePrices(type).ToArray();
-
-        return prices.Select(price =>
-            new EntertainmentPurchaseOptionDto(
-                OptionKey(type, price),
-                prices.Length == 1
-                    ? type.Title ?? "بلیط"
-                    : $"{type.Title ?? "بلیط"} - {price.CommissionPriceCategory?.Title}",
-                Sale(price.BuyPrice)?.SaleMinor ?? 0,
-                null,
-                CanSell(program, type) && Sale(price.BuyPrice) is { SaleMinor: > 0 }
-            )
-        );
+        var selected = CheapestPrice(type);
+        var sale = selected is null ? null : Sale(selected);
+        var reason = sale is null ? "PriceUnavailable"
+            : type.IsDisabled ? "TicketDisabled"
+            : (int)program.Type == 2 && type.RemainingCapacity <= 0 ? "SoldOut"
+            : !CanSell(program, type) ? "SalesUnavailable" : null;
+        return new(StableOptionKey(program.Id!, offerKey, type), type.Title ?? "بلیط", sale?.SaleMinor ?? 0, null, reason is null)
+        { UnavailableReasonCode = reason };
     }
 
-    private IEnumerable<TpTicketPriceDto> EligiblePrices(TpTicketTypeDto t)
+    private TpTicketPriceDto? CheapestPrice(TpTicketTypeDto type)
     {
-        return (t.TicketPrices ?? [])
-            .Where(x =>
-                x.CommissionPriceCategory?.Currency == TpCurrencyType.IRR &&
-                Guid.TryParse(x.CommissionPriceCategory.CommissionPriceCategoryId, out var categoryId) &&
-                categoryId != Guid.Empty &&
-                O.AllowedPriceCategoryIds.Contains(x.CommissionPriceCategory.CommissionPriceCategoryId, StringComparer.OrdinalIgnoreCase)
-            );
+        var identified = (type.TicketPrices ?? []).Where(x =>
+            Guid.TryParse(x.CommissionPriceCategory?.CommissionPriceCategoryId, out var id) && id != Guid.Empty);
+        var unique = new List<TpTicketPriceDto>();
+        foreach (var group in identified.GroupBy(x => Guid.Parse(x.CommissionPriceCategory!.CommissionPriceCategoryId!)))
+        {
+            // Different costs or terms for one provider identity cannot be selected safely.
+            var first = group.First();
+            if (group.Any(x => !SamePrice(first, x)))
+            {
+                logger?.LogWarning("TouristPanel conflicting prices Type={Type} Category={Category}", type.ProgramTicketTypeId, group.Key);
+                return null;
+            }
+            unique.Add(first);
+        }
+        return unique.Where(x => x.CommissionPriceCategory!.Currency == TpCurrencyType.IRR
+                && x.BuyPrice > 0 && x.BuyPrice <= long.MaxValue && decimal.Truncate(x.BuyPrice) == x.BuyPrice
+                && (!O.UseProviderSalePrice || x.TicketPrice > 0 && x.TicketPrice <= long.MaxValue && decimal.Truncate(x.TicketPrice) == x.TicketPrice))
+            .OrderBy(x => x.BuyPrice)
+            .ThenBy(x => Guid.Parse(x.CommissionPriceCategory!.CommissionPriceCategoryId!).ToString("D"), StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
     }
+
+    private static bool SamePrice(TpTicketPriceDto first, TpTicketPriceDto second)
+    {
+        TpTicketPriceDto Normalize(TpTicketPriceDto price) => price with
+        {
+            CommissionPriceCategory = price.CommissionPriceCategory! with
+            { CommissionPriceCategoryId = Guid.Parse(price.CommissionPriceCategory.CommissionPriceCategoryId!).ToString("D") },
+            CommissionPriceGroupId = Guid.TryParse(price.CommissionPriceGroupId, out var group) ? group.ToString("D") : price.CommissionPriceGroupId,
+            Beneficiaries = null
+        };
+        return Normalize(first) == Normalize(second)
+            && (first.Beneficiaries ?? []).SequenceEqual(second.Beneficiaries ?? []);
+    }
+
+    private static TpTicketTypeDto NormalizeTicketType(TpTicketTypeDto type) => type with
+    {
+        // The live API represents "no reference ticket" with Guid.Empty when no dependency is required.
+        ReferenceTicketTypeId = !type.IsNumberEqualsReferenceTicketType && Guid.TryParse(type.ReferenceTicketTypeId, out var reference) && reference == Guid.Empty
+            ? null : type.ReferenceTicketTypeId
+    };
 
     private static bool ValidTicketType(TpProgramDto p, TpTicketTypeDto t)
     {
@@ -221,7 +256,7 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
             ((int)p.Type == 1 || Guid.TryParse(t.EventTicketTypeId, out var eventType) &&
             eventType != Guid.Empty) &&
             (
-                string.IsNullOrWhiteSpace(t.ReferenceTicketTypeId) ||
+                string.IsNullOrWhiteSpace(t.ReferenceTicketTypeId) && !t.IsNumberEqualsReferenceTicketType ||
                 Guid.TryParse(t.ReferenceTicketTypeId, out var reference) &&
                 reference != Guid.Empty
             );
@@ -232,32 +267,46 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
         return O.
             IsSaleConfigured &&
             p.IsActive && !t.IsDisabled &&
-            Category(p) != null &&
             (!(p.IsManifestNeeded || p.IsManifestUniqueNumberNeeded) || O.ManifestConfirmed) &&
             (!(t.IsNumberEqualsReferenceTicketType || !string.IsNullOrWhiteSpace(t.ReferenceTicketTypeId)) || O.ReferenceTicketsConfirmed) &&
             ((int)p.Type == 1 || (O.DateRangeConfirmed && !string.IsNullOrWhiteSpace(O.TimeZoneId) && t.RemainingCapacity > 0)
         );
     }
 
-    private EntertainmentPrice? Sale(decimal cost)
+    private EntertainmentPrice? Sale(TpTicketPriceDto selected)
     {
-        return O.MarkupPercent.HasValue &&
-               O.MarkupFixedMinor.HasValue &&
-               !string.IsNullOrWhiteSpace(O.PricingVersion)
-                    ? pricing.Calculate(cost, O.MarkupPercent.Value, O.MarkupFixedMinor.Value, O.PricingVersion)
-                    : null;
-
+        if (!O.MarkupPercent.HasValue || !O.MarkupFixedMinor.HasValue || string.IsNullOrWhiteSpace(O.PricingVersion)) return null;
+        try
+        {
+            if (O.UseProviderSalePrice)
+            {
+                if (selected.TicketPrice <= 0 || selected.TicketPrice > long.MaxValue || decimal.Truncate(selected.TicketPrice) != selected.TicketPrice) return null;
+                var cost = checked((long)selected.BuyPrice);
+                var retail = checked((long)selected.TicketPrice);
+                return new(cost, 0, retail, O.PricingVersion) { ProviderRetailAdjustmentMinor = checked(retail - cost) };
+            }
+            return pricing.Calculate(selected.BuyPrice, O.MarkupPercent.Value, O.MarkupFixedMinor.Value, O.PricingVersion,
+                O.DiscountPercent, O.DiscountFixedMinor);
+        }
+        catch (Exception ex) when (ex is EntertainmentDomainException or OverflowException)
+        {
+            logger?.LogWarning("TouristPanel invalid retail price PricingVersion={PricingVersion} ErrorType={ErrorType}", O.PricingVersion, ex.GetType().Name);
+            return null;
+        }
     }
 
-    private string? Category(TpProgramDto p)
+    private string Category(TpProgramDto p) => p.ProgramCategory != null
+        && O.CategoryCodes.TryGetValue(p.ProgramCategory.Code, out var code) && !string.IsNullOrWhiteSpace(code)
+            ? code : "entertainment";
+
+    public static string StableOptionKey(string program, string offer, TpTicketTypeDto type)
     {
-        return p.ProgramCategory != null &&
-               O.CategoryCodes.TryGetValue(p.ProgramCategory.Code, out var code) &&
-               !string.IsNullOrWhiteSpace(code)
-                ? code
-                : null;
+        var eventId = offer.StartsWith("service:", StringComparison.Ordinal) ? "" : Guid.Parse(offer).ToString("N");
+        var identity = $"v2|{Guid.Parse(program):N}|{eventId}|{Guid.Parse(type.ProgramTicketTypeId!):N}|{(Guid.TryParse(type.EventTicketTypeId, out var id) ? id.ToString("N") : "")}";
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant();
     }
 
+    // Retained only for recognizing cart selections issued before stable v2 identities.
     public static string OptionKey(TpTicketTypeDto t, TpTicketPriceDto price)
     {
         return Convert.ToHexString(
@@ -354,22 +403,27 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
             throw Error("نوع برنامه یا گزینه خرید پشتیبانی نمی‌شود");
         }
 
-        var matches = types.Where(t => ValidTicketType(p, t))
-            .SelectMany(t => EligiblePrices(t)
-            .Select(price => (Type: t, Price: price)))
-            .Where(x => OptionKey(x.Type, x.Price) == request.PurchaseOptionKey)
+        var matches = types.Select(t => NormalizeTicketType(t)).Where(t => ValidTicketType(p, t))
+            .Where(t => StableOptionKey(p.Id!, request.OfferKey, t) == request.PurchaseOptionKey
+                || (t.TicketPrices ?? []).Any(price => OptionKey(t, price) == request.PurchaseOptionKey))
             .ToArray();
-
         if (matches.Length != 1)
-            throw Error("رده قیمت مجاز و یکتا یافت نشد");
-
-        var (t, selected) = matches[0];
+            throw Error("گزینه بلیط تغییر کرده است؛ آن را از سبد حذف و دوباره انتخاب کنید");
+        var t = matches[0];
+        var selected = CheapestPrice(t) ?? throw Error("قیمت معتبر برای این بلیط در دسترس نیست");
 
         if (!CanSell(p, t) || ((int)p.Type == 2 && t.RemainingCapacity < request.Quantity))
             throw Error("خرید یا ظرفیت این بلیط در دسترس نیست");
 
-        var priceResult = Sale(selected.BuyPrice)
+        var priceResult = Sale(selected)
             ?? throw Error("قاعده قیمت تنظیم نشده است");
+        try
+        {
+            _ = checked(priceResult.ProviderCostMinor * request.Quantity);
+            _ = checked(priceResult.SaleMinor * request.Quantity);
+        }
+        catch (OverflowException) { throw Error("مبلغ کل بلیط‌ها معتبر نیست"); }
+
 
         var payload = JsonSerializer.Serialize(new
         {
@@ -383,6 +437,15 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
             t.ReferenceTicketTypeId,
             t.IsNumberEqualsReferenceTicketType,
             selected.CommissionPriceCategory,
+            providerTicketPrice = selected.TicketPrice,
+            providerCommissionPrice = selected.CommissionPrice,
+            pricingBasis = O.UseProviderSalePrice ? "ProviderRetail" : "SupplierCost",
+            providerRetailAdjustmentMinor = priceResult.ProviderRetailAdjustmentMinor,
+            markupPercent = O.MarkupPercent,
+            markupFixedMinor = O.MarkupFixedMinor,
+            discountPercent = O.DiscountPercent,
+            discountFixedMinor = O.DiscountFixedMinor,
+            discountMinor = priceResult.DiscountMinor,
             providerCostMinor = priceResult.ProviderCostMinor,
             saleMinor = priceResult.SaleMinor,
             markupMinor = priceResult.MarkupMinor,
@@ -394,7 +457,7 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
             p.SupplyChainHojreId!,
             Guid.Parse(request.ProgramKey).ToString("N"),
             request.OfferKey,
-            request.PurchaseOptionKey,
+            StableOptionKey(p.Id!, request.OfferKey, t),
             p.SupplyChainHojre?.Title ?? "فروشنده",
             p.Title ?? "خدمت", (await discovery.ProfileAsync(Guid.Parse(request.ProgramKey), ct))?.ImageUrl,
             (int)p.Type == 1
@@ -413,6 +476,9 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
         {
             ProviderCostMinor = priceResult.ProviderCostMinor,
             MarkupMinor = priceResult.MarkupMinor,
+            DiscountMinor = priceResult.DiscountMinor,
+            ProviderRetailAdjustmentMinor = priceResult.ProviderRetailAdjustmentMinor,
+            PreviousPurchaseOptionKeys = (t.TicketPrices ?? []).Select(price => OptionKey(t, price)).Distinct().ToArray(),
             PricingVersion = priceResult.Version,
             RequiresManifest = p.IsManifestNeeded,
             RequiresIdentityNumber = p.IsManifestUniqueNumberNeeded

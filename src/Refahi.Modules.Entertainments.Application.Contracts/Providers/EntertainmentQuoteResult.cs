@@ -21,6 +21,9 @@ public sealed record EntertainmentQuoteResult(
 {
     public long? ProviderCostMinor { get; init; }
     public long? MarkupMinor { get; init; }
+    public long DiscountMinor { get; init; }
+    public long ProviderRetailAdjustmentMinor { get; init; }
+    public IReadOnlyList<string> PreviousPurchaseOptionKeys { get; init; } = [];
     public string? PricingVersion { get; init; }
     public bool RequiresManifest { get; init; }
     public bool RequiresIdentityNumber { get; init; }

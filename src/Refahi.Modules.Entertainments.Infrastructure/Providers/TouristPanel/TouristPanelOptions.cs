@@ -8,6 +8,7 @@ public sealed class TouristPanelOptions
     public const string SectionName = "Entertainments:Providers:TouristPanel";
     public bool Enabled { get; init; }
     public bool SalesEnabled { get; init; }
+    public bool UseProviderSalePrice { get; init; }
     public string TokenUrl { get; init; } = "https://id.touristpanel.ir/connect/token";
     public string BaseUrl { get; init; } = "https://marketplace-api.touristpanel.ir";
     public string Tenant { get; init; } = "";
@@ -27,10 +28,11 @@ public sealed class TouristPanelOptions
     public bool ReferenceTicketsConfirmed { get; init; }
     public bool DateRangeConfirmed { get; init; }
     public string? TimeZoneId { get; init; }
-    public string[] AllowedPriceCategoryIds { get; init; } = [];
     public Dictionary<int, string> CategoryCodes { get; init; } = [];
     public decimal? MarkupPercent { get; init; }
     public long? MarkupFixedMinor { get; init; }
+    public decimal DiscountPercent { get; init; }
+    public long DiscountFixedMinor { get; init; }
     public string PricingVersion { get; init; } = "";
     public int CatalogPageSize { get; init; } = 20;
     public int CatalogMaxPages { get; init; } = 1000;
@@ -41,9 +43,9 @@ public sealed class TouristPanelOptions
         $"{BaseUrl}|{Tenant}|{ClientId}|{Username}|{Scope}"))).ToLowerInvariant();
 
     public bool IsSaleConfigured => SalesEnabled && SettlementConfirmed && BuyPriceConfirmed
-        && PaymentMethod.HasValue && BankGateway.HasValue && AllowedPriceCategoryIds.Length > 0
+        && PaymentMethod.HasValue && BankGateway.HasValue
         && MarkupPercent is >= 0 && MarkupFixedMinor is >= 0 && !string.IsNullOrWhiteSpace(PricingVersion)
-        && DeliveryHosts.Length > 0;
+        && DiscountPercent >= 0 && DiscountFixedMinor >= 0 && DeliveryHosts.Length > 0;
 
     public void Validate()
     {
@@ -54,12 +56,13 @@ public sealed class TouristPanelOptions
             || CatalogPageSize is < 1 or > 100 || CatalogMaxPages < 1 || CatalogRefreshMinutes < 1
             || TimeoutSeconds < 1 || ReservationSafetySeconds < 1)
             throw new InvalidOperationException("تنظیمات اتصال توریست‌پنل معتبر نیست");
+        if (UseProviderSalePrice && (MarkupPercent != 0 || MarkupFixedMinor != 0 || DiscountPercent != 0 || DiscountFixedMinor != 0))
+            throw new InvalidOperationException("در حالت قیمت فروش تأمین‌کننده، اضافات و کسورات رفاهی باید صفر باشند");
         if (SalesEnabled && !IsSaleConfigured)
             throw new InvalidOperationException("تأیید قرارداد و تنظیمات فروش توریست‌پنل کامل نیست");
         if (SalesEnabled && (!Enum.IsDefined(typeof(Contracts.TpPaymentMethod), PaymentMethod!.Value)
             || !Enum.IsDefined(typeof(Contracts.TpPaymentGatewayType), BankGateway!.Value)
-            || AllowedPriceCategoryIds.Any(x => !Guid.TryParse(x, out var id) || id == Guid.Empty)
-            || CategoryCodes.Count == 0 || CategoryCodes.Any(x => string.IsNullOrWhiteSpace(x.Value))
+            || CategoryCodes.Any(x => string.IsNullOrWhiteSpace(x.Value))
             || DeliveryHosts.Any(x => Uri.CheckHostName(x) == UriHostNameType.Unknown)))
             throw new InvalidOperationException("تنظیمات مالی یا نگاشت فروش توریست‌پنل معتبر نیست");
         if (SalesEnabled && DateRangeConfirmed)

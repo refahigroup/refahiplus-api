@@ -31,9 +31,13 @@ public sealed record EntertainmentCatalogFilters(IReadOnlyList<EntertainmentFilt
 public sealed record EntertainmentDeliveryDocument(string Title, string Url);
 public interface IEntertainmentPricingService
 {
-    EntertainmentPrice Calculate(decimal providerCost, decimal percent, long fixedMinor, string version);
+    EntertainmentPrice Calculate(decimal providerCost, decimal percent, long fixedMinor, string version, decimal discountPercent = 0, long discountFixedMinor = 0);
 }
-public sealed record EntertainmentPrice(long ProviderCostMinor, long MarkupMinor, long SaleMinor, string Version);
+public sealed record EntertainmentPrice(long ProviderCostMinor, long MarkupMinor, long SaleMinor, string Version)
+{
+    public long DiscountMinor { get; init; }
+    public long ProviderRetailAdjustmentMinor { get; init; }
+}
 public interface IEntertainmentMutationLock
 {
     Task<IAsyncDisposable> AcquireAsync(Guid id, CancellationToken ct);

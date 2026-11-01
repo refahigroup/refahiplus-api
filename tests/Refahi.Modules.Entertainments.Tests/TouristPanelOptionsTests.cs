@@ -44,11 +44,20 @@ public sealed class TouristPanelOptionsTests
         {
             Enabled = true, SalesEnabled = true, Tenant = Guid.NewGuid().ToString(), ClientId = "client", ClientSecret = "secret",
             Username = "user", Password = "password", SettlementConfirmed = true, BuyPriceConfirmed = true,
-            PaymentMethod = 100, BankGateway = 0, AllowedPriceCategoryIds = [Guid.NewGuid().ToString()],
+            PaymentMethod = 100, BankGateway = 0,
             CategoryCodes = new() { [1] = "entertainment" }, MarkupPercent = 0, MarkupFixedMinor = 0,
             PricingVersion = "zero-v1", DeliveryHosts = ["tickets.example.test"]
         };
         options.Validate(); Assert.True(options.IsSaleConfigured);
+    }
+
+    [Theory][InlineData(0,0,true)][InlineData(1,0,false)][InlineData(0,1,false)]
+    public void Provider_retail_mode_requires_explicit_zero_refahi_adjustments(int markup, int discount, bool valid)
+    {
+        var options = new TouristPanelOptions { Enabled = true, UseProviderSalePrice = true, Tenant = Guid.NewGuid().ToString(),
+            ClientId = "client", ClientSecret = "secret", Username = "user", Password = "password",
+            MarkupPercent = markup, MarkupFixedMinor = 0, DiscountPercent = discount };
+        if (valid) options.Validate(); else Assert.Throws<InvalidOperationException>(options.Validate);
     }
 
     [Theory]
@@ -60,7 +69,7 @@ public sealed class TouristPanelOptionsTests
         {
             Enabled = true, SalesEnabled = true, Tenant = Guid.NewGuid().ToString(), ClientId = "client", ClientSecret = "secret",
             Username = "user", Password = "password", SettlementConfirmed = true, BuyPriceConfirmed = true,
-            PaymentMethod = payment, BankGateway = gateway, AllowedPriceCategoryIds = [Guid.NewGuid().ToString()],
+            PaymentMethod = payment, BankGateway = gateway,
             CategoryCodes = new() { [1] = "entertainment" }, MarkupPercent = 0, MarkupFixedMinor = 0,
             PricingVersion = "v1", DeliveryHosts = ["tickets.example.test"]
         };

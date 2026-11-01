@@ -52,11 +52,15 @@ public sealed class EntertainmentCart
         return new EntertainmentCart { Id = Guid.NewGuid(), UserId = userId, CreatedAt = now, UpdatedAt = now };
     }
 
-    public void AddOrReplace(EntertainmentCartItemSnapshot item)
+    public void AddOrReplace(EntertainmentCartItemSnapshot item, IReadOnlyCollection<string>? previousKeys = null)
     {
         if (item.Quantity is <= 0 or > 100 || item.ExpectedUnitPriceMinor <= 0)
             throw new EntertainmentDomainException("تعداد یا قیمت آیتم معتبر نیست", "INVALID_CART_ITEM");
-        var existing = _items.FirstOrDefault(x => x.IdentityEquals(item));
+        var matches = _items.Where(x => x.IdentityEquals(item) || previousKeys != null
+            && previousKeys.Any(key => x.IdentityEquals(item with { PurchaseOptionKey = key }))).ToArray();
+        ValidateTotal(item.ExpectedUnitPriceMinor, item.Quantity, _items.Except(matches));
+        var existing = matches.FirstOrDefault(x => x.IdentityEquals(item)) ?? matches.FirstOrDefault();
+        foreach (var duplicate in matches.Where(x => x != existing)) _items.Remove(duplicate);
         if (existing is null) _items.Add(EntertainmentCartItem.Create(Id, item));
         else existing.Replace(item);
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -66,6 +70,7 @@ public sealed class EntertainmentCart
     {
         var item = _items.FirstOrDefault(x => x.Id == itemId)
             ?? throw new EntertainmentDomainException("آیتم سبد خرید یافت نشد", "CART_ITEM_NOT_FOUND");
+        ValidateTotal(item.ExpectedUnitPriceMinor, quantity, _items.Where(x => x.Id != itemId));
         item.ChangeQuantity(quantity);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
@@ -79,6 +84,12 @@ public sealed class EntertainmentCart
     }
 
     public void Clear() { _items.Clear(); UpdatedAt = DateTimeOffset.UtcNow; }
+
+    private static void ValidateTotal(long unitPrice, int quantity, IEnumerable<EntertainmentCartItem> others)
+    {
+        try { _ = checked(others.Sum(x => checked(x.ExpectedUnitPriceMinor * x.Quantity)) + checked(unitPrice * quantity)); }
+        catch (OverflowException) { throw new EntertainmentDomainException("مبلغ کل سبد معتبر نیست", "INVALID_CART_TOTAL"); }
+    }
 }
 
 public sealed class EntertainmentCartItem
@@ -120,6 +131,7 @@ public sealed class EntertainmentCartItem
         OfferKey == x.OfferKey && PurchaseOptionKey.Equals(x.PurchaseOptionKey, StringComparison.OrdinalIgnoreCase);
     internal void Replace(EntertainmentCartItemSnapshot item)
     {
+        PurchaseOptionKey = Normalize(item.PurchaseOptionKey);
         Quantity = item.Quantity;
         ExpectedUnitPriceMinor = item.ExpectedUnitPriceMinor;
         OriginalUnitPriceMinor = item.OriginalUnitPriceMinor;

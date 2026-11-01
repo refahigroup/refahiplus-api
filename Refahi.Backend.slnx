@@ -17,7 +17,7 @@
     <Project Path="src/Refahi.Modules.Commerce.Domain/Refahi.Modules.Commerce.Domain.csproj" />
     <Project Path="src/Refahi.Modules.Commerce.Infrastructure/Refahi.Modules.Commerce.Infrastructure.csproj" Id="f524376b-8421-4972-a920-4488a503e5a3" />
   </Folder>
-  <Folder Name="/01_Modules/Entertainment/">
+  <Folder Name="/01_Modules/Entertainments/" Id="0ec676e0-7340-838c-76f9-c3f3673170d4">
     <Project Path="src/Refahi.Modules.Entertainments.Api/Refahi.Modules.Entertainments.Api.csproj" Id="8f235d8e-390e-4bc3-b80e-47f661fb3e7a" />
     <Project Path="src/Refahi.Modules.Entertainments.Application.Contracts/Refahi.Modules.Entertainments.Application.Contracts.csproj" Id="eba241e2-784e-466b-8d09-904d2234f68c" />
     <Project Path="src/Refahi.Modules.Entertainments.Application/Refahi.Modules.Entertainments.Application.csproj" Id="597c8fc7-d895-46d2-b2d6-03b3dcdd159e" />
@@ -131,13 +131,12 @@
     <Project Path="tests/Refahi.Modules.Vendor.Tests/Refahi.Modules.Vendor.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" />
   </Folder>
-  <Folder Name="/src/" />
   <Folder Name="/tests/">
     <Project Path="tests/Refahi.Modules.Catalogue.Tests/Refahi.Modules.Catalogue.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Cinema.Tests/Refahi.Modules.Cinema.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Entertainments.Tests/Refahi.Modules.Entertainments.Tests.csproj" />
   </Folder>
-<Folder Name="/01_Modules/Catalogue/">
+<Folder Name="/01_Modules/Catalogue/" Id="f3826ddd-2a1b-9199-9f6c-8cfcbff74908">
   <Project Path="src/Refahi.Modules.Catalogue.Api/Refahi.Modules.Catalogue.Api.csproj" />
   <Project Path="src/Refahi.Modules.Catalogue.Application.Contracts/Refahi.Modules.Catalogue.Application.Contracts.csproj" />
   <Project Path="src/Refahi.Modules.Catalogue.Application/Refahi.Modules.Catalogue.Application.csproj" />

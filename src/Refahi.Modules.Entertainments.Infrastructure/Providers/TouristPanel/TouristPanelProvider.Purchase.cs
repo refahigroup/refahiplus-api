@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Entertainments.Application.Contracts.Providers;
 using Refahi.Modules.Entertainments.Application.Contracts.Providers.Exceptions;
@@ -15,9 +16,26 @@ public sealed partial class TouristPanelProvider
         if (!O.IsSaleConfigured) throw Error("فروش توریست‌پنل فعال نیست");
         var groups = new List<TpAddTempGroupDto>();
         var lines = new List<EntertainmentReservedLine>();
-        foreach (var line in request.Lines)
+        var selections = new List<(EntertainmentSessionLine Line, Selection Selected)>();
+        foreach (var input in request.Lines)
         {
-            var s = await Select(new(line.ProgramKey, line.OfferKey, line.PurchaseOptionKey, line.Quantity), ct);
+            if (input.Passengers.Count != input.Quantity) throw Error("تعداد مشخصات مسافران با بلیط‌ها یکسان نیست");
+            var selected = await Select(new(input.ProgramKey, input.OfferKey, input.PurchaseOptionKey, input.Quantity), ct);
+            if (selected.Quote.UnitPriceMinor != input.ExpectedUnitPriceMinor)
+                logger?.LogInformation("TouristPanel reservation repriced Operation={Operation} Program={Program} ExpectedUnitPrice={ExpectedUnitPrice} UnitPrice={UnitPrice} PricingVersion={PricingVersion}",
+                    request.OperationId, input.ProgramKey, input.ExpectedUnitPriceMinor, selected.Quote.UnitPriceMinor, selected.Quote.PricingVersion);
+            selections.Add((input, selected));
+        }
+        // Legacy carts may contain the same ticket type under different old price-category hashes.
+        foreach (var selection in selections.GroupBy(x => (x.Selected.Quote.ProgramKey, x.Selected.Quote.OfferKey, x.Selected.Quote.PurchaseOptionKey)))
+        {
+            var first = selection.First();
+            var quantity = selection.Sum(x => x.Line.Quantity);
+            if (quantity is < 1 or > 100 || selection.Any(x => x.Selected.Quote.ProviderPayloadJson != first.Selected.Quote.ProviderPayloadJson
+                || (int)x.Selected.Program.Type == 2 && x.Selected.Type.RemainingCapacity < quantity))
+                throw Error("قیمت، تعداد یا ظرفیت اقلام تکراری تغییر کرده است؛ سبد را دوباره بررسی کنید");
+            var line = first.Line with { Quantity = quantity, Passengers = selection.SelectMany(x => x.Line.Passengers).ToArray() };
+            var s = first.Selected with { Quote = first.Selected.Quote with { Quantity = quantity } };
             if (line.Passengers.Count != line.Quantity) throw Error("تعداد مشخصات مسافران با بلیط‌ها یکسان نیست");
             if (line.Passengers.Any(x => (s.Quote.RequiresManifest || s.Quote.RequiresIdentityNumber) && string.IsNullOrWhiteSpace(x.Name)
                 || s.Quote.RequiresIdentityNumber && string.IsNullOrWhiteSpace(x.IdentityNumber)))
@@ -38,6 +56,12 @@ public sealed partial class TouristPanelProvider
             lines.Add(new(line.CartItemId, s.Quote, line.Passengers));
         }
         if (groups.Count == 0) throw Error("سبد انتخاب‌شده خالی است");
+        try
+        {
+            _ = lines.Sum(x => checked(x.Quote.UnitPriceMinor * x.Quote.Quantity));
+            _ = lines.Sum(x => checked(x.Quote.ProviderCostMinor * x.Quote.Quantity));
+        }
+        catch (OverflowException) { throw Error("مبلغ کل رزرو معتبر نیست"); }
         var operation = "reserve:" + request.OperationId;
         if (await Receipt(operation, ct) is not null) throw new EntertainmentProviderAmbiguousException("تلاش رزرو قبلی باید بررسی شود");
         await SaveReceipt(operation, new ReservationCheckpoint(groups, null), ct);
@@ -135,7 +159,10 @@ public sealed partial class TouristPanelProvider
                 && x.CommissionPriceCategoryId == category);
             if (g?.Tickets == null || g.Tickets.Count != line.Quote.Quantity || g.TicketsCount != line.Quote.Quantity
                 || g.Tickets.Any(x => x.BuyPrice != line.Quote.ProviderCostMinor)
-                || g.TotalBuyPrice != line.Quote.ProviderCostMinor * line.Quote.Quantity
+                || g.TotalBuyPrice != checked(line.Quote.ProviderCostMinor * line.Quote.Quantity)
+                || p.TryGetProperty("pricingBasis", out var basis) && basis.GetString() == "ProviderRetail"
+                    && (g.Tickets.Any(x => x.TicketPrice != line.Quote.UnitPriceMinor)
+                        || g.TotalTicketPrice != checked(line.Quote.UnitPriceMinor * line.Quote.Quantity))
                 || g.Tickets.Select(x => x.TicketId).Distinct().Count() != line.Quote.Quantity)
                 throw new EntertainmentProviderAmbiguousException("تعداد یا بهای رزرو با انتخاب متفاوت است");
             if (line.Quote.RequiresManifest || line.Quote.RequiresIdentityNumber)
@@ -168,7 +195,7 @@ public sealed partial class TouristPanelProvider
         var tickets = groups.SelectMany(x => x.Tickets ?? []).ToArray();
         if (tickets.Length != context.Lines.Sum(x => x.Quote.Quantity) || tickets.Any(x => string.IsNullOrWhiteSpace(x.Id))
             || tickets.Select(x => x.Id).Distinct().Count() != tickets.Length) return Pending("Pending");
-        if (invoice.TotalSupplierBuyAmount != context.Lines.Sum(x => x.Quote.ProviderCostMinor * x.Quote.Quantity)
+        if (invoice.TotalSupplierBuyAmount != context.Lines.Sum(x => checked(x.Quote.ProviderCostMinor * x.Quote.Quantity))
             || tickets.Any(x => x.IsCanceled || x.IsRevoked)) return Pending("ManualReview");
         foreach (var line in context.Lines)
         {

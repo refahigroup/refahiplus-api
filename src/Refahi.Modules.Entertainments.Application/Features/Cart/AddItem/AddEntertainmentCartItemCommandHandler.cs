@@ -40,7 +40,7 @@ public sealed class AddEntertainmentCartItemCommandHandler(IEntertainmentReposit
             request.Quantity,
             quote.UnitPriceMinor,
             quote.OriginalUnitPriceMinor
-        ));
+        ), quote.PreviousPurchaseOptionKeys);
 
         await repository.SaveChangesAsync(ct); return Mapper.Map(cart);
     }

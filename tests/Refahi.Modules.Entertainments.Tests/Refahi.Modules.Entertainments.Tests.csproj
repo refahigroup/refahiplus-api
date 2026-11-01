@@ -18,4 +18,5 @@
     <ProjectReference Include="..\..\src\Refahi.Modules.Entertainments.Application\Refahi.Modules.Entertainments.Application.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Entertainments.Infrastructure\Refahi.Modules.Entertainments.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup><None Update="Fixtures/touristpanel-live-prices.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

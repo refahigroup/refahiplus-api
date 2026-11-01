@@ -6,4 +6,7 @@ public sealed record EntertainmentPurchaseOptionDto(
     long PriceMinor, 
     long? OriginalPriceMinor, 
     bool IsAvailable
-);
+)
+{
+    public string? UnavailableReasonCode { get; init; }
+}

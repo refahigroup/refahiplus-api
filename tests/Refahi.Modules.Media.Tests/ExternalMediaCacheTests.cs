@@ -32,6 +32,51 @@ public class ExternalMediaCacheTests
             using var image = await restarted.OpenAsync(id,source,default); Assert.Equal(0,next.Calls); await restarted.StopAsync(default);
         } finally { Directory.Delete(dir,true); }
     }
+    [Fact] public async Task LockedCacheStartsWithoutTouchingOwnersFiles()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var options = Options.Create(new ExternalMediaOptions { CachePath = dir, MinFreeBytes = 0 });
+        var source = new ExternalMediaSource(new Uri("https://store.snapptrip.com/a.jpeg"));
+        var id = Guid.NewGuid();
+        try
+        {
+            var ownerHandler = new Handler();
+            using var owner = new ExternalMedia(options, ownerHandler);
+            await owner.StartAsync(default);
+            using (var image = await owner.OpenAsync(id, source, default)) { }
+            var partial = Path.Combine(dir, "active.input.part");
+            File.WriteAllText(partial, "in-progress download");
+            var files = Directory.GetFiles(dir).Order().ToArray();
+
+            var handler = new Handler();
+            using (var contender = new ExternalMedia(options, handler))
+            {
+                await contender.StartAsync(default);
+                Assert.Null(contender.TryOpenCached(id));
+                for (var n = 0; n < 2; n++)
+                {
+                    using var image = await contender.OpenAsync(id, source, default);
+                    using var output = new MemoryStream();
+                    await image.Stream.CopyToAsync(output);
+                    Assert.Equal(6, output.Length);
+                    Assert.Null(image.ETag);
+                }
+                Assert.Equal(2, handler.Calls);
+                await contender.StopAsync(default);
+            }
+
+            Assert.Equal(files, Directory.GetFiles(dir).Order().ToArray());
+            Assert.Equal("in-progress download", File.ReadAllText(partial));
+            Assert.Throws<IOException>(() =>
+            {
+                using var ownership = new FileStream(Path.Combine(dir, ".owner"), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            });
+            using (var image = await owner.OpenAsync(id, source, default)) Assert.NotNull(image.ETag);
+            Assert.Equal(1, ownerHandler.Calls);
+            await owner.StopAsync(default);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
     [Fact] public async Task DisabledCacheDoesNotWriteFiles()
     {
         var dir=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N")); var handler=new Handler();
