@@ -21,4 +21,4 @@
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
-<ItemGroup><ProjectReference Include="../Refahi.Modules.Identity.Application.Contracts/Refahi.Modules.Identity.Application.Contracts.csproj" /></ItemGroup><ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /></ItemGroup></Project>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Identity.Application.Contracts/Refahi.Modules.Identity.Application.Contracts.csproj" /></ItemGroup><ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /></ItemGroup><ItemGroup><InternalsVisibleTo Include="Refahi.Modules.Pools.Tests" /></ItemGroup></Project>
