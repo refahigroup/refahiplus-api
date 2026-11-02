@@ -1,7 +1,11 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
+import subprocess
 import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +21,38 @@ nginx = load("render-catalogue-nginx")
 
 
 class ReleaseTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("sh"), "Requires a POSIX shell")
+    def test_ci_audit_recovers_from_timeouts_and_fails_after_three_attempts(self):
+        ci = (ROOT.parent / ".gitlab-ci.yml").read_text(encoding="utf-8")
+        audit = textwrap.dedent(ci.split('      echo "=== NuGet security audit ==="', 1)[1]
+                               .split('      echo "=== Publish API ==="', 1)[0])
+        probe = """set -eu
+SOLUTION=probe.slnx
+mkdir -p artifacts/catalogue-release
+calls=0
+dotnet() {
+  calls=$((calls + 1))
+  printf '%s' "$calls" > calls.txt
+  if [ "$calls" -le "$FAILURES" ]; then
+    echo 'error: NuGet download timed out'
+    return 23
+  fi
+  printf '{"attempt":%s}\\n' "$calls"
+}
+sleep() { :; }
+""" + audit + '\necho PUBLISH_STARTED\n'
+        for failures, exit_code, attempts in [(0, 0, 1), (2, 0, 3), (3, 23, 3)]:
+            with self.subTest(failures=failures), tempfile.TemporaryDirectory() as directory:
+                result = subprocess.run([shutil.which("sh"), "-c", probe], cwd=directory,
+                                        env={**os.environ, "FAILURES": str(failures)},
+                                        capture_output=True, text=True)
+                self.assertEqual(exit_code, result.returncode, result.stdout + result.stderr)
+                self.assertEqual(str(attempts), (Path(directory) / "calls.txt").read_text())
+                self.assertEqual(exit_code == 0, "PUBLISH_STARTED" in result.stdout)
+                if exit_code == 0:
+                    report = Path(directory) / "artifacts/catalogue-release/security-audit.json"
+                    self.assertEqual({"attempt": attempts}, json.loads(report.read_text()))
+
     def test_audit_fails_closed_and_checks_transitive_packages(self):
         self.assertTrue(release.audit_errors({}))
         audit = {"version": 1, "parameters": "--vulnerable --include-transitive", "sources": ["nuget.org"], "projects": [{"path": "test.csproj", "frameworks": [{"framework": "net10.0", "transitivePackages": [

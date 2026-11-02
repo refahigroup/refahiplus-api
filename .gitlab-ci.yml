@@ -157,17 +157,24 @@ build_publish:
           --results-directory artifacts/catalogue-release/test-results
       done
       echo "=== NuGet security audit ==="
-      if dotnet list "./$SOLUTION" package --no-restore \
-        --config ./NuGet.CI.Config --vulnerable --include-transitive --format json \
-        > artifacts/catalogue-release/security-audit.json \
-        2> artifacts/catalogue-release/security-audit.stderr.log; then
-        echo "NuGet security audit report generated."
-      else
-        audit_exit=$?
-        cat artifacts/catalogue-release/security-audit.json
-        cat artifacts/catalogue-release/security-audit.stderr.log >&2
-        exit "$audit_exit"
-      fi
+      for audit_attempt in 1 2 3; do
+        echo "NuGet security audit attempt $audit_attempt/3"
+        if dotnet list "./$SOLUTION" package --no-restore \
+          --config ./NuGet.CI.Config --vulnerable --include-transitive --format json \
+          > artifacts/catalogue-release/security-audit.json \
+          2> artifacts/catalogue-release/security-audit.stderr.log; then
+          echo "NuGet security audit report generated."
+          break
+        else
+          audit_exit=$?
+          cat artifacts/catalogue-release/security-audit.json
+          cat artifacts/catalogue-release/security-audit.stderr.log >&2
+          if [ "$audit_attempt" -eq 3 ]; then
+            exit "$audit_exit"
+          fi
+        fi
+        sleep 5
+      done
 
       echo "=== Publish API ==="
 
