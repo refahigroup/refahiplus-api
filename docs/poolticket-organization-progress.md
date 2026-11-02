@@ -30,3 +30,14 @@ One shared provider organization account; retail SourceAmount from total_sale; s
 The running adapter and issuance are still the old general v2 implementation with the explicitly bypassed external reservation. Do not activate purchases or claim organizational booking is implemented. No application database migration, live provider call, deployment or source activation was performed.
 
 Tests were run locally against controlled responses. PostgreSQL and browser suites have not been executed for this implementation.
+
+
+## Local execution verification — 2026-11-03
+
+Pools startup now invokes IDbTools.ApplyMigrations<PoolsDbContext>() independently of CatalogEnabled, matching the existing module startup pattern. The API was launched with ASPNETCORE_ENVIRONMENT=Local and DOTNET_ENVIRONMENT=Local against the existing localhost refahi-db configuration. Startup successfully checked pools.__EFMigrationsHistory; no pending Pools migration was reported. Existing Local worker settings were retained; PurchaseEnabled remains false.
+
+API remains listening on https://localhost:5001 and http://localhost:5000. Web remains listening on https://localhost:5271 and http://localhost:5270, also with environment Local. Web SSR and WASM recognize Local as a local API configuration; the Web host enables static web assets for this environment. The added Local launch profile sets the API URL without embedding any credential.
+
+Headless Edge used the real Local hosts and database, with no API interception or fixture server. Five mobile routes returned 200: /pools?view=pools, /pools?view=sessions, /pools/cart, /pools/checkout and /catalogue. Cart and checkout were checked after WASM initialized. No pageerror events or horizontal overflow at 390px were observed. The Pools catalogue API returned 200. Screenshots and the JSON report are in the Web worktree artifacts/local-browser directory.
+
+This is a smoke check, not certification of purchase, login, provider freshness, or organizational reservation. Existing persisted Pools rows are old; live v2 saens/list returned 403 during the worker cycle. The organizational adapter and Pools Catalogue source remain unimplemented. Browser navigation /catalogue currently demonstrates the existing registered sources, not Pools registration.

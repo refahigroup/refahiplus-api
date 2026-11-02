@@ -52,7 +52,6 @@ public static class DI
     public static void UseInfrastructure(this IServiceProvider provider)
     {
         using var scope = provider.CreateScope();
-        if (scope.ServiceProvider.GetRequiredService<IOptionsMonitor<PoolsOptions>>().CurrentValue.CatalogEnabled)
-            scope.ServiceProvider.GetRequiredService<IDbTools>().ApplyMigrations<PoolsDbContext>();
+        scope.ServiceProvider.GetRequiredService<IDbTools>().ApplyMigrations<PoolsDbContext>();
     }
 }
