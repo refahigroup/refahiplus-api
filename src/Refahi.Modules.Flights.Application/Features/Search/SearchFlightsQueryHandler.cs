@@ -130,7 +130,9 @@ public sealed class SearchFlightsQueryHandler
             expiresAtUtc,
             publicOffers,
             origin.CityNameFa,
-            destination.CityNameFa
+            destination.CityNameFa,
+            origin.CommercialReferenceCityId, origin.CommercialReferenceProvinceId, origin.CommercialReferenceCountryCode,
+            destination.CommercialReferenceCityId, destination.CommercialReferenceProvinceId, destination.CommercialReferenceCountryCode
         );
     }
 
@@ -313,7 +315,13 @@ public sealed class SearchFlightsQueryHandler
             segment.IsCharter,
             segment.IsReturn,
             AirlineLogo(airlinePresentations, segment.MarketingAirlineCode),
-            AirlineLogo(airlinePresentations, segment.OperatingAirlineCode)
+            AirlineLogo(airlinePresentations, segment.OperatingAirlineCode),
+            airportPresentations.GetValueOrDefault(segment.DepartureAirportLocationCode)?.GeographicReferenceCityId,
+            airportPresentations.GetValueOrDefault(segment.DepartureAirportLocationCode)?.GeographicReferenceProvinceId,
+            airportPresentations.GetValueOrDefault(segment.DepartureAirportLocationCode)?.GeographicReferenceCountryCode,
+            airportPresentations.GetValueOrDefault(segment.ArrivalAirportLocationCode)?.GeographicReferenceCityId,
+            airportPresentations.GetValueOrDefault(segment.ArrivalAirportLocationCode)?.GeographicReferenceProvinceId,
+            airportPresentations.GetValueOrDefault(segment.ArrivalAirportLocationCode)?.GeographicReferenceCountryCode
         );
     }
 

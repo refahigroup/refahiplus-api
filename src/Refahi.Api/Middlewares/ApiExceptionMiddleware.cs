@@ -1,6 +1,6 @@
 using Refahi.Modules.Cinema.Application.Contracts;
 using Refahi.Modules.Pools.Application.Contracts;
-﻿using System.Net;
+using System.Net;
 using FluentValidation;
 using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
 using Refahi.Modules.Flights.Application.Contracts.Providers;
@@ -36,6 +36,21 @@ public sealed class ApiExceptionMiddleware
             _logger.LogWarning("Pool operation rejected. StatusCode={StatusCode}", ex.Status);
             context.Response.StatusCode = ex.Status;
             await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: ex.Status));
+        }
+        catch (Refahi.Modules.Promotions.Application.Contracts.PromotionException ex)
+        {
+            context.Response.StatusCode = ex.StatusCode;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: ex.StatusCode));
+        }
+        catch (Refahi.Modules.Promotions.Domain.PromotionRuleException ex)
+        {
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: 400));
+        }
+        catch (Refahi.Modules.Wallets.Application.Contracts.Exceptions.InsufficientFundsException)
+        {
+            context.Response.StatusCode = 409;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("موجودی کیف پول یا بودجهٔ رفاهی برای پرداخت کافی نیست", statusCode: 409));
         }
         catch (CinemaException ex)
         {
@@ -75,6 +90,26 @@ public sealed class ApiExceptionMiddleware
             _logger.LogWarning(ex, "Order domain rule violation");
             await HandleDomainExceptionAsync(context, ex.Message);
         }
+        catch (Refahi.Modules.Entertainments.Application.Contracts.Discovery.EntertainmentUnavailableException ex)
+        {
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: 503));
+        }
+        catch (Refahi.Modules.Entertainments.Application.Contracts.Providers.Exceptions.EntertainmentProviderAmbiguousException)
+        {
+            context.Response.StatusCode = 409;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("وضعیت عملیات نیاز به پیگیری دارد؛ از همان نشست ادامه دهید", statusCode: 409));
+        }
+        catch (Refahi.Modules.Entertainments.Application.Contracts.Providers.Exceptions.EntertainmentProviderUnavailableException)
+        {
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("ارتباط با تأمین‌کننده خدمات تفریحی موقتاً در دسترس نیست؛ دوباره تلاش کنید", statusCode: 503));
+        }
+        catch (Refahi.Modules.Entertainments.Domain.EntertainmentDomainException ex)
+        {
+            context.Response.StatusCode = 409;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: 409));
+        }
         catch (CommerceDomainException ex)
         {
             _logger.LogWarning("Commerce domain rule violation. Code={Code}", ex.ErrorCode);
@@ -111,6 +146,11 @@ public sealed class ApiExceptionMiddleware
         {
             _logger.LogWarning(ex, "Domain rule violation");
             await HandleDomainExceptionAsync(context, ex.Message);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            context.Response.StatusCode = 403;
+            await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error("دسترسی به این عملیات مجاز نیست", statusCode: 403));
         }
         catch (Exception ex)
         {

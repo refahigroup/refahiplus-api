@@ -32,5 +32,6 @@ public sealed class FlightsDbContext : DbContext
         modelBuilder.ApplyConfiguration(new FlightAirportConfiguration());
         modelBuilder.ApplyConfiguration(new FlightSearchCityConfiguration());
         modelBuilder.ApplyConfiguration(new FlightSearchMembershipConfiguration());
+        FlightGeographyMappingConfiguration.Configure(modelBuilder);
     }
 }

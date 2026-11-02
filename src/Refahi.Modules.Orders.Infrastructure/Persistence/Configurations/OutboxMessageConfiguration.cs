@@ -35,6 +35,9 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
             .HasDefaultValue(OutboxMessageStatus.Pending)
             .HasColumnName("status");
 
+        builder.Property(o => o.LeaseId).HasColumnName("lease_id");
+        builder.Property(o => o.LeaseUntil).HasColumnName("lease_until");
+        builder.Property(o => o.NextAttemptAt).HasColumnName("next_attempt_at");
         builder.Property(o => o.ProcessedAt).HasColumnName("processed_at");
 
         builder.Property(o => o.Error).HasMaxLength(2000).HasColumnName("error");

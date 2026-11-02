@@ -11,7 +11,8 @@ public sealed record PayOrderCommand(
     string CallerRole,
     List<WalletAllocationInput> Allocations,
     string IdempotencyKey,
-    Guid? DestinationWalletId = null
+    Guid? DestinationWalletId = null,
+    long? ExpectedPricingVersion = null
 ) : IRequest<PayOrderResponse>;
 
 public sealed record WalletAllocationInput(Guid WalletId, long AmountMinor);

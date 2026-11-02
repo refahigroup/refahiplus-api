@@ -77,6 +77,9 @@ public sealed class OrderCreationGateway : IOrderCreationGateway
 
         await _mediator.Publish(new ValidateOrderSourceNotification(request), cancellationToken);
 
+        if (request.DiscountCode != null || request.DiscountCodeAmountMinor != 0)
+            throw new InvalidOperationException("تخفیف فقط از مسیر مرکزی سفارش قابل اعمال است");
+
         var order = Order.Create(
             userId: request.UserId,
             sourceModule: request.SourceModule,

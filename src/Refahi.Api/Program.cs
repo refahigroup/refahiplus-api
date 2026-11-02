@@ -1,3 +1,5 @@
+using Refahi.Modules.Catalogue.Api;
+using Refahi.Modules.Promotions.Api;
 using System.Diagnostics;
 using System.Reflection;
 using MediatR;
@@ -25,10 +27,13 @@ using Refahi.Modules.Store.Api;
 using Refahi.Modules.SupplyChain.Api;
 using Refahi.Modules.Wallets.Api;
 using Refahi.Shared.Monetary;
+using Refahi.Modules.Entertainments.Api;
 
 const string WebAppCorsPolicy = "WebApp";
 
 var builder = WebApplication.CreateBuilder(args);
+// Framework request-start messages include the full query, including nearby coordinates.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 
 builder
     .Services.AddOptions<MonetaryOptions>()
@@ -124,7 +129,9 @@ builder
     .RegisterChargeModule(builder.Configuration)
     .RegisterCommerceModule(builder.Configuration)
     .RegisterCinemaModule(builder.Configuration)
-    .RegisterPoolsModule(builder.Configuration);
+    .RegisterPoolsModule(builder.Configuration)
+    .RegisterPromotionsModule(builder.Configuration)
+    .RegisterEntertainmentsModule(builder.Configuration);
 
 //}
 //catch(Exception ex)
@@ -136,7 +143,9 @@ builder
 // Register cross-cutting pipeline behaviors after modules register their MediatR/Validators
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+builder.Services.RegisterCatalogueModule(builder.Configuration);
 var app = builder.Build();
+app.UseCatalogueModule();
 
 // CORS must run before response wrapping so browser preflight requests can short-circuit cleanly.
 app.UseCors(WebAppCorsPolicy);
@@ -150,8 +159,8 @@ app.UseApiExceptionMiddleware();
 app.UseResponseWrappingMiddleware();
 
 app.UseRouting();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 //if (app.Environment.IsDevelopment())
@@ -205,7 +214,9 @@ app.UseReferencesModule("/api/references")
     .UseChargeModule("/api/charge")
     .UseCommerceModule("/api/commerce")
     .UsePoolsModule("/api/pools")
-    .UseCinemaModule("/api/cinema");
+    .UseCinemaModule("/api/cinema")
+    .UsePromotionsModule("/api/promotions")
+    .UseEntertainmentsModule("/api/entertainments");
 
 //}
 //catch

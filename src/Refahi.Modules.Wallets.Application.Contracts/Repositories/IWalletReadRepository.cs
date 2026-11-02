@@ -13,6 +13,7 @@ namespace Refahi.Modules.Wallets.Application.Contracts.Repositories;
 public interface IWalletReadRepository
 {
     Task<WalletBalanceResponse> GetWalletBalanceAsync(Guid walletId);
+    Task<WalletBalanceResponse> GetWalletBalanceAsync(Guid walletId,CancellationToken ct) => GetWalletBalanceAsync(walletId).WaitAsync(ct);
     Task<IReadOnlyList<GetTransactionsResponse>> GetWalletTransactionsAsync(
         Guid walletId,
         int take

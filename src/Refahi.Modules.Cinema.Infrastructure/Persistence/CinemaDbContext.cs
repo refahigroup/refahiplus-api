@@ -20,6 +20,8 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
         order.HasMany(x=>x.Attempts).WithOne().HasForeignKey(x=>x.CinemaOrderId).OnDelete(DeleteBehavior.Cascade);
         order.Navigation(x=>x.Attempts).UsePropertyAccessMode(PropertyAccessMode.Field);
         var attempt=model.Entity<CinemaProviderAttempt>();attempt.ToTable("provider_attempts");attempt.HasKey(x=>x.Id);
+        // Attempt IDs are assigned by the domain, including attempts added to existing orders.
+        attempt.Property(x=>x.Id).ValueGeneratedNever();
     }
 }
 public sealed class CinemaOrderRepository(CinemaDbContext db) : ICinemaOrderRepository

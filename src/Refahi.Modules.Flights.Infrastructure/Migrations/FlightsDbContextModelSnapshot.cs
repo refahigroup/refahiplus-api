@@ -198,6 +198,44 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                     b.ToTable("flight_bookings", "flights");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.AirportGeographyMapping", b =>
+                {
+                    b.Property<string>("AirportIataCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<int>("CityId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("MatchMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceIdentity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("SourceSnapshotDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SourceVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("AirportIataCode");
+
+                    b.HasIndex("CityId");
+
+                    b.ToTable("airport_geography_mappings", "flights");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.FlightSearchCity", b =>
                 {
                     b.Property<string>("CityCode")
@@ -276,11 +314,53 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                     b.ToTable("search_memberships", "flights");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.SnappTripFlightCityMapping", b =>
+                {
+                    b.Property<string>("ProviderCityCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<int>("CityId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("MatchMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceIdentity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("SourceSnapshotDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SourceVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("ProviderCityCode");
+
+                    b.HasIndex("CityId");
+
+                    b.ToTable("snapptrip_city_mappings", "flights");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Flights.Domain.Aggregates.FlightOfferSnapshotAgg.FlightOfferSnapshot", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<long>("CommissionAmount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("commission_amount");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -291,10 +371,6 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("character varying(3)")
                         .HasColumnName("currency");
-
-                    b.Property<long>("CommissionAmount")
-                        .HasColumnType("bigint")
-                        .HasColumnName("commission_amount");
 
                     b.Property<long>("CustomerPayableAmount")
                         .HasColumnType("bigint")
@@ -309,6 +385,12 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("offer_token");
+
+                    b.Property<int>("PricingVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("pricing_version");
 
                     b.Property<string>("ProviderFareSourceCode")
                         .IsRequired()
@@ -334,12 +416,6 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("provider_trace_id");
-
-                    b.Property<int>("PricingVersion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1)
-                        .HasColumnName("pricing_version");
 
                     b.Property<string>("PublicOfferSnapshotJson")
                         .IsRequired()
@@ -1103,6 +1179,15 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.AirportGeographyMapping", b =>
+                {
+                    b.HasOne("Refahi.Modules.Flights.Domain.Aggregates.FlightAirportAgg.FlightAirport", null)
+                        .WithMany()
+                        .HasForeignKey("AirportIataCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.FlightSearchMembership", b =>
                 {
                     b.HasOne("Refahi.Modules.Flights.Domain.Aggregates.FlightAirportAgg.FlightAirport", null)
@@ -1114,6 +1199,15 @@ namespace Refahi.Modules.Flights.Infrastructure.Migrations
                     b.HasOne("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.FlightSearchCity", null)
                         .WithMany()
                         .HasForeignKey("CityCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.SnappTripFlightCityMapping", b =>
+                {
+                    b.HasOne("Refahi.Modules.Flights.Domain.Aggregates.FlightLocationAgg.FlightSearchCity", null)
+                        .WithMany()
+                        .HasForeignKey("ProviderCityCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -142,7 +142,7 @@ namespace Refahi.Modules.Cinema.Infrastructure.Migrations
             modelBuilder.Entity("Refahi.Modules.Cinema.Domain.CinemaProviderAttempt", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                        .ValueGeneratedNever()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CinemaOrderId")

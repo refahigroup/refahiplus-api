@@ -33,7 +33,7 @@ public class GetOrderByIdEndpoint : IEndpoint
                     if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var callerId))
                         return Results.Unauthorized();
 
-                    var callerRole = httpContext.User.FindFirstValue(ClaimTypes.Role) ?? "User";
+                    var callerRole = httpContext.User.IsInRole("Admin") ? "Admin" : "User";
 
                     var result = await mediator.Send(
                         new GetOrderByIdQuery(orderId, callerId, callerRole),

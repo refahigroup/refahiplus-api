@@ -41,7 +41,7 @@ public sealed class GetOrderPaymentOptionsQueryHandler
         if (eligibility.CanPay)
         {
             var source = _participants.SingleOrDefault(p => p.SourceModule.Equals(order.SourceModule, StringComparison.OrdinalIgnoreCase));
-            var reason = source is null ? null : await source.GetUnavailableReasonAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.FinalAmountMinor), cancellationToken);
+            var reason = source is null ? null : await source.GetUnavailableReasonAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.SourceAmountMinor), cancellationToken);
             if (reason is not null) eligibility = OrderPaymentEligibility.Unavailable(reason);
         }
         if (!eligibility.CanPay)
@@ -60,6 +60,20 @@ public sealed class GetOrderPaymentOptionsQueryHandler
         var options = wallets
             .Select(w => BuildWalletOption(w, order.Currency, categoryCodes, now))
             .ToList();
+
+        if(order.PaymentState==Refahi.Modules.Orders.Domain.Enums.PaymentState.Reserved&&order.PaymentIntentId.HasValue)
+        {
+            var held=await _mediator.Send(new Refahi.Modules.Wallets.Application.Contracts.Queries.GetPaymentIntentQuery(order.PaymentIntentId.Value),cancellationToken);
+            var intent=held.Data;
+            if(intent==null||intent.Status!="Reserved"||intent.AmountMinor!=order.FinalAmountMinor
+                ||intent.Allocations.Sum(x=>x.AmountMinor)!=order.FinalAmountMinor)
+                throw new OrderStateConflictException("وضعیت پرداخت در حال بازیابی است؛ دوباره بررسی کنید");
+            var reserved=intent.Allocations.Select(a=>new OrderWalletAllocationSuggestionDto(a.WalletId,
+                options.Single(x=>x.WalletId==a.WalletId).WalletType,a.AmountMinor,
+                options.Single(x=>x.WalletId==a.WalletId).AvailableBalanceMinor)).ToList();
+            return new(order.Id,order.OrderNumber,order.FinalAmountMinor,order.Currency,order.PaymentState.ToString(),
+                options,reserved,order.FinalAmountMinor,true,0);
+        }
 
         var priorityWallets = options
             .Where(w => w.IsAllowed && w.AvailableBalanceMinor > 0)

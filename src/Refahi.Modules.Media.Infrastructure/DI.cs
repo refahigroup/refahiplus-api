@@ -20,6 +20,27 @@ public static class DI
         bool isDevelopment = false
     )
     {
+        services.AddOptions<PersistentExternalMediaOptions>().Bind(configuration.GetSection("PersistentExternalMedia"))
+            .Validate(x => !x.Enabled || (!string.IsNullOrWhiteSpace(x.StoragePath) && x.MinFreeBytes >= 0
+                && !PathsOverlap(x.StoragePath, configuration["ExternalMedia:CachePath"])), "مسیر ذخیره پایدار مدیا معتبر نیست.").ValidateOnStart();
+        services.AddSingleton<PersistentExternalMedia>();
+        services.AddSingleton<Refahi.Modules.Media.Application.Contracts.External.IPersistentExternalMedia>(sp => sp.GetRequiredService<PersistentExternalMedia>());
+        services.AddOptions<ExternalMediaOptions>().Bind(configuration.GetSection("ExternalMedia"))
+            .Validate(x => Uri.TryCreate(x.PublicBaseUrl, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.IsLoopback)
+                && x.MaxImageBytes > 0 && x.MaxSourceBytes >= x.MaxImageBytes
+                && x.MaxSourceBytes <= 100 * 1024 * 1024 && x.MaxBytes > (long)x.MaxSourceBytes + x.MaxImageBytes + 8192
+                && x.MaxImageDimension is > 0 and <= 1600 && x.MaxSourcePixels is > 0 and <= 40_000_000
+                && x.ConcurrentDownloads is > 0 and <= 16
+                && x.QueueLimit > 0 && x.MaxEntries > 0 && x.MinFreeBytes >= 0 && x.FreshHours > 0 && x.SlidingExpirationHours > 0 && x.ActivityFlushMinutes > 0 && x.CleanupMinutes > 0 && x.QueueWaitSeconds > 0 && x.ConnectSeconds > 0 && x.DownloadSeconds > 0 && x.NegativeSeconds > 0 && !string.IsNullOrWhiteSpace(x.CachePath) && !PathsOverlap(x.CachePath, configuration["MediaStorage:BasePath"]), "تنظیمات کش مدیا معتبر نیست.").ValidateOnStart();
+        services.AddScoped<ExternalMediaRegistry>();
+        services.AddScoped<Refahi.Modules.Media.Application.Contracts.External.IExternalMediaService>(sp => sp.GetRequiredService<ExternalMediaRegistry>());
+        services.AddScoped<Refahi.Modules.Media.Application.Contracts.External.IExternalMediaResolver>(sp => sp.GetRequiredService<ExternalMediaRegistry>());
+        services.AddSingleton<ExternalMediaActivity>();
+        services.AddSingleton<IExternalMediaActivity>(sp => sp.GetRequiredService<ExternalMediaActivity>());
+        services.AddHostedService(sp => sp.GetRequiredService<ExternalMediaActivity>());
+        services.AddSingleton<ExternalMedia>();
+        services.AddSingleton<Refahi.Modules.Media.Application.Contracts.External.IExternalMediaUrls>(sp => sp.GetRequiredService<ExternalMedia>());
+        services.AddHostedService(sp => sp.GetRequiredService<ExternalMedia>());
         services.Configure<MediaStorageOptions>(
             configuration.GetSection(MediaStorageOptions.Section)
         );
@@ -52,6 +73,14 @@ public static class DI
         return services;
     }
 
+    private static bool PathsOverlap(string first, string? second)
+    {
+        if (string.IsNullOrWhiteSpace(second)) return false;
+        var a = Path.GetFullPath(first).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var b = Path.GetFullPath(second).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return a.StartsWith(b, comparison) || b.StartsWith(a, comparison);
+    }
     public static void UseInfrastructure(this IServiceProvider provider, bool isDevelopment)
     {
         using var scope = provider.CreateScope();

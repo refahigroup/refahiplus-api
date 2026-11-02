@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +19,7 @@ public static class DI
 
         services.AddScoped<IOrderCreationGateway, OrderCreationGateway>();
         services.AddScoped<OrderCancellationService>();
+        services.AddScoped<OrderPromotionService>();
 
         //services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BuildingBlocks.ValidationBehavior<,>));
 

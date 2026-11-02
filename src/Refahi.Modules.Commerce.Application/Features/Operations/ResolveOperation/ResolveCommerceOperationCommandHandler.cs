@@ -4,7 +4,7 @@ using Refahi.Modules.Commerce.Domain;
 
 namespace Refahi.Modules.Commerce.Application.Features.Operations.ResolveOperation;
 
-public sealed class ResolveCommerceOperationCommandHandler(ICommerceRepository repository, ICommerceSecretProtector secrets, Refahi.Modules.Commerce.Application.Contracts.Providers.ICommerceMutationLock gate) :
+public sealed class ResolveCommerceOperationCommandHandler(ICommerceRepository repository, ICommerceSecretProtector secrets, Refahi.Modules.Commerce.Application.Contracts.Providers.ICommerceProviderFactory providers, Refahi.Modules.Commerce.Application.Contracts.Providers.ICommerceMutationLock gate) :
     IRequestHandler<ResolveCommerceOperationCommand>
 {
     public async Task<Unit> Handle(ResolveCommerceOperationCommand request, CancellationToken ct)
@@ -27,7 +27,7 @@ public sealed class ResolveCommerceOperationCommandHandler(ICommerceRepository r
                 if (order.Fulfillments.All(x => x.Status == ProviderFulfillmentStatus.Completed)) order.Complete();
                 else order.ResumeFulfillment(); break;
             case "notcreated" when fulfillment.Tickets.Count == 0: fulfillment.Fail("عدم ایجاد سفارش توسط اپراتور تایید شد", false); attempt.Complete(); order.BeginCompensation(); break;
-            case "cancelled" when fulfillment.ProviderKey != "touristpanel": fulfillment.MarkCancelled(); attempt.Complete(); order.BeginCompensation(); break;
+            case "cancelled" when providers.GetEnabledProviders().Any(p => p.Key.Equals(fulfillment.ProviderKey, StringComparison.OrdinalIgnoreCase) && p.Capabilities.SupportsCancellation): fulfillment.MarkCancelled(); attempt.Complete(); order.BeginCompensation(); break;
             default: throw new CommerceDomainException("نتیجه بررسی معتبر نیست", "INVALID_RESOLUTION");
         }
         await repository.SaveChangesAsync(ct); return Unit.Value;

@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-19",
+  "sql_file": "2026-10-19-v3-reference-geography.sql",
+  "sql_sha256": "50f74c17646f9b14fd770a95a2329f6292806df6565258e4adc935c0e2d1f4f5",
+  "unit_tests_passed": 13,
+  "postgresql_version": 17,
+  "integration_result": "passed",
+  "cases": [
+    "fresh installation and replay",
+    "V1 upgrade and replay",
+    "V2 upgrade and replay",
+    "all mapping targets match report",
+    "V2 canonical IDs and provider targets unchanged",
+    "declared FK and known logical references migrated",
+    "native hotel city ID unchanged",
+    "city plus province uniqueness",
+    "merge before-images retained",
+    "sequence high-water mark retained",
+    "mapping conflict rollback",
+    "reference drift rollback",
+    "dependent FK uniqueness conflict rollback"
+  ],
+  "evidence_file_hashes": "all verified",
+  "production_database_modified": false,
+  "solution_build": "not run; no C# or WebApp changes"
+}

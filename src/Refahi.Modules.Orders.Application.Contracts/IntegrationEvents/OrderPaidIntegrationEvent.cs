@@ -12,5 +12,8 @@ public sealed record OrderPaidIntegrationEvent(
     Guid? SagaId,
     Guid PaymentId,
     long AmountMinor,
-    DateTimeOffset OccurredAt
+    DateTimeOffset OccurredAt,
+    long SourceAmountMinor = 0,
+    long AmountBeforePromotionMinor = 0,
+    long PromotionFundingMinor = 0
 ) : INotification;

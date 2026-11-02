@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Hotels.Domain.Abstraction.Repositories;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg;
 
@@ -13,23 +13,36 @@ public sealed class HotelRequestRepository : IHotelRequestRepository
         _dbContext = dbContext;
     }
 
-    public Task<HotelRequest?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _dbContext.HotelRequests.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    public async Task<HotelRequest?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var request = await _dbContext.HotelRequests.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (request is not null && _dbContext.Entry(request).State == EntityState.Unchanged)
+            await _dbContext.Entry(request).ReloadAsync(cancellationToken);
+        return request;
+    }
 
-    public Task<HotelRequest?> GetForUserAsync(
+    public async Task<HotelRequest?> GetForUserAsync(
         Guid id,
         Guid userId,
         CancellationToken cancellationToken = default
-    ) =>
-        _dbContext.HotelRequests.FirstOrDefaultAsync(
+    )
+    {
+        var request = await _dbContext.HotelRequests.FirstOrDefaultAsync(
             r => r.Id == id && r.UserId == userId,
             cancellationToken
         );
+        if (request is not null && _dbContext.Entry(request).State == EntityState.Unchanged)
+            await _dbContext.Entry(request).ReloadAsync(cancellationToken);
+        return request;
+    }
 
-    public Task<HotelRequest?> GetByOrderIdAsync(
-        Guid orderId,
-        CancellationToken cancellationToken = default
-    ) => _dbContext.HotelRequests.FirstOrDefaultAsync(r => r.OrderId == orderId, cancellationToken);
+    public async Task<HotelRequest?> GetByOrderIdAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        var request = await _dbContext.HotelRequests.FirstOrDefaultAsync(r => r.OrderId == orderId, cancellationToken);
+        if (request is not null && _dbContext.Entry(request).State == EntityState.Unchanged)
+            await _dbContext.Entry(request).ReloadAsync(cancellationToken);
+        return request;
+    }
 
     public Task<HotelRequest?> GetByIdempotencyKeyAsync(
         Guid userId,

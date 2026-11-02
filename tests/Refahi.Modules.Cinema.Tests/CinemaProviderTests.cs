@@ -11,6 +11,16 @@ using Xunit;
 namespace Refahi.Modules.Cinema.Tests;
 public sealed class CinemaProviderTests
 {
+    [Theory]
+    [InlineData("expired", true)]
+    [InlineData("EXPIRED", true)]
+    [InlineData("reservation_expired", true)]
+    [InlineData("RESERVATION_EXPIRED", true)]
+    [InlineData("reserved", false)]
+    [InlineData("confirmed", false)]
+    [InlineData("unknown", false)]
+    public void Known_expiry_statuses_are_recognized_without_guessing_other_statuses(string status, bool expected)
+        => Assert.Equal(expected, Provider(new StubHandler("{}")).IsExpired(status));
     [Theory][InlineData("IRT",123,1230)][InlineData("IRR",123,123)]
     public void Money_normalizes_currency(string currency,long value,long expected)=>Assert.Equal(expected,ITicketCinemaProvider.Money(value,currency));
     [Fact]public void Unknown_currency_is_rejected()=>Assert.Throws<CinemaException>(()=>ITicketCinemaProvider.Money(1,"USD"));

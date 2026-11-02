@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Refahi.Modules.Hotels.Application.Contracts.Providers;
 using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs;
@@ -28,6 +28,20 @@ namespace Refahi.Modules.Hotels.Tests;
 
 public sealed class HotelSagaChaosTests
 {
+    [Fact]
+    public async Task Finalize_WhenCreateOutcomeIsUnknown_DoesNotRefundOrRepeatCreate()
+    {
+        var fixture = HotelSagaFixture.CreatePaid();
+        var provider = new FakeHotelProvider { CreateFailure = new Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException("unknown") };
+        var mediator = new CapturingMediator(fixture.Request, "Paid");
+        var handler = fixture.CreateHandler(provider, mediator);
+        var command = new FinalizeHotelBookingAfterPaymentCommand(fixture.Request.OrderId!.Value, fixture.Request.UserId, Guid.NewGuid(), fixture.Saga.SagaId);
+        await Assert.ThrowsAsync<Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException>(() => handler.Handle(command, default));
+        await Assert.ThrowsAsync<Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelExternalOutcomeUnknownException>(() => handler.Handle(command, default));
+        Assert.Equal(1, provider.CreateCount);
+        Assert.Null(mediator.CancelOrderCommand);
+    }
+
     [Fact]
     public async Task Finalize_WhenProviderCreateFailsAfterPayment_RefundsOrderAndCompensatesSaga()
     {

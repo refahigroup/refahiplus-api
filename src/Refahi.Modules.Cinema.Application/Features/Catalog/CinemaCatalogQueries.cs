@@ -70,11 +70,13 @@ public sealed class CinemaSessionsValidator : AbstractValidator<CinemaSessionsQu
     }
 }
 
-public sealed class CinemaCatalogHandlers(ICinemaProviderFactory factory, IOptions<CinemaOptions> options) :
+public sealed class CinemaCatalogHandlers(ICinemaProviderFactory factory, IOptions<CinemaOptions> options, CinemaMediaPublisher? media = null) :
     IRequestHandler<CinemaCitiesQuery, IReadOnlyList<CinemaCity>>, IRequestHandler<CinemaLandingQuery, CinemaLanding>, IRequestHandler<CinemaShowsQuery, CinemaCatalog>, IRequestHandler<CinemaShowQuery, CinemaShow>,
     IRequestHandler<CinemaPlacesQuery, IReadOnlyList<CinemaDisplayDay>>, IRequestHandler<CinemaSessionsQuery, IReadOnlyList<CinemaSession>>,
     IRequestHandler<CinemaSeatsQuery, CinemaSeatMap>, IRequestHandler<CinemaStatusesQuery, CinemaSeatStatuses>
 {
+    private readonly CinemaMediaPublisher publicMedia = media ?? new();
+
     private ICinemaProvider Provider()
     {
         if (!options.Value.CatalogEnabled)
@@ -83,26 +85,26 @@ public sealed class CinemaCatalogHandlers(ICinemaProviderFactory factory, IOptio
         return factory.Get(options.Value.ProviderKey);
     }
 
-    public Task<IReadOnlyList<CinemaCity>> Handle(CinemaCitiesQuery r, CancellationToken ct) => 
+    public Task<IReadOnlyList<CinemaCity>> Handle(CinemaCitiesQuery r, CancellationToken ct) =>
         Provider().CitiesAsync(ct);
 
-    public Task<CinemaLanding> Handle(CinemaLandingQuery r, CancellationToken ct) => 
-        Provider().LandingAsync(r.City, ct);
-    public Task<CinemaCatalog> Handle(CinemaShowsQuery r, CancellationToken ct) => 
-        Provider().ShowsAsync(r.Kind, r.City, r.Search, r.Page, ct);
-    public Task<CinemaShow> Handle(CinemaShowQuery r, CancellationToken ct) => 
-        Provider().ShowAsync(r.Id, ct);
+    public async Task<CinemaLanding> Handle(CinemaLandingQuery r, CancellationToken ct) =>
+        await publicMedia.PublishAsync(await Provider().LandingAsync(r.City, ct), options.Value.ProviderKey, ct);
+    public async Task<CinemaCatalog> Handle(CinemaShowsQuery r, CancellationToken ct) =>
+        await publicMedia.PublishAsync(await Provider().ShowsAsync(r.Kind, r.City, r.Search, r.Page, ct), options.Value.ProviderKey, ct);
+    public async Task<CinemaShow> Handle(CinemaShowQuery r, CancellationToken ct) =>
+        await publicMedia.PublishAsync(await Provider().ShowAsync(r.Id, ct), options.Value.ProviderKey, ct);
 
-    public Task<IReadOnlyList<CinemaDisplayDay>> Handle(CinemaPlacesQuery r, CancellationToken ct) => 
-        Provider().PlacesAsync(r.Show, r.City, r.Search, ct);
+    public async Task<IReadOnlyList<CinemaDisplayDay>> Handle(CinemaPlacesQuery r, CancellationToken ct) =>
+        await publicMedia.PublishAsync(await Provider().PlacesAsync(r.Show, r.City, r.Search, ct), options.Value.ProviderKey, ct);
 
-    public Task<IReadOnlyList<CinemaSession>> Handle(CinemaSessionsQuery r, CancellationToken ct) => 
+    public Task<IReadOnlyList<CinemaSession>> Handle(CinemaSessionsQuery r, CancellationToken ct) =>
         Provider().SessionsAsync(r.Show, r.Place, r.Date, ct);
 
-    public Task<CinemaSeatMap> Handle(CinemaSeatsQuery r, CancellationToken ct) => 
-        Provider().SeatsAsync(r.Schedule, ct);
+    public async Task<CinemaSeatMap> Handle(CinemaSeatsQuery r, CancellationToken ct) =>
+        await publicMedia.PublishAsync(await Provider().SeatsAsync(r.Schedule, ct), options.Value.ProviderKey, ct);
 
-    public Task<CinemaSeatStatuses> Handle(CinemaStatusesQuery r, CancellationToken ct) => 
+    public Task<CinemaSeatStatuses> Handle(CinemaStatusesQuery r, CancellationToken ct) =>
         Provider().StatusAsync(r.Schedule, ct);
 }
 

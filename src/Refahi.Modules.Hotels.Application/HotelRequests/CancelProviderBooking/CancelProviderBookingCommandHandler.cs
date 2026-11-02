@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Logging;
 using Refahi.Modules.Hotels.Application.Contracts.Providers;
 using Refahi.Modules.Hotels.Application.Contracts.Services.HotelRequests.CancelProviderBooking;
@@ -14,6 +14,8 @@ public sealed class CancelProviderBookingCommandHandler
     private readonly IHotelBookingSagaRepository _sagaRepository;
     private readonly IHotelProviderBookingCacheRepository _providerBookingCacheRepository;
     private readonly IHotelProvider _provider;
+    private readonly IHotelProviderFactory? _providerFactory;
+    private readonly IHotelCatalogueRepository? _catalogue;
     private readonly ILogger<CancelProviderBookingCommandHandler> _logger;
 
     public CancelProviderBookingCommandHandler(
@@ -21,13 +23,17 @@ public sealed class CancelProviderBookingCommandHandler
         IHotelBookingSagaRepository sagaRepository,
         IHotelProviderBookingCacheRepository providerBookingCacheRepository,
         IHotelProvider provider,
-        ILogger<CancelProviderBookingCommandHandler> logger
+        ILogger<CancelProviderBookingCommandHandler> logger,
+        IHotelProviderFactory? providerFactory = null,
+        IHotelCatalogueRepository? catalogue = null
     )
     {
         _requestRepository = requestRepository;
         _sagaRepository = sagaRepository;
         _providerBookingCacheRepository = providerBookingCacheRepository;
         _provider = provider;
+        _providerFactory = providerFactory;
+        _catalogue = catalogue;
         _logger = logger;
     }
 
@@ -62,6 +68,17 @@ public sealed class CancelProviderBookingCommandHandler
             }
         );
 
+        if (hotelRequest.ProviderName == "Lamasoo")
+        {
+            await using var held = _catalogue is null ? null : await _catalogue.LockAsync("reservation:" + hotelRequest.Id, cancellationToken);
+            var reservation = _catalogue is null ? null : await _catalogue.ReservationAsync(hotelRequest.Id, cancellationToken);
+            if (reservation?.NoExternalLiability == true)
+                return new(saga.SagaId, hotelRequest.Id, providerBookingCode, "ReconciledNoLiability", false, false);
+            saga.MarkExternalUnresolved("لاماسو API کنسلی مستند ندارد؛ پیگیری عملیاتی لازم است.", DateTime.UtcNow);
+            cacheEntry?.MarkExternallyUnresolved("کنسلی پشتیبانی نمی‌شود.", DateTime.UtcNow);
+            await _sagaRepository.SaveChangesAsync(cancellationToken);
+            return new CancelProviderBookingResponse(saga.SagaId, saga.HotelRequestId, providerBookingCode, "ExternallyUnresolved", false, true);
+        }
         if (string.IsNullOrWhiteSpace(providerBookingCode))
         {
             _logger.LogInformation(
@@ -124,7 +141,8 @@ public sealed class CancelProviderBookingCommandHandler
             idempotencyKey
         );
 
-        var providerResult = await _provider.CancelBookingAsync(
+        var provider = _providerFactory?.GetProvider(Enum.Parse<HotelProviderType>(hotelRequest.ProviderName, true)) ?? _provider;
+        var providerResult = await provider.CancelBookingAsync(
             providerBookingCode,
             idempotencyKey,
             reason

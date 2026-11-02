@@ -8,6 +8,7 @@ public sealed class BookingDraftDto
     public DateOnly CheckIn { get; set; }
     public DateOnly CheckOut { get; set; }
     public int RoomsCount { get; set; }
+    public int? RoomAdultCapacity { get; set; }
     public IEnumerable<GuestDto> Guests { get; set; } = Enumerable.Empty<GuestDto>();
     public string BoardType { get; set; } = default!;
     public string? Email { get; set; }

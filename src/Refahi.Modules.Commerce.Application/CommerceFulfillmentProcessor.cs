@@ -18,7 +18,8 @@ public sealed class CommerceFulfillmentProcessor(ICommerceRepository repository,
 {
     public async Task ProcessBatchAsync(CancellationToken ct)
     {
-        var pending = await repository.GetPendingFulfillmentAsync(10, ct);
+        var providerKeys = providers.GetEnabledProviders().Select(x => x.Key).ToArray();
+        var pending = await repository.GetPendingFulfillmentAsync(providerKeys, 10, ct);
         foreach (var candidate in pending)
         {
             bool compensate;
@@ -37,7 +38,7 @@ public sealed class CommerceFulfillmentProcessor(ICommerceRepository repository,
                 catch (Exception ex) { logger.LogError("Commerce compensation pending. Order={Order}, ErrorType={ErrorType}", candidate.Id, ex.GetType().Name); }
             }
         }
-        foreach (var session in await sessions.GetExpiredAsync(ct))
+        foreach (var session in await sessions.GetExpiredAsync(providerKeys, ct))
         {
             try { await mediator.Send(new Features.Checkout.Sessions.ReleaseCommerceSessionCommand(session.UserId, session.Id), ct); }
             catch (Exception ex) { logger.LogWarning("Commerce reservation cleanup pending. Session={Session}, ErrorType={ErrorType}", session.Id, ex.GetType().Name); }

@@ -110,7 +110,7 @@ public interface IPaymentAtomicWriter
 /// <summary>
 /// Input for allocation (wallet + amount).
 /// </summary>
-public sealed record AllocationInput(Guid WalletId, long AmountMinor);
+public sealed record AllocationInput(Guid WalletId, long AmountMinor, bool IsAdditional = false);
 
 public sealed record PaymentPostingInput(
     Guid WalletId,
@@ -159,12 +159,12 @@ public sealed record ReleaseIntentAtomicResult(
 /// <summary>
 /// Output for allocation info.
 /// </summary>
-public sealed record AllocationOutput(Guid WalletId, long AmountMinor);
+public sealed record AllocationOutput(Guid WalletId, long AmountMinor, bool IsAdditional = false);
 
 /// <summary>
 /// Output for payment allocation (includes ledger entry).
 /// </summary>
-public sealed record PaymentAllocationOutput(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
+public sealed record PaymentAllocationOutput(Guid WalletId, long AmountMinor, Guid LedgerEntryId, bool IsAdditional = false);
 
 /// <summary>
 /// Outcome of create intent execution.
@@ -246,7 +246,7 @@ public sealed record RefundPaymentAtomicResult(
 /// <summary>
 /// Output for refund allocation (includes ledger entry).
 /// </summary>
-public sealed record RefundAllocationOutput(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
+public sealed record RefundAllocationOutput(Guid WalletId, long AmountMinor, Guid LedgerEntryId, bool IsAdditional = false);
 
 /// <summary>
 /// Outcome of refund payment execution.

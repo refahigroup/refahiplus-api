@@ -28,5 +28,7 @@ public sealed record CreateHotelRequestResponse(
     string Status,
     DateTime ExpireAt,
     long TotalPrice,
-    string Currency
+    string Currency,
+    string? BookingStatus = null,
+    bool? CanProceedToPayment = null
 );

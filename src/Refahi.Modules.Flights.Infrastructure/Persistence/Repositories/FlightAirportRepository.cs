@@ -1,14 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Flights.Domain.Aggregates.FlightAirportAgg;
 using Refahi.Modules.Flights.Domain.Repositories;
+using Refahi.Modules.Flights.Application.Contracts.Providers;
 
 namespace Refahi.Modules.Flights.Infrastructure.Persistence.Repositories;
 
 public sealed class FlightAirportRepository : IFlightAirportRepository
 {
     private readonly FlightsDbContext _dbContext;
+    private readonly IFlightGeographyService? _geography;
 
-    public FlightAirportRepository(FlightsDbContext dbContext) => _dbContext = dbContext;
+    public FlightAirportRepository(FlightsDbContext dbContext, IFlightGeographyService? geography = null)
+    {
+        _dbContext = dbContext;
+        _geography = geography;
+    }
 
     public async Task<IReadOnlyList<FlightAirport>> SearchAsync(
         string? query,
@@ -33,11 +39,18 @@ public sealed class FlightAirportRepository : IFlightAirportRepository
         var pattern = $"%{escapedQuery}%";
         var prefixPattern = $"{escapedQuery}%";
         var normalizedCode = normalized.ToUpperInvariant();
+        var references = _geography is null ? new Dictionary<string, FlightReferenceGeography>()
+            : await _geography.ReadAsync(false, null, cancellationToken);
+        var referenceMatches = references.Where(x => new[] { x.Value.CityNameFa, x.Value.CityNameEn,
+                x.Value.CountryNameFa, x.Value.CountryNameEn }
+            .Any(s => FlightAirportSearchNormalizer.Normalize(s).Contains(normalized, StringComparison.Ordinal)))
+            .Select(x => x.Key).ToArray();
         return await airports
             .Where(airport =>
                 airport.IataCode == normalizedCode
                 || airport.IataCode.StartsWith(normalizedCode)
                 || EF.Functions.ILike(airport.SearchText, pattern, "\\")
+                || referenceMatches.Contains(airport.IataCode)
             )
             .OrderByDescending(airport => airport.IataCode == normalizedCode)
             .ThenByDescending(airport => airport.IataCode.StartsWith(normalizedCode))

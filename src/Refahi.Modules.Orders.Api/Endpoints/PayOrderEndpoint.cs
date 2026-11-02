@@ -9,7 +9,7 @@ using Refahi.Shared.Presentation;
 
 namespace Refahi.Modules.Orders.Api.Endpoints;
 
-public record PayOrderRequest(List<WalletAllocationInput> Allocations, string IdempotencyKey);
+public record PayOrderRequest(List<WalletAllocationInput> Allocations, string IdempotencyKey, long? ExpectedPricingVersion = null);
 
 public class PayOrderEndpoint : IEndpoint
 {
@@ -51,7 +51,8 @@ public class PayOrderEndpoint : IEndpoint
                         userId,
                         role,
                         request.Allocations,
-                        request.IdempotencyKey
+                        request.IdempotencyKey,
+                        ExpectedPricingVersion: request.ExpectedPricingVersion
                     );
                     var result = await mediator.Send(command, ct);
                     return Results.Ok(ApiResponseHelper.Success(result));

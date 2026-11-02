@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Refahi.Modules.Cinema.Application\Refahi.Modules.Cinema.Application.csproj" />
+    <ProjectReference Include="..\..\src\Refahi.Modules.Cinema.Api\Refahi.Modules.Cinema.Api.csproj" />
     <ProjectReference Include="..\..\src\Refahi.Modules.Cinema.Infrastructure\Refahi.Modules.Cinema.Infrastructure.csproj" />
   </ItemGroup>
 <ItemGroup><None Update="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup></Project>

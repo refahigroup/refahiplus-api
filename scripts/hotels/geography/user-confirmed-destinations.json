@@ -1,0 +1,18 @@
+{
+  "confirmed_at": "2026-10-19",
+  "authority": "Explicit user decisions in this conversation; not provider confirmation",
+  "foreign_province_policy": "one synthetic province per country except Iran",
+  "records": [
+    {"city_id":"66a4bc1c484b40ce7afccc32","native_name":"رضوانشهر","name":"رضوانشهر","country":"IR","province_id":25,"reference_city_id":1063,"hotel_id":"6970e6266c0dd9fa538032cb","enabled":true},
+    {"city_id":"61935fd44c2feab141868998","native_name":"استانبول","name":"استانبول","country":"TR","reference_city_id":1335,"hotel_id":"62e109ac0b710109a0b03555","enabled":true},
+    {"city_id":"63fb45c108425256687889b1","native_name":"دوبی","name":"دبی","country":"AE","reference_city_id":1336,"hotel_id":"68089ca14c4dc873cb724759","enabled":true},
+    {"city_id":"6a8697b2b18cc21d6d5061ba","native_name":"اسکله","name":"اسکله","name_en":"Iskele","country":"TR","hotel_id":"6a869a74740c9ec99154ccb1","kind":"city","enabled":true,"note":"User-selected business country TR; provider address explicitly says Northern Cyprus. Preserve the original address and country ID; this does not correct upstream geography."},
+    {"city_id":"61334980972c64489139ec72","native_name":"**","name":"ازمیر","country":"TR","reference_city_id":1322,"hotel_id":"66f3c6f449bb727b1985805a","enabled":true},
+    {"city_id":"6767c2b16c1c40825bc25fcb","native_name":"بالی","name":"بالی","name_en":"Bali","country":"ID","hotel_id":"6767c3096c1c40825bc28876","kind":"destination","enabled":true,"note":"User spelling انرونزی normalized to اندونزی. Broad destination type; no claim that Bali is an administrative city."},
+    {"city_id":"66a8d5cdbc3af39cb33c1d8d","native_name":"غیرفعال","name":"بندر عسلویه","country":"IR","province_id":7,"reference_city_id":327,"hotel_id":"691c1443e026f594722dd5cd","enabled":false,"note":"Identity mapping only; disabled provider caption must not be automatically enabled."},
+    {"city_id":"66efc0e3f43e2c33c7e39a38","native_name":"لنگ کاوی","name":"لنکاوی","name_en":"Langkawi","country":"MY","hotel_id":"66efc122bd6047bf831e33d7","kind":"destination","enabled":true},
+    {"city_id":"613349bc972c64489139ec73","native_name":"کوش‌آداسی","name":"کوش‌آداسی","name_en":"Kusadasi","country":"TR","hotel_id":"66effa78f8012d9fb04a8ac3","kind":"city","enabled":true},
+    {"city_id":"668a5eb8ff7361384b289242","native_name":"بودروم","name":"بودروم","name_en":"Bodrum","country":"TR","hotel_id":"668b94c28fa35e9fa021655e","kind":"city","enabled":true}
+  ],
+  "pending": []
+}

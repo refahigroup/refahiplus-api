@@ -8,6 +8,7 @@ using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs.Booking;
 using Refahi.Modules.Hotels.Application.Contracts.Providers.DTOs.Hotel;
 using Refahi.Modules.Hotels.Application.Contracts.Providers.Queries;
 using Refahi.Modules.Hotels.Application.Contracts.Services.Statics.Cities;
+using Refahi.Modules.Hotels.Application.Contracts.Catalogue;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Api;
 using Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip.Contract;
 
@@ -17,14 +18,17 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
     {
         private readonly SnappTripApiClient _apiClient;
         private readonly ILogger<SnappTripHotelProvider> _logger;
+        private readonly IHotelLocalContentReader? _local;
 
         public SnappTripHotelProvider(
             SnappTripApiClient apiClient,
-            ILogger<SnappTripHotelProvider> logger
+            ILogger<SnappTripHotelProvider> logger,
+            IHotelLocalContentReader? local = null
         )
         {
             _apiClient = apiClient;
             _logger = logger;
+            _local = local;
         }
 
         // ---------------------------------------------------------
@@ -69,8 +73,10 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
         // ---------------------------------------------------------
         // Hotel details (full)
         // ---------------------------------------------------------
+        public Task<IEnumerable<HotelDetailsDto>> GetHotelDetailsAsync(GetHotelDetailsQuery query) => GetHotelDetailsAsync(query, CancellationToken.None);
+
         public async Task<IEnumerable<HotelDetailsDto>> GetHotelDetailsAsync(
-            GetHotelDetailsQuery query
+            GetHotelDetailsQuery query, CancellationToken ct
         )
         {
             _logger.LogInformation("SnappTrip: GetHotelDetails - HotelId={HotelId}", query.HotelId);
@@ -86,13 +92,13 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             var availability = await _apiClient.GetHotelAvailabilityByIdAsync(
                 query.HotelId,
                 checkIn,
-                checkOut
+                checkOut, ct
             );
-            var detailsList = await _apiClient.GetHotelsDetailsAsync(new[] { query.HotelId });
-            var galleriesList = await _apiClient.GetHotelsGalleriesAsync(new[] { query.HotelId });
-            var roomsStatic = await _apiClient.GetHotelsRoomsAsync(new[] { query.HotelId });
+            var detailsList = await _apiClient.GetHotelsDetailsAsync(new[] { query.HotelId }, ct);
+            var galleriesList = await _apiClient.GetHotelsGalleriesAsync(new[] { query.HotelId }, ct);
+            var roomsStatic = await _apiClient.GetHotelsRoomsAsync(new[] { query.HotelId }, ct);
             var facilitiesStatic = await _apiClient.GetHotelsFacilitiesAsync(
-                new[] { query.HotelId }
+                new[] { query.HotelId }, ct
             );
 
             var detail = detailsList?.FirstOrDefault()?.hotel;
@@ -284,8 +290,26 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
         // HELPER METHODS
         // ---------------------------------------------------------
 
-        private List<SnappTripBookRoom> MapRooms(BookingDraftDto request)
+        internal static List<SnappTripBookRoom> MapRooms(BookingDraftDto request)
         {
+            var guests = request.Guests.ToArray();
+            if (guests.Any(x => x.RoomIndex.HasValue))
+            {
+                if (guests.Any(x => !x.RoomIndex.HasValue || x.RoomIndex < 0 || x.RoomIndex >= request.RoomsCount))
+                    throw new InvalidOperationException("تخصیص مسافران به اتاق معتبر نیست.");
+                return Enumerable.Range(0, request.RoomsCount).Select(index =>
+                {
+                    var party = guests.Where(x => x.RoomIndex == index).ToArray();
+                    if (!party.Any(x => x.Type == "Adult")) throw new InvalidOperationException("هر اتاق باید مسافر بزرگسال داشته باشد.");
+                    return new SnappTripBookRoom
+                    {
+                        room_id = checked((int)request.RoomId),
+                        children = party.Count(x => x.Type == "Child"),
+                        extra_beds = request.RoomAdultCapacity.HasValue ? Math.Max(0, party.Count(x => x.Type == "Adult") - request.RoomAdultCapacity.Value) : 0,
+                        guests = party.Select(MapGuest).ToList()
+                    };
+                }).ToList();
+            }
             var room = new SnappTripBookRoom
             {
                 room_id = (int)request.RoomId,
@@ -298,7 +322,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             return new List<SnappTripBookRoom> { room };
         }
 
-        private SnappTripGuest MapGuest(GuestDto guest)
+        private static SnappTripGuest MapGuest(GuestDto guest)
         {
             var names = guest.FullName.Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
             var firstName = names.Length > 0 ? names[0] : "Unknown";
@@ -306,17 +330,20 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
 
             return new SnappTripGuest
             {
-                first_name = firstName,
-                last_name = lastName,
-                foreigner = false,
+                first_name = guest.FirstName ?? firstName,
+                last_name = guest.LastName ?? lastName,
+                foreigner = guest.Nationality is not null && guest.Nationality != "IR",
             };
         }
 
-        public async Task<IEnumerable<GetCitiesResponse>> GetAllCities(string? name)
+        public Task<IEnumerable<GetCitiesResponse>> GetAllCities(string? name) => GetAllCities(name, CancellationToken.None);
+        public Task<GetAvailabilityByCityDto> GetAvailabilityByCity(GetAvailabilityByCityQuery query) => GetAvailabilityByCity(query, CancellationToken.None);
+
+        public async Task<IEnumerable<GetCitiesResponse>> GetAllCities(string? name, CancellationToken ct)
         {
             _logger.LogInformation("SnappTrip GetAllCities: Name={CityName}", name ?? "all");
 
-            var cities = await _apiClient.GetCitiesAsync();
+            var cities = await _apiClient.GetCitiesAsync(ct);
             var mapped = cities.Select(c => new GetCitiesResponse(
                 c.id,
                 c.title_fa,
@@ -338,7 +365,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
         }
 
         public async Task<GetAvailabilityByCityDto> GetAvailabilityByCity(
-            GetAvailabilityByCityQuery query
+            GetAvailabilityByCityQuery query, CancellationToken ct
         )
         {
             _logger.LogInformation(
@@ -368,10 +395,10 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             };
 
             // 2. صدا زدن API
-            var response = await _apiClient.SearchCityAvailabilityAsync(request);
-            var hotelImages = await GetSearchResultImagesAsync(
-                response.items.Select(x => (long)x.hotel.id)
-            );
+            var response = await _apiClient.SearchCityAvailabilityAsync(request, ct);
+            var localHotels = _local is null ? null : await _local.ProviderHotelsAsync("SnappTrip", query.CityId.ToString(System.Globalization.CultureInfo.InvariantCulture), ct);
+            var hotelImages = localHotels is null ? await GetSearchResultImagesAsync(response.items.Select(x => (long)x.hotel.id), ct)
+                : localHotels.Where(x => long.TryParse(x.NativeId, out _)).ToDictionary(x => long.Parse(x.NativeId!), x => x.Images);
 
             // 3. Mapping response به Application DTO
             var availabilityItems = response
@@ -441,7 +468,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
         }
 
         private async Task<Dictionary<long, IReadOnlyList<string>>> GetSearchResultImagesAsync(
-            IEnumerable<long> hotelIds
+            IEnumerable<long> hotelIds, CancellationToken ct
         )
         {
             var result = new Dictionary<long, IReadOnlyList<string>>();
@@ -451,7 +478,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
             {
                 try
                 {
-                    var galleries = await _apiClient.GetHotelsGalleriesAsync(batch);
+                    var galleries = await _apiClient.GetHotelsGalleriesAsync(batch, ct);
                     foreach (var gallery in galleries)
                     {
                         var images =
@@ -465,6 +492,7 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                         result[gallery.hotel_id] = images;
                     }
                 }
+                catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(
@@ -496,7 +524,9 @@ namespace Refahi.Modules.Hotels.Infrastructure.Providers.SnappTrip
                 from.ToString("yyyy-MM-dd"),
                 to.ToString("yyyy-MM-dd")
             );
-            var name =
+            var localKey = _local is null ? null : await _local.ResolveLegacyKeyAsync(hotelId, CancellationToken.None);
+            var useLocal = localKey.HasValue && await _local!.UsesLocalAsync(localKey.Value, CancellationToken.None);
+            var name = useLocal ? (await _local!.ProfileAsync(localKey!.Value, CancellationToken.None))?.Title ?? string.Empty :
                 (await _apiClient.GetHotelsDetailsAsync(new[] { hotelId }))
                     ?.FirstOrDefault()
                     ?.hotel?.title

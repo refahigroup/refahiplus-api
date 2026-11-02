@@ -63,7 +63,7 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                         amount_minor AS AmountMinor,
                         NULL AS LedgerEntryId
                     FROM wallets.payment_intent_allocations
-                    WHERE intent_id = @IntentId
+                    WHERE intent_id = @IntentId AND NOT is_additional
                     ORDER BY sequence",
                 parameters: new { IntentId = intentId },
                 cancellationToken: ct
@@ -83,9 +83,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     LedgerEntryId: a.LedgerEntryId
                 ))
                 .ToList(),
-            CreatedAt: intentData.CreatedAt,
-            CompletedAt: intentData.CapturedAt,
-            ReleasedAt: intentData.ReleasedAt
+            CreatedAt: ToUtc(intentData.CreatedAt),
+            CompletedAt: ToUtc(intentData.CapturedAt),
+            ReleasedAt: ToUtc(intentData.ReleasedAt)
         );
     }
 
@@ -128,7 +128,7 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                         amount_minor AS AmountMinor,
                         ledger_entry_id AS LedgerEntryId
                     FROM wallets.payment_allocations
-                    WHERE payment_id = @PaymentId
+                    WHERE payment_id = @PaymentId AND NOT is_additional
                     ORDER BY sequence",
                 parameters: new { PaymentId = paymentId },
                 cancellationToken: ct
@@ -149,7 +149,7 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     LedgerEntryId: a.LedgerEntryId
                 ))
                 .ToList(),
-            CompletedAt: paymentData.CompletedAt
+            CompletedAt: ToUtc(paymentData.CompletedAt)
         );
     }
 
@@ -194,7 +194,7 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                         amount_minor AS AmountMinor,
                         ledger_entry_id AS LedgerEntryId
                     FROM wallets.refund_allocations
-                    WHERE refund_id = @RefundId
+                    WHERE refund_id = @RefundId AND NOT is_additional
                     ORDER BY sequence",
                 parameters: new { RefundId = refundId },
                 cancellationToken: ct
@@ -215,7 +215,7 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
                     LedgerEntryId: a.LedgerEntryId
                 ))
                 .ToList(),
-            CompletedAt: refundData.CompletedAt,
+            CompletedAt: ToUtc(refundData.CompletedAt),
             Reason: refundData.Reason
         );
     }
@@ -255,9 +255,9 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
         short Status,
         long AmountMinor,
         string Currency,
-        DateTimeOffset CreatedAt,
-        DateTimeOffset? CapturedAt,
-        DateTimeOffset? ReleasedAt
+        DateTime CreatedAt,
+        DateTime? CapturedAt,
+        DateTime? ReleasedAt
     );
 
     private sealed record PaymentRow(
@@ -267,7 +267,7 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
         short Status,
         long AmountMinor,
         string Currency,
-        DateTimeOffset CompletedAt
+        DateTime CompletedAt
     );
 
     private sealed record RefundRow(
@@ -278,8 +278,15 @@ public sealed class PaymentReadRepository : IPaymentReadRepository
         long AmountMinor,
         string Currency,
         string? Reason,
-        DateTimeOffset CompletedAt
+        DateTime CompletedAt
     );
 
-    private sealed record AllocationRow(Guid WalletId, long AmountMinor, Guid? LedgerEntryId);
+    private static DateTimeOffset ToUtc(DateTime value) => new(DateTime.SpecifyKind(value,DateTimeKind.Utc));
+    private static DateTimeOffset? ToUtc(DateTime? value) => value.HasValue ? ToUtc(value.Value) : null;
+    private sealed class AllocationRow
+    {
+        public Guid WalletId { get; init; }
+        public long AmountMinor { get; init; }
+        public Guid? LedgerEntryId { get; init; }
+    }
 }

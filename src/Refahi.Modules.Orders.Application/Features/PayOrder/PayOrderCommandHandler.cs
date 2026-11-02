@@ -1,3 +1,5 @@
+using Refahi.Modules.Promotions.Application.Contracts;
+using Refahi.Modules.Wallets.Application.Contracts.Features.GetMyWallets;
 using Refahi.Modules.Orders.Application.Contracts.Payments;
 using System.Linq;
 using MediatR;
@@ -21,6 +23,7 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
     private readonly IOrderMutationLock _mutationLock;
     private readonly OrderCancellationService _cancellationService;
     private readonly IEnumerable<IOrderPaymentParticipant> _participants;
+    private readonly OrderPromotionService? _promotionService;
 
     public PayOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -28,7 +31,8 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
         ILogger<PayOrderCommandHandler> logger,
         IOrderMutationLock mutationLock,
         OrderCancellationService cancellationService,
-        IEnumerable<IOrderPaymentParticipant>? participants = null
+        IEnumerable<IOrderPaymentParticipant>? participants = null,
+        OrderPromotionService? promotionService = null
     )
     {
         _orderRepository = orderRepository;
@@ -37,6 +41,7 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
         _mutationLock = mutationLock;
         _cancellationService = cancellationService;
         _participants = participants ?? [];
+        _promotionService = promotionService;
     }
 
     public async Task<PayOrderResponse> Handle(
@@ -77,6 +82,9 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
             throw new UnauthorizedAccessException("دسترسی به پرداخت این سفارش مجاز نیست");
         }
 
+        if (order.PromotionReservationId.HasValue && _promotionService != null)
+            await _promotionService.ReconcileAsync(order, cancellationToken);
+
         if (order.PaymentState == PaymentState.Paid && order.PaymentId.HasValue)
         {
             _logger.LogInformation(
@@ -96,7 +104,23 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
                 eligibility.UnavailableReason ?? "سفارش در وضعیت قابل پرداخت نیست"
             );
 
+        if ((order.PricingVersion > 1 || request.ExpectedPricingVersion.HasValue) && request.ExpectedPricingVersion != order.PricingVersion)
+            throw new OrderStateConflictException("مبلغ سفارش تغییر کرده است؛ دوباره بررسی کنید");
+        if (_promotionService != null)
+        {
+            var ownedWallets = await _mediator.Send(new GetMyWalletsQuery(order.UserId), cancellationToken);
+            if (request.Allocations.Any(a => !ownedWallets.Any(w => w.WalletId == a.WalletId && w.Currency == order.Currency
+                && !w.WalletType.Equals("System", StringComparison.OrdinalIgnoreCase) && !w.WalletType.Equals("Provider", StringComparison.OrdinalIgnoreCase))))
+                throw new UnauthorizedAccessException("کیف پرداخت متعلق به مشتری نیست یا مجاز نیست");
+        }
+        if (request.Allocations.Sum(x => x.AmountMinor) != order.FinalAmountMinor)
+            throw new OrderStateConflictException("جمع تخصیص کیف‌ها با مبلغ سفارش مطابقت ندارد");
         await using var sourceLease = await AcquireSourceAsync(order, cancellationToken);
+        if (order.PromotionReservationId.HasValue)
+        {
+            if (_promotionService == null) throw new OrderStateConflictException("سرویس تخفیف در دسترس نیست");
+            await _promotionService.PreparePaymentAsync(order, request.ExpectedPricingVersion, cancellationToken);
+        }
 
         var allocations = request
             .Allocations.Select(a => new AllocationRequest(a.WalletId, a.AmountMinor))
@@ -106,6 +130,13 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
         if (order.PaymentState == PaymentState.Reserved && order.PaymentIntentId.HasValue)
         {
             paymentIntentId = order.PaymentIntentId.Value;
+            if(_promotionService!=null)
+            {
+                var held=await _mediator.Send(new Refahi.Modules.Wallets.Application.Contracts.Queries.GetPaymentIntentQuery(paymentIntentId),cancellationToken);
+                if(held.Data==null||!held.Data.Allocations.OrderBy(x=>x.WalletId).Select(x=>(x.WalletId,x.AmountMinor))
+                    .SequenceEqual(request.Allocations.OrderBy(x=>x.WalletId).Select(x=>(x.WalletId,x.AmountMinor))))
+                    throw new OrderStateConflictException("ترکیب کیف‌های پرداخت قبلاً رزرو شده است؛ گزینه‌های پرداخت را دوباره بررسی کنید");
+            }
         }
         else
         {
@@ -127,6 +158,8 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
                     DestinationWalletId: order.PaymentPostings.Count > 0
                         ? null
                         : request.DestinationWalletId,
+                    AdditionalFunding: order.PromotionReservationId.HasValue
+                        ? new[] { new AllocationRequest(order.PromotionFundingWalletId!.Value, order.DiscountCodeAmountMinor) } : null,
                     Postings: order
                         .PaymentPostings.OrderBy(x => x.SortOrder)
                         .Select(x => new PaymentPostingRequest(
@@ -197,7 +230,7 @@ public class PayOrderCommandHandler : IRequestHandler<PayOrderCommand, PayOrderR
     private async Task<IAsyncDisposable?> AcquireSourceAsync(Order order, CancellationToken ct)
     {
         var participant = _participants.SingleOrDefault(p => p.SourceModule.Equals(order.SourceModule, StringComparison.OrdinalIgnoreCase));
-        return participant is null ? null : await participant.AcquireAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.FinalAmountMinor), ct);
+        return participant is null ? null : await participant.AcquireAsync(new(order.Id, order.UserId, order.SourceReferenceId, order.SourceAmountMinor), ct);
     }
 
     private async Task RejectExpiredOrderAsync(Order order, CancellationToken ct)

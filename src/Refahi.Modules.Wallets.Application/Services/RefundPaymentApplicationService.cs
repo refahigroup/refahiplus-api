@@ -54,7 +54,7 @@ public sealed class RefundPaymentApplicationService
     )
     {
         var allocations = atomicResult
-            .Allocations.Select(a => new RefundAllocationResponse(
+            .Allocations.Where(a => !a.IsAdditional).Select(a => new RefundAllocationResponse(
                 a.WalletId,
                 a.AmountMinor,
                 a.LedgerEntryId

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg;
 using Refahi.Modules.Hotels.Domain.Aggregates.ProviderBookingCacheAgg;
 using Refahi.Modules.Hotels.Infrastructure.Persistence;
@@ -8,6 +8,23 @@ namespace Refahi.Modules.Hotels.Tests;
 
 public sealed class HotelDbChaosModelTests
 {
+    [Fact]
+    public void CatalogueModel_IsAdditiveInHotelsSchema_WithNativeIdentityUniquenessAndConcurrency()
+    {
+        var options = new DbContextOptionsBuilder<HotelsDbContext>().UseNpgsql("Host=localhost;Database=model_only;Username=test;Password=test").Options;
+        using var db = new HotelsDbContext(options);
+        var listing = db.Model.FindEntityType(typeof(Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.HotelListing))!;
+        var reservation = db.Model.FindEntityType(typeof(Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.HotelExternalReservation))!;
+        var request = db.Model.FindEntityType(typeof(Refahi.Modules.Hotels.Domain.Aggregates.HotelRequestAgg.HotelRequest))!;
+        Assert.Equal("hotels", listing.GetSchema()); Assert.Equal("hotels", reservation.GetSchema());
+        Assert.Contains(listing.GetIndexes(), x => x.IsUnique && x.Properties.Select(p => p.Name).SequenceEqual(["Provider", "NativeId"]));
+        Assert.Contains(reservation.GetIndexes(), x => x.IsUnique && x.Properties.Select(p => p.Name).SequenceEqual(["Provider", "ReferenceId"]));
+        Assert.True(reservation.FindProperty("Version")!.IsConcurrencyToken);
+        Assert.Equal("jsonb", reservation.FindProperty("SubmitJson")!.GetColumnType());
+        Assert.NotNull(request.FindProperty("ProviderHotelId")); Assert.NotNull(request.FindProperty("ProviderRoomId"));
+        Assert.True(request.FindProperty("NativeHotelId")!.IsNullable); Assert.True(request.FindProperty("OfferToken")!.IsNullable);
+    }
+
     [Fact]
     public void DbModel_HasCrashRecoveryUniquenessAndCancellationIndexes()
     {

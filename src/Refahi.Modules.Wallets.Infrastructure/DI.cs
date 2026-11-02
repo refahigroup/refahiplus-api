@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -29,6 +29,8 @@ public static class DI
         {
             options.UseNpgsql(connectionString);
         });
+
+        services.AddScoped<Refahi.Modules.Wallets.Application.Contracts.Queries.IOrderPaymentRecoveryReader>(_ => new OrderPaymentRecoveryReader(connectionString));
 
         // Read repositories (Dapper-based queries)
         services.AddScoped<IWalletReadRepository>(sp => new WalletReadRepository(connectionString));

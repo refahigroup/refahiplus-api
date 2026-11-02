@@ -49,6 +49,10 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
     )
     {
         postings ??= Array.Empty<PaymentPostingInput>();
+        if (totalAmountMinor <= 0 || allocations.Any(x => x.AmountMinor <= 0)
+            || allocations.Where(x => !x.IsAdditional).Sum(x => x.AmountMinor) != totalAmountMinor
+            || allocations.Select(x => x.WalletId).Distinct().Count() != allocations.Count)
+            throw new InvalidOperationException("تخصیص پرداخت معتبر نیست");
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
@@ -70,6 +74,10 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         {
             // Intent already created - return cached
             var cachedIntent = await LoadIntentWithAllocations(conn, tx, existing.IntentId, ct);
+            if (cachedIntent.AmountMinor != totalAmountMinor || cachedIntent.Currency != currency
+                || !cachedIntent.Allocations.OrderBy(x => x.WalletId).Select(x => (x.WalletId, x.AmountMinor, x.IsAdditional))
+                    .SequenceEqual(allocations.OrderBy(x => x.WalletId).Select(x => (x.WalletId, x.AmountMinor, x.IsAdditional))))
+                throw new InvalidOperationException("درخواست پرداخت با درخواست اولیه مطابقت ندارد");
             if (cachedIntent.DestinationWalletId != destinationWalletId)
                 throw new InvalidOperationException(
                     "کیف مقصد با درخواست اولیه پرداخت مطابقت ندارد."
@@ -137,7 +145,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     AmountMinor: totalAmountMinor,
                     Currency: currency,
                     Allocations: allocations
-                        .Select(a => new AllocationOutput(a.WalletId, a.AmountMinor))
+                        .Select(a => new AllocationOutput(a.WalletId, a.AmountMinor, a.IsAdditional))
                         .ToList(),
                     CreatedAt: now
                 );
@@ -248,6 +256,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                         WalletId = allocation.WalletId,
                         AmountMinor = allocation.AmountMinor,
                         Sequence = sequence++,
+                        IsAdditional = allocation.IsAdditional,
                     },
                     tx,
                     cancellationToken: ct
@@ -293,7 +302,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             );
 
             allocationOutputs.Add(
-                new AllocationOutput(allocation.WalletId, allocation.AmountMinor)
+                new AllocationOutput(allocation.WalletId, allocation.AmountMinor, allocation.IsAdditional)
             );
         }
 
@@ -366,7 +375,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             intent.AmountMinor,
             intent.Currency,
             intent.DestinationWalletId,
-            allocations.Select(a => new AllocationOutput(a.WalletId, a.AmountMinor)).ToList(),
+            allocations.Select(a => new AllocationOutput(a.WalletId, a.AmountMinor, a.IsAdditional)).ToList(),
             ToDateTimeOffset(intent.CreatedAt)
         );
     }
@@ -632,6 +641,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                         WalletId = allocation.WalletId,
                         AmountMinor = allocation.AmountMinor,
                         Sequence = sequence++,
+                        IsAdditional = allocation.IsAdditional,
                         LedgerEntryId = ledgerEntryId,
                     },
                     tx,
@@ -643,7 +653,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 new PaymentAllocationOutput(
                     allocation.WalletId,
                     allocation.AmountMinor,
-                    ledgerEntryId
+                    ledgerEntryId,
+                    allocation.IsAdditional
                 )
             );
         }
@@ -660,7 +671,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     Guid.NewGuid(),
                     OperationType.Payment,
                     EntryType.Credit,
-                    intent.AmountMinor,
+                    checked(intent.AmountMinor + allocations.Where(x => x.IsAdditional).Sum(x => x.AmountMinor)),
                     intent.Currency,
                     now,
                     now,
@@ -677,7 +688,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     new
                     {
                         WalletId = intent.DestinationWalletId.Value,
-                        AmountMinor = intent.AmountMinor,
+                        AmountMinor = checked(intent.AmountMinor + allocations.Where(x => x.IsAdditional).Sum(x => x.AmountMinor)),
                         LastLedgerEntryId = destinationLedgerEntryId.Value,
                         UpdatedAt = now,
                     },
@@ -1241,7 +1252,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     Guid.NewGuid(),
                     OperationType.Refund,
                     EntryType.Debit,
-                    payment.AmountMinor,
+                    checked(payment.AmountMinor + allocations.Where(x => x.IsAdditional).Sum(x => x.AmountMinor)),
                     payment.Currency,
                     now,
                     now,
@@ -1258,7 +1269,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                     new
                     {
                         WalletId = payment.DestinationWalletId.Value,
-                        AmountMinor = payment.AmountMinor,
+                        AmountMinor = checked(payment.AmountMinor + allocations.Where(x => x.IsAdditional).Sum(x => x.AmountMinor)),
                         LastLedgerEntryId = destinationRefundEntryId,
                         UpdatedAt = now,
                     },
@@ -1270,7 +1281,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 throw new InsufficientFundsException(
                     payment.DestinationWalletId.Value,
                     0,
-                    payment.AmountMinor
+                    checked(payment.AmountMinor + allocations.Where(x => x.IsAdditional).Sum(x => x.AmountMinor))
                 );
         }
 
@@ -1391,6 +1402,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                         WalletId = allocation.WalletId,
                         AmountMinor = allocation.AmountMinor,
                         Sequence = sequence++,
+                        IsAdditional = allocation.IsAdditional,
                         LedgerEntryId = ledgerEntryId,
                     },
                     tx,
@@ -1402,7 +1414,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 new RefundAllocationOutput(
                     allocation.WalletId,
                     allocation.AmountMinor,
-                    ledgerEntryId
+                    ledgerEntryId,
+                    allocation.IsAdditional
                 )
             );
         }
@@ -1474,7 +1487,8 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
                 .Select(a => new PaymentAllocationOutput(
                     a.WalletId,
                     a.AmountMinor,
-                    a.LedgerEntryId
+                    a.LedgerEntryId,
+                    a.IsAdditional
                 ))
                 .ToList(),
             ToDateTimeOffset(payment.CompletedAt)
@@ -1534,7 +1548,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
             refund.AmountMinor,
             refund.Currency,
             allocations
-                .Select(a => new RefundAllocationOutput(a.WalletId, a.AmountMinor, a.LedgerEntryId))
+                .Select(a => new RefundAllocationOutput(a.WalletId, a.AmountMinor, a.LedgerEntryId, a.IsAdditional))
                 .ToList(),
             ToDateTimeOffset(refund.CompletedAt)
         );
@@ -1619,7 +1633,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
 
     private sealed record IntentOperationIdempotencyRow(short Status, Guid? ResultPaymentId);
 
-    private sealed record AllocationRow(Guid WalletId, long AmountMinor);
+    private sealed record AllocationRow(Guid WalletId, long AmountMinor, bool IsAdditional);
 
     private sealed record PostingRow(
         Guid WalletId,
@@ -1662,7 +1676,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         DateTime CompletedAt
     );
 
-    private sealed record PaymentAllocationRow(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
+    private sealed record PaymentAllocationRow(Guid WalletId, long AmountMinor, Guid LedgerEntryId, bool IsAdditional);
 
     private sealed record PaymentPostingRow(
         Guid WalletId,
@@ -1692,7 +1706,7 @@ public sealed class PaymentAtomicWriter : IPaymentAtomicWriter
         DateTime CompletedAt
     );
 
-    private sealed record RefundAllocationRow(Guid WalletId, long AmountMinor, Guid LedgerEntryId);
+    private sealed record RefundAllocationRow(Guid WalletId, long AmountMinor, Guid LedgerEntryId, bool IsAdditional);
 
     private sealed record RefundWithAllocationsRow(
         Guid RefundId,
@@ -1728,7 +1742,7 @@ where intent_id = @IntentId;
 
         public const string AllocationsSelectByIntent =
             @"
-select wallet_id as WalletId, amount_minor as AmountMinor
+select wallet_id as WalletId, amount_minor as AmountMinor, is_additional as IsAdditional
 from wallets.payment_intent_allocations
 where intent_id = @IntentId
 order by sequence;
@@ -1757,8 +1771,8 @@ values (@IntentId, @OrderId, @IdempotencyKey, @Status, @AmountMinor, @Currency, 
 
         public const string AllocationInsert =
             @"
-insert into wallets.payment_intent_allocations (allocation_id, intent_id, wallet_id, amount_minor, sequence)
-values (@AllocationId, @IntentId, @WalletId, @AmountMinor, @Sequence);
+insert into wallets.payment_intent_allocations (allocation_id, intent_id, wallet_id, amount_minor, sequence, is_additional)
+values (@AllocationId, @IntentId, @WalletId, @AmountMinor, @Sequence, @IsAdditional);
 ";
 
         public const string IntentPostingInsert =
@@ -1856,8 +1870,8 @@ where payment_id = @PaymentId;
 
         public const string PaymentAllocationInsert =
             @"
-insert into wallets.payment_allocations (allocation_id, payment_id, wallet_id, amount_minor, sequence, ledger_entry_id)
-values (@AllocationId, @PaymentId, @WalletId, @AmountMinor, @Sequence, @LedgerEntryId);
+insert into wallets.payment_allocations (allocation_id, payment_id, wallet_id, amount_minor, sequence, ledger_entry_id, is_additional)
+values (@AllocationId, @PaymentId, @WalletId, @AmountMinor, @Sequence, @LedgerEntryId, @IsAdditional);
 ";
 
         public const string PaymentPostingInsert =
@@ -1911,7 +1925,7 @@ where intent_id = @IntentId;
 
         public const string PaymentAllocationsSelectByPayment =
             @"
-select wallet_id as WalletId, amount_minor as AmountMinor, ledger_entry_id as LedgerEntryId
+select wallet_id as WalletId, amount_minor as AmountMinor, ledger_entry_id as LedgerEntryId, is_additional as IsAdditional
 from wallets.payment_allocations
 where payment_id = @PaymentId
 order by sequence;
@@ -2007,8 +2021,8 @@ where wallet_id = @WalletId and available_minor >= @AmountMinor;
 
         public const string RefundAllocationInsert =
             @"
-insert into wallets.refund_allocations (allocation_id, refund_id, wallet_id, amount_minor, sequence, ledger_entry_id)
-values (@AllocationId, @RefundId, @WalletId, @AmountMinor, @Sequence, @LedgerEntryId);
+insert into wallets.refund_allocations (allocation_id, refund_id, wallet_id, amount_minor, sequence, ledger_entry_id, is_additional)
+values (@AllocationId, @RefundId, @WalletId, @AmountMinor, @Sequence, @LedgerEntryId, @IsAdditional);
 ";
 
         public const string RefundSelect =
@@ -2021,7 +2035,7 @@ where refund_id = @RefundId;
 
         public const string RefundAllocationsSelectByRefund =
             @"
-select wallet_id as WalletId, amount_minor as AmountMinor, ledger_entry_id as LedgerEntryId
+select wallet_id as WalletId, amount_minor as AmountMinor, ledger_entry_id as LedgerEntryId, is_additional as IsAdditional
 from wallets.refund_allocations
 where refund_id = @RefundId
 order by sequence;

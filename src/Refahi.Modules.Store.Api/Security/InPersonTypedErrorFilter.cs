@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Refahi.Modules.Store.Domain.Exceptions;
 
 namespace Refahi.Modules.Store.Api.Security;
 
-public sealed class InPersonTypedErrorFilter : IEndpointFilter
+public sealed class InPersonTypedErrorFilter(ILogger<InPersonTypedErrorFilter> logger) : IEndpointFilter
 {
     public async ValueTask<object?> InvokeAsync(
         EndpointFilterInvocationContext context,
@@ -26,6 +27,13 @@ public sealed class InPersonTypedErrorFilter : IEndpointFilter
                 || ex.ErrorCode == "AGREEMENT_TERM_NOT_EFFECTIVE"
                     ? StatusCodes.Status409Conflict
                 : StatusCodes.Status400BadRequest;
+            logger.LogWarning(
+                "In-person request rejected. Code={ErrorCode} StatusCode={StatusCode} Endpoint={Endpoint} TraceIdentifier={TraceIdentifier}",
+                ex.ErrorCode,
+                status,
+                context.HttpContext.GetEndpoint()?.DisplayName,
+                context.HttpContext.TraceIdentifier
+            );
             return Results.Json(
                 new InPersonErrorResponse(false, ex.ErrorCode, ex.Message, status),
                 statusCode: status
