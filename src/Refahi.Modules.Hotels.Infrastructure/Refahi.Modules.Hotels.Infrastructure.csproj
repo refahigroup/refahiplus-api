@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -31,11 +31,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="MediatR" Version="11.1.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Refahi.Modules.Hotels.Application.Contracts\Refahi.Modules.Hotels.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Refahi.Modules.Media.Application.Contracts\Refahi.Modules.Media.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Modules.Hotels.Domain\Refahi.Modules.Hotels.Domain.csproj" />
   </ItemGroup>
 
@@ -43,4 +44,4 @@
     <Folder Include="Migrations\" />
     <InternalsVisibleTo Include="Refahi.Modules.Hotels.Tests" />
   </ItemGroup>
-</Project>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Catalogue.Application.Contracts/Refahi.Modules.Catalogue.Application.Contracts.csproj"/><ProjectReference Include="../Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj"/></ItemGroup><ItemGroup><PackageReference Include="FluentValidation" Version="12.1.1" /></ItemGroup><ItemGroup><PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" /></ItemGroup></Project>

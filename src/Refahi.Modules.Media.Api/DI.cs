@@ -63,6 +63,7 @@ public static class DI
         // ۲. ثبت Endpoints (الگوی استاندارد reflection-based)
         MapEndPoints(app, endPointsPrefix);
         new Endpoints.ExternalMediaEndpoint().Map(app);
+        new Endpoints.PersistentExternalMediaEndpoint().Map(app);
 
         return app;
     }
@@ -73,7 +74,7 @@ public static class DI
 
         var endpointTypes = assembly
             .GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t) && t != typeof(Endpoints.ExternalMediaEndpoint));
+            .Where(t => t.IsClass && !t.IsAbstract && typeof(IEndpoint).IsAssignableFrom(t) && t != typeof(Endpoints.ExternalMediaEndpoint) && t != typeof(Endpoints.PersistentExternalMediaEndpoint));
 
         var group = app.MapGroup(endPointsPrefix);
 

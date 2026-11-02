@@ -9,7 +9,7 @@ public sealed record HotelCityDto(int ReferenceCityId, string Name, string NameE
 public sealed record ProviderCity(string Id, string Name, string? Code, string Country, int? LegacyId = null);
 public sealed record ProviderHotel(string Id, string CityId, string Name, string Address, int Stars,
     IReadOnlyList<string> Images, string Description = "", IReadOnlyList<string>? Facilities = null, string? Policies = null,
-    string AccommodationType = "hotel", string? CheckInTime = null, string? CheckOutTime = null);
+    string AccommodationType = "hotel", string? CheckInTime = null, string? CheckOutTime = null, string? EnglishName = null, double? Latitude = null, double? Longitude = null);
 public sealed record ProviderHotelOffer(ProviderHotel Hotel, string RoomId, string RoomName, string RatePlanId,
     string BoardType, int Capacity, long DisplayPriceMinor, long SupplyPriceMinor, long FeeMinor,
     string? AgencyProviderId = null, string? RawSnapshot = null, int? AdultCapacity = null);
@@ -19,7 +19,7 @@ public sealed record HotelOfferDto(Guid HotelKey, string OfferToken, string Hote
 public sealed record HotelSearchResponse(IReadOnlyList<HotelOfferDto> Offers, bool IsPartial, string? Message);
 public sealed record HotelDetailsResponse(Guid HotelKey, string Name, string Address, string Description, int Stars,
     IReadOnlyList<string> Images, IReadOnlyList<string> Facilities, string? Policies, HotelSearchResponse Availability,
-    string? CheckInTime = null, string? CheckOutTime = null);
+    string? CheckInTime = null, string? CheckOutTime = null, int? ReferenceCityId = null);
 public sealed record HotelGuest(string FirstName, string LastName, string? NationalCode, string Country,
     string Type, int Age, int RoomIndex);
 public sealed record HotelProviderCapabilities(bool Search, bool Purchase, bool Inquiry, bool Cancellation, bool Voucher);

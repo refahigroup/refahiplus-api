@@ -258,7 +258,8 @@ public class SnappTripApiClient
     public Task<IEnumerable<SnappTripHotelBrief>> GetCityHotelsAsync(
         long cityId,
         int? limit = null,
-        int? offset = null
+        int? offset = null,
+        CancellationToken ct = default
     )
     {
         var url = $"/cities/{cityId}/hotels";
@@ -273,7 +274,7 @@ public class SnappTripApiClient
         if (queryParams.Count > 0)
             url += "?" + string.Join("&", queryParams);
 
-        return GetAsync<IEnumerable<SnappTripHotelBrief>>(url);
+        return GetAsync<IEnumerable<SnappTripHotelBrief>>(url, ct);
     }
 
     // ============================================================
@@ -347,10 +348,10 @@ public class SnappTripApiClient
     // 18) HOTEL REVIEWS (STATIC)
     // ============================================================
 
-    public Task<IEnumerable<SnappTripHotelReviewsResponse>> GetHotelsReviewsAsync(long[] hotelIds)
+    public Task<IEnumerable<SnappTripHotelReviewsResponse>> GetHotelsReviewsAsync(long[] hotelIds, CancellationToken ct = default)
     {
         var ids = string.Join(',', hotelIds.Select(x => x.ToString()).Take(10)); // Max 10 per API docs
         var url = $"/hotels/reviews?id={ids}";
-        return GetAsync<IEnumerable<SnappTripHotelReviewsResponse>>(url);
+        return GetAsync<IEnumerable<SnappTripHotelReviewsResponse>>(url, ct);
     }
 }

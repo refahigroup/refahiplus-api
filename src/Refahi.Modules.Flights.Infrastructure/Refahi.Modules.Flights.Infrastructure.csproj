@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -18,7 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Refahi.Modules.Flights.Application.Contracts\Refahi.Modules.Flights.Application.Contracts.csproj" />
@@ -29,4 +29,4 @@
     <EmbeddedResource Include="Data\airports-20260714.json.gz" />
     <EmbeddedResource Include="..\..\scripts\flights\search-catalog-20260906\02-data.sql" LogicalName="Flights.SearchCatalog.Import.sql" />
   </ItemGroup>
-</Project>
+<ItemGroup><PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" /></ItemGroup></Project>

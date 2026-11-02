@@ -1,10 +1,13 @@
 stages:
   - build
+  - verify
   - docker
   - notify
 
 workflow:
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
     - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "staging" || $CI_COMMIT_BRANCH == "dev"'
       when: always
     - when: never
@@ -25,6 +28,9 @@ variables:
   # .NET
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "true"
+  NuGetAudit: "true"
+  NuGetAuditMode: "all"
+  NuGetAuditLevel: "moderate"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
 
   # Docker
@@ -58,6 +64,10 @@ build_publish:
     POSTGRES_DB: "refahi_wallets_tests"
     POSTGRES_USER: "refahi"
     POSTGRES_PASSWORD: "refahi"
+    REFAHI_WALLETS_TEST_CONNECTION: "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
+    REFAHI_DISPOSABLE_CI_DATABASE: "true"
+    REFAHI_HOTEL_TEST_DATABASE: "Host=postgres;Port=5432;Database=hotel_city_test_${CI_PIPELINE_ID}_${CI_JOB_ID};Username=refahi;Password=refahi"
+    REFAHI_ENTERTAINMENTS_TEST_CONNECTION: "Host=postgres;Port=5432;Database=entertainments_test_${CI_PIPELINE_ID}_${CI_JOB_ID};Username=refahi;Password=refahi"
 
     ConnectionStrings__Default:
       "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
@@ -66,6 +76,9 @@ build_publish:
     - |
       set -eu
 
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        ENV="mr-${CI_MERGE_REQUEST_IID}"
+      else
       case "$CI_COMMIT_BRANCH" in
         main)
           ENV="prod"
@@ -77,10 +90,11 @@ build_publish:
           ENV="dev"
           ;;
         *)
-          echo "Unsupported branch: $CI_COMMIT_BRANCH"
+          echo "Unsupported target branch"
           exit 1
           ;;
       esac
+      fi
 
       BUILD_VERSION="${ENV}-${CI_PIPELINE_IID}-${CI_COMMIT_SHORT_SHA}"
 
@@ -123,7 +137,8 @@ build_publish:
 
       time dotnet restore "./$SOLUTION" \
         --configfile ./NuGet.CI.Config \
-        --packages "$NUGET_PACKAGES"
+        --packages "$NUGET_PACKAGES" \
+        '-p:WarningsAsErrors=NU1900%3BNU1902%3BNU1903%3BNU1904%3BNU1905'
 
       echo ""
       echo "=== Build ==="
@@ -133,21 +148,17 @@ build_publish:
         --no-restore
 
       echo ""
-      echo "=== Wallet Tests ==="
+      echo "=== Release test suites ==="
+      mkdir -p artifacts/catalogue-release/test-results
+      for suite in Wallets Catalogue Hotels Entertainments Orders Flights Store SupplyChain Cinema; do
+        dotnet test "tests/Refahi.Modules.${suite}.Tests/Refahi.Modules.${suite}.Tests.csproj" \
+          -c Release --no-build --no-restore \
+          --logger "trx;LogFileName=${suite}.trx" \
+          --results-directory artifacts/catalogue-release/test-results
+      done
+      dotnet list "./$SOLUTION" package --vulnerable --include-transitive --format json \
+        > artifacts/catalogue-release/security-audit.json
 
-      time dotnet test \
-        tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj \
-        -c Release \
-        --no-build \
-        --no-restore
-
-      time dotnet test \
-        tests/Refahi.Modules.Cinema.Tests/Refahi.Modules.Cinema.Tests.csproj \
-        -c Release \
-        --no-build \
-        --no-restore
-
-      echo ""
       echo "=== Publish API ==="
 
       rm -rf "./$PUBLISH_DIR"
@@ -182,10 +193,12 @@ build_publish:
       echo "Build completed successfully."
 
   artifacts:
+    when: always
     expire_in: 1 hour
 
     paths:
       - publish/api/
+      - artifacts/catalogue-release/
 
     reports:
       dotenv: build.env
@@ -196,11 +209,15 @@ build_publish:
 # ============================================================
 
 docker_build_push:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "staging" || $CI_COMMIT_BRANCH == "dev")'
   stage: docker
 
   image: registry.refahi.xyz/platform/ci-images/docker-cli:29.7.2
 
   needs:
+    - job: verify_catalogue_release
+      artifacts: false
     - job: build_publish
       artifacts: true
 
@@ -229,6 +246,7 @@ docker_build_push:
       FROM registry.refahi.xyz/platform/ci-images/aspnet:10.0
 
       WORKDIR /app
+      RUN dotnet --list-runtimes | awk '$1 == "Microsoft.AspNetCore.App" {split($2,v,"."); if (v[1]==10 && (v[2]>0 || v[3]>=13)) ok=1} END {exit !ok}'
 
       EXPOSE 8080
 
@@ -255,7 +273,7 @@ docker_build_push:
 
       # Runner-level DOCKER_AUTH_CONFIG remains active here
       # so the shared ASP.NET runtime image can be pulled.
-      time docker build \
+      time docker build --pull \
         --provenance=false \
         --file "./$PUBLISH_DIR/Dockerfile.ci" \
         --tag "$IMAGE_ENV" \
@@ -263,6 +281,11 @@ docker_build_push:
         "./$PUBLISH_DIR"
 
       echo ""
+      mkdir -p artifacts/catalogue-release
+      docker run --rm --network none --entrypoint dotnet "$IMAGE_VER" --list-runtimes > artifacts/catalogue-release/runtime.txt
+      docker image inspect "$IMAGE_VER" --format '{{json .Id}}' > artifacts/catalogue-release/image-id.json
+      docker image inspect registry.refahi.xyz/platform/ci-images/aspnet:10.0 --format '{{json .RepoDigests}}' > artifacts/catalogue-release/runtime-image-digests.json
+
       echo "=== Switch Registry Credentials ==="
 
       # DOCKER_AUTH_CONFIG is read-only for platform/ci-images.
@@ -286,6 +309,7 @@ docker_build_push:
       echo "=== Push Version Image ==="
 
       time docker push "$IMAGE_VER"
+      docker image inspect "$IMAGE_VER" --format '{{json .RepoDigests}}' > artifacts/catalogue-release/published-image-digests.json
 
       echo ""
       echo "========================================"
@@ -293,6 +317,11 @@ docker_build_push:
       echo "========================================"
       echo "Environment : $IMAGE_ENV"
       echo "Version     : $IMAGE_VER"
+
+  artifacts:
+    when: always
+    paths:
+      - artifacts/catalogue-release/
 
   after_script:
     - |
@@ -318,7 +347,7 @@ notify_deploy_agent:
     - job: docker_build_push
 
   rules:
-    - if: '$DEPLOY_AGENT_URL && $DEPLOY_AGENT_TOKEN'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $DEPLOY_AGENT_URL && $DEPLOY_AGENT_TOKEN'
       when: on_success
 
     - when: never
@@ -341,3 +370,19 @@ notify_deploy_agent:
         --header "Authorization: Bearer $DEPLOY_AGENT_TOKEN" \
         --data "{\"service\":\"$SERVICE_NAME\",\"env\":\"$ENV\"}" \
         --max-time 180
+
+verify_catalogue_release:
+  stage: verify
+  image: python:3.13-slim
+  needs:
+    - job: build_publish
+      artifacts: true
+  script:
+    - python -m unittest discover -s tools/tests -p "test_*.py"
+    - python tools/verify-catalogue-release.py --audit artifacts/catalogue-release/security-audit.json --trx artifacts/catalogue-release/test-results --deps publish/api/Refahi.Api.deps.json --require-integration --output artifacts/catalogue-release/evidence.json
+  artifacts:
+    when: always
+    reports:
+      junit: artifacts/catalogue-release/evidence.junit.xml
+    paths:
+      - artifacts/catalogue-release/

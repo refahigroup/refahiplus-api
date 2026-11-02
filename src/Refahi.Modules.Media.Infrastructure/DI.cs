@@ -20,6 +20,11 @@ public static class DI
         bool isDevelopment = false
     )
     {
+        services.AddOptions<PersistentExternalMediaOptions>().Bind(configuration.GetSection("PersistentExternalMedia"))
+            .Validate(x => !x.Enabled || (!string.IsNullOrWhiteSpace(x.StoragePath) && x.MinFreeBytes >= 0
+                && !PathsOverlap(x.StoragePath, configuration["ExternalMedia:CachePath"])), "مسیر ذخیره پایدار مدیا معتبر نیست.").ValidateOnStart();
+        services.AddSingleton<PersistentExternalMedia>();
+        services.AddSingleton<Refahi.Modules.Media.Application.Contracts.External.IPersistentExternalMedia>(sp => sp.GetRequiredService<PersistentExternalMedia>());
         services.AddOptions<ExternalMediaOptions>().Bind(configuration.GetSection("ExternalMedia"))
             .Validate(x => Uri.TryCreate(x.PublicBaseUrl, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.IsLoopback)
                 && x.MaxImageBytes > 0 && x.MaxSourceBytes >= x.MaxImageBytes

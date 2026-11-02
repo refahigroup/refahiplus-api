@@ -18,11 +18,18 @@ public class GetProvincesEndpoint : IEndpoint
         routes
             .MapGet(
                 "/provinces",
-                async (IMediator mediator, CancellationToken ct, bool activeOnly = true) =>
+                async (IMediator mediator, CancellationToken ct, bool activeOnly = true, string? q = null) =>
                 {
-                    var query = new GetProvincesQuery(activeOnly);
-                    var result = await mediator.Send(query, ct);
-                    return Results.Ok(ApiResponseHelper.Success(result.Provinces));
+                    var query = new GetProvincesQuery(activeOnly, q);
+                    try
+                    {
+                        var result = await mediator.Send(query, ct);
+                        return Results.Ok(ApiResponseHelper.Success(result.Provinces));
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        return Results.StatusCode(499);
+                    }
                 }
             )
             .WithName("References.GetProvinces")

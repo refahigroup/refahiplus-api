@@ -23,14 +23,15 @@ public sealed class GetHotelDetailsEndpoint : IEndpoint
                     long hotelId,
                     [FromQuery] DateOnly? checkIn,
                     [FromQuery] DateOnly? checkOut,
-                    ISender sender
+                    ISender sender,
+                    CancellationToken ct
                 ) =>
                 {
                     var query = new GetHotelDetailsQuery(hotelId, checkIn, checkOut);
 
-                    var details = await sender.Send(query);
+                    var details = await sender.Send(query, ct);
 
-                    return Results.Ok(details);
+                    return Results.Ok(ApiResponseHelper.Success(details));
                 }
             )
             .Produces<IEnumerable<HotelDetailsDto>>()

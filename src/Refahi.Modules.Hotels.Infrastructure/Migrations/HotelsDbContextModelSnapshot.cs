@@ -333,6 +333,121 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.LamasoDiscoveryHotel", b =>
+                {
+                    b.Property<Guid>("HotelKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccommodationType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool?>("ContentReady")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FacilitiesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<string[]>("FacilityKeys")
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("ImagesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("NativeCityId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NativeId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ObservedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Policies")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Published")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("Rating")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("ReferenceCityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SearchText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SortTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .UseCollation("C");
+
+                    b.Property<int>("Stars")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("HotelKey");
+
+                    b.HasIndex("NativeId")
+                        .IsUnique();
+
+                    b.HasIndex("ReferenceCityId", "Published", "SortTitle");
+
+                    b.ToTable("lamaso_discovery_hotels", "hotels");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.LamasoDiscoverySyncState", b =>
+                {
+                    b.Property<string>("NativeCityId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastContentSuccessAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastSuccessAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("NextContentAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("NativeCityId");
+
+                    b.ToTable("lamaso_discovery_sync_states", "hotels");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.SnappTripCityMapping", b =>
                 {
                     b.Property<string>("ProviderCityId")
@@ -347,6 +462,121 @@ namespace Refahi.Modules.Hotels.Infrastructure.Migrations
                         {
                             t.ExcludeFromMigrations();
                         });
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.SnappTripDiscoveryHotel", b =>
+                {
+                    b.Property<Guid>("HotelKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccommodationType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool?>("ContentReady")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FacilitiesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<string[]>("FacilityKeys")
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("ImagesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("NativeCityId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NativeId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ObservedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Policies")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Published")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("Rating")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("ReferenceCityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SearchText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SortTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .UseCollation("C");
+
+                    b.Property<int>("Stars")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("HotelKey");
+
+                    b.HasIndex("NativeId")
+                        .IsUnique();
+
+                    b.HasIndex("ReferenceCityId", "Published", "SortTitle");
+
+                    b.ToTable("snapptrip_discovery_hotels", "hotels");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.Catalogue.SnappTripDiscoverySyncState", b =>
+                {
+                    b.Property<string>("NativeCityId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastContentSuccessAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastSuccessAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("NextContentAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("NativeCityId");
+
+                    b.ToTable("snapptrip_discovery_sync_states", "hotels");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Hotels.Domain.Aggregates.HotelBookingSagaAgg.HotelBookingSagaState", b =>

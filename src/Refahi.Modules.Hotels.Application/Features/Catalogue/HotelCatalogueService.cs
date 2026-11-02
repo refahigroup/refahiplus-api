@@ -17,7 +17,8 @@ namespace Refahi.Modules.Hotels.Application.Features.Catalogue;
 
 public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repository, IHotelCatalogueProviderRegistry providers,
     IHotelSalePriceCalculator pricing, IHotelRequestRepository requests, IHotelBookingSagaRepository sagas,
-    IMediator mediator, ILogger<HotelCatalogueService> logger, IOptions<HotelLifecycleOptions>? lifecycle = null, IExternalMediaService? media = null)
+    IMediator mediator, ILogger<HotelCatalogueService> logger, IOptions<HotelLifecycleOptions>? lifecycle = null, IExternalMediaService? media = null,
+    IHotelLocalContentReader? local = null)
 {
     private HotelLifecycleOptions Policy => lifecycle?.Value ?? new();
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -77,8 +78,6 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
         var partial = results.Any(x => x.failed > 0);
         if (results.All(x => x.offers.Count == 0))
             return new([], partial, partial ? "بخشی از نتایج در دسترس نیست." : null);
-        if (media is not null)
-            foreach (var result in results) await media.GetPublicUrlsAsync(result.offers.SelectMany(x => x.Hotel.Images), new("Hotels", result.provider.Name), ct);
         var offers = new List<HotelOfferDto>();
         await using var held = await repository.LockAsync("catalogue", ct);
         foreach (var result in results)
@@ -101,10 +100,28 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
     }
     public async Task<HotelDetailsResponse> DetailsAsync(Guid key, HotelTravel travel, CancellationToken ct)
     {
+        if (local is not null && await local.UsesLocalAsync(key, ct))
+        {
+            var profile = await local.ProfileAsync(key, ct) ?? throw new KeyNotFoundException("هتل یافت نشد.");
+            var availability = await AvailabilityAsync(key, travel, ct);
+            return new(key, profile.Title, profile.Address, profile.Description, profile.Stars, profile.Images, profile.Facilities, profile.Policies,
+                availability, profile.Content?.Policies.CheckInTime, profile.Content?.Policies.CheckOutTime, profile.ReferenceCityId);
+        }
         var listing = await repository.FindListingAsync(key, ct) ?? throw new InvalidOperationException("هتل یافت نشد.");
         var provider = providers.Get(listing.Provider);
         var hotel = await provider.DetailsAsync(listing.NativeId, listing.NativeCityId, ct);
         // Details remains bound to the selected provider. No fallback to a different hotel/provider.
+        var available = await AvailabilityAsync(key, travel, ct);
+        return new(key, hotel.Name, hotel.Address, hotel.Description, hotel.Stars, await PublishImagesAsync(provider.Name, hotel.Images, ct), hotel.Facilities ?? [], hotel.Policies,
+            available, hotel.CheckInTime, hotel.CheckOutTime, listing.ReferenceCityId);
+    }
+    public async Task<HotelSearchResponse> AvailabilityAsync(Guid key, HotelTravel travel, CancellationToken ct)
+    {
+        var listing = await repository.FindListingAsync(key, ct) ?? throw new KeyNotFoundException("هتل یافت نشد.");
+        var provider = providers.Get(listing.Provider);
+        if (!providers.Active.Any(x => x.Name == provider.Name)) throw new HotelCatalogueUnavailableException("استعلام ظرفیت این تأمین‌کننده در دسترس نیست.");
+        var useLocal = local is not null && await local.UsesLocalAsync(key, ct);
+        var profile = useLocal ? await local!.ProfileAsync(key, ct) ?? throw new KeyNotFoundException("هتل یافت نشد.") : null;
         ValidateTravel(travel);
         var raw = await provider.SearchAsync(listing.NativeCityId, travel, ct);
         var offers = new List<HotelOfferDto>();
@@ -115,11 +132,13 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
             catch (HotelCatalogueConflictException) { continue; }
             var snapshot = HotelOfferSnapshot.Create(Convert.ToHexString(RandomNumberGenerator.GetBytes(24)), key, provider.Name,
                 Serialize(offer), Serialize(travel), DateTime.UtcNow.AddMinutes(20));
-            repository.AddOffer(snapshot); offers.Add(await PublicOfferAsync(snapshot, offer, ct));
+            repository.AddOffer(snapshot); offers.Add(profile is null ? await PublicOfferAsync(snapshot, offer, ct)
+                : new(key, snapshot.Token, profile.Title, profile.Address, profile.Stars, profile.Images, offer.RoomName, offer.BoardType,
+                    offer.Capacity, pricing.CalculateFinalPrice(offer), snapshot.ExpiresAtUtc, provider.Capabilities.Purchase && provider.IsOfferEligible(offer, travel)
+                    && (snapshot.Provider != "Lamasoo" || offer.SupplyPriceMinor <= pricing.CalculateFinalPrice(offer))));
         }
         await repository.SaveAsync(ct);
-        return new(key, hotel.Name, hotel.Address, hotel.Description, hotel.Stars, await PublishImagesAsync(provider.Name, hotel.Images, ct), hotel.Facilities ?? [], hotel.Policies,
-            new(offers, false, null), hotel.CheckInTime, hotel.CheckOutTime);
+        return new(offers, false, null);
     }
     public async Task<HotelOfferDto> OfferAsync(string token, CancellationToken ct)
     {
@@ -133,11 +152,17 @@ public sealed partial class HotelCatalogueService(IHotelCatalogueRepository repo
         if (!publishedImages.TryGetValue(key, out var result)) publishedImages[key] = result = await media.GetPublicUrlsAsync(list, new("Hotels", provider), ct);
         return result;
     }
-    private async Task<HotelOfferDto> PublicOfferAsync(HotelOfferSnapshot snapshot, ProviderHotelOffer offer, CancellationToken ct) => new(snapshot.HotelKey, snapshot.Token,
-        offer.Hotel.Name, offer.Hotel.Address, offer.Hotel.Stars, await PublishImagesAsync(snapshot.Provider, offer.Hotel.Images, ct), offer.RoomName, offer.BoardType, offer.Capacity,
-        pricing.CalculateFinalPrice(offer), snapshot.ExpiresAtUtc, providers.Get(snapshot.Provider).Capabilities.Purchase
-            && providers.Get(snapshot.Provider).IsOfferEligible(offer, Read<HotelTravel>(snapshot.TravelJson))
-            && (snapshot.Provider != "Lamasoo" || offer.SupplyPriceMinor <= pricing.CalculateFinalPrice(offer)));
+    private async Task<HotelOfferDto> PublicOfferAsync(HotelOfferSnapshot snapshot, ProviderHotelOffer offer, CancellationToken ct)
+    {
+        var useLocal = local is not null && await local.UsesLocalAsync(snapshot.HotelKey, ct);
+        var profile = useLocal ? await local!.ProfileAsync(snapshot.HotelKey, ct) : null;
+        return new(snapshot.HotelKey, snapshot.Token, profile?.Title ?? offer.Hotel.Name, profile?.Address ?? offer.Hotel.Address,
+            profile?.Stars ?? offer.Hotel.Stars, useLocal ? profile?.Images ?? [] : await PublishImagesAsync(snapshot.Provider, offer.Hotel.Images, ct),
+            offer.RoomName, offer.BoardType, offer.Capacity, pricing.CalculateFinalPrice(offer), snapshot.ExpiresAtUtc,
+            (!useLocal || profile is not null) && providers.Get(snapshot.Provider).Capabilities.Purchase
+                && providers.Get(snapshot.Provider).IsOfferEligible(offer, Read<HotelTravel>(snapshot.TravelJson))
+                && (snapshot.Provider != "Lamasoo" || offer.SupplyPriceMinor <= pricing.CalculateFinalPrice(offer)));
+    }
     public async Task<HotelOfferDto> QuoteAsync(string token, HotelTravel travel, CancellationToken ct)
     {
         ValidateTravel(travel);

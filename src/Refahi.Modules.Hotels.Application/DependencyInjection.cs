@@ -13,6 +13,8 @@ public static class DependencyInjection
         IConfiguration configuration
     )
     {
+        services.AddScoped<Features.Discovery.HotelsCatalogueSource>();
+        services.AddSingleton(new Refahi.Modules.Catalogue.Application.Contracts.CatalogueSourceRegistration("hotels",typeof(Features.Discovery.HotelsCatalogueSource)));
         var assembly = typeof(DependencyInjection).Assembly;
 
         services.AddMediatR(assembly);

@@ -23,6 +23,21 @@ public static class DI
     {
         var hotelsConfig = configuration.GetSection("Refahi:Hotels");
 
+        services.AddOptions<Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelStaticContentOptions>()
+            .Bind(configuration.GetSection("Hotels:StaticContent"))
+            .Validate(x => x.RefreshHours > 0 && x.RetryMinutes > 0 && x.RequestTimeoutSeconds is > 0 and <= 120
+                && (!x.ReadEnabled || x.ReadScopes.Length > 0)
+                && x.ReadScopes.Concat(x.SyncScopes).All(scope => {
+                    var parts = scope.Split(':'); return parts.Length == 2 && parts[0] is "SnappTrip" or "Lamasoo" && int.TryParse(parts[1], out var id) && id > 0;
+                }), "تنظیمات محتوای محلی هتل معتبر نیست.").ValidateOnStart();
+        services.AddScoped<Refahi.Modules.Hotels.Application.Contracts.Catalogue.IHotelLocalContentReader, Providers.Catalogue.HotelLocalContentReader>();
+        services.AddScoped<Workers.HotelStaticContentSynchronizer>();
+        services.AddHostedService<Workers.HotelStaticContentWorker>();
+
+        services.AddOptions<Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelDiscoveryOptions>().Bind(configuration.GetSection("Hotels:Discovery")).Validate(x=>x.RefreshHours>0 && x.MaxAgeDays>0 && x.RetryMinutes>0 && x.RequestTimeoutSeconds>0).ValidateOnStart();
+        services.AddScoped<Refahi.Modules.Hotels.Application.Contracts.Catalogue.IHotelDiscoveryReader, Providers.Catalogue.HotelDiscoveryReader>();
+        services.AddScoped<Workers.HotelDiscoverySynchronizer>();
+        services.AddHostedService<Workers.HotelDiscoveryWorker>();
         // DbContext
         services.AddDbContext<HotelsDbContext>(options =>
         {

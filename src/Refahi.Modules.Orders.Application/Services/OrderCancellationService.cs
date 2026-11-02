@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Cancellation;
 using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
@@ -35,7 +35,8 @@ public sealed class OrderCancellationService(
         Order order,
         string? reason,
         Guid? voucherRefundOverrideId,
-        CancellationToken ct
+        CancellationToken ct,
+        bool unpaidOnly = false
     )
     {
         if (order.PromotionReservationId.HasValue && order.PaymentState is PaymentState.Unpaid or PaymentState.Reserved)
@@ -44,6 +45,9 @@ public sealed class OrderCancellationService(
             if (known != null && order.PaymentState == PaymentState.Unpaid) order.MarkAsReserved(known.IntentId);
             if (known?.Status == 2 && known.PaymentId.HasValue && order.PaymentState == PaymentState.Reserved) order.MarkAsPaid(known.PaymentId.Value);
         }
+
+        if (unpaidOnly && order.PaymentState != PaymentState.Unpaid)
+            throw new OrderStateConflictException("سفارش در حال پرداخت یا پرداخت‌شده قابل بازگشت به سبد نیست");
 
         var normalizedReason = string.IsNullOrWhiteSpace(reason)
             ? "لغو سفارش و بازگشت وجه"
