@@ -23,4 +23,4 @@
 		<ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
 	</ItemGroup>
 
-<ItemGroup><ProjectReference Include="../Refahi.Modules.Catalogue.Application.Contracts/Refahi.Modules.Catalogue.Application.Contracts.csproj" /><ProjectReference Include="../Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj" /><ProjectReference Include="../Refahi.Modules.Media.Application.Contracts/Refahi.Modules.Media.Application.Contracts.csproj" /></ItemGroup></Project>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Catalogue.Application.Contracts/Refahi.Modules.Catalogue.Application.Contracts.csproj" /><ProjectReference Include="../Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj" /><ProjectReference Include="../Refahi.Modules.Media.Application.Contracts/Refahi.Modules.Media.Application.Contracts.csproj" /></ItemGroup><ItemGroup><PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" /></ItemGroup></Project>

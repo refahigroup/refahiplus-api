@@ -27,13 +27,20 @@ public interface ICatalogueSource
  Task<CatalogueSourceResult> SearchAsync(CatalogueQuery query, int take, CancellationToken ct);
  Task<IReadOnlyList<CatalogueCity>> CitiesAsync(CancellationToken ct);
 }
-public sealed class CatalogueUnavailableException() : Exception("کاتالوگ در دسترس نیست؛ دوباره تلاش کنید.");
+public sealed class CatalogueUnavailableException : Exception
+{
+ private const string PublicMessage = "کاتالوگ در دسترس نیست؛ دوباره تلاش کنید.";
+ public CatalogueUnavailableException() : base(PublicMessage) { }
+ public CatalogueUnavailableException(Exception innerException) : base(PublicMessage, innerException) { }
+}
 public sealed class CatalogueOptions
 {
  public bool Enabled { get; set; }
+ public string[]? EnabledSources { get; set; }
  public int SourceTimeoutSeconds { get; set; } = 3;
  public int TimeoutSeconds { get; set; } = 5;
- public int MaxConcurrency { get; set; } = 4;
+ public int MaxConcurrency { get; set; } = 16;
+ public int MaxConcurrentRequests { get; set; } = 8;
 }
 public interface ICatalogueExecutor
 {

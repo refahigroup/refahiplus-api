@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Refahi.Modules.Catalogue.Application.Contracts;
 using Refahi.Modules.Entertainments.Application.Contracts.Discovery;
+using Refahi.Modules.Entertainments.Application.Contracts.Providers;
 using Refahi.Modules.Entertainments.Application.Contracts.Providers.Dtos;
 using Refahi.Modules.Entertainments.Domain;
 using Refahi.Modules.Entertainments.Infrastructure.Persistence;
@@ -13,13 +14,11 @@ using Refahi.Modules.References.Application.Contracts.Queries;
 namespace Refahi.Modules.Entertainments.Infrastructure.Providers.TouristPanel;
 
 public sealed class EntertainmentDiscoveryReader(EntertainmentDbContext db, ISender sender,
-    IOptions<TouristPanelOptions> providerOptions, IOptions<EntertainmentsOptions> moduleOptions) : IEntertainmentDiscovery
+    IOptions<TouristPanelOptions> providerOptions, IOptions<EntertainmentsOptions> moduleOptions)
+    : IEntertainmentDiscovery, IEntertainmentContentReader, IEntertainmentProgramIdentity, IEntertainmentLocationMappings
 {
     private TouristPanelOptions Provider => providerOptions.Value;
     private DateTimeOffset Cutoff => DateTimeOffset.UtcNow.AddDays(-moduleOptions.Value.MaxDiscoveryAgeDays);
-    private IQueryable<TouristPanelProgram> Published => db.Programs.AsNoTracking().Where(x =>
-        x.AccountKey == Provider.AccountKey && x.IsListed && x.ObservedAtUtc >= Cutoff && x.ListedAtUtc >= Cutoff);
-
     private async Task<Dictionary<string, CityDto>> Geography(CancellationToken ct)
     {
         var provinces = (await sender.Send(new GetProvincesQuery(true), ct)).Provinces.Select(x => x.Id).ToHashSet();
@@ -27,71 +26,141 @@ public sealed class EntertainmentDiscoveryReader(EntertainmentDbContext db, ISen
         var mappings = await db.LocationMappings.AsNoTracking().Where(x => x.AccountKey == Provider.AccountKey).ToListAsync(ct);
         return mappings.Where(x => cities.ContainsKey(x.CityId)).ToDictionary(x => x.LocationCode, x => cities[x.CityId]);
     }
-    public async Task<EntertainmentDiscoveryPage> SearchAsync(EntertainmentDiscoverySearch query, int take, CancellationToken ct)
+
+    private async Task<(IQueryable<TouristPanelProgram> Rows, Dictionary<string, CityDto> Geo, bool Partial)> Scope(
+        string? search, string? location, string? category, int? province, int? city, CancellationToken ct)
     {
         if (!Provider.Enabled) throw new EntertainmentUnavailableException();
-        var geography = await Geography(ct);
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+        var cutoff = Cutoff;
         var state = await db.SyncStates.AsNoTracking().SingleOrDefaultAsync(x => x.AccountKey == Provider.AccountKey, ct);
-        if (state?.LastSuccessUtc is null || state.LastSuccessUtc < Cutoff) throw new EntertainmentUnavailableException();
-        var mappedCodes = await db.LocationMappings.AsNoTracking().Where(x => x.AccountKey == Provider.AccountKey).Select(x => x.LocationCode).ToListAsync(ct);
-        var inactiveCodes = mappedCodes.Except(geography.Keys).ToArray();
-        var matchingCodes = geography.Where(x => (!query.ProvinceId.HasValue || x.Value.ProvinceId == query.ProvinceId) &&
-            (!query.CityId.HasValue || x.Value.Id == query.CityId)).Select(x => x.Key).ToArray();
-        var scoped = db.Programs.AsNoTracking().Where(x => x.AccountKey == Provider.AccountKey && x.IsListed && !inactiveCodes.Contains(x.LocationCode!));
-        if (query.ProvinceId.HasValue || query.CityId.HasValue) scoped = scoped.Where(x => matchingCodes.Contains(x.LocationCode!));
-        var pending = await scoped.AnyAsync(x => x.ObservedAtUtc == null || x.ObservedAtUtc < Cutoff || x.ListedAtUtc < Cutoff, ct);
-        var rows = await Published.Where(x => !inactiveCodes.Contains(x.LocationCode!)).ToListAsync(ct);
-        if (pending && !await scoped.AnyAsync(x => x.ObservedAtUtc >= Cutoff && x.ListedAtUtc >= Cutoff, ct)) throw new EntertainmentUnavailableException();
-        var words = CatalogueText.Normalize(query.Q).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var filtered = rows.Select(x => (Row: x, City: x.LocationCode is { } code ? geography.GetValueOrDefault(code) : null))
-            .Where(x => (!query.ProvinceId.HasValue || x.City?.ProvinceId == query.ProvinceId) &&
-                (!query.CityId.HasValue || x.City?.Id == query.CityId))
-            .Where(x => words.All(w => CatalogueText.Normalize($"{x.Row.Title} {x.Row.Description} {x.Row.Address} {x.Row.CategoryTitle} {x.Row.SupplierTitle} {x.Row.NativeCityName} {x.City?.Name} {x.City?.ProvinceName} توریست پنل").Contains(w, StringComparison.Ordinal)))
-            .OrderBy(x => CatalogueText.Normalize(x.Row.Title), CatalogueText.Comparer)
-            .ThenBy(x => x.Row.ProgramKey.ToString("N"), StringComparer.Ordinal).ToArray();
-        var items = filtered.Take(take).Select(x => new EntertainmentDiscoveryItem(x.Row.ProgramKey, x.Row.Title,
-            Summary(x.Row.Description), x.Row.Address, x.Row.Images.FirstOrDefault(), x.City?.Id,
-            x.City?.Name ?? x.Row.NativeCityName, x.City?.ProvinceId, x.City?.ProvinceName,
-            x.Row.CategoryCode is { } category ? $"touristpanel:{category}" : "entertainment",
-            x.Row.CategoryTitle ?? "تفریح و سرگرمی", x.Row.SupplierTitle, x.Row.ObservedAtUtc!.Value,
-            x.Row.ObservedAtUtc < DateTimeOffset.UtcNow.AddMinutes(-Provider.CatalogRefreshMinutes))).ToArray();
+        if (state?.LastSuccessUtc is null || state.LastSuccessUtc < cutoff) throw new EntertainmentUnavailableException();
+        var geo = await Geography(ct);
+        var mapped = await db.LocationMappings.AsNoTracking().Where(x => x.AccountKey == Provider.AccountKey).Select(x => x.LocationCode).ToArrayAsync(ct);
+        var inactive = mapped.Except(geo.Keys).ToArray();
+        var rows = db.Programs.AsNoTracking().Where(x => x.AccountKey == Provider.AccountKey && x.IsListed && !inactive.Contains(x.LocationCode!));
+        if (province.HasValue || city.HasValue)
+        {
+            var codes = geo.Where(x => (!province.HasValue || x.Value.ProvinceId == province) && (!city.HasValue || x.Value.Id == city)).Select(x => x.Key).ToArray();
+            rows = rows.Where(x => codes.Contains(x.LocationCode!));
+        }
+        if (!string.IsNullOrWhiteSpace(location)) rows = rows.Where(x => x.LocationCode == location);
+        if (!string.IsNullOrWhiteSpace(category))
+            rows = int.TryParse(category, out var code) ? rows.Where(x => x.CategoryCode == code) : rows.Where(x => false);
+        var pending = await rows.AnyAsync(x => x.ObservedAtUtc == null || x.ObservedAtUtc < cutoff || x.ListedAtUtc < cutoff, ct);
+        rows = rows.Where(x => x.ObservedAtUtc >= cutoff && x.ListedAtUtc >= cutoff);
+        if (pending && !await rows.AnyAsync(ct)) throw new EntertainmentUnavailableException();
+        foreach (var word in CatalogueText.Normalize(search).Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var codes = geo.Where(x => CatalogueText.Normalize(x.Value.Name + " " + x.Value.ProvinceName).Contains(word, StringComparison.Ordinal)).Select(x => x.Key).ToArray();
+            rows = rows.Where(x => x.SearchText.Contains(word) || codes.Contains(x.LocationCode!));
+        }
+        return (rows, geo, pending || state.Status != "Ready");
+    }
+    private static IOrderedQueryable<TouristPanelProgram> Ordered(IQueryable<TouristPanelProgram> rows) =>
+        rows.OrderBy(x => EF.Functions.Collate(x.SortTitle, "C")).ThenBy(x => x.ProgramKey);
+
+    public async Task<EntertainmentDiscoveryPage> SearchAsync(EntertainmentDiscoverySearch query, int take, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+        var scope = await Scope(query.Q, null, null, query.ProvinceId, query.CityId, ct);
+        var count = await scope.Rows.CountAsync(ct);
+        var rows = await Ordered(scope.Rows).Take(take).ToListAsync(ct);
+        var items = rows.Select(x => {
+            var city = x.LocationCode is { } code ? scope.Geo.GetValueOrDefault(code) : null;
+            return new EntertainmentDiscoveryItem(x.ProgramKey, EntertainmentPresentation.Text(x.Title)!, Summary(EntertainmentPresentation.Text(x.Description)),
+                EntertainmentPresentation.Text(x.Address), x.Images.FirstOrDefault(), city?.Id, city?.Name ?? x.NativeCityName,
+                city?.ProvinceId, city?.ProvinceName, x.CategoryCode is { } category ? $"entertainment:{category}" : "entertainment",
+                EntertainmentPresentation.Text(x.CategoryTitle) ?? "تفریح و سرگرمی", EntertainmentPresentation.Text(x.SupplierTitle)!, x.ObservedAtUtc!.Value,
+                x.ObservedAtUtc < DateTimeOffset.UtcNow.AddMinutes(-Provider.CatalogRefreshMinutes));
+        }).ToArray();
         await tx.CommitAsync(ct);
-        var partial = pending || state.Status != "Ready";
-        return new(items, partial ? null : filtered.Length, partial);
+        return new(items, scope.Partial ? null : count, scope.Partial);
     }
     public async Task<IReadOnlyList<EntertainmentDiscoveryCity>> CitiesAsync(CancellationToken ct)
     {
         if (!Provider.Enabled) return [];
-        var geo = await Geography(ct);
-        var codes = await Published.Select(x => x.LocationCode).Distinct().ToListAsync(ct);
-        return codes.OfType<string>().Where(geo.ContainsKey).Select(x => geo[x]).DistinctBy(x => x.Id)
+        var scope = await Scope(null, null, null, null, null, ct);
+        var codes = await scope.Rows.Select(x => x.LocationCode).Distinct().ToArrayAsync(ct);
+        return codes.OfType<string>().Where(scope.Geo.ContainsKey).Select(x => scope.Geo[x]).DistinctBy(x => x.Id)
             .Select(x => new EntertainmentDiscoveryCity(x.Id, x.Name, x.ProvinceId, x.ProvinceName)).ToArray();
+    }
+    private async Task<IReadOnlyList<EntertainmentProgramDto>> Profiles(IReadOnlyList<TouristPanelProgram> rows, Dictionary<string, CityDto> geo, CancellationToken ct)
+    {
+        var nativeIds = rows.Select(x => x.SupplierId).Distinct().ToArray();
+        var keys = await db.Suppliers.AsNoTracking().Where(x => x.AccountKey == Provider.AccountKey && nativeIds.Contains(x.NativeId)).ToDictionaryAsync(x => x.NativeId, x => x.SupplierKey, ct);
+        return rows.Select(row => {
+            var city = row.LocationCode is { } code ? geo.GetValueOrDefault(code) : null;
+            return new EntertainmentProgramDto(keys.GetValueOrDefault(row.SupplierId).ToString("N"), row.ProgramKey.ToString("N"),
+                EntertainmentPresentation.Text(row.Title)!, EntertainmentPresentation.Text(row.Description), row.Images.FirstOrDefault(), [],
+                new(city?.ProvinceName ?? "", city?.Name ?? row.NativeCityName ?? "", EntertainmentPresentation.Text(row.Address) ?? "", null), [])
+            { SchedulingMode = row.ProgramType == 2 ? "Scheduled" : "Undated", Rules = EntertainmentPresentation.Text(row.Rules), Gallery = row.Images,
+                LocationCode = row.LocationCode, ExternalCategoryCode = row.CategoryCode?.ToString(),
+                UnavailableReason = !Provider.IsSaleConfigured ? "فروش این خدمت هنوز فعال نشده است" : null };
+        }).ToArray();
     }
     public async Task<EntertainmentProgramDto?> ProfileAsync(Guid programKey, CancellationToken ct)
     {
-        if (!Provider.Enabled) return null;
-        var row = await db.Programs.AsNoTracking().SingleOrDefaultAsync(x => x.ProgramKey == programKey && x.AccountKey == Provider.AccountKey && x.IsListed, ct);
-        if (row is null) return null;
-        if (row.ObservedAtUtc is null || row.ObservedAtUtc < Cutoff || row.ListedAtUtc < Cutoff) throw new EntertainmentUnavailableException();
-        var geo = await Geography(ct);
-        var city = row.LocationCode is { } code ? geo.GetValueOrDefault(code) : null;
-        if (city is null && row.LocationCode is not null && await db.LocationMappings.AnyAsync(x => x.AccountKey == Provider.AccountKey && x.LocationCode == row.LocationCode, ct)) return null;
-        return new("touristpanel", row.SupplierId, row.ProgramKey.ToString("N"), row.Title, row.Description,
-            row.Images.FirstOrDefault(), [], new(city?.ProvinceName ?? "", city?.Name ?? row.NativeCityName ?? "", row.Address ?? "", null), [])
-        { ProgramType = row.ProgramType, Rules = row.Rules, Gallery = row.Images,
-            RequiresManifest = row.RequiresManifest, RequiresIdentityNumber = row.RequiresIdentityNumber,
-            LocationCode = row.LocationCode, ExternalCategoryCode = row.CategoryCode?.ToString(),
-            UnavailableReason = !Provider.IsSaleConfigured ? "فروش این خدمت هنوز فعال نشده است" : null };
+        var scope = await Scope(null, null, null, null, null, ct);
+        var row = await scope.Rows.SingleOrDefaultAsync(x => x.ProgramKey == programKey, ct);
+        if (row == null)
+        {
+            if (await db.Programs.AnyAsync(x => x.ProgramKey == programKey && x.AccountKey == Provider.AccountKey && x.IsListed && (x.ObservedAtUtc == null || x.ObservedAtUtc < Cutoff || x.ListedAtUtc < Cutoff), ct)) throw new EntertainmentUnavailableException();
+            return null;
+        }
+        return (await Profiles([row], scope.Geo, ct)).Single();
     }
-    public async Task<string?> ResolveNativeAsync(string key, CancellationToken ct)
+    public async Task<EntertainmentCatalogPage> ProgramsAsync(string? search, string? supplierKey, int page, int size, string? location, string? category, CancellationToken ct)
     {
-        if (!Guid.TryParse(key, out var id) || !Provider.Enabled) return null;
-        if (await ProfileAsync(id, ct) is null) return null;
-        return await Published.Where(x => x.ProgramKey == id).Select(x => x.NativeId).SingleOrDefaultAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+        var scope = await Scope(search, location, category, null, null, ct);
+        var rows = scope.Rows;
+        if (!string.IsNullOrWhiteSpace(supplierKey))
+        {
+            if (!Guid.TryParse(supplierKey, out var key)) return new([], page, size, 0);
+            var native = await db.Suppliers.Where(x => x.AccountKey == Provider.AccountKey && x.SupplierKey == key).Select(x => x.NativeId).SingleOrDefaultAsync(ct);
+            rows = rows.Where(x => x.SupplierId == native);
+        }
+        var count = await rows.CountAsync(ct);
+        var selected = await Ordered(rows).Skip((page - 1) * size).Take(size).ToListAsync(ct);
+        var items = await Profiles(selected, scope.Geo, ct);
+        await tx.CommitAsync(ct);
+        return new(items, page, size, count) { IsPartial = scope.Partial };
     }
-    public async Task<Guid?> ResolveProgramKeyAsync(string nativeId, CancellationToken ct) =>
-        await Published.Where(x => x.NativeId == nativeId).Select(x => (Guid?)x.ProgramKey).SingleOrDefaultAsync(ct);
+    public async Task<EntertainmentSupplierPage> SuppliersAsync(int page, int size, string? location, string? category, CancellationToken ct)
+    {
+        var scope = await Scope(null, location, category, null, null, ct);
+        var query = db.Suppliers.AsNoTracking().Where(s => s.AccountKey == Provider.AccountKey && scope.Rows.Any(p => p.SupplierId == s.NativeId));
+        var count = await query.CountAsync(ct);
+        var suppliers = await query.OrderBy(x => x.SupplierKey).Skip((page - 1) * size).Take(size).ToListAsync(ct);
+        var ids = suppliers.Select(x => x.NativeId).ToArray();
+        var titles = await scope.Rows.Where(x => ids.Contains(x.SupplierId)).Select(x => new { x.SupplierId, x.SupplierTitle }).Distinct().ToListAsync(ct);
+        return new(suppliers.Select(x => new EntertainmentSupplierDto(x.SupplierKey.ToString("N"),
+            EntertainmentPresentation.Text(titles.Where(t => t.SupplierId == x.NativeId).OrderBy(t => t.SupplierTitle, StringComparer.Ordinal).First().SupplierTitle)!, [], null, null, null, new("", "", "", null))).ToArray(), page, size, count) { IsPartial = scope.Partial };
+    }
+    public async Task<EntertainmentSupplierDto?> SupplierAsync(Guid supplierKey, CancellationToken ct)
+    {
+        var scope = await Scope(null, null, null, null, null, ct);
+        var native = await db.Suppliers.Where(x => x.AccountKey == Provider.AccountKey && x.SupplierKey == supplierKey).Select(x => x.NativeId).SingleOrDefaultAsync(ct);
+        if (native == null) return null;
+        var title = await scope.Rows.Where(x => x.SupplierId == native).OrderBy(x => x.ProgramKey).Select(x => x.SupplierTitle).FirstOrDefaultAsync(ct);
+        return title == null ? null : new(supplierKey.ToString("N"), EntertainmentPresentation.Text(title)!, [], null, null, null, new("", "", "", null));
+    }
+    public async Task<EntertainmentCatalogFilters> FiltersAsync(CancellationToken ct)
+    {
+        var scope = await Scope(null, null, null, null, null, ct);
+        var locations = await scope.Rows.Where(x => x.LocationCode != null).Select(x => new { x.LocationCode, x.NativeCityName }).Distinct().ToListAsync(ct);
+        var categories = await scope.Rows.Where(x => x.CategoryCode != null).Select(x => new { x.CategoryCode, x.CategoryTitle }).Distinct().ToListAsync(ct);
+        return new(locations.DistinctBy(x => x.LocationCode).Select(x => new EntertainmentFilterOption(x.LocationCode!, scope.Geo.GetValueOrDefault(x.LocationCode!)?.Name ?? x.NativeCityName ?? "")).OrderBy(x => x.Title).ToArray(),
+            categories.DistinctBy(x => x.CategoryCode).Select(x => new EntertainmentFilterOption(x.CategoryCode!.Value.ToString(), EntertainmentPresentation.Text(x.CategoryTitle) ?? "تفریح و سرگرمی")).OrderBy(x => x.Title).ToArray());
+    }
+    public async Task<EntertainmentProgramIdentity?> ResolveAsync(Guid programKey, CancellationToken ct)
+    {
+        if (await ProfileAsync(programKey, ct) is null) return null;
+        return await db.Programs.AsNoTracking().Where(x => x.ProgramKey == programKey && x.AccountKey == Provider.AccountKey)
+            .Select(x => new EntertainmentProgramIdentity("touristpanel", x.NativeId, x.SupplierId)).SingleOrDefaultAsync(ct);
+    }
+    public async Task<string?> ResolveNativeAsync(string programKey, CancellationToken ct) =>
+        Guid.TryParse(programKey, out var id) ? (await ResolveAsync(id, ct))?.NativeId : null;
     public async Task<IReadOnlyList<EntertainmentLocationMappingDto>> MappingsAsync(CancellationToken ct)
     {
         var mappings = await db.LocationMappings.AsNoTracking().Where(x => x.AccountKey == Provider.AccountKey).ToDictionaryAsync(x => x.LocationCode, ct);

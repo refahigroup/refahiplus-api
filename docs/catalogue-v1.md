@@ -12,7 +12,7 @@ The Hotels worker scans active mapped reference cities once per minute, refreshe
 
 Defaults are OFF. Apply the additive migrations first. Set Hotels__Discovery__WorkerEnabled=true, verify successful coverage and counts for both enabled providers, then set Catalogue__Enabled=true on API and Web hosts. Discovery respects Hotels:Providers:*:SearchEnabled; PurchaseEnabled does not control listing. Roll back by disabling the flags; never drop historical listings, offers or reservations.
 
-Defaults: Catalogue source timeout 3s, total timeout 5s, source concurrency 4; configurable under Catalogue. Hotel discovery RefreshHours=24, MaxAgeDays=7, RetryMinutes=15, RequestTimeoutSeconds=30 under Hotels:Discovery. UI page size 20; API max 50; maximum prefix window 1000.
+Defaults: Catalogue source timeout 3s, total timeout 5s, source concurrency 16; admission 8 requests with no queue; configurable under Catalogue. Hotel discovery RefreshHours=24, MaxAgeDays=7, RetryMinutes=15, RequestTimeoutSeconds=30 under Hotels:Discovery. UI page size 20; API max 50; maximum prefix window 1000.
 
 GET /api/catalogue/items accepts q, cityId, sources, sort, page, pageSize plus the location parameters documented below. GET /api/catalogue/filters/cities supplies canonical city filters. GET /api/hotels/v2/{hotelKey}/profile supplies static details without availability. No provider HTTP is used in these request paths; image registration uses Media.
 
@@ -64,3 +64,20 @@ Live supplier coordinates, full refresh duration, representative production volu
 Final targeted verification: 21 backend Catalogue, 134 Hotels (including guarded PostgreSQL upgrade), 12 frontend Catalogue, 28 frontend Hotels, 5 Checkout, 25 Shell and 9 service-worker tests passed (234 total). Both full Release solutions build successfully. Browser QA uses fixture data; no live supplier or production-volume certification is implied.
 
 Local QA cleanup: fixture Web/Python processes were stopped. Docker stopped responding during removal of the disposable `codex-catalogue-location-test` container; its cleanup could not be confirmed. Once the local Docker daemon responds, remove only that named QA container with `docker rm -f codex-catalogue-location-test`. No application database was used for tests.
+
+## Entertainment source — 2026-11-01
+Entertainment is a registered local source alongside Hotels. It exposes static public profiles with canonical ProgramKey, real venue title, reference geography and freshness; intermediary labels, live prices, capacity and external documents are excluded. Customer detail links remain module-owned.
+
+Manual-test source selection: `Catalogue:EnabledSources` contains `entertainments` (TouristPanel) and `hotels`, enabling both results and location filters for final testing. Development and Local profiles already enable Catalogue and the Hotels discovery worker; the base production Catalogue flag remains off pending release verification. Remove the source setting to restore all registered sources; an empty array disables every source. Restart the API after changing it.
+
+Production readiness review (2026-11-02): see [the readiness report](catalogue-production-readiness-2026-11-02.md) for verified local activation, current release blockers and required staging checks.
+
+Catalogue request cancellation: when RequestAborted is cancelled, the Catalogue endpoint terminates with an empty 499 result instead of letting cancellation reach the generic 500 middleware. Internal total deadlines retain the existing unified 503 response, and individual source failures/timeouts retain partial/unavailable federation semantics. Cancellation of a previous live-search request remains intentional; it is never converted to a successful empty result. Verified by the Catalogue endpoint aborted-request regression and existing executor cancellation/timeout tests.
+
+Home geography dropdown search uses public /api/references/provinces and /api/references/cities with activeOnly=true and optional q (maximum 100 characters); city searches preserve provinceId. References handles normalized Persian/Arabic and case-insensitive English name matching while retaining existing active/province scoping. Missing q preserves the original response. Cancelled callers finish with empty 499 responses. Deploy References API before the new home search client.
+
+Unavailable-search diagnostics: SearchAsync preserves each failed source exception inside an AggregateException on CatalogueUnavailableException; no registered sources has a distinct inner diagnostic. The HTTP response remains generic and logs emit only exception type names. Local read-only probes returned 20 items in approximately 2.2–2.6 seconds; this is not a production benchmark. Local profile source/total deadlines are 6/7 seconds, within the current 8-second browser client timeout; other profile defaults remain 3/5 seconds. No sync state, provider flags or business records were changed. Catalogue tests verify retained causes, zero-source diagnostics and absence of private exception messages in HTTP responses.
+
+## Production hardening — 2026-11-02
+
+Catalogue now has a separate concurrency admission policy with unified 429/Retry-After responses; source capacity is checked at startup. Partialness stays in API contracts and operational evidence, and is intentionally not shown to customers on either search surface. Stage supplier keys are intentional; production keys are supplied on the server. See [the release runbook](catalogue-release-runbook.md) for Nginx socket-IP rate limiting, read-only coverage checks, security evidence, mandatory disposable PostgreSQL fixtures and CI/browser gates. The Stage load scenario is prepared but execution is deferred at the user's request. No route/render-mode changes or new migrations were introduced.

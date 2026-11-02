@@ -11,7 +11,7 @@ public interface ICommerceRepository
     Task<CommerceOrder?> GetOrderByOrderIdAsync(Guid orderId, CancellationToken ct = default);
     Task<CommerceOrder?> GetOrderByIdempotencyAsync(Guid userId, string key, CancellationToken ct = default);
     Task<CommerceOrder?> GetOrderByFulfillmentIdAsync(Guid fulfillmentId, CancellationToken ct = default);
-    Task<IReadOnlyList<CommerceOrder>> GetPendingFulfillmentAsync(int take, CancellationToken ct = default);
+    Task<IReadOnlyList<CommerceOrder>> GetPendingFulfillmentAsync(IReadOnlyCollection<string> providerKeys, int take, CancellationToken ct = default);
     Task<IReadOnlyList<CommerceOrder>> GetOperationsAsync(string? status, int skip, int take, CancellationToken ct = default);
     Task<IReadOnlyList<CommerceOrder>> GetOrdersForRecipientRedactionAsync(DateTimeOffset createdBefore, int take, CancellationToken ct = default);
     Task AddOrderAsync(CommerceOrder order, CancellationToken ct = default);

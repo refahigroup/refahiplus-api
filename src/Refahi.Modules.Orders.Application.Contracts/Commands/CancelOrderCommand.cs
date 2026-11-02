@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 
 namespace Refahi.Modules.Orders.Application.Contracts.Commands;
 
@@ -11,7 +11,8 @@ public sealed record CancelOrderCommand(
     string IdempotencyKey,
     Guid? VoucherRefundOverrideId = null,
     Guid? CallerUserId = null,
-    string CallerRole = ""
+    string CallerRole = "",
+    bool UnpaidOnly = false
 ) : IRequest<CancelOrderResponse>;
 
 public sealed record CancelOrderResponse(Guid OrderId, string Status, string PaymentAction);

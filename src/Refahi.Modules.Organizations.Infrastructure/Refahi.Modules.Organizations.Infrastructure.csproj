@@ -5,9 +5,9 @@
 <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
 <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
 <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" PrivateAssets="all" />
-<PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
+<PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
 <ProjectReference Include="../Refahi.Modules.Organizations.Domain/Refahi.Modules.Organizations.Domain.csproj" />
 <ProjectReference Include="../Refahi.Modules.Organizations.Application.Contracts/Refahi.Modules.Organizations.Application.Contracts.csproj" />
 <ProjectReference Include="../Refahi.Shared/Refahi.Shared.csproj" />
 </ItemGroup>
-</Project>
+<ItemGroup><PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" /></ItemGroup></Project>

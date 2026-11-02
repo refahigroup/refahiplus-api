@@ -1,3 +1,4 @@
+using Refahi.Modules.Entertainments.Application.Features.Customer;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -30,7 +31,7 @@ public sealed class RemoveCartItemEndpoint : IEndpoint
 
                 var result = await m.Send(new RemoveEntertainmentCartItemCommand(userId, itemId), ct);
 
-                return Results.Ok(ApiResponseHelper.Success(result));
+                return Results.Ok(ApiResponseHelper.Success(result.Public()));
             })
             .WithName("Entertainment.RemoveCartItem")
             .WithTags("Entertainment.Cart")

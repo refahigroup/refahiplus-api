@@ -10,6 +10,6 @@ public sealed class GetEntertainmentOperationHandler(IEntertainmentRepository re
         var purchase = await repository.GetOrderByFulfillmentIdAsync(request.FulfillmentId, ct);
         var value = purchase?.Fulfillments.SingleOrDefault(x => x.Id == request.FulfillmentId);
         return value is null ? null : new(purchase!.Id, value.Id, value.ProviderKey, value.Status.ToString(), value.FailureReason, purchase.UpdatedAt,
-            value.Attempts.Select(x => new EntertainmentOperationAttemptDto(x.Id, x.Operation, x.IdempotencyKey, x.PayloadHash, x.Outcome.ToString(), x.SanitizedError, x.StartedAt, x.CompletedAt)).ToArray());
+            value.Attempts.Select(x => new EntertainmentOperationAttemptDto(x.Id, x.Operation, x.IdempotencyKey, x.PayloadHash, x.Outcome.ToString(), x.SanitizedError, x.StartedAt, x.CompletedAt)).ToArray()) { DeliveryNeedsReview = value.DeliveryNeedsReview };
     }
 }

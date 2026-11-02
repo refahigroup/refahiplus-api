@@ -32,10 +32,7 @@ public sealed class DiscoveryPostgresTests
     public async Task Upgrade_sync_identity_search_freshness_and_provider_payload_ownership()
     {
         var connection = Environment.GetEnvironmentVariable("REFAHI_ENTERTAINMENTS_TEST_CONNECTION")!;
-        var parsed = new NpgsqlConnectionStringBuilder(connection);
-        Assert.Contains(parsed.Host, new[] { "localhost", "127.0.0.1" });
-        Assert.StartsWith("entertainments_test_", parsed.Database);
-        Assert.Equal(55442, parsed.Port);
+        await Refahi.Tests.DisposablePostgres.ValidateAndProbeAsync(connection, "entertainments_test", 55442);
         await using var db = new EntertainmentDbContext(new DbContextOptionsBuilder<EntertainmentDbContext>()
             .UseNpgsql(connection, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "entertainments")).Options);
         // This test owns only the explicitly named disposable database; never the application's DB.
@@ -49,7 +46,11 @@ public sealed class DiscoveryPostgresTests
         var old = TouristPanelProgram.Create(settings.AccountKey, native);
         old.List(supplier, "مجموعه", "ارکیده", 1, true, "tp-tehran", "تهران", 7, "تفریح", now);
         old.Publish("ارکیده", "شرح پیشین", null, "پیروزی", false, false, [], "ارکیده پیروزی", now, 15);
-        db.Programs.Add(old); await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO entertainments.touristpanel_programs
+            ("ProgramKey","AccountKey","NativeId","SupplierId","SupplierTitle","Title","Description","Address","LocationCode","NativeCityName","CategoryCode","CategoryTitle","ProgramType","RequiresManifest","RequiresIdentityNumber","Images","SearchText","IsListed","ListedAtUtc","ObservedAtUtc","NextDetailAttemptUtc")
+            VALUES ({old.ProgramKey},{old.AccountKey},{old.NativeId},{old.SupplierId},{old.SupplierTitle},{old.Title},{old.Description},{old.Address},{old.LocationCode},{old.NativeCityName},{old.CategoryCode},{old.CategoryTitle},{old.ProgramType},false,false,{old.Images},{old.SearchText},true,{now},{now},{now})
+            """);
         var key = old.ProgramKey;
         var legacySessionId = Guid.NewGuid();
         await db.Database.ExecuteSqlInterpolatedAsync($"""
@@ -75,16 +76,36 @@ public sealed class DiscoveryPostgresTests
         Assert.Equal($"entertainments:{key:N}", item.Id); Assert.Null(item.Price);
         Assert.Null(CatalogueOrdering.Prepare(item, new(Location: "nearby", Latitude: 35.7, Longitude: 51.4)).DistanceMeters);
         Assert.Single(await reader.CitiesAsync(default));
+        var publicSupplier = await db.Suppliers.SingleAsync();
+        Assert.NotEqual(Guid.Empty, publicSupplier.SupplierKey);
+        var programs = await reader.ProgramsAsync(null, publicSupplier.SupplierKey.ToString("N"), 1, 20, null, null, default);
+        Assert.Equal(key.ToString("N"), Assert.Single(programs.Items).ProgramKey);
+        Assert.Equal(publicSupplier.SupplierKey.ToString("N"), programs.Items[0].SupplierKey);
+        Assert.Equal("Undated", programs.Items[0].SchedulingMode);
+        Assert.Single((await reader.SuppliersAsync(1, 20, null, null, default)).Items);
+        Assert.NotNull(await reader.SupplierAsync(publicSupplier.SupplierKey, default));
+        Assert.Single((await reader.FiltersAsync(default)).Categories);
+
         Assert.Equal(native, await reader.ResolveNativeAsync(key.ToString(), default));
-        Assert.Equal(key, await reader.ResolveProgramKeyAsync(native, default));
+        Assert.Equal(native, (await reader.ResolveAsync(key, default))!.NativeId);
 
         // Completed provider snapshots are in provider-prefixed tables, outside common purchase rows.
+        var providerDeadline = DateTimeOffset.FromUnixTimeMilliseconds(now.AddMinutes(15).ToUnixTimeMilliseconds()).ToOffset(TimeSpan.FromMinutes(210));
+        var offsetSession = EntertainmentCheckoutSession.Create(Guid.NewGuid(), "touristpanel", "offset-session", "fingerprint", "request");
+        db.CheckoutSessions.Add(offsetSession); await db.SaveChangesAsync();
+        offsetSession.Reserved("external-cart", "protected-reservation", providerDeadline);
+        await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+        var storedSession = await db.CheckoutSessions.SingleAsync(x => x.Id == offsetSession.Id);
+        Assert.Equal(providerDeadline, storedSession.PayableUntil!.Value);
+        Assert.Equal(TimeSpan.Zero, storedSession.PayableUntil.Value.Offset);
         var purchase = EntertainmentPurchase.Create(Guid.NewGuid(), "test", "fingerprint", "name", "mobile",
             [new("touristpanel", supplier, key.ToString("N"), "offer", "option", "title", "offer", "entertainment", 1, 100, "{\"native\":true}")]);
-        purchase.AttachSession(Guid.NewGuid(), now.AddMinutes(15), "external-cart", "protected-provider-context", "selection");
+        purchase.AttachSession(offsetSession.Id, providerDeadline, "external-cart", "protected-provider-context", "selection");
         db.Orders.Add(purchase); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         var reloaded = await new EntertainmentRepository(db).GetOrderAsync(purchase.Id);
         Assert.Equal(purchase.Id, reloaded!.Id); Assert.Equal("protected-provider-context", reloaded.ReservationContextProtected);
+        Assert.Equal(providerDeadline, reloaded.PayableUntil!.Value);
+        Assert.Equal(TimeSpan.Zero, reloaded.PayableUntil.Value.Offset);
         Assert.True(System.Text.Json.JsonDocument.Parse(reloaded.Items.Single().ProviderPayloadJson).RootElement.GetProperty("native").GetBoolean());
         var issued = reloaded.Fulfillments.Single();
         var attempt = issued.BeginAttempt("fulfill", "postgres-stable-issue", "hash");

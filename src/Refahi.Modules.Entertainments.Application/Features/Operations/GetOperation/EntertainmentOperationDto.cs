@@ -8,4 +8,4 @@ public sealed record EntertainmentOperationDto(
     string? FailureReason, 
     DateTimeOffset UpdatedAt, 
     IReadOnlyList<EntertainmentOperationAttemptDto> Attempts
-);
+) { public bool DeliveryNeedsReview { get; init; } }

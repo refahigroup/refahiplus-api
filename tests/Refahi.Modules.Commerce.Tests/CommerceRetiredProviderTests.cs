@@ -18,7 +18,7 @@ public sealed class CommerceRetiredProviderTests
             order.QueueFulfillment(Guid.NewGuid()); db.Orders.Add(order);
         }
         await db.SaveChangesAsync();
-        var pending = await new CommerceRepository(db).GetPendingFulfillmentAsync(10);
+        var pending = await new CommerceRepository(db).GetPendingFulfillmentAsync(["aabsar"], 10);
         Assert.Equal("aabsar", Assert.Single(pending).Items.Single().ProviderKey);
     }
 }

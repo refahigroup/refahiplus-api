@@ -1,3 +1,4 @@
+﻿using Refahi.Modules.Entertainments.Application.Features.Customer;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -19,20 +20,20 @@ public sealed class EntertainmentSessionsEndpoint : IEndpoint
             if (!_Helpers.TryUser(c, out var user)) return _Helpers.Unauthorized();
             c.Response.Headers.CacheControl = "private, no-store";
             var value = await m.Send(new FindEntertainmentSessionQuery(user, key), ct);
-            return value == null ? Results.NotFound(ApiResponseHelper.Error("رزرو یافت نشد", statusCode: 404)) : Results.Ok(ApiResponseHelper.Success(value));
+            return value == null ? Results.NotFound(ApiResponseHelper.Error("رزرو یافت نشد", statusCode: 404)) : Results.Ok(ApiResponseHelper.Success(value.Public()));
         }).WithName("Entertainment.FindSession").WithTags("Entertainment.Checkout").RequireAuthorization("UserOrAdmin");
         routes.MapPost("/checkout/sessions", async (StartBody body, HttpContext c, IMediator m, CancellationToken ct) =>
         {
             if (!_Helpers.TryUser(c, out var user)) return _Helpers.Unauthorized();
             c.Response.Headers.CacheControl = "private, no-store";
-            try { return Results.Ok(ApiResponseHelper.Success(await m.Send(new StartEntertainmentSessionCommand(user, body.ProviderKey, body.IdempotencyKey, body.Passengers ?? [], body.CartVersion), ct))); }
+            try { return Results.Ok(ApiResponseHelper.Success((await m.Send(new StartEntertainmentSessionCommand(user, "", body.IdempotencyKey, body.Passengers ?? [], body.CartVersion, body.CartItemIds), ct)).Public())); }
             catch (EntertainmentDomainException ex) { return Conflict(ex); }
         }).WithName("Entertainment.StartSession").WithTags("Entertainment.Checkout").RequireAuthorization("UserOrAdmin");
         routes.MapGet("/checkout/sessions/{id:guid}", async (Guid id, HttpContext c, IMediator m, CancellationToken ct) =>
         {
             if (!_Helpers.TryUser(c, out var user)) return _Helpers.Unauthorized();
             c.Response.Headers.CacheControl = "private, no-store";
-            try { return Results.Ok(ApiResponseHelper.Success(await m.Send(new GetEntertainmentSessionQuery(user, id), ct))); }
+            try { return Results.Ok(ApiResponseHelper.Success((await m.Send(new GetEntertainmentSessionQuery(user, id), ct)).Public())); }
             catch (EntertainmentDomainException ex) { return Conflict(ex); }
         }).WithName("Entertainment.GetSession").WithTags("Entertainment.Checkout").RequireAuthorization("UserOrAdmin");
         routes.MapPost("/checkout/sessions/{id:guid}/confirm", async (Guid id, ConfirmBody body, HttpContext c, IMediator m, CancellationToken ct) =>
@@ -42,6 +43,13 @@ public sealed class EntertainmentSessionsEndpoint : IEndpoint
             try { return Results.Ok(ApiResponseHelper.Success(await m.Send(new ConfirmEntertainmentSessionCommand(user, id, body.Version), ct))); }
             catch (EntertainmentDomainException ex) { return Conflict(ex); }
         }).WithName("Entertainment.ConfirmSession").WithTags("Entertainment.Checkout").RequireAuthorization("UserOrAdmin");
+        routes.MapPost("/checkout/sessions/{id:guid}/return-to-cart", async (Guid id, HttpContext c, IMediator m, CancellationToken ct) =>
+        {
+            if (!_Helpers.TryUser(c, out var user)) return _Helpers.Unauthorized();
+            c.Response.Headers.CacheControl = "private, no-store";
+            try { return Results.Ok(ApiResponseHelper.Success((await m.Send(new ReturnEntertainmentSessionToCartCommand(user, id), ct)).Public())); }
+            catch (EntertainmentDomainException ex) { return Conflict(ex); }
+        }).WithName("Entertainment.ReturnSessionToCart").WithTags("Entertainment.Checkout").RequireAuthorization("UserOrAdmin");
         routes.MapDelete("/checkout/sessions/{id:guid}", async (Guid id, HttpContext c, IMediator m, CancellationToken ct) =>
         {
             if (!_Helpers.TryUser(c, out var user)) return _Helpers.Unauthorized();
@@ -50,6 +58,6 @@ public sealed class EntertainmentSessionsEndpoint : IEndpoint
         }).WithName("Entertainment.ReleaseSession").WithTags("Entertainment.Checkout").RequireAuthorization("UserOrAdmin");
     }
     private static IResult Conflict(EntertainmentDomainException ex) => Results.Conflict(ApiResponseHelper.Error(ex.Message, statusCode: 409));
-    public sealed record StartBody(string ProviderKey, string IdempotencyKey, IReadOnlyList<EntertainmentSessionPassengerInput>? Passengers, string? CartVersion);
+    public sealed record StartBody(IReadOnlyList<Guid> CartItemIds, string IdempotencyKey, IReadOnlyList<EntertainmentSessionPassengerInput>? Passengers, string? CartVersion);
     public sealed record ConfirmBody(string Version);
 }

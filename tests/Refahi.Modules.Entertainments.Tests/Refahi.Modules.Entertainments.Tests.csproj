@@ -6,6 +6,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Refahi.Modules.Entertainments.Api\Refahi.Modules.Entertainments.Api.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.10" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -19,4 +20,4 @@
     <ProjectReference Include="..\..\src\Refahi.Modules.Entertainments.Infrastructure\Refahi.Modules.Entertainments.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup><None Update="Fixtures/touristpanel-live-prices.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
-</Project>
+<ItemGroup><Compile Include="../Shared/DisposablePostgres.cs" Link="DisposablePostgres.cs" /></ItemGroup></Project>

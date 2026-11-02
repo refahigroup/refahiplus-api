@@ -24,6 +24,16 @@ public class CatalogueTests
  }
  [Fact]public async Task PartialSourceSuppressesTotal(){var page=await new CatalogueService(new Executor(new(){["a"]=new([Item("a",1)],1,true),["b"]=null})).SearchAsync(new(),default);Assert.True(page.IsPartial);Assert.Null(page.TotalCount);Assert.Single(page.Items);}
  [Fact]public async Task AllFailuresAreUnavailable(){await Assert.ThrowsAsync<CatalogueUnavailableException>(()=>new CatalogueService(new Executor(new(){["a"]=null})).SearchAsync(new(),default));}
+ [Fact]public async Task SourceFailureKeepsItsOriginalCauseForDiagnostics(){
+ var error=await Assert.ThrowsAsync<CatalogueUnavailableException>(()=>new CatalogueService(new Executor(new(){["a"]=null})).SearchAsync(new(),default));
+ var aggregate=Assert.IsType<AggregateException>(error.InnerException);
+ Assert.IsType<IOException>(Assert.Single(aggregate.InnerExceptions).InnerException);
+ }
+ [Fact]public async Task NoRegisteredSourcesHasAnExplicitDiagnostic(){
+ var error=await Assert.ThrowsAsync<CatalogueUnavailableException>(()=>new CatalogueService(new Executor(new())).SearchAsync(new(),default));
+ Assert.IsType<InvalidOperationException>(error.InnerException);
+ Assert.Contains("No enabled Catalogue sources",error.InnerException!.Message);
+ }
  [Fact]public async Task EmptyReadySourceIsSuccessful(){var p=await new CatalogueService(new Executor(new(){["a"]=new([],0,false)})).SearchAsync(new(),default);Assert.Empty(p.Items);Assert.Equal(0,p.TotalCount);}
  [Theory][InlineData(0,20)][InlineData(1,51)][InlineData(51,20)]public void InvalidWindowsAreRejected(int page,int size)=>Assert.False(new CatalogueQueryValidator().Validate(new CatalogueQuery(Page:page,PageSize:size)).IsValid);
  [Fact]public void PersianNormalizationAndSafeTargets(){Assert.Equal("کیش 12",CatalogueText.Normalize("  كيش‌۱۲ "));Assert.False(CatalogueIdentity.IsSafePath("//evil.test"));Assert.False(CatalogueIdentity.IsSafePath("/\\evil"));}

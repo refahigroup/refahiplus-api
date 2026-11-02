@@ -49,14 +49,14 @@ public class GetOrderByIdempotencyKeyQueryHandler
         var items = order
             .Items.Select(i => new OrderItemDto(
                 Id: i.Id,
-                Title: i.Title,
+                Title: order.SourceModule == "Entertainments" ? Refahi.Modules.Entertainments.Application.Contracts.Discovery.EntertainmentPresentation.Text(i.Title)! : i.Title,
                 UnitPriceMinor: i.UnitPriceMinor,
                 Quantity: i.Quantity,
                 FinalPriceMinor: i.FinalPriceMinor,
                 SourceItemId: i.SourceItemId,
                 CategoryCode: i.CategoryCode,
-                Tags: i.Tags,
-                MetadataJson: order.SourceModule == "Hotel" ? Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelPublicMetadata.WithoutExternalImages(i.MetadataJson) : i.MetadataJson,
+                Tags: order.SourceModule == "Entertainments" ? i.Tags?.Where(t => !t.StartsWith("provider:", StringComparison.OrdinalIgnoreCase)).ToArray() : i.Tags,
+                MetadataJson: order.SourceModule == "Hotel" ? Refahi.Modules.Hotels.Application.Contracts.Catalogue.HotelPublicMetadata.WithoutExternalImages(i.MetadataJson) : order.SourceModule == "Entertainments" ? Refahi.Modules.Entertainments.Application.Contracts.Discovery.EntertainmentPublicMetadata.Project(i.MetadataJson) : i.MetadataJson,
                 DeliveryMethod: (short)i.DeliveryMethod
             ))
             .ToList();

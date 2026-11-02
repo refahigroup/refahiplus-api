@@ -20,4 +20,4 @@
     <ProjectReference Include="..\Refahi.Modules.References.Application.Contracts\Refahi.Modules.References.Application.Contracts.csproj" />
     <ProjectReference Include="..\Refahi.Shared\Refahi.Shared.csproj" />
   </ItemGroup>
-</Project>
+<ItemGroup><InternalsVisibleTo Include="Refahi.Modules.Catalogue.Tests" /></ItemGroup></Project>

@@ -37,13 +37,14 @@ public sealed class CatalogueService(ICatalogueExecutor executor, ISender? sende
  if(!provinces.Any(x=>x.Id == query.ProvinceId && x.IsActive)) throw new ValidationException("استان معتبر نیست.");
  }
  var keys=Select(query.Sources);
+ if(keys.Length==0) throw new CatalogueUnavailableException(new InvalidOperationException("No enabled Catalogue sources are registered."));
  var results=await Task.WhenAll(keys.Select(async key => {
- try { return (key,result:await executor.ExecuteAsync(key,(source,token)=>source.SearchAsync(query,query.Page*query.PageSize,token),ct)); }
+ try { return (key,result:await executor.ExecuteAsync(key,(source,token)=>source.SearchAsync(query,query.Page*query.PageSize,token),ct),error:(Exception?)null); }
  catch(OperationCanceledException) when(ct.IsCancellationRequested) { throw; }
  catch(ValidationException) { throw; }
- catch { return (key,result:(CatalogueSourceResult?)null); }
+ catch(Exception error) { return (key,result:(CatalogueSourceResult?)null,error); }
  }));
- if(results.All(x=>x.result is null)) throw new CatalogueUnavailableException();
+ if(results.All(x=>x.result is null)) throw new CatalogueUnavailableException(new AggregateException(results.Select(x=>new InvalidOperationException($"Source {x.key} failed.",x.error))));
  var partial=results.Any(x=>x.result is null || x.result.IsPartial);
  var items=results.Where(x=>x.result!=null).SelectMany(x=>x.result!.Items.Where(i=>i.Source==x.key && CatalogueIdentity.IsSafePath(i.DetailPath))).DistinctBy(x=>x.Id)
  .Select(x=>CatalogueOrdering.Prepare(x,query)).OrderBy(x=>x,CatalogueOrdering.Comparer).ToArray();

@@ -1,3 +1,4 @@
+using Refahi.Modules.Entertainments.Application.Features.Customer;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -25,7 +26,7 @@ public sealed class GetCartEndpoint : IEndpoint
             ) =>
             {
                 return _Helpers.TryUser(c, out var userId)
-                    ? Results.Ok(ApiResponseHelper.Success(await m.Send(new GetEntertainmentCartQuery(userId), ct)))
+                    ? Results.Ok(ApiResponseHelper.Success((await m.Send(new GetEntertainmentCartQuery(userId), ct)).Public()))
                     : _Helpers.Unauthorized();
             })
             .WithName("Entertainment.GetCart")

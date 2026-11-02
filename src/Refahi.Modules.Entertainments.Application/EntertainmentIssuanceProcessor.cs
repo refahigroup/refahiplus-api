@@ -55,6 +55,13 @@ public sealed class EntertainmentIssuanceProcessor(IEntertainmentRepository repo
             try { await mediator.Send(new Features.Checkout.Sessions.ReleaseEntertainmentSessionCommand(session.UserId, session.Id), ct); }
             catch (Exception ex) { logger.LogWarning("Entertainment reservation cleanup pending. Session={Session}, ErrorType={ErrorType}", session.Id, ex.GetType().Name); }
         }
+        foreach (var session in await sessions.GetUncertainAsync(ct))
+        {
+            if (session.CreatedAt >= DateTimeOffset.UtcNow.AddMinutes(-2)) continue;
+            try { await mediator.Send(new Features.Checkout.Sessions.GetEntertainmentSessionQuery(session.UserId, session.Id), ct); }
+            catch (Exception ex) when (!ct.IsCancellationRequested)
+            { logger.LogWarning("Entertainment reservation recovery pending. Session={Session}, ErrorType={ErrorType}", session.Id, ex.GetType().Name); }
+        }
         var cutoff = DateTimeOffset.UtcNow.AddDays(-Math.Clamp(options.Value.RecipientRetentionDays, 1, 3650));
         foreach (var order in await repository.GetOrdersForRecipientRedactionAsync(cutoff, 100, ct)) order.RedactRecipient();
         foreach (var session in await sessions.GetForRedactionAsync(cutoff, ct)) session.RedactPrivateData();
@@ -118,6 +125,7 @@ public sealed class EntertainmentIssuanceProcessor(IEntertainmentRepository repo
                 if (result.Status != "Completed" || result.Tickets.Count != order.Items.Where(x => x.ProviderKey == fulfillment.ProviderKey).Sum(x => x.Quantity)
                     || result.Tickets.Any(x => string.IsNullOrWhiteSpace(x.Code)))
                     throw new EntertainmentProviderAmbiguousException("بلیط‌های برگشتی کامل نیست");
+                fulfillment.ReviewDelivery(result.Tickets.Any(x => !EntertainmentAdmission.Ready(x)));
                 fulfillment.SetDelivery(secrets.Protect(JsonSerializer.Serialize(result)), result.ProviderInvoiceId, result.ProviderPaymentId);
                 fulfillment.Complete(result.ProviderOrderCode, result.Tickets.Select(x => (secrets.Hash(fulfillment.ProviderKey + ":" + (x.ProviderTicketId ?? x.Code)), secrets.Protect(x.Code), x.IsChild)));
                 await repository.SaveChangesAsync(ct);

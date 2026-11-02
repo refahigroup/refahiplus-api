@@ -9,6 +9,6 @@ public sealed record EntertainmentCatalogPage(
     int TotalCount
 )
 {
-    public IReadOnlyList<string> UnavailableProviders { get; init; } = [];
+    public bool IsPartial { get; init; }
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
 }

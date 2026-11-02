@@ -22,12 +22,20 @@ public class GetCitiesEndpoint : IEndpoint
                     int? provinceId,
                     IMediator mediator,
                     CancellationToken ct,
-                    bool activeOnly = true
+                    bool activeOnly = true,
+                    string? q = null
                 ) =>
                 {
-                    var query = new GetCitiesQuery(provinceId, activeOnly);
-                    var result = await mediator.Send(query, ct);
-                    return Results.Ok(ApiResponseHelper.Success(result.Cities));
+                    var query = new GetCitiesQuery(provinceId, activeOnly, q);
+                    try
+                    {
+                        var result = await mediator.Send(query, ct);
+                        return Results.Ok(ApiResponseHelper.Success(result.Cities));
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        return Results.StatusCode(499);
+                    }
                 }
             )
             .WithName("References.GetCities")

@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Refahi.Modules.Entertainments.Application.Contracts.Providers;
 using Refahi.Modules.Entertainments.Application.Features.Checkout.Prepare;
@@ -7,7 +7,7 @@ namespace Refahi.Modules.Entertainments.Application.Features.Checkout.Sessions;
 
 public sealed record EntertainmentSessionPassengerInput(Guid CartItemId, IReadOnlyList<EntertainmentPassenger> Passengers);
 public sealed record StartEntertainmentSessionCommand(Guid UserId, string ProviderKey, string IdempotencyKey,
-    IReadOnlyList<EntertainmentSessionPassengerInput> Passengers, string? CartVersion = null) : IRequest<EntertainmentSessionDto>;
+    IReadOnlyList<EntertainmentSessionPassengerInput> Passengers, string? CartVersion = null, IReadOnlyList<Guid>? CartItemIds = null) : IRequest<EntertainmentSessionDto>;
 public sealed record GetEntertainmentSessionQuery(Guid UserId, Guid SessionId) : IRequest<EntertainmentSessionDto>;
 public sealed record FindEntertainmentSessionQuery(Guid UserId, string IdempotencyKey) : IRequest<EntertainmentSessionDto?>;
 public sealed record ConfirmEntertainmentSessionCommand(Guid UserId, Guid SessionId, string Version) : IRequest<PrepareEntertainmentCheckoutResponse>;
@@ -22,7 +22,9 @@ public sealed class StartEntertainmentSessionValidator : AbstractValidator<Start
     {
         RuleFor(x => x.CartVersion).MaximumLength(64).WithMessage("اطلاعات درخواست معتبر نیست");
         RuleFor(x => x.UserId).NotEmpty().WithMessage("اطلاعات درخواست معتبر نیست");
-        RuleFor(x => x.ProviderKey).NotEmpty().MaximumLength(80).WithMessage("اطلاعات درخواست معتبر نیست");
+        RuleFor(x => x.ProviderKey).MaximumLength(80).WithMessage("اطلاعات درخواست معتبر نیست");
+        RuleFor(x => x).Must(x => !string.IsNullOrWhiteSpace(x.ProviderKey) || x.CartItemIds is { Count: > 0 and <= 100 }).WithMessage("اقلام خرید را انتخاب کنید");
+        RuleFor(x => x.CartItemIds).Must(x => x == null || x.Count is > 0 and <= 100 && x.All(id => id != Guid.Empty) && x.Distinct().Count() == x.Count).WithMessage("اقلام خرید معتبر نیستند");
         RuleFor(x => x.IdempotencyKey).NotEmpty().MaximumLength(160).WithMessage("اطلاعات درخواست معتبر نیست");
         RuleFor(x => x.Passengers).NotNull().Must(x => x != null && x.Count <= 100 && x.Select(y => y.CartItemId).Distinct().Count() == x.Count)
             .WithMessage("اطلاعات درخواست معتبر نیست");
@@ -59,4 +61,14 @@ public sealed class ReleaseEntertainmentSessionValidator : AbstractValidator<Rel
 public sealed class FindEntertainmentSessionValidator : AbstractValidator<FindEntertainmentSessionQuery>
 {
     public FindEntertainmentSessionValidator() { RuleFor(x => x.IdempotencyKey).NotEmpty().MaximumLength(160).WithMessage("اطلاعات درخواست معتبر نیست"); }
+}
+
+public sealed record ReturnEntertainmentSessionToCartCommand(Guid UserId, Guid SessionId) : IRequest<EntertainmentSessionDto>;
+public sealed class ReturnEntertainmentSessionToCartValidator : AbstractValidator<ReturnEntertainmentSessionToCartCommand>
+{
+    public ReturnEntertainmentSessionToCartValidator()
+    {
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("کاربر معتبر نیست");
+        RuleFor(x => x.SessionId).NotEmpty().WithMessage("شناسه رزرو معتبر نیست");
+    }
 }

@@ -19,12 +19,15 @@ public interface IEntertainmentFulfillmentStatusProvider
 {
     Task<EntertainmentFulfillmentResult> GetStatusAsync(string operationId, string? invoiceId, CancellationToken ct);
 }
+public interface IEntertainmentReservationRecoveryProvider
+{
+    Task<bool> TryReleaseUnpaidReservationAsync(string operationId, CancellationToken ct);
+}
 public sealed record EntertainmentPurchaseRequirements(bool RequiresManifest, bool RequiresIdentityNumber);
 public interface IEntertainmentOfferProvider
 {
     Task<EntertainmentPurchaseRequirements> GetRequirementsAsync(string programKey, CancellationToken ct);
     Task<IReadOnlyList<EntertainmentOfferDto>> GetOffersAsync(string programKey, DateOnly? start, DateOnly? end, CancellationToken ct);
-    Task<EntertainmentCatalogFilters> GetFiltersAsync(CancellationToken ct);
 }
 public sealed record EntertainmentFilterOption(string Key, string Title);
 public sealed record EntertainmentCatalogFilters(IReadOnlyList<EntertainmentFilterOption> Locations, IReadOnlyList<EntertainmentFilterOption> Categories);

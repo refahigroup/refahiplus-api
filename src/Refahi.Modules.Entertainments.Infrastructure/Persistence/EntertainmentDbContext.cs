@@ -16,12 +16,17 @@ public sealed class EntertainmentDbContext(DbContextOptions<EntertainmentDbConte
     public DbSet<EntertainmentCheckoutSession> CheckoutSessions => Set<EntertainmentCheckoutSession>();
     public DbSet<EntertainmentProviderReceipt> ProviderReceipts => Set<EntertainmentProviderReceipt>();
 
+    public DbSet<TouristPanelSupplier> Suppliers => Set<TouristPanelSupplier>();
     public DbSet<TouristPanelProgram> Programs => Set<TouristPanelProgram>();
     public DbSet<TouristPanelSyncState> SyncStates => Set<TouristPanelSyncState>();
     public DbSet<TouristPanelLocationMapping> LocationMappings => Set<TouristPanelLocationMapping>();
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.HasDefaultSchema(Schema);
+        b.Entity<TouristPanelSupplier>(x => {
+            x.ToTable("touristpanel_suppliers"); x.HasKey(v => v.SupplierKey);
+            x.HasIndex(v => new { v.AccountKey, v.NativeId }).IsUnique();
+        });
         b.Entity<TouristPanelProgram>(x => {
             x.ToTable("touristpanel_programs"); x.HasKey(v => v.ProgramKey);
             x.HasIndex(v => new { v.AccountKey, v.NativeId }).IsUnique();

@@ -33,6 +33,10 @@ public sealed class ResolveEntertainmentOperationCommandHandler(IEntertainmentRe
                 if (string.IsNullOrWhiteSpace(request.ProviderOrderCode) || request.Tickets is null || request.Tickets.Count != order.Items.Where(x => x.ProviderKey == fulfillment.ProviderKey).Sum(x => x.Quantity)
                     || request.Tickets.Any(x => string.IsNullOrWhiteSpace(x.Code)) || request.Tickets.Select(x => x.Code).Distinct().Count() != request.Tickets.Count)
                     throw new EntertainmentDomainException("کد سفارش و بلیط‌ها الزامی است", "RESOLUTION_DATA_REQUIRED");
+                var delivery = new Refahi.Modules.Entertainments.Application.Contracts.Providers.EntertainmentFulfillmentResult(request.ProviderOrderCode,
+                    request.Tickets.Select(t => new Refahi.Modules.Entertainments.Application.Contracts.Providers.EntertainmentIssuedTicket(t.Code, t.IsChild) { AdmissionCode = t.Code }).ToArray());
+                fulfillment.SetDelivery(secrets.Protect(System.Text.Json.JsonSerializer.Serialize(delivery)), fulfillment.ProviderInvoiceId, fulfillment.ProviderPaymentId);
+                fulfillment.ReviewDelivery(delivery.Tickets.Any(t => !Refahi.Modules.Entertainments.Application.Contracts.Providers.EntertainmentAdmission.Ready(t)));
                 fulfillment.Complete(request.ProviderOrderCode, request.Tickets.Select(x => (secrets.Hash(fulfillment.ProviderKey + ":" + x.Code), secrets.Protect(x.Code), x.IsChild))); attempt.Complete();
                 if (order.Fulfillments.All(x => x.Status == ProviderFulfillmentStatus.Completed)) order.Complete();
                 else order.ResumeFulfillment(); break;

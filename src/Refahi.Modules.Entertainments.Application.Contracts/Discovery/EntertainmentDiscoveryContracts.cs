@@ -20,9 +20,23 @@ public interface IEntertainmentDiscovery
 {
     Task<EntertainmentDiscoveryPage> SearchAsync(EntertainmentDiscoverySearch query, int take, CancellationToken ct);
     Task<IReadOnlyList<EntertainmentDiscoveryCity>> CitiesAsync(CancellationToken ct);
+}
+public interface IEntertainmentContentReader
+{
     Task<EntertainmentProgramDto?> ProfileAsync(Guid programKey, CancellationToken ct);
+    Task<EntertainmentCatalogPage> ProgramsAsync(string? search, string? supplierKey, int page, int size, string? location, string? category, CancellationToken ct);
+    Task<EntertainmentSupplierPage> SuppliersAsync(int page, int size, string? location, string? category, CancellationToken ct);
+    Task<EntertainmentSupplierDto?> SupplierAsync(Guid supplierKey, CancellationToken ct);
+    Task<EntertainmentCatalogFilters> FiltersAsync(CancellationToken ct);
+}
+public sealed record EntertainmentProgramIdentity(string ProviderKey, string NativeId, string SupplierId);
+public interface IEntertainmentProgramIdentity
+{
+    Task<EntertainmentProgramIdentity?> ResolveAsync(Guid programKey, CancellationToken ct);
     Task<string?> ResolveNativeAsync(string programKey, CancellationToken ct);
-    Task<Guid?> ResolveProgramKeyAsync(string nativeId, CancellationToken ct);
+}
+public interface IEntertainmentLocationMappings
+{
     Task<IReadOnlyList<EntertainmentLocationMappingDto>> MappingsAsync(CancellationToken ct);
     Task SetMappingAsync(string code, int cityId, Guid actor, CancellationToken ct);
 }

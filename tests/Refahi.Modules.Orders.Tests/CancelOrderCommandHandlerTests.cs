@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Features.CancelOrder;
 using Refahi.Modules.Orders.Application.Services;
@@ -13,6 +13,19 @@ namespace Refahi.Modules.Orders.Tests;
 
 public sealed class CancelOrderCommandHandlerTests
 {
+    [Fact]
+    public async Task Returning_to_cart_never_refunds_a_paid_order()
+    {
+        var order = CreatePaidOrder();
+        var repository = new FakeOrderRepository(order);
+        var mediator = new RefundMediator(CommandStatus.Completed);
+        var handler = CreateHandler(repository, mediator);
+        await Assert.ThrowsAsync<Refahi.Modules.Orders.Domain.Exceptions.OrderStateConflictException>(() => handler.Handle(
+            new CancelOrderCommand(order.Id, "ویرایش سبد", "return", CallerUserId: order.UserId, CallerRole: "User", UnpaidOnly: true), default));
+        Assert.Equal(0, mediator.WalletRefundSendCount);
+        Assert.Equal(PaymentState.Paid, order.PaymentState);
+        Assert.Equal(0, repository.UpdateCount);
+    }
     [Fact]
     public async Task User_cannot_cancel_another_users_order()
     {

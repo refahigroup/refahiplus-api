@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Entertainments.Application.Contracts;
 using Refahi.Modules.Entertainments.Application.Contracts.Providers;
@@ -20,6 +20,110 @@ namespace Refahi.Modules.Entertainments.Tests;
 
 public sealed class CheckoutLifecycleTests
 {
+    [Fact]
+    public async Task Return_from_checkout_restores_editable_cart_once_and_old_confirmation_is_rejected()
+    {
+        using var f = await Fixture.Create();
+        var session = await f.Service.Handle(await f.Request(), default);
+        await f.Service.Handle(new ConfirmEntertainmentSessionCommand(f.User, session.Id, session.Version), default);
+        Assert.Empty((await f.Repository.GetCartAsync(f.User))!.Items);
+        f.Central.OnCancel = () => f.Db.ChangeTracker.Clear();
+        var returned = await f.Service.Handle(new ReturnEntertainmentSessionToCartCommand(f.User, session.Id), default);
+        Assert.Equal("Released", returned.Status);
+        var cart = (await f.Repository.GetCartAsync(f.User))!;
+        var item = Assert.Single(cart.Items);
+        Assert.Equal(2, item.Quantity);
+        cart.UpdateQuantity(item.Id, 3);
+        await f.Repository.SaveChangesAsync();
+        await f.Service.Handle(new ReturnEntertainmentSessionToCartCommand(f.User, session.Id), default);
+        Assert.Equal(3, Assert.Single((await f.Repository.GetCartAsync(f.User))!.Items).Quantity);
+        Assert.Equal(1, f.Central.Cancellations);
+        await Assert.ThrowsAsync<EntertainmentDomainException>(() => f.Service.Handle(new ConfirmEntertainmentSessionCommand(f.User, session.Id, session.Version), default));
+    }
+    [Fact]
+    public async Task Return_refuses_paid_or_foreign_purchases_without_restoring_items()
+    {
+        using var f = await Fixture.Create();
+        var session = await f.Service.Handle(await f.Request(), default);
+        await f.Service.Handle(new ConfirmEntertainmentSessionCommand(f.User, session.Id, session.Version), default);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.Handle(new ReturnEntertainmentSessionToCartCommand(Guid.NewGuid(), session.Id), default));
+        f.Central.Paid = true;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.Handle(new ReturnEntertainmentSessionToCartCommand(f.User, session.Id), default));
+        Assert.Empty((await f.Repository.GetCartAsync(f.User))!.Items);
+        Assert.Equal(EntertainmentSessionStatus.Confirmed, (await f.Db.CheckoutSessions.SingleAsync()).Status);
+    }
+    [Theory][InlineData(true)][InlineData(false)]
+    public async Task Uncertain_session_recovers_only_after_provider_confirms_release(bool confirmed)
+    {
+        using var f = await Fixture.Create();
+        f.Provider.UnknownReservation = true;
+        f.Provider.RecoveryConfirmed = confirmed;
+        var request = await f.Request();
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Service.Handle(request, default));
+        var stored = await f.Db.CheckoutSessions.SingleAsync();
+        await f.Service.Handle(new GetEntertainmentSessionQuery(f.User, stored.Id), default);
+        Assert.Equal(0, f.Provider.RecoveryCalls);
+        stored = await f.Db.CheckoutSessions.SingleAsync();
+        f.Db.Entry(stored).Property(x => x.CreatedAt).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-3);
+        await f.Db.SaveChangesAsync();
+        var result = await f.Service.Handle(new GetEntertainmentSessionQuery(f.User, stored.Id), default);
+        Assert.Equal(confirmed ? "Released" : "Unknown", result.Status);
+        Assert.Equal(1, f.Provider.RecoveryCalls);
+        Assert.Equal(1, f.Provider.Reservations);
+        var persisted = await f.Db.CheckoutSessions.SingleAsync();
+        Assert.Equal(confirmed ? "released" : null, persisted.ResolutionOutcome);
+        if (confirmed) Assert.NotNull(persisted.ResolutionEvidenceProtected);
+    }
+    [Fact]
+    public async Task Provider_offset_deadline_is_persisted_and_sent_to_orders_as_utc()
+    {
+        using var f = await Fixture.Create();
+        f.Provider.Deadline = DateTimeOffset.UtcNow.AddMinutes(15).ToOffset(TimeSpan.FromMinutes(210));
+        var session = await f.Service.Handle(await f.Request(), default);
+        Assert.Equal(TimeSpan.Zero, session.PayableUntil!.Value.Offset);
+        Assert.Equal(f.Provider.Deadline, session.PayableUntil.Value);
+        var confirmed = await f.Service.Handle(new ConfirmEntertainmentSessionCommand(f.User, session.Id, session.Version), default);
+        var purchase = await f.Repository.GetOrderAsync(confirmed.EntertainmentPurchaseId);
+        Assert.Equal(TimeSpan.Zero, purchase!.PayableUntil!.Value.Offset);
+        var order = Assert.Single(f.Central.Created.Values);
+        Assert.Equal(TimeSpan.Zero, order.PayableUntil!.Value.Offset);
+        Assert.Equal(f.Provider.Deadline, order.PayableUntil.Value);
+    }
+
+    [Fact]
+    public async Task Failed_save_after_provider_reservation_does_not_release_or_repeat_it()
+    {
+        using var f = await Fixture.Create();
+        var request = await f.Request();
+        var failure = new DbUpdateException("simulated persistence failure");
+        var failed = false;
+        f.Db.SavingChanges += (_, _) =>
+        {
+            if (!failed && f.Db.ChangeTracker.Entries<EntertainmentCheckoutSession>().Any(x => x.Entity.Status == EntertainmentSessionStatus.Reserved))
+            { failed = true; throw failure; }
+        };
+        Assert.Same(failure, await Assert.ThrowsAsync<DbUpdateException>(() => f.Service.Handle(request, default)));
+        f.Db.ChangeTracker.Clear();
+        var replay = await f.Service.Handle(request, default);
+        Assert.Equal("Reserving", replay.Status);
+        Assert.Equal(1, f.Provider.Reservations);
+        Assert.Empty(f.Central.Created);
+    }
+
+    [Fact]
+    public async Task Public_selection_recovers_after_cart_cleanup_and_rejects_foreign_items()
+    {
+        using var f = await Fixture.Create();
+        var original = await f.Request();
+        var cart = await f.Repository.GetCartAsync(f.User);
+        var ids = cart!.Items.Select(x => x.Id).ToArray();
+        var request = original with { ProviderKey = "", CartItemIds = ids };
+        var session = await f.Service.Handle(request, default);
+        await f.Service.Handle(new ConfirmEntertainmentSessionCommand(f.User, session.Id, session.Version), default);
+        Assert.Equal(session.Id, (await f.Service.Handle(request, default)).Id);
+        Assert.Equal(1, f.Provider.Reservations);
+        await Assert.ThrowsAsync<EntertainmentDomainException>(() => f.Service.Handle(request with { IdempotencyKey = "other", CartItemIds = [Guid.NewGuid()] }, default));
+    }
     [Fact]
     public async Task Reservation_review_changed_price_then_repeated_confirm_creates_one_central_order()
     {
@@ -207,8 +311,13 @@ public sealed class CheckoutLifecycleTests
         public Task<IAsyncDisposable> AcquireAsync(Guid id, CancellationToken ct) => Task.FromResult<IAsyncDisposable>(new Handle());
         private sealed class Handle : IAsyncDisposable { public ValueTask DisposeAsync() => ValueTask.CompletedTask; }
     }
-    private sealed class Provider : IEntertainmentProvider, IEntertainmentReservationProvider, IEntertainmentFulfillmentStatusProvider
+    private sealed class Provider : IEntertainmentProvider, IEntertainmentReservationProvider, IEntertainmentFulfillmentStatusProvider, IEntertainmentReservationRecoveryProvider
     {
+        public bool RecoveryConfirmed;
+        public int RecoveryCalls;
+        public Task<bool> TryReleaseUnpaidReservationAsync(string operationId, CancellationToken ct)
+        { RecoveryCalls++; return Task.FromResult(RecoveryConfirmed); }
+        public DateTimeOffset Deadline = DateTimeOffset.UtcNow.AddMinutes(15);
         public int Reservations; public bool UnknownReservation; public bool UnknownIssuance; public int FulfillCalls; public int StatusCalls; private int _ticketCount;
         public string Key => "touristpanel"; public string Name => "توریست‌پنل";
         public EntertainmentProviderCapabilities Capabilities => new(false, false);
@@ -216,7 +325,7 @@ public sealed class CheckoutLifecycleTests
         {
             Reservations++;
             if (UnknownReservation) throw new EntertainmentProviderAmbiguousException("unknown");
-            return Task.FromResult(new EntertainmentReservationResult("external", DateTimeOffset.UtcNow.AddMinutes(15),
+            return Task.FromResult(new EntertainmentReservationResult("external", Deadline,
                 request.Lines.Select(x => new EntertainmentReservedLine(x.CartItemId,
                     new(Key,"supplier",x.ProgramKey,x.OfferKey,x.PurchaseOptionKey,"مجموعه","خدمت",null,"سانس","بلیت","entertainment.waterpark",x.Quantity,110,110,10,"{}"),x.Passengers)).ToArray(),"context"));
         }
@@ -240,7 +349,7 @@ public sealed class CheckoutLifecycleTests
     private sealed class CentralOrders : IMediator
     {
         public readonly Dictionary<string, CreateOrderCommand> Created = new();
-        public readonly Guid OrderId = Guid.NewGuid(); public bool DropFirstCreateResponse; public bool Paid; public int Cancellations;
+        public readonly Guid OrderId = Guid.NewGuid(); public bool DropFirstCreateResponse; public bool Paid; public int Cancellations; public Action? OnCancel;
         public Task<T> Send<T>(IRequest<T> request, CancellationToken ct = default)
         {
             object result;
@@ -258,7 +367,7 @@ public sealed class CheckoutLifecycleTests
                     original.SourceReferenceId,original.ReferenceType!,null,null,null,0,
                     original.Items.Select(x => new OrderItemDto(Guid.NewGuid(), x.Title, x.UnitPriceMinor, x.Quantity, x.UnitPriceMinor*x.Quantity, x.SourceItemId, x.CategoryCode, x.Tags, x.MetadataJson, 0)).ToList(),DateTimeOffset.UtcNow);
             }
-            else if (request is CancelOrderCommand cancel) { Cancellations++; result = new CancelOrderResponse(cancel.OrderId, "Cancelled", "Refunded"); }
+            else if (request is CancelOrderCommand cancel) { if (cancel.UnpaidOnly && Paid) throw new InvalidOperationException("paid"); OnCancel?.Invoke(); Cancellations++; result = new CancelOrderResponse(cancel.OrderId, "Cancelled", "Refunded"); }
             else throw new InvalidOperationException("Unexpected module call: " + request.GetType().Name);
             return Task.FromResult((T)result);
         }

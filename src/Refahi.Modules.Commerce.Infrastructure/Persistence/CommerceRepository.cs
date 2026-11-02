@@ -38,10 +38,10 @@ public sealed class CommerceRepository(CommerceDbContext db) : ICommerceReposito
     public Task<CommerceOrder?> GetOrderByFulfillmentIdAsync(Guid fulfillmentId, CancellationToken ct = default) =>
         Query().SingleOrDefaultAsync(x => x.Fulfillments.Any(f => f.Id == fulfillmentId), ct);
 
-    public async Task<IReadOnlyList<CommerceOrder>> GetPendingFulfillmentAsync(int take, CancellationToken ct = default)
+    public async Task<IReadOnlyList<CommerceOrder>> GetPendingFulfillmentAsync(IReadOnlyCollection<string> providerKeys, int take, CancellationToken ct = default)
     {
-        // Retired TouristPanel test purchases must not occupy Aabsar's issuance batch.
-        return await Query().Where(x => x.Items.All(i => i.ProviderKey != "touristpanel")).Where(x => x.Status == CommerceOrderStatus.FulfillmentPending || x.Status == CommerceOrderStatus.Fulfilling || x.Status == CommerceOrderStatus.CompensationPending
+        // Filter retired providers before limiting the batch.
+        return await Query().Where(x => x.Items.Any() && x.Items.All(i => providerKeys.Contains(i.ProviderKey))).Where(x => x.Status == CommerceOrderStatus.FulfillmentPending || x.Status == CommerceOrderStatus.Fulfilling || x.Status == CommerceOrderStatus.CompensationPending
                             || x.Status == CommerceOrderStatus.ReconciliationPending && x.Fulfillments.Any(f => f.NextCheckAt <= DateTimeOffset.UtcNow))
                             .OrderBy(x => x.CreatedAt)
                             .Take(take)

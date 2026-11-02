@@ -40,6 +40,7 @@ public sealed class TouristPanelPurchaseTests
         public bool TimeoutPatch;
         public int? PatchStatus;
         public int PatchCount;
+        public bool DeleteResult;
         public Fixture(int type = 1, TouristPanelOptions? settings = null)
         {
             Settings = settings ?? new() { Enabled = true, SalesEnabled = true, Tenant = Supplier, SettlementConfirmed = true, BuyPriceConfirmed = true,
@@ -73,7 +74,7 @@ public sealed class TouristPanelPurchaseTests
                     payload = Purchase;
                 }
                 else if (r.Path.EndsWith("purchase-result")) payload = Purchase;
-                else if (r.Method == "DELETE") payload = false;
+                else if (r.Method == "DELETE") payload = DeleteResult;
                 else if (r.Path.EndsWith("program/detail")) payload = program;
                 else if (r.Path.EndsWith("ticket-types")) payload = new[] { TicketType };
                 else if (r.Path.EndsWith("/events")) payload = new[] { new TpEventSansDto { Events = [new() { EventId = Event, ExcuteTime = DateTimeOffset.UtcNow.AddDays(2).ToString("O"), TicketTypes = EmbeddedTicketTypes }] } };
@@ -81,7 +82,7 @@ public sealed class TouristPanelPurchaseTests
                 return Json(JsonSerializer.Serialize(payload));
             });
             var client = Client(Transport, Settings);
-            Provider = new(client, new(Db, client, Options.Create(Settings), Options.Create(new Refahi.Modules.Entertainments.Application.Contracts.Discovery.EntertainmentsOptions()), new FakeMedia(), Microsoft.Extensions.Logging.Abstractions.NullLogger<TouristPanelCatalog>.Instance), new(new MemoryCache(new MemoryCacheOptions()), client, Options.Create(Settings)),
+            Provider = new(client, new(new MemoryCache(new MemoryCacheOptions()), client, Options.Create(Settings)),
                 Options.Create(Settings), new EntertainmentPricingService(), Db, new Protector(), new FakeDiscovery(Program));
         }
         private TpTempShoppingCartTicketDto Temp(string name) => new() { TicketId = Guid.NewGuid().ToString(), BuyPrice = 105, TicketPrice = 150, ManifestUniqueName = name, ManifestUniqueNumber = name + "-id" };
@@ -106,6 +107,36 @@ public sealed class TouristPanelPurchaseTests
         TimeZoneId = "Asia/Tehran", DeliveryHosts = ["tickets.example.test"]
     };
 
+    [Theory][InlineData(true)][InlineData(false)]
+    public async Task Recovery_requires_confirmed_release_and_replays_without_another_delete(bool confirmed)
+    {
+        using var f = new Fixture { DeleteResult = confirmed };
+        var request = f.Request();
+        await f.Provider.ReserveAsync(request, default);
+        f.Cart = f.Cart with { PurchaseStatus = TpPurchaseStatus.PaymentWaiting };
+        Assert.Equal(confirmed, await f.Provider.TryReleaseUnpaidReservationAsync(request.OperationId, default));
+        if (confirmed)
+        {
+            Assert.True(await f.Provider.TryReleaseUnpaidReservationAsync(request.OperationId, default));
+            Assert.Single(f.Transport.Requests, x => x.Method == "DELETE");
+        }
+        Assert.Equal(0, f.PatchCount);
+    }
+
+    [Fact]
+    public async Task Recovery_never_mutates_a_paid_cart_or_an_unknown_cart_identity()
+    {
+        using var f = new Fixture { DeleteResult = true };
+        Assert.False(await f.Provider.TryReleaseUnpaidReservationAsync("missing", default));
+        Assert.Empty(f.Transport.Requests);
+        var request = f.Request();
+        await f.Provider.ReserveAsync(request, default);
+        f.Cart = f.Cart with { PurchaseStatus = TpPurchaseStatus.Payed, PaymentId = Guid.NewGuid().ToString() };
+        Assert.False(await f.Provider.TryReleaseUnpaidReservationAsync(request.OperationId, default));
+        Assert.DoesNotContain(f.Transport.Requests, x => x.Method == "DELETE");
+        Assert.Equal(0, f.PatchCount);
+    }
+
     [Theory][InlineData(1)][InlineData(2)]
     public async Task Provider_retail_mode_charges_ticket_price_without_refahi_adjustments_and_preserves_native_cost(int type)
     {
@@ -129,6 +160,74 @@ public sealed class TouristPanelPurchaseTests
         using var f = new Fixture(settings: RetailSettings());
         f.Cart = f.Cart with { Groups = [f.Cart.Groups![0] with { TotalTicketPrice = 302,
             Tickets = f.Cart.Groups[0].Tickets!.Select(t => t with { TicketPrice = 151 }).ToList() }], TotalAmount = 302 };
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.ReserveAsync(f.Request(), default));
+        Assert.Equal(0, f.PatchCount);
+    }
+
+    [Theory][InlineData(1)][InlineData(2)]
+    public async Task Retail_reservation_pins_lower_confirmed_cost_and_keeps_customer_price(int type)
+    {
+        using var f = new Fixture(type, RetailSettings());
+        f.TicketType = f.TicketType with { TicketPrices = [f.TicketType.TicketPrices![0] with
+            { TicketPrice = 19_400_000, BuyPrice = 19_070_000, CommissionPrice = 330_000 }] };
+        var group = f.Cart.Groups![0];
+        f.Cart = f.Cart with { TotalAmount = 0, Groups = [group with { TicketsCount = 1,
+            TotalTicketPrice = 19_400_000, TotalBuyPrice = 16_100_000, TotalCommissionPrice = 3_300_000,
+            Tickets = [group.Tickets![0] with { TicketPrice = 19_400_000, BuyPrice = 16_100_000, CommissionPrice = 3_300_000 }] }] };
+        var request = f.Request(type);
+        request = request with { Lines = [request.Lines[0] with { Quantity = 1, ExpectedUnitPriceMinor = 19_400_000,
+            Passengers = [request.Lines[0].Passengers[0]] }] };
+        var reservation = await f.Provider.ReserveAsync(request, default);
+        var quote = Assert.Single(reservation.Lines).Quote;
+        Assert.Equal(19_400_000, quote.UnitPriceMinor);
+        Assert.Equal(16_100_000, quote.ProviderCostMinor);
+        Assert.Equal(3_300_000, quote.ProviderRetailAdjustmentMinor);
+        using var payload = JsonDocument.Parse(quote.ProviderPayloadJson);
+        Assert.Equal(19_070_000, payload.RootElement.GetProperty("quotedProviderCostMinor").GetInt64());
+        Assert.Equal(16_100_000, payload.RootElement.GetProperty("providerCostMinor").GetInt64());
+        Assert.Equal(3_300_000, payload.RootElement.GetProperty("providerRetailAdjustmentMinor").GetInt64());
+        var invoice = f.Purchase.TicketsInvoice!;
+        f.Purchase = f.Purchase with { TicketsInvoice = invoice with { TotalSupplierBuyAmount = 16_100_000,
+            TicketGroups = [invoice.TicketGroups![0] with { Tickets = [invoice.TicketGroups[0].Tickets![0] with { SupplierBuyAmount = 16_100_000 }] }] } };
+        var fulfill = new Refahi.Modules.Entertainments.Application.Contracts.Providers.Requests.EntertainmentFulfillmentRequest("pinned-reservation-cost", "خریدار", "09120000000", [])
+            { ReservationContext = reservation.ProtectedContext, ReservationReference = reservation.Reference };
+        // Even a further reduction after reservation requires review before any purchase.
+        var reservedCart = f.Cart;
+        f.Cart = reservedCart with { Groups = [reservedCart.Groups![0] with { TotalBuyPrice = 16_000_000,
+            Tickets = [reservedCart.Groups[0].Tickets![0] with { BuyPrice = 16_000_000 }] }] };
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.FulfillAsync(fulfill, default));
+        Assert.Equal(0, f.PatchCount);
+        f.Cart = reservedCart;
+        Assert.Equal("Completed", (await f.Provider.FulfillAsync(fulfill, default)).Status);
+        Assert.Equal(1, f.PatchCount);
+    }
+
+    [Theory][InlineData(0)][InlineData(-1)][InlineData(1.5)][InlineData(106)]
+    public async Task Retail_reservation_rejects_invalid_or_increased_supplier_cost(decimal cost)
+    {
+        using var f = new Fixture(settings: RetailSettings());
+        var group = f.Cart.Groups![0];
+        f.Cart = f.Cart with { Groups = [group with { TotalBuyPrice = cost * 2,
+            Tickets = group.Tickets!.Select(t => t with { BuyPrice = cost }).ToList() }] };
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.ReserveAsync(f.Request(), default));
+        Assert.Equal(0, f.PatchCount);
+    }
+
+    [Theory][InlineData("total")][InlineData("mixed-cost")][InlineData("retail")][InlineData("identity")][InlineData("passenger")]
+    public async Task Lower_retail_cost_does_not_bypass_ticket_validation(string mismatch)
+    {
+        using var f = new Fixture(settings: RetailSettings());
+        var group = f.Cart.Groups![0];
+        group = group with { TotalBuyPrice = 200, Tickets = group.Tickets!.Select(t => t with { BuyPrice = 100 }).ToList() };
+        group = mismatch switch
+        {
+            "total" => group with { TotalBuyPrice = 201 },
+            "mixed-cost" => group with { TotalBuyPrice = 201, Tickets = [group.Tickets![0], group.Tickets[1] with { BuyPrice = 101 }] },
+            "retail" => group with { TotalTicketPrice = 302, Tickets = group.Tickets!.Select(t => t with { TicketPrice = 151 }).ToList() },
+            "identity" => group with { CommissionPriceCategoryId = Guid.NewGuid().ToString() },
+            _ => group with { Tickets = [group.Tickets![0] with { ManifestUniqueName = "different" }, group.Tickets[1]] }
+        };
+        f.Cart = f.Cart with { TotalAmount = 0, Groups = [group] };
         await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.ReserveAsync(f.Request(), default));
         Assert.Equal(0, f.PatchCount);
     }
@@ -298,7 +397,7 @@ public sealed class TouristPanelPurchaseTests
         Assert.Equal("v2", changedSettings.PricingVersion);
         var client = Client(f.Transport, changedSettings);
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var changedProvider = new TouristPanelProvider(client, null!, new(cache, client, Options.Create(changedSettings)),
+        var changedProvider = new TouristPanelProvider(client, new(cache, client, Options.Create(changedSettings)),
             Options.Create(changedSettings), new EntertainmentPricingService(), f.Db, new Protector(), new FakeDiscovery(f.Program));
         var result = await changedProvider.FulfillAsync(new("pinned-price", "خریدار", "09120000000", [])
             { ReservationContext = reservation.ProtectedContext, ReservationReference = reservation.Reference }, default);
@@ -368,6 +467,45 @@ public sealed class TouristPanelPurchaseTests
         Assert.Equal("Completed", replay.Status); Assert.Equal(1, f.PatchCount);
         Assert.Contains(f.Transport.Requests, r => r.Path.EndsWith("purchase-result"));
     }
+    [Theory][InlineData(1)][InlineData(2)]
+    public async Task Provider_default_group_expiry_uses_cart_deadline_for_reservation_and_purchase(int type)
+    {
+        using var f = new Fixture(type);
+        f.Cart = f.Cart with { Groups = [f.Cart.Groups![0] with { ExpireTime = "0001-01-01T00:00:00+03:26" }] };
+        var reservation = await f.Provider.ReserveAsync(f.Request(type), default);
+        Assert.Equal(DateTimeOffset.Parse(f.Cart.ExpireDateTime!).AddSeconds(-60), reservation.PayableUntil);
+        var result = await f.Provider.FulfillAsync(new("default-expiry", "خریدار", "09120000000", [])
+            { ReservationContext = reservation.ProtectedContext, ReservationReference = reservation.Reference }, default);
+        Assert.Equal("Completed", result.Status);
+        Assert.Equal(1, f.PatchCount);
+    }
+
+    [Theory][InlineData(null)][InlineData("")][InlineData("invalid")]
+    public async Task Unreadable_group_expiry_still_blocks_reservation_and_purchase(string? expiry)
+    {
+        using var f = new Fixture();
+        var reservation = await f.Provider.ReserveAsync(f.Request(), default);
+        f.Cart = f.Cart with { Groups = [f.Cart.Groups![0] with { ExpireTime = expiry }] };
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.ReserveAsync(f.Request(), default));
+        var result = await f.Provider.FulfillAsync(new("invalid-expiry", "خریدار", "09120000000", [])
+            { ReservationContext = reservation.ProtectedContext, ReservationReference = reservation.Reference }, default);
+        Assert.Equal("Failed", result.Status);
+        Assert.Equal(0, f.PatchCount);
+    }
+
+    [Fact]
+    public async Task Default_group_expiry_does_not_override_expired_cart()
+    {
+        using var f = new Fixture();
+        var reservation = await f.Provider.ReserveAsync(f.Request(), default);
+        f.Cart = f.Cart with { ExpireDateTime = DateTimeOffset.UtcNow.AddMinutes(-1).ToString("O"),
+            Groups = [f.Cart.Groups![0] with { ExpireTime = "0001-01-01T00:00:00+03:26" }] };
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.ReserveAsync(f.Request(), default));
+        var result = await f.Provider.FulfillAsync(new("expired-cart", "خریدار", "09120000000", [])
+            { ReservationContext = reservation.ProtectedContext, ReservationReference = reservation.Reference }, default);
+        Assert.Equal("Failed", result.Status);
+        Assert.Equal(0, f.PatchCount);
+    }
     [Fact]
     public async Task Timeout_without_invoice_requires_review_and_never_repeats_purchase()
     {
@@ -409,6 +547,47 @@ public sealed class TouristPanelPurchaseTests
         using var f = new Fixture();
         f.Cart = f.Cart with { Groups = [f.Cart.Groups![0] with { TotalBuyPrice = 211 }] };
         await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Issue()); Assert.Equal(0, f.PatchCount);
+    }
+    [Theory]
+    [InlineData(1, false)][InlineData(2, false)]
+    [InlineData(1, true)][InlineData(2, true)]
+    public async Task Unpopulated_cart_total_uses_validated_ticket_groups_for_reservation_and_purchase(int type, bool retail)
+    {
+        using var f = new Fixture(type, retail ? RetailSettings() : null);
+        // Observed provider responses leave totalAmount at zero while groups and tickets carry prices.
+        f.Cart = f.Cart with { TotalAmount = 0 };
+        var reservation = await f.Provider.ReserveAsync(f.Request(type), default);
+        var quote = Assert.Single(reservation.Lines).Quote;
+        Assert.Equal(retail ? 150 : 121, quote.UnitPriceMinor);
+        Assert.Equal(105, quote.ProviderCostMinor);
+        var result = await f.Provider.FulfillAsync(new("zero-cart-total", "خریدار", "09120000000", [])
+            { ReservationContext = reservation.ProtectedContext, ReservationReference = reservation.Reference }, default);
+        Assert.Equal("Completed", result.Status);
+        Assert.Equal(1, f.PatchCount);
+    }
+
+    [Theory]
+    [InlineData("total")][InlineData("negative-total")][InlineData("discount")]
+    [InlineData("group-retail")][InlineData("group-cost")][InlineData("ticket-cost")]
+    public async Task Inconsistent_cart_finances_block_reservation_and_purchase(string mismatch)
+    {
+        using var f = new Fixture();
+        var reservation = await f.Provider.ReserveAsync(f.Request(), default);
+        f.Cart = f.Cart with { TotalAmount = 0 };
+        var group = f.Cart.Groups![0];
+        f.Cart = mismatch switch
+        {
+            "total" => f.Cart with { TotalAmount = 299 },
+            "negative-total" => f.Cart with { TotalAmount = -1 },
+            "discount" => f.Cart with { DiscountAmount = 1 },
+            "group-retail" => f.Cart with { Groups = [group with { TotalTicketPrice = 301 }] },
+            "group-cost" => f.Cart with { Groups = [group with { TotalBuyPrice = 211 }] },
+            _ => f.Cart with { Groups = [group with { Tickets = [group.Tickets![0] with { BuyPrice = 106 }, group.Tickets[1]] }] }
+        };
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.ReserveAsync(f.Request(), default));
+        await Assert.ThrowsAsync<EntertainmentProviderAmbiguousException>(() => f.Provider.FulfillAsync(new("changed-cart", "خریدار", "09120000000", [])
+            { ReservationContext = reservation.ProtectedContext, ReservationReference = reservation.Reference }, default));
+        Assert.Equal(0, f.PatchCount);
     }
     [Fact]
     public async Task Delete_false_is_business_failure()

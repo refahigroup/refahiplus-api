@@ -8,9 +8,9 @@ public sealed class EntertainmentsCatalogueSource(IEntertainmentDiscovery discov
     {
         var page = await discovery.SearchAsync(new(query.Q, query.ProvinceId, query.CityId), take, ct);
         return new(page.Items.Select(x => new CatalogueItem($"entertainments:{x.ProgramKey:N}", "entertainments", "entertainment",
-            x.ProgramKey.ToString("N"), x.Title, x.Summary, x.ImageUrl, x.CityId, x.CityName, x.ProvinceName, ["توریست‌پنل"],
+            x.ProgramKey.ToString("N"), x.Title, x.Summary, x.ImageUrl, x.CityId, x.CityName, x.ProvinceName, [],
             $"/entertainments/programs/{x.ProgramKey}", x.ObservedAtUtc, x.IsStale, Category: new(x.CategoryCode ?? "entertainment", x.CategoryTitle ?? "تفریح و سرگرمی"),
-            Attributes: [new("provider", "ارائه‌دهنده", "توریست‌پنل"), new("supplier", "تأمین‌کننده", x.SupplierTitle)],
+            Attributes: [new("supplier", "مجموعه", x.SupplierTitle)],
             Locations: [new(x.ProgramKey.ToString("N"), x.ProvinceId, x.ProvinceName, x.CityId, x.CityName, x.Title, x.Address)])).ToArray(),
             page.TotalCount, page.IsPartial);
     }

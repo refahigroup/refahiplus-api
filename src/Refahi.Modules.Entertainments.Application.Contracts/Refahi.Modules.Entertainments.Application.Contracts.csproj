@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <PackageReference Include="MediatR" Version="11.1.0" />
-    <ProjectReference Include="..\Refahi.Modules.Entertainments.Domain\Refahi.Modules.Entertainments.Domain.csproj" />
   </ItemGroup>
 
 </Project>

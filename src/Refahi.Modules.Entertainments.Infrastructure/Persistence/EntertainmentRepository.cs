@@ -54,7 +54,7 @@ public sealed class EntertainmentRepository(EntertainmentDbContext db) : IEntert
         if (Enum.TryParse<EntertainmentPurchaseStatus>(status, true, out var parsed)) 
             q = q.Where(x => x.Status == parsed);
         else if (string.IsNullOrWhiteSpace(status)) 
-            q = q.Where(x => x.Status == EntertainmentPurchaseStatus.ManualReview || x.Status == EntertainmentPurchaseStatus.CompensationPending);
+            q = q.Where(x => x.Status == EntertainmentPurchaseStatus.ManualReview || x.Status == EntertainmentPurchaseStatus.CompensationPending || x.Fulfillments.Any(f => f.DeliveryNeedsReview));
 
         return await q.OrderByDescending(x => x.UpdatedAt).Skip(skip)
                       .Take(take)

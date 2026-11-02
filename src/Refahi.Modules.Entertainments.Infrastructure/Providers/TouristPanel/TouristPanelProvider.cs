@@ -16,88 +16,14 @@ using System.Text.Json;
 
 namespace Refahi.Modules.Entertainments.Infrastructure.Providers.TouristPanel;
 
-public sealed partial class TouristPanelProvider(TouristPanelClient client, TouristPanelCatalog catalog,
-    TouristPanelReadCache readCache, IOptions<TouristPanelOptions> options, IEntertainmentPricingService pricing, EntertainmentDbContext db, IEntertainmentSecretProtector secrets, IEntertainmentDiscovery discovery, ILogger<TouristPanelProvider>? logger = null)
-    : IEntertainmentProvider, IEntertainmentOfferProvider, IEntertainmentReservationProvider, IEntertainmentFulfillmentStatusProvider
+public sealed partial class TouristPanelProvider(TouristPanelClient client,
+    TouristPanelReadCache readCache, IOptions<TouristPanelOptions> options, IEntertainmentPricingService pricing, EntertainmentDbContext db, IEntertainmentSecretProtector secrets, IEntertainmentProgramIdentity discovery, ILogger<TouristPanelProvider>? logger = null)
+    : IEntertainmentProvider, IEntertainmentOfferProvider, IEntertainmentReservationProvider, IEntertainmentFulfillmentStatusProvider, IEntertainmentReservationRecoveryProvider
 {
     public string Key => "touristpanel";
     public string Name => "توریست‌پنل";
     public EntertainmentProviderCapabilities Capabilities => new(false, false);
     private TouristPanelOptions O => options.Value;
-    private static readonly EntertainmentAddressDto EmptyAddress = new("", "", "", null);
-    public async Task<IReadOnlyList<EntertainmentSupplierDto>> GetSuppliersAsync(CancellationToken ct)
-    {
-        var query = await catalog.ReadAsync(ct);
-
-        return query.GroupBy(x => x.SupplyChainHojreId!, StringComparer.OrdinalIgnoreCase)
-                    .Select(g => new EntertainmentSupplierDto(
-                        Key,
-                        g.Key,
-                        g.First().SupplyChainHojre?.Title ?? "فروشنده",
-                        g.Select(x => x.ProgramCategory?.Title).OfType<string>().Distinct().ToArray(),
-                        Image(g.First().SupplyChainHojre?.Logo),
-                        null,
-                        null,
-                        EmptyAddress
-                    ))
-                    .ToArray();
-    }
-
-    public async Task<EntertainmentSupplierDto?> GetSupplierAsync(string supplierKey, CancellationToken ct)
-    {
-        var query = await GetSuppliersAsync(ct);
-
-        return query.SingleOrDefault(x => x.SupplierKey.Equals(supplierKey, StringComparison.OrdinalIgnoreCase));
-    }
-
-    public async Task<EntertainmentCatalogPage> GetProgramsAsync(EntertainmentCatalogQuery query, CancellationToken ct)
-    {
-        var list = await catalog.ReadAsync(ct);
-
-        var matchingKeys =
-            (await discovery.SearchAsync(new(query.Search, null, null), int.MaxValue, ct)).Items.Select(x => x.ProgramKey.ToString("N")).ToHashSet();
-        var rows = list.Where(x => x.IsActive && (int)x.Type is 1 or 2)
-                       .Where(x => string.IsNullOrWhiteSpace(query.SupplierKey) || string.Equals(query.SupplierKey, x.SupplyChainHojreId, StringComparison.OrdinalIgnoreCase))
-                       .Where(x => string.IsNullOrWhiteSpace(query.LocationCode) || x.LocationData?.Code == query.LocationCode)
-                       .Where(x => string.IsNullOrWhiteSpace(query.CategoryCode) || x.ProgramCategory?.Code.ToString() == query.CategoryCode)
-                       .Where(x => matchingKeys.Contains(x.Id!))
-                        .OrderBy(x => Refahi.Modules.Catalogue.Application.Contracts.CatalogueText.Normalize(x.Title), Refahi.Modules.Catalogue.Application.Contracts.CatalogueText.Comparer).ThenBy(x => x.Id, StringComparer.Ordinal).ToArray();
-
-        var items = new List<EntertainmentProgramDto>();
-        foreach (var row in rows.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize))
-        {
-            var profile = await discovery.ProfileAsync(Guid.Parse(row.Id!), ct);
-            if (profile is not null) items.Add(profile);
-        }
-        return new(items, query.PageNumber, query.PageSize, rows.Length);
-    }
-    public async Task<EntertainmentProgramDto?> GetProgramAsync(string programKey, CancellationToken ct)
-        => Guid.TryParse(programKey, out var id) ? await discovery.ProfileAsync(id, ct) : null;
-    public async Task<EntertainmentCatalogFilters> GetFiltersAsync(CancellationToken ct)
-    {
-        var rows = await catalog.ReadAsync(ct);
-
-        return new(
-            rows.Where(x => x.LocationData?.Code != null)
-                .DistinctBy(x => x.LocationData!.Code)
-                .Select(x =>
-                    new EntertainmentFilterOption(
-                        x.LocationData!.Code!,
-                        x.LocationData.Native ?? ""
-                    )
-                ).ToArray(),
-
-            rows.Where(x => x.ProgramCategory != null)
-                .DistinctBy(x => x.ProgramCategory!.Code)
-                .Select(x =>
-                    new EntertainmentFilterOption(
-                        x.ProgramCategory!.Code.ToString(),
-                        x.ProgramCategory.Title ?? ""
-                    )
-                ).ToArray()
-        );
-    }
-
     public async Task<EntertainmentPurchaseRequirements> GetRequirementsAsync(string programKey, CancellationToken ct)
     {
         var native = await discovery.ResolveNativeAsync(programKey, ct) ?? throw Error("خدمت در دسترس نیست");
@@ -459,7 +385,7 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
             request.OfferKey,
             StableOptionKey(p.Id!, request.OfferKey, t),
             p.SupplyChainHojre?.Title ?? "فروشنده",
-            p.Title ?? "خدمت", (await discovery.ProfileAsync(Guid.Parse(request.ProgramKey), ct))?.ImageUrl,
+            p.Title ?? "خدمت", (await db.Programs.AsNoTracking().Where(x => x.ProgramKey == Guid.Parse(request.ProgramKey)).Select(x => x.Images).SingleOrDefaultAsync(ct))?.FirstOrDefault(),
             (int)p.Type == 1
                 ? "بدون سانس"
                 : t.EventTitle ?? "سانس انتخاب‌شده",
@@ -488,5 +414,5 @@ public sealed partial class TouristPanelProvider(TouristPanelClient client, Tour
     }
 
     public Task CancelAsync(EntertainmentCancellationRequest request, CancellationToken ct) =>
-        throw Error("لغو بلیط صادرشده توریست‌پنل پشتیبانی نمی‌شود");
+        throw Error("لغو خودکار این بلیت صادرشده پشتیبانی نمی‌شود");
 }

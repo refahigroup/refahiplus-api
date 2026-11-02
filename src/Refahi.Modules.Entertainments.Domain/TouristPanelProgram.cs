@@ -20,6 +20,7 @@ public sealed class TouristPanelProgram
     public bool RequiresManifest { get; private set; }
     public bool RequiresIdentityNumber { get; private set; }
     public string[] Images { get; private set; } = [];
+    public string SortTitle { get; private set; } = "";
     public string SearchText { get; private set; } = "";
     public bool IsListed { get; private set; }
     public DateTimeOffset ListedAtUtc { get; private set; }
@@ -35,8 +36,9 @@ public sealed class TouristPanelProgram
         CategoryCode = category; CategoryTitle = categoryTitle; ListedAtUtc = now;
     }
     public void Publish(string title, string? description, string? rules, string? address,
-        bool manifest, bool identityNumber, string[] images, string searchText, DateTimeOffset now, int refreshMinutes)
+        bool manifest, bool identityNumber, string[] images, string searchText, DateTimeOffset now, int refreshMinutes, string? sortTitle = null)
     {
+        SortTitle = sortTitle ?? title;
         Title = title; Description = description; Rules = rules; Address = address;
         RequiresManifest = manifest; RequiresIdentityNumber = identityNumber; Images = images;
         SearchText = searchText; ObservedAtUtc = now; NextDetailAttemptUtc = now.AddMinutes(refreshMinutes);

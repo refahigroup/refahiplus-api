@@ -32,7 +32,7 @@ public sealed class GetEntertainmentOperationsQueryHandler(IEntertainmentReposit
                           a.StartedAt,
                           a.CompletedAt)
                       ).ToArray()
-            )
+            ) { DeliveryNeedsReview = f.DeliveryNeedsReview }
         )).ToArray();
     }
 }

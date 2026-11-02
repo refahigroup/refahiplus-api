@@ -204,7 +204,7 @@ public sealed class EntertainmentPurchase
     public void CheckedPayment() => UpdatedAt = DateTimeOffset.UtcNow;
     public void AttachOrder(Guid orderId) { OrderId = orderId; UpdatedAt = DateTimeOffset.UtcNow; }
     public void AttachSession(Guid sessionId, DateTimeOffset until, string? reference, string? context, string selection)
-    { CheckoutSessionId = sessionId; PayableUntil = until; ReservationReference = reference; ReservationContextProtected = context; CartSelectionProtected = selection; }
+    { CheckoutSessionId = sessionId; PayableUntil = until.ToUniversalTime(); ReservationReference = reference; ReservationContextProtected = context; CartSelectionProtected = selection; }
     public void AwaitResult() { Status = EntertainmentPurchaseStatus.AwaitingResult; UpdatedAt = DateTimeOffset.UtcNow; }
     public void QueueFulfillment(Guid? paymentId = null) { if (Status == EntertainmentPurchaseStatus.AwaitingPayment) Status = EntertainmentPurchaseStatus.IssuancePending; PaymentId ??= paymentId; UpdatedAt = DateTimeOffset.UtcNow; }
     public void BeginFulfillment() { if (Status is EntertainmentPurchaseStatus.IssuancePending or EntertainmentPurchaseStatus.Issuing) Status = EntertainmentPurchaseStatus.Issuing; UpdatedAt = DateTimeOffset.UtcNow; }
@@ -264,6 +264,8 @@ public sealed class ProviderFulfillment
     public string? ProviderInvoiceId { get; private set; }
     public string? ProviderPaymentId { get; private set; }
     public string? DeliveryProtected { get; private set; }
+    public bool DeliveryNeedsReview { get; private set; }
+    public void ReviewDelivery(bool needsReview) => DeliveryNeedsReview = needsReview;
     public DateTimeOffset? ReconcileStartedAt { get; private set; }
     public DateTimeOffset? NextCheckAt { get; private set; }
     public int CheckCount { get; private set; }

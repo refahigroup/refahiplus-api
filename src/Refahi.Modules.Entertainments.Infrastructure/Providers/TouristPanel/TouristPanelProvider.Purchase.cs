@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Refahi.Modules.Entertainments.Application.Contracts.Providers;
@@ -65,23 +66,50 @@ public sealed partial class TouristPanelProvider
         var operation = "reserve:" + request.OperationId;
         if (await Receipt(operation, ct) is not null) throw new EntertainmentProviderAmbiguousException("تلاش رزرو قبلی باید بررسی شود");
         await SaveReceipt(operation, new ReservationCheckpoint(groups, null), ct);
-        var cart = groups.Count == 1 ? await client.AddGroupAsync(groups[0], null, null, ct) : await client.AddGroupsAsync(groups, null, ct);
-        await SaveReceipt(operation, new ReservationCheckpoint(groups, cart), ct);
-        if (!Guid.TryParse(cart.Id, out var id) || id == Guid.Empty) throw new EntertainmentProviderAmbiguousException("شناسه رزرو برگشتی معتبر نیست");
-        cart = await client.GetCartAsync(cart.Id!, ct);
-        var context = new ReservationContext(O.AccountKey, lines, cart);
-        ValidateCart(context, cart);
-        var deadlines = new[] { ParseDate(cart.ExpireDateTime) }.Concat((cart.Groups ?? []).Select(x => ParseDate(x.ExpireTime))).ToArray();
-        if (deadlines.Any(x => !x.HasValue)) throw new EntertainmentProviderAmbiguousException("زمان انقضای رزرو قابل تفسیر نیست");
-        var until = deadlines.Min()!.Value.AddSeconds(-O.ReservationSafetySeconds);
-        if (until <= DateTimeOffset.UtcNow) throw Error("مهلت رزرو به پایان رسیده است");
-        return new(cart.Id!, until, lines, secrets.Protect(JsonSerializer.Serialize(context, TouristPanelClient.Json)));
+        try
+        {
+            var cart = groups.Count == 1 ? await client.AddGroupAsync(groups[0], null, null, ct) : await client.AddGroupsAsync(groups, null, ct);
+            await SaveReceipt(operation, new ReservationCheckpoint(groups, cart), ct);
+            if (!Guid.TryParse(cart.Id, out var id) || id == Guid.Empty) throw new EntertainmentProviderAmbiguousException("شناسه رزرو برگشتی معتبر نیست");
+            cart = await client.GetCartAsync(cart.Id!, ct);
+            var context = new ReservationContext(O.AccountKey, lines, cart);
+            context = ValidateCart(context, cart, captureRetailCost: true);
+            var deadlines = ReservationDeadlines(cart);
+            if (deadlines.Any(x => !x.HasValue)) throw new EntertainmentProviderAmbiguousException("زمان انقضای رزرو قابل تفسیر نیست");
+            var until = deadlines.Min()!.Value.AddSeconds(-O.ReservationSafetySeconds);
+            if (until <= DateTimeOffset.UtcNow) throw Error("مهلت رزرو به پایان رسیده است");
+            return new(cart.Id!, until, context.Lines, secrets.Protect(JsonSerializer.Serialize(context, TouristPanelClient.Json)));
+        }
+        catch (EntertainmentProviderAmbiguousException) { throw; }
+        catch (Exception ex)
+        {
+            throw new EntertainmentProviderAmbiguousException("نتیجه رزرو پس از ارسال نیازمند بررسی است", ex);
+        }
     }
 
     public async Task ReleaseAsync(string reference, CancellationToken ct)
     {
         if (!await client.DeleteCartAsync(reference, ct))
             throw new EntertainmentProviderAmbiguousException("آزادسازی رزرو توریست‌پنل تأیید نشد");
+    }
+
+    public async Task<bool> TryReleaseUnpaidReservationAsync(string operationId, CancellationToken ct)
+    {
+        var recoveryKey = "release:reserve:" + operationId;
+        var confirmed = await Receipt(recoveryKey, ct);
+        if (confirmed != null)
+            return JsonSerializer.Deserialize<bool>(secrets.Unprotect(confirmed.PayloadProtected), TouristPanelClient.Json);
+        var receipt = await Receipt("reserve:" + operationId, ct);
+        if (receipt == null || string.IsNullOrEmpty(receipt.PayloadProtected)) return false;
+        var checkpoint = JsonSerializer.Deserialize<ReservationCheckpoint>(secrets.Unprotect(receipt.PayloadProtected), TouristPanelClient.Json);
+        if (!Guid.TryParse(checkpoint?.Cart?.Id, out var id) || id == Guid.Empty) return false;
+        var cart = await client.GetCartAsync(id.ToString(), ct);
+        if (!Guid.TryParse(cart.Id, out var actual) || actual != id
+            || cart.PaymentId != null || cart.PurchaseStatus != TpPurchaseStatus.PaymentWaiting) return false;
+        if (!await client.DeleteCartAsync(id.ToString(), ct)) return false;
+        await SaveReceipt(recoveryKey, true, ct);
+        logger?.LogInformation("TouristPanel unpaid reservation released Operation={Operation}", operationId);
+        return true;
     }
 
     public async Task<EntertainmentFulfillmentResult> FulfillAsync(EntertainmentFulfillmentRequest request, CancellationToken ct)
@@ -99,8 +127,7 @@ public sealed partial class TouristPanelProvider
             return new("", []) { Status = "ManualReview" };
         var cart = await client.GetCartAsync(request.ReservationReference, ct);
         ValidateCart(context, cart);
-        if (new[] { ParseDate(cart.ExpireDateTime) }.Concat((cart.Groups ?? []).Select(x => ParseDate(x.ExpireTime)))
-            .Any(x => !x.HasValue || x <= DateTimeOffset.UtcNow))
+        if (ReservationDeadlines(cart).Any(x => !x.HasValue || x <= DateTimeOffset.UtcNow))
             return new("", []) { Status = "Failed" };
         var checkpoint = new PurchaseCheckpoint(context, null);
         await SaveReceipt(request.OperationId, checkpoint, ct);
@@ -142,11 +169,18 @@ public sealed partial class TouristPanelProvider
         return MapPurchase(result, checkpoint.Context, operationId);
     }
 
-    private static void ValidateCart(ReservationContext context, TpTempShoppingCartDto cart)
+    private DateTimeOffset?[] ReservationDeadlines(TpTempShoppingCartDto cart) =>
+        new[] { ParseDate(cart.ExpireDateTime) }.Concat((cart.Groups ?? [])
+            // Observed TouristPanel unset group expiry: .NET MinValue with Tehran's historical offset.
+            .Where(x => x.ExpireTime != "0001-01-01T00:00:00+03:26")
+            .Select(x => ParseDate(x.ExpireTime))).ToArray();
+
+    private ReservationContext ValidateCart(ReservationContext context, TpTempShoppingCartDto cart, bool captureRetailCost = false)
     {
         if (context.Cart.Id != cart.Id || cart.Groups is null || cart.Groups.Count != context.Lines.Count)
             throw new EntertainmentProviderAmbiguousException("گروه‌های رزرو با سفارش متفاوت است");
         var unmatched = cart.Groups.ToList();
+        var reservedLines = new List<EntertainmentReservedLine>();
         foreach (var line in context.Lines)
         {
             using var payload = JsonDocument.Parse(line.Quote.ProviderPayloadJson);
@@ -157,24 +191,55 @@ public sealed partial class TouristPanelProvider
                 && x.ProgramTicketTypeId == p.GetProperty("ProgramTicketTypeId").GetString()
                 && x.EventTicketTypeId == p.GetProperty("EventTicketTypeId").GetString()
                 && x.CommissionPriceCategoryId == category);
+            var retail = p.TryGetProperty("pricingBasis", out var basis) && basis.GetString() == "ProviderRetail";
+            // Only the initial reservation may pin a lower cost; customer retail and later fulfillment stay fixed.
+            decimal? cost = captureRetailCost && retail ? g?.Tickets?.FirstOrDefault()?.BuyPrice : line.Quote.ProviderCostMinor;
             if (g?.Tickets == null || g.Tickets.Count != line.Quote.Quantity || g.TicketsCount != line.Quote.Quantity
-                || g.Tickets.Any(x => x.BuyPrice != line.Quote.ProviderCostMinor)
-                || g.TotalBuyPrice != checked(line.Quote.ProviderCostMinor * line.Quote.Quantity)
-                || p.TryGetProperty("pricingBasis", out var basis) && basis.GetString() == "ProviderRetail"
-                    && (g.Tickets.Any(x => x.TicketPrice != line.Quote.UnitPriceMinor)
+                || !line.Quote.ProviderCostMinor.HasValue || !cost.HasValue || cost <= 0
+                || cost > line.Quote.ProviderCostMinor || decimal.Truncate(cost.Value) != cost.Value
+                || g.Tickets.Any(x => x.BuyPrice != cost.Value)
+                || g.TotalBuyPrice != cost.Value * line.Quote.Quantity
+                || g.TotalTicketPrice != g.Tickets.Sum(x => x.TicketPrice)
+                || retail && (g.Tickets.Any(x => x.TicketPrice != line.Quote.UnitPriceMinor)
                         || g.TotalTicketPrice != checked(line.Quote.UnitPriceMinor * line.Quote.Quantity))
                 || g.Tickets.Select(x => x.TicketId).Distinct().Count() != line.Quote.Quantity)
+            {
+                logger?.LogWarning("TouristPanel reservation line mismatch Cart={Cart} MatchedGroup={MatchedGroup} ExpectedQuantity={ExpectedQuantity} TicketsCount={TicketsCount} QuotedCost={QuotedCost} ReservedCost={ReservedCost} GroupBuyTotal={GroupBuyTotal} Retail={Retail}",
+                    cart.Id, g != null, line.Quote.Quantity, g?.TicketsCount, line.Quote.ProviderCostMinor, g?.Tickets?.FirstOrDefault()?.BuyPrice, g?.TotalBuyPrice, line.Quote.UnitPriceMinor);
                 throw new EntertainmentProviderAmbiguousException("تعداد یا بهای رزرو با انتخاب متفاوت است");
+            }
             if (line.Quote.RequiresManifest || line.Quote.RequiresIdentityNumber)
             {
                 var actual = g.Tickets.Select(x => (x.ManifestUniqueName ?? "").Trim() + "|" + (line.Quote.RequiresIdentityNumber ? x.ManifestUniqueNumber?.Trim() : "")).Order().ToArray();
                 var expected = line.Passengers.Select(x => x.Name.Trim() + "|" + (line.Quote.RequiresIdentityNumber ? x.IdentityNumber?.Trim() : "")).Order().ToArray();
                 if (!actual.SequenceEqual(expected)) throw new EntertainmentProviderAmbiguousException("مشخصات بلیط‌های رزرو تطبیق ندارد");
             }
+            var quote = line.Quote;
+            if (cost.Value != quote.ProviderCostMinor)
+            {
+                var reservedCost = checked((long)cost.Value);
+                var adjustment = checked(quote.UnitPriceMinor - reservedCost);
+                var payloadSnapshot = JsonNode.Parse(quote.ProviderPayloadJson)!.AsObject();
+                payloadSnapshot["quotedProviderCostMinor"] = quote.ProviderCostMinor;
+                payloadSnapshot["providerCostMinor"] = reservedCost;
+                payloadSnapshot["providerRetailAdjustmentMinor"] = adjustment;
+                logger?.LogInformation("TouristPanel reserved cost decreased Cart={Cart} QuotedCost={QuotedCost} ReservedCost={ReservedCost} Retail={Retail}",
+                    cart.Id, quote.ProviderCostMinor, reservedCost, quote.UnitPriceMinor);
+                quote = quote with { ProviderCostMinor = reservedCost, ProviderRetailAdjustmentMinor = adjustment,
+                    ProviderPayloadJson = payloadSnapshot.ToJsonString(TouristPanelClient.Json) };
+            }
+            reservedLines.Add(line with { Quote = quote });
             unmatched.Remove(g);
         }
-        if (cart.Groups.Sum(x => x.TotalTicketPrice) != cart.TotalAmount || cart.DiscountAmount != 0)
+        var totalTicketPrice = cart.Groups.Sum(x => x.TotalTicketPrice);
+        // TouristPanel can leave the temporary cart total at zero; ticket/group prices are validated above.
+        if (cart.TotalAmount != 0 && totalTicketPrice != cart.TotalAmount || cart.DiscountAmount != 0)
+        {
+            logger?.LogWarning("TouristPanel cart totals mismatch Cart={Cart} TotalAmount={TotalAmount} GroupTicketTotal={GroupTicketTotal} DiscountAmount={DiscountAmount}",
+                cart.Id, cart.TotalAmount, totalTicketPrice, cart.DiscountAmount);
             throw new EntertainmentProviderAmbiguousException("جمع مالی سبد رزرو قابل تطبیق نیست");
+        }
+        return context with { Lines = reservedLines };
     }
 
     private EntertainmentFulfillmentResult MapPurchase(TpPurchaseResultDto result, ReservationContext context, string operationId)
@@ -224,9 +289,8 @@ public sealed partial class TouristPanelProvider
         }
         Add("دریافت بلیط‌ها", result.TicketsUrl); Add("دریافت فاکتور", result.InvoiceUrl); Add("نمایش بلیط‌ها", result.PublicTicketsUrl);
         foreach (var group in result.TicketTypeGroupUrls ?? []) Add(group.ProgramTitle + " - " + group.TicketType, group.Url);
-        if (documents.Count == 0 && tickets.Any(t => string.IsNullOrWhiteSpace(t.TicketNo) && string.IsNullOrWhiteSpace(t.QrCode))) return Pending("Pending");
         return new(id!, groups.SelectMany(g => (g.Tickets ?? []).Select(t => new EntertainmentIssuedTicket(t.TicketNo ?? t.Id!, false)
-        { ProviderTicketId = t.Id, Title = g.ProgramTicketTypeTitle ?? g.TicketTypeTitle, QrCode = t.QrCode, GroupId = g.GroupId })).ToArray())
+        { ProviderTicketId = t.Id, AdmissionCode = t.TicketNo, ProgramTitle = g.ProgramTitle, VenueTitle = g.SupplyChainHojreTitle, Address = g.ProgramAddress, StartsAt = ParseDate(g.EventStartDateTime), Title = g.ProgramTicketTypeTitle ?? g.TicketTypeTitle, QrCode = t.QrCode, GroupId = g.GroupId })).ToArray())
         { ProviderInvoiceId = id, ProviderPaymentId = result.PaymentId, Documents = documents };
     }
     private Task<EntertainmentProviderReceipt?> Receipt(string operation, CancellationToken ct) => db.ProviderReceipts.SingleOrDefaultAsync(x => x.OperationId == operation && x.AccountKey == O.AccountKey, ct);

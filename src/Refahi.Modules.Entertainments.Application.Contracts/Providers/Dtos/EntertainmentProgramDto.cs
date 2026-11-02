@@ -1,7 +1,6 @@
 namespace Refahi.Modules.Entertainments.Application.Contracts.Providers.Dtos;
 
 public sealed record EntertainmentProgramDto(
-    string ProviderKey, 
     string SupplierKey, 
     string ProgramKey,
     string Title,
@@ -12,7 +11,7 @@ public sealed record EntertainmentProgramDto(
     IReadOnlyList<EntertainmentOfferDto> Offers
 )
 {
-    public int ProgramType { get; init; } = 2;
+    public string SchedulingMode { get; init; } = "Scheduled";
     public bool IsActive { get; init; } = true;
     public bool RequiresManifest { get; init; }
     public bool RequiresIdentityNumber { get; init; }

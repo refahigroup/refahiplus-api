@@ -10,8 +10,9 @@ internal sealed class FakeMedia : IPersistentExternalMedia
     public string GetUrl(Guid id) => $"/api/media/persistent/{id}";
     public bool Exists(Guid id) => true;
 }
-internal sealed class FakeDiscovery(string nativeId) : IEntertainmentDiscovery
+internal sealed class FakeDiscovery(string nativeId) : IEntertainmentProgramIdentity
 {
+    public Task<EntertainmentProgramIdentity?> ResolveAsync(Guid key, CancellationToken ct) => Task.FromResult<EntertainmentProgramIdentity?>(new("touristpanel", nativeId, ""));
     public Task<string?> ResolveNativeAsync(string key, CancellationToken ct) => Task.FromResult<string?>(nativeId);
     public Task<Guid?> ResolveProgramKeyAsync(string id, CancellationToken ct) => Task.FromResult<Guid?>(Guid.Parse(id));
     public Task<EntertainmentProgramDto?> ProfileAsync(Guid key, CancellationToken ct) => Task.FromResult<EntertainmentProgramDto?>(null);

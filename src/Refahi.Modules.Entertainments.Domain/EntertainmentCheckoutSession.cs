@@ -33,13 +33,20 @@ public sealed class EntertainmentCheckoutSession
         Status = EntertainmentSessionStatus.Released;
     }
     public void RedactResolutionEvidence() => ResolutionEvidenceProtected = null;
+    public void ConfirmRecoveredRelease(string protectedEvidence)
+    {
+        if (EntertainmentPurchaseId.HasValue || Status is not (EntertainmentSessionStatus.Unknown or EntertainmentSessionStatus.Reserving))
+            throw new EntertainmentDomainException("وضعیت رزرو برای بازیابی معتبر نیست", "RESERVATION_NOT_RECOVERABLE");
+        ResolutionOutcome = "released"; ResolutionEvidenceProtected = protectedEvidence;
+        ResolvedAtUtc = DateTimeOffset.UtcNow; Status = EntertainmentSessionStatus.Released;
+    }
     public static EntertainmentCheckoutSession Create(Guid user, string provider, string key, string fingerprint, string request)
         => new() { Id = Guid.NewGuid(), UserId = user, ProviderKey = provider, IdempotencyKey = key,
             Fingerprint = fingerprint, RequestProtected = request, Status = EntertainmentSessionStatus.Reserving, CreatedAt = DateTimeOffset.UtcNow };
     public void Reserved(string reference, string reservation, DateTimeOffset until)
     {
         if (Status != EntertainmentSessionStatus.Reserving) throw new EntertainmentDomainException("وضعیت رزرو تغییر کرده است", "SESSION_STATE");
-        ReservationReference = reference; ReservationProtected = reservation; PayableUntil = until; Status = EntertainmentSessionStatus.Reserved;
+        ReservationReference = reference; ReservationProtected = reservation; PayableUntil = until.ToUniversalTime(); Status = EntertainmentSessionStatus.Reserved;
     }
     public void AttachOrder(Guid id) { EntertainmentPurchaseId = id; Status = EntertainmentSessionStatus.Confirmed; }
     public void Releasing()

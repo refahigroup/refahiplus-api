@@ -17,20 +17,6 @@ namespace Refahi.Modules.Entertainments.Infrastructure.Providers.TouristPanel;
 public sealed class TouristPanelCatalog(EntertainmentDbContext db, TouristPanelClient client,
     IOptions<TouristPanelOptions> options, IOptions<EntertainmentsOptions> moduleOptions, IPersistentExternalMedia media, ILogger<TouristPanelCatalog> logger)
 {
-    public async Task<IReadOnlyList<TpProgramListDto>> ReadAsync(CancellationToken ct)
-    {
-        var state = await db.SyncStates.AsNoTracking().SingleOrDefaultAsync(x => x.AccountKey == options.Value.AccountKey, ct);
-        if (state?.LastSuccessUtc is null || state.LastSuccessUtc < DateTimeOffset.UtcNow.AddDays(-moduleOptions.Value.MaxDiscoveryAgeDays)) throw new EntertainmentUnavailableException();
-        var published = await db.Programs.AsNoTracking().Where(x => x.AccountKey == options.Value.AccountKey && x.IsListed && x.ObservedAtUtc >= DateTimeOffset.UtcNow.AddDays(-moduleOptions.Value.MaxDiscoveryAgeDays) && x.ListedAtUtc >= DateTimeOffset.UtcNow.AddDays(-moduleOptions.Value.MaxDiscoveryAgeDays)).ToListAsync(ct);
-        if (published.Count == 0 && await db.Programs.AnyAsync(x => x.AccountKey == options.Value.AccountKey && x.IsListed, ct))
-            throw new EntertainmentUnavailableException();
-        return published
-            .Select(x => new TpProgramListDto { Id = x.ProgramKey.ToString("N"), SupplyChainHojreId = x.SupplierId,
-                SupplyChainHojre = new() { Title = x.SupplierTitle }, Title = x.Title, Type = (TpProgramType)x.ProgramType,
-                IsActive = x.IsListed, IndexImage = x.Images.FirstOrDefault(),
-                ProgramCategory = x.CategoryCode.HasValue ? new() { Code = x.CategoryCode.Value, Title = x.CategoryTitle } : null,
-                LocationData = new() { Code = x.LocationCode, Native = x.NativeCityName } }).ToArray();
-    }
     public async Task RefreshAsync(CancellationToken ct)
     {
         var o = options.Value; var now = DateTimeOffset.UtcNow;
@@ -57,6 +43,9 @@ public sealed class TouristPanelCatalog(EntertainmentDbContext db, TouristPanelC
                 if (!complete) throw new InvalidOperationException("سقف صفحات دریافت خدمات رعایت نشد");
                 await using var tx = await db.Database.BeginTransactionAsync(ct);
                 var existing = await db.Programs.Where(x => x.AccountKey == o.AccountKey).ToDictionaryAsync(x => x.NativeId, StringComparer.OrdinalIgnoreCase, ct);
+                var suppliers = await db.Suppliers.Where(x => x.AccountKey == o.AccountKey).Select(x => x.NativeId).ToListAsync(ct);
+                foreach (var nativeSupplier in rows.Select(x => Guid.Parse(x.SupplyChainHojreId!).ToString()).Distinct())
+                    if (!suppliers.Contains(nativeSupplier)) db.Suppliers.Add(TouristPanelSupplier.Create(o.AccountKey, nativeSupplier));
                 foreach (var row in existing.Values) row.Retire();
                 foreach (var item in rows)
                 {
@@ -98,9 +87,9 @@ public sealed class TouristPanelCatalog(EntertainmentDbContext db, TouristPanelC
                     catch { logger.LogWarning("Entertainment image unavailable ProgramKey={ProgramKey}", row.ProgramKey); }
                 }
                 var title = Plain(detail.Title) ?? row.Title; var description = Plain(detail.Description); var address = Plain(detail.ProgramAddress);
-                var search = CatalogueText.Normalize($"{title} {description} {address} {row.CategoryTitle} {row.SupplierTitle} {row.NativeCityName} توریست پنل");
+                var search = CatalogueText.Normalize($"{title} {description} {address} {row.CategoryTitle} {row.SupplierTitle} {row.NativeCityName}");
                 row.Publish(title, description, Plain(detail.Rules), address, detail.IsManifestNeeded, detail.IsManifestUniqueNumberNeeded,
-                    images.ToArray(), search, DateTimeOffset.UtcNow, o.CatalogRefreshMinutes);
+                    images.ToArray(), search, DateTimeOffset.UtcNow, o.CatalogRefreshMinutes, CatalogueText.Normalize(EntertainmentPresentation.Text(title)));
                 await db.SaveChangesAsync(ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }

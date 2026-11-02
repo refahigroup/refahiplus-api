@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using MediatR;
@@ -14,22 +14,40 @@ namespace Refahi.Modules.Entertainments.Application.Features.Checkout.Sessions;
 
 public sealed class EntertainmentSessionService(IEntertainmentSessionRepository sessions, IEntertainmentRepository orders,
     IEntertainmentProviderFactory providers, IEntertainmentSecretProtector secrets, IEntertainmentMutationLock gate, IMediator mediator)
-    : IRequestHandler<StartEntertainmentSessionCommand, EntertainmentSessionDto>, IRequestHandler<GetEntertainmentSessionQuery, EntertainmentSessionDto>,
+    : IRequestHandler<ReturnEntertainmentSessionToCartCommand, EntertainmentSessionDto>, IRequestHandler<StartEntertainmentSessionCommand, EntertainmentSessionDto>, IRequestHandler<GetEntertainmentSessionQuery, EntertainmentSessionDto>,
       IRequestHandler<ConfirmEntertainmentSessionCommand, PrepareEntertainmentCheckoutResponse>, IRequestHandler<ReleaseEntertainmentSessionCommand>, IRequestHandler<FindEntertainmentSessionQuery, EntertainmentSessionDto?>
 {
     public async Task<EntertainmentSessionDto> Handle(StartEntertainmentSessionCommand request, CancellationToken ct)
     {
         await using var held = await gate.AcquireAsync(request.UserId, ct);
-        var fingerprint = Hash(JsonSerializer.Serialize(new { Provider = request.ProviderKey.Trim().ToLowerInvariant(),
-            request.CartVersion, Passengers = request.Passengers.OrderBy(x => x.CartItemId) }));
         var old = await sessions.FindAsync(request.UserId, request.IdempotencyKey.Trim(), ct);
+        var cart = await orders.GetCartAsync(request.UserId, ct);
+        var providerKey = request.ProviderKey;
+        if (request.CartItemIds is { } ids)
+        {
+            if (old != null)
+            {
+                var original = JsonSerializer.Deserialize<EntertainmentReservationRequest>(secrets.Unprotect(old.RequestProtected))!;
+                if (!original.Lines.Select(x => x.CartItemId).Order().SequenceEqual(ids.Order())) throw Error("اقلام رزرو با درخواست پیشین مطابقت ندارد");
+                providerKey = old.ProviderKey;
+            }
+            else
+            {
+                var picked = cart?.Items.Where(x => ids.Contains(x.Id)).ToArray() ?? [];
+                if (picked.Length != ids.Count || picked.Select(x => x.ProviderKey).Distinct(StringComparer.OrdinalIgnoreCase).Count() != 1) throw Error("اقلام انتخاب‌شده معتبر نیستند");
+                providerKey = picked[0].ProviderKey;
+                if (cart!.Items.Count(x => x.ProviderKey.Equals(providerKey, StringComparison.OrdinalIgnoreCase)) != ids.Count) throw Error("اقلام این بخش تغییر کرده‌اند؛ سبد را دوباره بررسی کنید");
+            }
+        }
+        var fingerprint = Hash(JsonSerializer.Serialize(new { Provider = providerKey.Trim().ToLowerInvariant(),
+            request.CartVersion, Passengers = request.Passengers.OrderBy(x => x.CartItemId) }));
         if (old != null)
         {
             if (old.Fingerprint != fingerprint) throw Error("کلید یکتایی با اطلاعات دیگری استفاده شده است");
             return Map(old);
         }
-        var provider = providers.GetRequired(request.ProviderKey);
-        var cart = await orders.GetCartAsync(request.UserId, ct) ?? throw Error("سبد خرید خالی است");
+        var provider = providers.GetRequired(providerKey);
+        if (cart == null) throw Error("سبد خرید خالی است");
         var selected = cart.Items.Where(x => x.ProviderKey.Equals(provider.Key, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Id).ToArray();
         if (selected.Length is 0 or > 100) throw Error("تعداد اقلام انتخاب‌شده معتبر نیست");
         if ((provider is IEntertainmentReservationProvider || request.CartVersion != null)
@@ -47,9 +65,9 @@ public sealed class EntertainmentSessionService(IEntertainmentSessionRepository 
         var session = EntertainmentCheckoutSession.Create(request.UserId, provider.Key, request.IdempotencyKey.Trim(), fingerprint,
             secrets.Protect(JsonSerializer.Serialize(input)));
         await sessions.AddAsync(session, ct); await sessions.SaveAsync(ct);
+        EntertainmentReservationResult result;
         try
         {
-            EntertainmentReservationResult result;
             if (provider is IEntertainmentReservationProvider reservation)
                 result = await reservation.ReserveAsync(input with { OperationId = session.Id.ToString("N") }, ct);
             else
@@ -59,9 +77,6 @@ public sealed class EntertainmentSessionService(IEntertainmentSessionRepository 
                     quoted.Add(new(line.CartItemId, await provider.QuoteAsync(new(line.ProgramKey, line.OfferKey, line.PurchaseOptionKey, line.Quantity), ct), line.Passengers));
                 result = new("", DateTimeOffset.UtcNow.AddMinutes(30), quoted, "");
             }
-            session.Reserved(result.Reference, secrets.Protect(JsonSerializer.Serialize(result)), result.PayableUntil);
-            await sessions.SaveAsync(ct);
-            return Map(session);
         }
         catch (EntertainmentProviderAmbiguousException)
         {
@@ -73,9 +88,30 @@ public sealed class EntertainmentSessionService(IEntertainmentSessionRepository 
             // Keep the idempotency record, but allow the UI to start a fresh session.
             session.Released(); await sessions.SaveAsync(CancellationToken.None); throw;
         }
+        // A failure to persist a successful reservation must not mark the external reservation as released.
+        session.Reserved(result.Reference, secrets.Protect(JsonSerializer.Serialize(result)), result.PayableUntil);
+        await sessions.SaveAsync(ct);
+        return Map(session);
     }
 
-    public async Task<EntertainmentSessionDto> Handle(GetEntertainmentSessionQuery request, CancellationToken ct) => Map(await Owned(request.UserId, request.SessionId, ct));
+    public async Task<EntertainmentSessionDto> Handle(GetEntertainmentSessionQuery request, CancellationToken ct)
+    {
+        await using var userLock = await gate.AcquireAsync(request.UserId, ct);
+        await using var sessionLock = await gate.AcquireAsync(request.SessionId, ct);
+        var session = await sessions.GetFreshAsync(request.SessionId, ct) ?? throw Error("رزرو یافت نشد");
+        if (session.UserId != request.UserId) throw new UnauthorizedAccessException("دسترسی غیرمجاز است");
+        if (session.EntertainmentPurchaseId == null && session.CreatedAt < DateTimeOffset.UtcNow.AddMinutes(-2)
+            && session.Status is EntertainmentSessionStatus.Unknown or EntertainmentSessionStatus.Reserving
+            && providers.GetRequired(session.ProviderKey) is IEntertainmentReservationRecoveryProvider recovery)
+        {
+            if (await recovery.TryReleaseUnpaidReservationAsync(session.Id.ToString("N"), ct))
+            {
+                session.ConfirmRecoveredRelease(secrets.Protect("Provider confirmed unpaid reservation release; receipt release:reserve:" + session.Id.ToString("N")));
+                await sessions.SaveAsync(ct);
+            }
+        }
+        return Map(session);
+    }
     public async Task<EntertainmentSessionDto?> Handle(FindEntertainmentSessionQuery request, CancellationToken ct)
     {
         var session = await sessions.FindAsync(request.UserId, request.IdempotencyKey, ct);
@@ -87,6 +123,7 @@ public sealed class EntertainmentSessionService(IEntertainmentSessionRepository 
         await using var userLock = await gate.AcquireAsync(request.UserId, ct);
         await using var sessionLock = await gate.AcquireAsync(request.SessionId, ct);
         var session = await Owned(request.UserId, request.SessionId, ct);
+        if (session.Status == EntertainmentSessionStatus.Released) throw Error("این رزرو آزاد شده است؛ خرید را از سبد ادامه دهید");
         if (session.EntertainmentPurchaseId.HasValue)
         {
             var replay = await orders.GetOrderAsync(session.EntertainmentPurchaseId.Value, ct) ?? throw Error("سفارش متصل یافت نشد");
@@ -110,14 +147,48 @@ public sealed class EntertainmentSessionService(IEntertainmentSessionRepository 
         return await AttachOrder(value, ct);
     }
 
+    public async Task<EntertainmentSessionDto> Handle(ReturnEntertainmentSessionToCartCommand request, CancellationToken ct)
+    {
+        await using var userLock = await gate.AcquireAsync(request.UserId, ct);
+        await using var sessionLock = await gate.AcquireAsync(request.SessionId, ct);
+        var session = await sessions.GetFreshAsync(request.SessionId, ct) ?? throw Error("رزرو یافت نشد");
+        if (session.UserId != request.UserId) throw new UnauthorizedAccessException("دسترسی غیرمجاز است");
+        if (session.Status == EntertainmentSessionStatus.Released) return Map(session);
+        if (!session.EntertainmentPurchaseId.HasValue) throw Error("رزرو هنوز به سفارش متصل نشده است");
+        var purchase = await orders.GetOrderAsync(session.EntertainmentPurchaseId.Value, ct) ?? throw Error("خرید یافت نشد");
+        if (!purchase.OrderId.HasValue) throw Error("سفارش متصل یافت نشد");
+        var reservation = ReadReservation(session);
+        // Orders checks Unpaid under its payment lock before invoking provider cancellation.
+        await mediator.Send(new CancelOrderCommand(purchase.OrderId.Value, "بازگشت به سبد برای ویرایش خرید",
+            "entertainments-return:" + session.Id.ToString("N"), CallerUserId: request.UserId, CallerRole: "User", UnpaidOnly: true), ct);
+        // Cancellation participants refresh the shared DbContext and detach tracked sessions.
+        session = await sessions.GetFreshAsync(request.SessionId, ct) ?? throw Error("رزرو یافت نشد");
+        var cart = await orders.GetCartAsync(request.UserId, ct);
+        if (cart == null) { cart = EntertainmentCart.Create(request.UserId); await orders.AddCartAsync(cart, ct); }
+        foreach (var line in reservation.Lines)
+        {
+            var q = line.Quote;
+            if (cart.Items.Any(x => x.ProviderKey.Equals(q.ProviderKey, StringComparison.OrdinalIgnoreCase)
+                && x.SupplierKey.Equals(q.SupplierKey, StringComparison.OrdinalIgnoreCase) && x.ProgramKey == q.ProgramKey
+                && x.OfferKey == q.OfferKey && x.PurchaseOptionKey.Equals(q.PurchaseOptionKey, StringComparison.OrdinalIgnoreCase))) continue;
+            cart.AddOrReplace(new(q.ProviderKey, q.SupplierKey, q.ProgramKey, q.OfferKey, q.PurchaseOptionKey,
+                q.ProgramTitle + " - " + q.OptionTitle, q.SupplierTitle, q.ProgramTitle, q.ProgramImageUrl,
+                q.OptionTitle, q.OfferTitle, q.Quantity, q.UnitPriceMinor, q.OriginalUnitPriceMinor));
+        }
+        session.Released();
+        // One module DbContext commits restoration and the replay marker together.
+        await sessions.SaveAsync(ct);
+        return Map(session);
+    }
+
     private async Task<PrepareEntertainmentCheckoutResponse> AttachOrder(EntertainmentPurchase value, CancellationToken ct)
     {
         if (!value.OrderId.HasValue)
         {
             var created = await mediator.Send(new CreateOrderCommand(value.UserId, "Entertainments", value.Id,
                 value.Items.Select(x => new CreateOrderItemInput(x.Title + " - " + x.OfferTitle, x.UnitPriceMinor, x.Quantity, 0,
-                    x.Id, x.CategoryCode, ["entertainments", "provider:" + x.ProviderKey], JsonSerializer.Serialize(new
-                    { entertainments_order_id = value.Id, x.ProviderKey, x.SupplierKey, x.ProgramKey, x.OfferKey, x.PurchaseOptionKey }))).ToList(),
+                    x.Id, x.CategoryCode, ["entertainments"], JsonSerializer.Serialize(new
+                    { entertainments_order_id = value.Id, x.ProgramKey, x.OfferKey, x.PurchaseOptionKey }))).ToList(),
                 "entertainments-order:" + value.Id.ToString("N"), ReferenceType: "EntertainmentPurchase", PayableUntil: value.PayableUntil), ct);
             value.AttachOrder(created.OrderId);
             var cart = await orders.GetCartAsync(value.UserId, ct);

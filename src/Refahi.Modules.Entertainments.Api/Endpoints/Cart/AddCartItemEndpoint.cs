@@ -1,3 +1,4 @@
+using Refahi.Modules.Entertainments.Application.Features.Customer;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -31,10 +32,8 @@ public sealed class AddCartItemEndpoint : IEndpoint
 
                 try
                 {
-                    var result = await m.Send(new AddEntertainmentCartItemCommand(
+                    var result = await m.Send(new AddCustomerCartItemCommand(
                         userId,
-                        body.ProviderKey,
-                        body.SupplierKey,
                         body.ProgramKey,
                         body.OfferKey,
                         body.PurchaseOptionKey,
@@ -42,7 +41,7 @@ public sealed class AddCartItemEndpoint : IEndpoint
                         body.ExpectedUnitPriceMinor
                     ), ct);
 
-                    return Results.Ok(ApiResponseHelper.Success(result, "آیتم به سبد اضافه شد"));
+                    return Results.Ok(ApiResponseHelper.Success(result.Public(), "آیتم به سبد اضافه شد"));
                 }
                 catch (EntertainmentPriceChangedException ex)
                 {
@@ -54,6 +53,6 @@ public sealed class AddCartItemEndpoint : IEndpoint
             .RequireAuthorization("UserOrAdmin");
     }
 
-    public sealed record AddCartItemBody(string ProviderKey, string SupplierKey, string ProgramKey, string OfferKey, string PurchaseOptionKey, int Quantity, long ExpectedUnitPriceMinor);
+    public sealed record AddCartItemBody(string ProgramKey, string OfferKey, string PurchaseOptionKey, int Quantity, long ExpectedUnitPriceMinor);
 }
 

@@ -25,4 +25,4 @@
     <ProjectReference Include="..\Refahi.Modules.Store.Application.Contracts\Refahi.Modules.Store.Application.Contracts.csproj" />
   </ItemGroup>
 <ItemGroup><ProjectReference Include="../Refahi.Modules.Promotions.Application.Contracts/Refahi.Modules.Promotions.Application.Contracts.csproj" /></ItemGroup>
-</Project>
+<ItemGroup><ProjectReference Include="../Refahi.Modules.Entertainments.Application.Contracts/Refahi.Modules.Entertainments.Application.Contracts.csproj" /></ItemGroup></Project>

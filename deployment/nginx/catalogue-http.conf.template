@@ -1,0 +1,17 @@
+# Include inside http{}. Render with tools/render-catalogue-nginx.py.
+# Socket peer, never a caller-supplied forwarding header.
+geo $realip_remote_addr $catalogue_ssr_peer {
+    default 0;
+    __WEB_PEER_IP__ 1;
+}
+map "$catalogue_ssr_peer:$uri" $catalogue_rate_key {
+    default $realip_remote_addr;
+    ~^1:/api/catalogue(?:/|$) "";
+}
+limit_req_zone $catalogue_rate_key zone=catalogue_per_ip:10m rate=20r/s;
+map "$limit_req_status:$upstream_status" $catalogue_rejection_reason {
+    ~^REJECTED: rate;
+    ~:429$ concurrency;
+    default "";
+}
+log_format catalogue_safe escape=json '{"path":"$uri","status":$status,"seconds":$request_time,"reason":"$catalogue_rejection_reason"}';

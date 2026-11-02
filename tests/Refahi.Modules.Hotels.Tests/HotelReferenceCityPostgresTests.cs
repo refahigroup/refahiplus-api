@@ -26,6 +26,7 @@ public sealed class HotelReferenceCityPostgresTests
     public async Task V4MappingsAndListingUpgrade_PreserveNativeAndHistoricalIdentities()
     {
         var connection = Environment.GetEnvironmentVariable("REFAHI_HOTEL_TEST_DATABASE")!;
+        await Refahi.Tests.DisposablePostgres.ValidateAndProbeAsync(connection, "hotel_city_test");
         Assert.StartsWith("hotel_city_test", new NpgsqlConnectionStringBuilder(connection).Database);
         var services = new ServiceCollection();
         services.AddDbContext<HotelsDbContext>(o => o.UseNpgsql(connection));

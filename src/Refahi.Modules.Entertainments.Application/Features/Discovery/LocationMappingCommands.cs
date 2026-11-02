@@ -13,7 +13,7 @@ public sealed class SetEntertainmentLocationMappingValidator : AbstractValidator
         RuleFor(x => x.ActorId).NotEmpty().WithMessage("هویت مدیر معتبر نیست");
     }
 }
-public sealed class SetEntertainmentLocationMappingHandler(IEntertainmentDiscovery discovery) : IRequestHandler<SetEntertainmentLocationMappingCommand>
+public sealed class SetEntertainmentLocationMappingHandler(IEntertainmentLocationMappings discovery) : IRequestHandler<SetEntertainmentLocationMappingCommand>
 {
     public async Task<Unit> Handle(SetEntertainmentLocationMappingCommand request, CancellationToken ct)
     { await discovery.SetMappingAsync(request.Code, request.CityId, request.ActorId, ct); return Unit.Value; }

@@ -421,6 +421,9 @@ namespace Refahi.Modules.Entertainments.Infrastructure.Migrations
                     b.Property<int>("CheckCount")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("DeliveryNeedsReview")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("DeliveryProtected")
                         .HasColumnType("text");
 
@@ -629,6 +632,10 @@ namespace Refahi.Modules.Entertainments.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("SortTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("SupplierId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -649,6 +656,27 @@ namespace Refahi.Modules.Entertainments.Infrastructure.Migrations
                     b.HasIndex("AccountKey", "IsListed", "NextDetailAttemptUtc");
 
                     b.ToTable("touristpanel_programs", "entertainments");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Entertainments.Domain.TouristPanelSupplier", b =>
+                {
+                    b.Property<Guid>("SupplierKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NativeId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("SupplierKey");
+
+                    b.HasIndex("AccountKey", "NativeId")
+                        .IsUnique();
+
+                    b.ToTable("touristpanel_suppliers", "entertainments");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Entertainments.Domain.TouristPanelSyncState", b =>

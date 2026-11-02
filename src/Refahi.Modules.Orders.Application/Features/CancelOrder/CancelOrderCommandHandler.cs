@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Services;
 using Refahi.Modules.Orders.Domain.Repositories;
@@ -27,7 +27,8 @@ public sealed class CancelOrderCommandHandler(
             order,
             request.Reason,
             request.VoucherRefundOverrideId,
-            ct
+            ct,
+            request.UnpaidOnly
         );
     }
 }

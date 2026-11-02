@@ -13,7 +13,7 @@ public sealed class DiscoveryManagementEndpoints : IEndpoint
     public void Map(object app)
     {
         if (app is not IEndpointRouteBuilder routes) return;
-        routes.MapGet("/admin/location-mappings", async (IEntertainmentDiscovery discovery, CancellationToken ct) =>
+        routes.MapGet("/admin/location-mappings", async (IEntertainmentLocationMappings discovery, CancellationToken ct) =>
             Results.Ok(ApiResponseHelper.Success(await discovery.MappingsAsync(ct))))
             .RequireAuthorization("AdminOnly").WithName("Entertainments.LocationMappings").WithTags("Entertainments.Admin");
         routes.MapPut("/admin/location-mappings", async (MappingBody body, HttpContext context, IMediator sender, CancellationToken ct) => {
@@ -21,10 +21,7 @@ public sealed class DiscoveryManagementEndpoints : IEndpoint
             await sender.Send(new SetEntertainmentLocationMappingCommand(body.Code, body.CityId, actor), ct);
             return Results.Ok(ApiResponseHelper.Success(true));
         }).RequireAuthorization("AdminOnly").WithName("Entertainments.SetLocationMapping").WithTags("Entertainments.Admin");
-        routes.MapGet("/legacy/programs/{nativeId:guid}", async (Guid nativeId, IEntertainmentDiscovery discovery, CancellationToken ct) => {
-            var key = await discovery.ResolveProgramKeyAsync(nativeId.ToString(), ct);
-            return key.HasValue ? Results.Ok(ApiResponseHelper.Success(key.Value)) : Results.NotFound(ApiResponseHelper.Error("خدمت یافت نشد", statusCode: 404));
-        }).WithName("Entertainments.ResolveLegacyProgram").WithTags("Entertainments.Discovery");
+
     }
     public sealed record MappingBody(string Code, int CityId);
 }

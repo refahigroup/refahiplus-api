@@ -12,10 +12,20 @@ public sealed class EntertainmentProgramsValidator : AbstractValidator<GetEntert
         RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("اندازه صفحه معتبر نیست");
         RuleFor(x => x.LocationCode).MaximumLength(200).WithMessage("موقعیت معتبر نیست");
         RuleFor(x => x.CategoryCode).MaximumLength(100).WithMessage("دسته‌بندی معتبر نیست");
-        RuleFor(x => x.ProviderKey).Must(x => string.IsNullOrWhiteSpace(x) || x == "touristpanel").WithMessage("ارائه‌دهنده معتبر نیست");
     }
 }
 public sealed class EntertainmentProgramValidator : AbstractValidator<GetEntertainmentProgramQuery>
 {
     public EntertainmentProgramValidator() => RuleFor(x => x.ProgramKey).Must(x => Guid.TryParse(x, out var id) && id != Guid.Empty).WithMessage("شناسه خدمت معتبر نیست");
+}
+
+public sealed class EntertainmentSuppliersValidator : AbstractValidator<Refahi.Modules.Entertainments.Application.Features.Catalog.GetSuppliers.GetEntertainmentSuppliersQuery>
+{
+    public EntertainmentSuppliersValidator()
+    {
+        RuleFor(x => x.PageNumber).InclusiveBetween(1, 1000).WithMessage("شماره صفحه معتبر نیست");
+        RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("اندازه صفحه معتبر نیست");
+        RuleFor(x => x.LocationCode).MaximumLength(200).WithMessage("موقعیت معتبر نیست");
+        RuleFor(x => x.CategoryCode).MaximumLength(100).WithMessage("دسته‌بندی معتبر نیست");
+    }
 }

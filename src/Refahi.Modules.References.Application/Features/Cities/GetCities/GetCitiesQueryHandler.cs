@@ -24,6 +24,7 @@ public class GetCitiesQueryHandler : IRequestHandler<GetCitiesQuery, GetCitiesRe
         );
 
         var dtos = cities
+            .Where(item => ReferenceSearch.Matches(item.Name, item.NameEn, request.Q))
             .Select(c => new CityDto(
                 c.Id,
                 c.Name,

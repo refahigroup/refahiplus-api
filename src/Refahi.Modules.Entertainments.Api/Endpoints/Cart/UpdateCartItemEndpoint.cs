@@ -1,3 +1,4 @@
+using Refahi.Modules.Entertainments.Application.Features.Customer;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -33,7 +34,7 @@ public sealed class UpdateCartItemEndpoint : IEndpoint
 
                     var result = await m.Send(new UpdateEntertainmentCartItemCommand(userId, itemId, body.Quantity), ct);
 
-                    return Results.Ok(ApiResponseHelper.Success(result));
+                    return Results.Ok(ApiResponseHelper.Success(result.Public()));
 
                 }
             )

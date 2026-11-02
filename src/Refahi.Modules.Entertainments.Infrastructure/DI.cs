@@ -20,7 +20,11 @@ public static class DI
             x => x.MigrationsHistoryTable("__EFMigrationsHistory", EntertainmentDbContext.Schema)));
         
         services.Configure<Refahi.Modules.Entertainments.Application.Contracts.Discovery.EntertainmentsOptions>(configuration.GetSection("Entertainments"));
-        services.AddScoped<Refahi.Modules.Entertainments.Application.Contracts.Discovery.IEntertainmentDiscovery, Providers.TouristPanel.EntertainmentDiscoveryReader>();
+        services.AddScoped<Providers.TouristPanel.EntertainmentDiscoveryReader>();
+        services.AddScoped<Refahi.Modules.Entertainments.Application.Contracts.Discovery.IEntertainmentDiscovery, Providers.TouristPanel.EntertainmentDiscoveryReader>(sp => sp.GetRequiredService<Providers.TouristPanel.EntertainmentDiscoveryReader>());
+        services.AddScoped<Refahi.Modules.Entertainments.Application.Contracts.Discovery.IEntertainmentContentReader, Providers.TouristPanel.EntertainmentDiscoveryReader>(sp => sp.GetRequiredService<Providers.TouristPanel.EntertainmentDiscoveryReader>());
+        services.AddScoped<Refahi.Modules.Entertainments.Application.Contracts.Discovery.IEntertainmentProgramIdentity, Providers.TouristPanel.EntertainmentDiscoveryReader>(sp => sp.GetRequiredService<Providers.TouristPanel.EntertainmentDiscoveryReader>());
+        services.AddScoped<Refahi.Modules.Entertainments.Application.Contracts.Discovery.IEntertainmentLocationMappings, Providers.TouristPanel.EntertainmentDiscoveryReader>(sp => sp.GetRequiredService<Providers.TouristPanel.EntertainmentDiscoveryReader>());
         services.AddDataProtection();
         
         services.AddScoped<IEntertainmentPrivateDataRetention, EntertainmentPrivateDataRetention>();
