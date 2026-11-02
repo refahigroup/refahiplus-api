@@ -21,7 +21,7 @@ variables:
   API_RUNTIME: "linux-x64"
 
   # NuGet
-  NUGET_PACKAGES: ".nuget/packages"
+  NUGET_PACKAGES: "$CI_PROJECT_DIR/.nuget/packages"
   NUGET_SOURCE: "https://api.nuget.org/v3/index.json"
   NUGET_XMLDOC_MODE: "skip"
 
@@ -156,8 +156,18 @@ build_publish:
           --logger "trx;LogFileName=${suite}.trx" \
           --results-directory artifacts/catalogue-release/test-results
       done
-      dotnet list "./$SOLUTION" package --vulnerable --include-transitive --format json \
-        > artifacts/catalogue-release/security-audit.json
+      echo "=== NuGet security audit ==="
+      if dotnet list "./$SOLUTION" package --no-restore \
+        --config ./NuGet.CI.Config --vulnerable --include-transitive --format json \
+        > artifacts/catalogue-release/security-audit.json \
+        2> artifacts/catalogue-release/security-audit.stderr.log; then
+        echo "NuGet security audit report generated."
+      else
+        audit_exit=$?
+        cat artifacts/catalogue-release/security-audit.json
+        cat artifacts/catalogue-release/security-audit.stderr.log >&2
+        exit "$audit_exit"
+      fi
 
       echo "=== Publish API ==="
 
