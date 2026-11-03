@@ -91,7 +91,8 @@ public sealed class PoolCatalogReader(PoolsDbContext db, IOptionsMonitor<PoolsOp
     {
         var p = await db.Venues.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.IsActive, ct); if (p == null) return null;
         var rows = await db.Sessions.AsNoTracking().Where(x => x.PoolId == id && x.IsActive).OrderBy(x => x.StartsAtUtc).ThenBy(x => x.Id).ToArrayAsync(ct);
-        return new(Venue(p), p.TermsHtml, rows.Select(s => Session(s, p)).ToArray());
+        return new(Venue(p), p.TermsHtml, rows.Select(s => Session(s, p)).ToArray(), p.SessionsFetchedAt,
+            p.SessionsFetchedAt is null || p.SessionsFetchedAt < clock.GetUtcNow().AddSeconds(-2d * options.CurrentValue.SessionSyncSeconds));
     }
     public async Task<PoolSessionDto?> SessionAsync(Guid id, CancellationToken ct)
     {

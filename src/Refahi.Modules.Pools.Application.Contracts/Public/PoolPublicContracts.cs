@@ -9,7 +9,8 @@ public sealed record PoolSessionDto(Guid Id, Guid PoolId, string PoolName, strin
     string Name, int Gender, string Date, string Time, DateTimeOffset? StartsAtUtc, DateTimeOffset? EndsAtUtc,
     long AdultMinor, long ChildMinor, bool AdultEnabled, bool ChildEnabled, bool IsSelling, bool CanPurchase,
     string DescriptionHtml, string TermsHtml, DateTimeOffset FetchedAt);
-public sealed record PoolVenueDetailsDto(PoolVenueDto Pool, string TermsHtml, IReadOnlyList<PoolSessionDto> Sessions);
+public sealed record PoolVenueDetailsDto(PoolVenueDto Pool, string TermsHtml, IReadOnlyList<PoolSessionDto> Sessions,
+    DateTimeOffset? SessionsFetchedAt = null, bool SessionsStale = false);
 public sealed record PoolLocationDto(string Id, string Name);
 public sealed record PoolCatalogFilter(string? Search = null, string? State = null, string? City = null, int? Gender = null,
     string Sort = "name", int Page = 1, int Limit = 10, Guid? PoolId = null, DateOnly? Date = null);
