@@ -83,32 +83,42 @@ public sealed class PoolTicketProvider(PoolTicketClient client, IOptions<PoolTic
 
     public async Task<IReadOnlyList<PoolSession>> SessionsAsync(string poolId, CancellationToken ct)
     {
-        var r = await client.PostAsync<SessionsResponse>("saens/list", new()
+        var id = NumericId(poolId);
+        var token = options.Value.AccessToken;
+        if (string.IsNullOrWhiteSpace(token))
+            throw new PoolException("توکن سازمانی تأمین‌کننده برای دریافت سانس‌ها تنظیم نشده است", 503, "POOLS_PROVIDER_AUTH_NOT_CONFIGURED");
+        var result = new Dictionary<string, PoolSession>();
+        foreach (var gender in new[] { 0, 1 })
         {
-            ["pool_id"] = NumericId(poolId)
-        }, ct);
-
-        return Checked(r.Saens).Select(s => new PoolSession(
-            Id(s.SaensId),
-            Required(s.SaensName),
-            s.Gender,
-            Checked(s.Rows).Select(x => new PoolSessionRow(
-                Id(x.SaensRowId),
-                x.StatusSell,
-                x.AdultSaleStatus,
-                x.ChildSaleStatus,
-                Price(x.PriceSaleAdult)!.Value,
-                Price(x.PriceSaleChild)!.Value,
-                Price(x.PriceMarketAdult)!.Value,
-                Price(x.PriceMarketChild)!.Value,
-                Required(x.StartDate),
-                x.StartDay ?? "",
-                Required(x.Time),
-                Html(x.Description, x.DescriptionType),
-                Html(x.TermsOfUse, x.TermsOfUseType),
-                options.Value.PriceUnit)
-            ).ToArray()
-        )).ToArray();
+            var response = await client.PostOrganizationAsync<OrganizationSessionsResponse>("saens/list", new()
+            {
+                ["pool"] = id, ["gender"] = gender, ["access_token"] = token
+            }, ct);
+            var observed = new HashSet<long>();
+            foreach (var row in Checked(response.Saens))
+            {
+                if (!observed.Add(row.SaensRowId) || row.RemainCapacity is null or < 0) throw Invalid();
+                var time = PoolSessionTime.ParseDateTimes(row.StartDatetime, row.FinishDatetime);
+                // v1 has rows, not provider groups; an empty group key preserves that distinction.
+                var session = new PoolSession("", Required(row.SaensName), gender,
+                    [new PoolSessionRow(Id(row.SaensRowId), row.Status && row.StatusSell && row.RemainCapacity > 0,
+                        row.AdultSaleStatus, row.ChildSaleStatus,
+                        Price(row.PriceSaleAdult)!.Value, Price(row.PriceSaleChild)!.Value,
+                        Price(row.PriceMarketAdult)!.Value, Price(row.PriceMarketChild)!.Value,
+                        Required(row.StartDate), row.StartDay ?? "", Required(row.Time),
+                        Html(row.Description, "html"), Html(row.TermsOfUse, "html"), options.Value.PriceUnit,
+                        time.Start, time.End)]);
+                var key = session.Rows[0].Id;
+                if (result.TryGetValue(key, out var previous))
+                {
+                    if (previous.Name != session.Name || previous.Rows[0] != session.Rows[0]) throw Invalid();
+                    // The same row returned by both gender queries is eligible for both.
+                    result[key] = previous with { Gender = 2 };
+                }
+                else result.Add(key, session);
+            }
+        }
+        return result.Values.ToArray();
     }
 
     public async Task<string> TermsAsync(string poolId, CancellationToken ct)

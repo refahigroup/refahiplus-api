@@ -61,7 +61,7 @@ public sealed class PoolContractTests
     [InlineData("true", true)] [InlineData("false", false)]
     public async Task Sessions_accept_numeric_and_boolean_sale_flags(string flag, bool expected)
     {
-        var json = """{"status":1,"saens":[{"saens_id":7,"saens_name":"روز","gender":2,"rows":[{"saens_row_id":9,"status_sell":FLAG,"adult_sale_status":FLAG,"child_sale_status":FLAG,"price_sale_adult":100,"price_sale_child":200,"price_market_adult":120,"price_market_child":220,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}]}]}""".Replace("FLAG", flag);
+        var json = """{"status":1,"saens":[{"saens_row_id":9,"saens_name":"روز","status":1,"remain_capacity":10,"status_sell":FLAG,"adult_sale_status":FLAG,"child_sale_status":FLAG,"price_sale_adult":100,"price_sale_child":200,"price_market_adult":120,"price_market_child":220,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}]}""".Replace("FLAG", flag);
         var sessions = await Provider(new(json)).SessionsAsync("2", default);
         var row = Assert.Single(Assert.Single(sessions).Rows);
         Assert.Equal(expected, row.IsSelling);
@@ -135,10 +135,12 @@ public sealed class PoolContractTests
         var handler = new StubHandler("""{"status":0,"error":"invalid_pool"}""");
         var error = await Assert.ThrowsAsync<PoolException>(() => Provider(handler).SessionsAsync("72", default));
         Assert.Equal(404, error.Status);
-        Assert.Equal("/api/v2/saens/list", handler.Path);
+        Assert.Equal("/api/v1/org/saens/list", handler.Path);
         Assert.Equal("application/json", handler.Accept);
-        Assert.Contains("pool_id=72", handler.Body);
+        Assert.Contains("pool=72", handler.Body);
         Assert.Contains("client_id=test-client", handler.Body);
+        Assert.Contains("access_token=test-org-token", handler.Body);
+        Assert.Contains("gender=0", handler.Body);
     }
 
     [Fact]
@@ -208,14 +210,14 @@ public sealed class PoolContractTests
     [Fact]
     public async Task Cities_sessions_terms_and_calculate_follow_documented_wire_contracts()
     {
-        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", PriceUnit = "IRR", CalculateReadOnlyConfirmed = true });
+        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", AccessToken = "test-org-token", PriceUnit = "IRR", CalculateReadOnlyConfirmed = true });
         var handler = new RoutingHandler();
         var p = new PoolTicketProvider(new(new HttpClient(handler) { BaseAddress = new("https://example.test/") }, options, NullLogger<PoolTicketClient>.Instance), options);
         Assert.Equal("3", (await p.CitiesAsync("2", true, default)).Single().Id);
         var row = (await p.SessionsAsync("12", default)).Single().Rows.Single(); Assert.Equal("9", row.Id); Assert.Equal(200, row.ChildPrice);
         Assert.Equal("<p>قانون</p>", await p.TermsAsync("12", default));
         var quote = await p.QuoteAsync(new("poolticket", "12", "9", 1, 2), default); Assert.Equal(500, quote.TotalMinor);
-        Assert.Contains("state_id=2", handler.Bodies["cities"]); Assert.Contains("pool_id=12", handler.Bodies["saens/list"]);
+        Assert.Contains("state_id=2", handler.Bodies["cities"]); Assert.Contains("pool=12", handler.Bodies["saens/list"]);
         Assert.Contains("saens_row_id=9", handler.Bodies["reservation/calculate"]); Assert.Contains("count_child=2", handler.Bodies["reservation/calculate"]);
         Assert.DoesNotContain("coupon", handler.Bodies["reservation/calculate"]);
         options.Value.CalculateReadOnlyConfirmed = false;
@@ -247,14 +249,14 @@ public sealed class PoolContractTests
     }
     private static PoolTicketProvider Provider(StubHandler handler)
     {
-        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", CalculateReadOnlyConfirmed = true });
+        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", AccessToken = "test-org-token", CalculateReadOnlyConfirmed = true });
         return new(new(new HttpClient(handler) { BaseAddress = new("https://example.test/") }, options, NullLogger<PoolTicketClient>.Instance), options);
     }
     private sealed class StubHandler(string json, HttpStatusCode status = HttpStatusCode.OK, string mediaType = "application/json") : HttpMessageHandler
     {
         public string? Body, Path, Accept;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage r, CancellationToken ct)
-        { Body = await r.Content!.ReadAsStringAsync(ct); Path = r.RequestUri!.AbsolutePath; Accept = r.Headers.Accept.ToString(); return new(status) { Content = new StringContent(json, Encoding.UTF8, mediaType) }; }
+        { Body = await r.Content!.ReadAsStringAsync(ct); Path = r.RequestUri!.AbsolutePath; Accept = r.Headers.Accept.ToString(); return new(status) { Content = new StringContent(Path == "/api/v1/org/saens/list" && Body.Contains("gender=1") ? "{\"status\":1,\"saens\":[]}" : json, Encoding.UTF8, mediaType) }; }
     }
     private sealed class ThrowingHandler(Exception error) : HttpMessageHandler
     {
@@ -265,11 +267,12 @@ public sealed class PoolContractTests
         public readonly Dictionary<string, string> Bodies = [];
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage r, CancellationToken ct)
         {
-            var path = r.RequestUri!.AbsolutePath["/api/v2/".Length..]; Bodies[path] = await r.Content!.ReadAsStringAsync(ct);
-            var json = path switch
+            var rawPath = r.RequestUri!.AbsolutePath;
+            var path = rawPath.StartsWith("/api/v1/org/") ? rawPath["/api/v1/org/".Length..] : rawPath["/api/v2/".Length..]; Bodies[path] = await r.Content!.ReadAsStringAsync(ct);
+            var json = path == "saens/list" && Bodies[path].Contains("gender=1") ? "{\"status\":1,\"saens\":[]}" : path switch
             {
                 "cities" => """{"status":1,"cities":[{"state_id":2,"state_name":"استان","city_id":3,"city_name":"شهر"}]}""",
-                "saens/list" => """{"status":1,"saens":[{"saens_id":7,"saens_name":"روز","gender":2,"rows":[{"saens_row_id":9,"status_sell":true,"adult_sale_status":true,"child_sale_status":true,"price_sale_adult":100,"price_sale_child":200,"price_market_adult":120,"price_market_child":220,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}]}]}""",
+                "saens/list" => """{"status":1,"saens":[{"saens_row_id":9,"saens_name":"روز","status":1,"remain_capacity":10,"status_sell":true,"adult_sale_status":true,"child_sale_status":true,"price_sale_adult":100,"price_sale_child":200,"price_market_adult":120,"price_market_child":220,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}]}""",
                 "pool/terms-of-use/12" => """{"status":1,"terms_of_use":{"content":"<p>قانون</p>"}}""",
                 "reservation/calculate" => """{"status":1,"cart":{"saens_row_id":9,"total_sale":500,"total_market":560,"count_adult":1,"count_child":2,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}}""",
                 _ => throw new InvalidOperationException(path)

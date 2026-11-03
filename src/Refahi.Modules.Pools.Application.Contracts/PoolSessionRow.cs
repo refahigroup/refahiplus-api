@@ -14,5 +14,7 @@ public sealed record PoolSessionRow(
     string Time,
     string DescriptionHtml,
     string TermsHtml,
-    string? PriceUnit
+    string? PriceUnit,
+    DateTimeOffset? StartsAtUtc = null,
+    DateTimeOffset? EndsAtUtc = null
 );

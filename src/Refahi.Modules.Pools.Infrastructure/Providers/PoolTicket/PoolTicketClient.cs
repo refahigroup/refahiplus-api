@@ -14,6 +14,7 @@ public sealed class PoolTicketOptions
 {
     public string BaseUrl { get; set; } = "https://staging.poolticket.org";
     public string ClientId { get; set; } = "ClientId";
+    public string? AccessToken { get; set; }
     public int TimeoutSeconds { get; set; } = 30;
     public string RequestEncoding { get; set; } = "Form";
     public string? PriceUnit { get; set; } = "TOMAN";
@@ -28,7 +29,13 @@ public sealed class PoolTicketClient(HttpClient http, IOptions<PoolTicketOptions
         Converters = { new PoolTicketBooleanConverter() }
     };
 
-    internal async Task<T> PostAsync<T>(string path, Dictionary<string, object?> fields, CancellationToken ct) where T : WireResponse
+    internal Task<T> PostAsync<T>(string path, Dictionary<string, object?> fields, CancellationToken ct) where T : WireResponse
+        => SendAsync<T>("api/v2/" + path, fields, ct);
+
+    internal Task<T> PostOrganizationAsync<T>(string path, Dictionary<string, object?> fields, CancellationToken ct) where T : WireResponse
+        => SendAsync<T>("api/v1/org/" + path, fields, ct);
+
+    private async Task<T> SendAsync<T>(string path, Dictionary<string, object?> fields, CancellationToken ct) where T : WireResponse
     {
         var settings = options.Value;
 
@@ -41,7 +48,7 @@ public sealed class PoolTicketClient(HttpClient http, IOptions<PoolTicketOptions
 
         body.Add("client_id", settings.ClientId);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "api/v2/" + path);
+        using var request = new HttpRequestMessage(HttpMethod.Post, path);
         request.Headers.Accept.ParseAdd("application/json");
 
         request.Content = settings.RequestEncoding == "Json"
@@ -130,12 +137,12 @@ public sealed class PoolTicketClient(HttpClient http, IOptions<PoolTicketOptions
         finally
         {
             logger.LogInformation("PoolTicket operation completed. Operation={Operation} HttpStatus={HttpStatus} LatencyMs={LatencyMs} Success={Success} TraceId={TraceId}",
-                path.Split('/')[0], httpStatus, timer.ElapsedMilliseconds, successful, Activity.Current?.TraceId.ToString());
+                path, httpStatus, timer.ElapsedMilliseconds, successful, Activity.Current?.TraceId.ToString());
         }
     }
     public static PoolException MapError(string? error) => error switch
     {
-        "invalid_pool" or "invalid_saens_row"
+        "invalid_pool" or "invalid_saens_row" or "invalid_saens_row_id"
             => new("استخر یا سانس یافت نشد", 404),
         "invalid_state"
             => new("استان معتبر نیست", 400),
@@ -145,6 +152,12 @@ public sealed class PoolTicketClient(HttpClient http, IOptions<PoolTicketOptions
             => new("کد تخفیف قابل استفاده نیست", 400),
         "city_id,area_id and lat,lng should not be sent together"
             => new("شهر و مختصات همزمان مجاز نیستند", 400),
+        "invalid_access_token" or "expired_access_token"
+            => new("توکن سازمانی تأمین‌کننده معتبر نیست یا منقضی شده است", 502, "POOLS_PROVIDER_TOKEN_INVALID"),
+        "access_denied"
+            => new("دسترسی به اطلاعات تأمین‌کننده مجاز نیست", 502, "POOLS_PROVIDER_ACCESS_DENIED"),
+        "invalid_gender"
+            => new("جنسیت سانس معتبر نیست", 400, "POOLS_INVALID_GENDER"),
         "invalid_client"
             => new("اتصال تأمین‌کننده نیازمند بررسی است", 502),
         _ => new("تأمین‌کننده درخواست را تکمیل نکرد؛ دوباره تلاش کنید", 502)
@@ -202,16 +215,16 @@ internal sealed record PoolWire(long PoolId, string Name, string? DefaultImage, 
     decimal? Lat, decimal? Lng, bool StatusSell, int Gender, decimal? Rating, decimal? MaxDiscount,
     decimal? MinimumSalePrice, decimal? MinimumMarketPrice);
 
-internal sealed class SessionsResponse : WireResponse
+internal sealed class OrganizationSessionsResponse : WireResponse
 {
-    public SessionWire[]? Saens { get; set; }
+    public OrganizationSessionWire[]? Saens { get; set; }
 }
 
-internal sealed record SessionWire(long SaensId, string SaensName, int Gender, RowWire[]? Rows);
-
-internal sealed record RowWire(long SaensRowId, bool StatusSell, bool AdultSaleStatus, bool ChildSaleStatus,
+internal sealed record OrganizationSessionWire(long SaensRowId, string SaensName,
+    bool Status, bool StatusSell, bool AdultSaleStatus, bool ChildSaleStatus,
     decimal PriceSaleAdult, decimal PriceSaleChild, decimal PriceMarketAdult, decimal PriceMarketChild,
-    string StartDate, string StartDay, string Time, string? Description, string? DescriptionType, string? TermsOfUse, string? TermsOfUseType);
+    int? RemainCapacity, string StartDate, string StartDay, string Time,
+    string? Description, string? TermsOfUse, string? StartDatetime, string? FinishDatetime);
 
 internal sealed class TermsResponse : WireResponse
 {
