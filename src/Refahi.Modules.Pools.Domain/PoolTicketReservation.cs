@@ -15,7 +15,7 @@ public sealed class PoolTicketReservation
     public static PoolTicketReservation Begin(Guid request, string mobile, DateTimeOffset now) =>
         new() { RequestId = request, Mobile = mobile, StartedAt = now, Status = PoolTicketOperationStatus.Sending };
     public void Reserve(string id, string voucherCiphertext, int enter, DateTimeOffset now)
-    { ReservationId = id; VoucherCiphertext = voucherCiphertext; Enter = enter; CompletedAt = now; Status = PoolTicketOperationStatus.Reserved; }
+    { ReservationId = id; VoucherCiphertext = voucherCiphertext; Enter = enter; CompletedAt = now; Status = PoolTicketOperationStatus.Reserved; ErrorCode = null; }
     public void Fail(bool definite, string code, DateTimeOffset now)
     { Status = definite ? PoolTicketOperationStatus.Rejected : PoolTicketOperationStatus.Unknown; ErrorCode = code; CompletedAt = now; }
 }

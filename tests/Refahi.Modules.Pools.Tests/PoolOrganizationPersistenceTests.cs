@@ -57,6 +57,25 @@ public sealed class PoolOrganizationPersistenceTests
         await using(var db=Db())Assert.Equal(PoolFulfillmentOutcome.Unknown,(await Service(db,provider).ReserveAsync(id,Selection,default,2000)).Outcome);Assert.Equal(1,provider.Calls);
     }
     [PostgresFact]
+    public async Task Inconsistent_reserve_response_is_resolved_only_by_same_known_id_voucher_and_exact_info_without_second_reserve()
+    {
+        var id=await Seed();var provider=new Provider{InconsistentReserveAmount=true};
+        await using(var db=Db())Assert.Equal(PoolFulfillmentOutcome.Unknown,(await Service(db,provider).ReserveAsync(id,Selection,default,1000)).Outcome);
+        await using(var db=Db())Assert.Equal(PoolFulfillmentOutcome.Reserved,(await Service(db,provider).ReserveAsync(id,Selection,default,1000)).Outcome);
+        Assert.Equal(1,provider.Calls);Assert.Equal(1,provider.InfoCalls);
+    }
+    [PostgresFact]
+    public async Task Known_id_verification_never_accepts_different_identity_voucher_counts_or_date()
+    {
+        foreach(var changed in new[]{"id","voucher","counts","date"})
+        {
+            var id=await Seed();var provider=new Provider{InconsistentReserveAmount=true,BadInfo=changed};
+            await using(var db=Db())Assert.Equal(PoolFulfillmentOutcome.Unknown,(await Service(db,provider).ReserveAsync(id,Selection,default,1000)).Outcome);
+            await using(var db=Db())Assert.Equal(PoolFulfillmentOutcome.Unknown,(await Service(db,provider).ReserveAsync(id,Selection,default,1000)).Outcome);
+            Assert.Equal(1,provider.Calls);
+        }
+    }
+    [PostgresFact]
     public async Task Two_workers_use_source_lock_and_only_one_provider_reserve()
     {
         var id=await Seed();var provider=new Provider();var gate=new PostgresPoolMutationLock(Connection);
@@ -98,13 +117,13 @@ public sealed class PoolOrganizationPersistenceTests
     private sealed class Factory(IPoolProvider provider):IPoolProviderFactory{public IReadOnlyList<IPoolProvider> Enabled()=>[provider];public IPoolProvider Get(string key)=>provider;}
     private sealed class Provider:IPoolOrganizationProvider
     {
-        public int Calls;public bool Fail;public string Key=>"poolticket";public string Name=>"test";public PoolCapabilities Capabilities=>new(true,true,true,false,true,false,false);
-        public async Task<PoolExternalReservation> ReserveAsync(PoolSelection selection,CancellationToken ct){Interlocked.Increment(ref Calls);await Task.Delay(15,ct);if(Fail)throw new PoolException("unknown",502);return new(Guid.NewGuid().ToString(),"voucher","Pool","Session",1,0,100,"2026-11-05","10:00",0);}
+        public string? BadInfo;public int Calls,InfoCalls;public bool Fail,InconsistentReserveAmount;public string Key=>"poolticket";public string Name=>"test";public PoolCapabilities Capabilities=>new(true,true,true,false,true,false,false);
+        public async Task<PoolExternalReservation> ReserveAsync(PoolSelection selection,CancellationToken ct){Interlocked.Increment(ref Calls);await Task.Delay(15,ct);if(Fail)throw new PoolException("unknown",502);return new(Guid.NewGuid().ToString(),"voucher","Pool","Session",1,0,InconsistentReserveAmount?0:100,"2026-11-05","10:00",0);}
         public Task RegisterUserAsync(CancellationToken ct)=>throw new NotImplementedException();
         public Task<IReadOnlyList<PoolArea>> AreasAsync(string id,CancellationToken ct)=>throw new NotImplementedException();
         public Task<PoolProviderDetails> DetailsAsync(string id,CancellationToken ct)=>throw new NotImplementedException();
         public Task<PoolSessionAvailability> SessionInfoAsync(string pool,string row,CancellationToken ct)=>throw new NotImplementedException();
-        public Task<PoolExternalReservation> ReservationInfoAsync(string id,CancellationToken ct)=>throw new NotImplementedException();
+        public Task<PoolExternalReservation> ReservationInfoAsync(string id,CancellationToken ct){InfoCalls++;return Task.FromResult(new PoolExternalReservation(BadInfo=="id"?"different":id,BadInfo=="voucher"?"different":"voucher","Pool","Session",BadInfo=="counts"?2:1,0,100,BadInfo=="date"?"different":"2026-11-05","10:00",0));}
         public Task<PoolReservationHistory> ReservationHistoryAsync(int page,int limit,CancellationToken ct)=>throw new NotImplementedException();
         public Task<IReadOnlyList<PoolState>> StatesAsync(bool active,CancellationToken ct)=>throw new NotImplementedException();
         public Task<IReadOnlyList<PoolCity>> CitiesAsync(string? state,bool active,CancellationToken ct)=>throw new NotImplementedException();

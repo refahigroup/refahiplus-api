@@ -61,12 +61,29 @@ New purchases accept one session, preserving adult/child counts. Existing idempo
 
 Successful, rejected and unknown fulfillment are distinct from financial payment. Successful supplier reservations cannot be cancelled or redeemed through Refahi operators. Historical internal vouchers retain their behavior. Definite rejection enters Orders cancellation/refund with original wallet allocation. Recovery remains active when new sales/discovery are disabled. Unknown outcomes and amount/count mismatches require review and survive internal deadlines without auto-refund. Known reservation evidence is retained for mismatches. Operations store the fixed mobile used at send time. The public page continues polling paid-but-unresolved reservations and only offers PDF after vouchers exist.
 
-Unknown operations currently require operational investigation; there is no automatic history-based attachment, resend control, or new support UI in this change. The archive does not document a supplier idempotency key or online cancellation contract.
+Unknown operations without a verifiable known reservation ID require operational investigation; there is no automatic history-based attachment, resend control, or new support UI in this change. The archive does not document a supplier idempotency key or online cancellation contract.
 
 ## Verification and Local runtime
 
-Backend: 119 tests passed, including real isolated PostgreSQL, Orders/Wallets split payments/refunds, concurrent fulfillment, crash/restart intent, ambiguous outcomes, live time changes before debit, contract forms, registration fallback and token coordination. The test database is isolated from Local business data.
+Backend: 121 tests passed, including real isolated PostgreSQL, Orders/Wallets split payments/refunds, concurrent fulfillment, crash/restart intent, ambiguous outcomes, live time changes before debit, contract forms, registration fallback and token coordination. The test database is isolated from Local business data.
 
 Web: 30 browser/service/presentation tests passed. Browser and service checks cover date filtering, frozen drafts, single-ticket replacement, payment/reservation polling, authentication and published service-worker privacy. Real Edge Local check: 28 active venues; university venue has 78 session rows; 6 tickets for 2026-11-06; no stale notice, JS errors or mobile overflow; full details render without JavaScript. Canonical Mashhad Catalogue filtering returns 15 Pools items. Evidence is in the Web worktree `artifacts/pool-bruno/report.json` and screenshots.
 
-Live read-only staging checks succeeded for token login/check, states/cities/areas, venue list/details, sessions/info, calculate, the configured customer's history, and a known reservation info. Reserve and registration fallback are verified with contract tests, not a new live paid reservation. `PurchaseEnabled=false` remains in Local. Confirm reserve financial semantics and complete a controlled staging purchase before enabling sales.
+Live read-only staging checks succeeded for token login/check, states/cities/areas, venue list/details, sessions/info, calculate, the configured customer's history, and a known reservation info. Registration fallback is verified with contract tests. A paid live staging reservation and Local activation are documented below. Production defaults remain disabled.
+
+## Local sales activation and live paid test — 2026-11-03
+
+The user confirmed that all PoolTicket monetary values are TOMAN and authorized enabling sales and testing reserve. The ignored Local settings now have `Pools:PurchaseEnabled=true`; API and Web run with environment Local. Committed production defaults remain disabled.
+
+One dedicated test-only Identity account and personal wallet were provisioned in Local using the existing domain/repository and Wallets commands. Only that wallet received an explicitly labelled test top-up, for the exact purchase amount. Existing users' wallet balances were not used. Login, quote, purchase, order creation and payment ran through the real authenticated HTTP endpoints. Supplier reserve used the real organization staging connection and the configured fixed customer.
+
+- Venue: university pool, Mashhad; indoor men's session; 2026-11-06 (1405/08/15), one adult.
+- Retail amount: 110,000 TOMAN / 1,100,000 IRR.
+- Order: `ORD-261103-84F660`; supplier reservation: `1573`.
+- Final state: financial Paid, fulfillment Reserved, actual supplier voucher present; online cancellation disabled.
+- Voucher equals the authoritative reservation/info voucher; PDF response succeeded (75,376 bytes), with private/no-store responses.
+- Replaying payment kept the test-wallet balance unchanged; the supplier history contains exactly one occurrence of this reservation.
+
+The initial successful reserve response triggered the amount/count consistency guard. The same known reservation was subsequently confirmed by reservation/info. Recovery now permits this narrow read-only verification: identical known ID and original encrypted voucher, exact adult/child counts, expected retail amount after TOMAN conversion, and original date/time must all match. The operation's stored mobile must still match the configured customer. A failed or inconsistent info response remains Unknown. No history-based attachment, second reserve or automatic refund is introduced. PostgreSQL regressions verify that different IDs/vouchers/counts/dates cannot complete fulfillment.
+
+Sensitive local test credentials and voucher PDF remain under ignored `.codex-runtime/poolticket-probe/`; they are not committed. Sanitized verification evidence is [recorded separately](diagnostics/poolticket-live-purchase-2026-11-03.json). Manual testing may now proceed against the Local Web host.

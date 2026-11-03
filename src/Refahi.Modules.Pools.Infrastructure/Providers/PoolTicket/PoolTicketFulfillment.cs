@@ -15,6 +15,28 @@ public sealed class PoolTicketFulfillment(PoolsDbContext db, IPoolProviderFactor
         if (selection.ProviderKey != "poolticket") throw new PoolException("تأمین‌کننده رزرو پشتیبانی نمی‌شود", 503);
         var operation = await db.PoolTicketReservations.SingleOrDefaultAsync(x => x.RequestId == requestId, ct);
         if (operation != null)
+        {
+            if (operation.Status == PoolTicketOperationStatus.Unknown && operation.ReservationId != null
+                && operation.ErrorCode == "POOLS_PROVIDER_RESERVATION_MISMATCH" && operation.Mobile == options.Value.UserMobile)
+            {
+                try
+                {
+                    var info = await ((IPoolOrganizationProvider)providers.Get(selection.ProviderKey)).ReservationInfoAsync(operation.ReservationId, ct);
+                    var request = await db.Requests.SingleAsync(x => x.Id == requestId, ct);
+                    if (info.Id == operation.ReservationId && info.Voucher == protector.Unprotect(operation.VoucherCiphertext!)
+                        && info.AdultCount == selection.AdultCount && info.ChildCount == selection.ChildCount
+                        && expectedMinor.HasValue && PoolTicketProvider.ToMinor(info.UserPaid, options.Value.PriceUnit) == expectedMinor
+                        && info.Date == request.Date && info.Time == request.Time)
+                    {
+                        operation.Reserve(info.Id, operation.VoucherCiphertext!, info.Enter, clock.GetUtcNow());
+                        await db.SaveChangesAsync(ct);
+                        logger.LogInformation("PoolTicket reservation verified by known ID. RequestId={RequestId} ReservationId={ReservationId}", requestId, info.Id);
+                        return new(PoolFulfillmentOutcome.Reserved, info.Id, info.Voucher);
+                    }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                catch (Exception ex) { logger.LogWarning("PoolTicket reservation verification pending. RequestId={RequestId} ErrorType={ErrorType}", requestId, ex.GetType().Name); }
+            }
             return operation.Status switch
             {
                 PoolTicketOperationStatus.Reserved => new(PoolFulfillmentOutcome.Reserved, operation.ReservationId,
@@ -22,6 +44,7 @@ public sealed class PoolTicketFulfillment(PoolsDbContext db, IPoolProviderFactor
                 PoolTicketOperationStatus.Rejected => new(PoolFulfillmentOutcome.Rejected),
                 _ => new(PoolFulfillmentOutcome.Unknown)
             };
+        }
         operation = PoolTicketReservation.Begin(requestId, options.Value.UserMobile ?? "", clock.GetUtcNow());
         db.Add(operation);
         // A committed Sending record forbids re-sending after a crash or an uncertain response.
@@ -37,6 +60,8 @@ public sealed class PoolTicketFulfillment(PoolsDbContext db, IPoolProviderFactor
                 await db.SaveChangesAsync(ct);
                 logger.LogWarning("PoolTicket reservation requires review. RequestId={RequestId} ReservationId={ReservationId} ErrorCode={ErrorCode}",
                     requestId, result.Id, operation.ErrorCode);
+                logger.LogWarning("PoolTicket reservation values differ. RequestId={RequestId} ExpectedMinor={ExpectedMinor} ActualPaid={ActualPaid} ExpectedAdults={ExpectedAdults} ActualAdults={ActualAdults} ExpectedChildren={ExpectedChildren} ActualChildren={ActualChildren}",
+                    requestId, expectedMinor, result.UserPaid, selection.AdultCount, result.AdultCount, selection.ChildCount, result.ChildCount);
                 return new(PoolFulfillmentOutcome.Unknown);
             }
             await db.SaveChangesAsync(ct);
