@@ -15,9 +15,9 @@ public sealed class PoolPurchaseAccess(IPoolPurchaseRepository repository, IPool
     {
         var now = clock.GetUtcNow();
         return new(p.Id, p.OrderId, p.OrderNumber, p.Version, p.TotalMinor, PoolPublicStates.Purchase(p.Status), p.PayableUntil, p.CanPay(now),
-            (p.Status is PoolPurchaseStatus.AwaitingPayment or PoolPurchaseStatus.Paid) && !p.Requests.Any(r => r.VoucherStatus == PoolVoucherStatus.Redeemed),
+            (p.Status is PoolPurchaseStatus.AwaitingPayment or PoolPurchaseStatus.Paid) && !p.Requests.Any(r => r.VoucherStatus == PoolVoucherStatus.Redeemed || r.ReservationStatus is PoolReservationStatus.Reserved or PoolReservationStatus.Unknown || p.Status == PoolPurchaseStatus.Paid && r.ReservationStatus == PoolReservationStatus.Pending),
             p.Requests.Select(r => new PoolVoucherDto(r.Id, r.SessionId, r.PoolId, r.PoolName, r.Date, r.Time, r.AdultCount, r.ChildCount,
-                r.TotalMinor, r.StartsAtUtc, r.EndsAtUtc, "ExternalReservationBypassed",
+                r.TotalMinor, r.StartsAtUtc, r.EndsAtUtc, r.ReservationStatus.ToString(),
                 r.VoucherStatus == PoolVoucherStatus.Issued && now >= r.EndsAtUtc ? "Expired" : PoolPublicStates.Voucher(r.VoucherStatus),
                 p.Status == PoolPurchaseStatus.Paid && (r.VoucherStatus is PoolVoucherStatus.Issued or PoolVoucherStatus.Redeemed or PoolVoucherStatus.Expired) && r.CodeCiphertext != null
                     ? protector.Unprotect(r.CodeCiphertext) : null, r.RedeemedAtUtc)).ToArray());

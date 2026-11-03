@@ -15,6 +15,9 @@ public sealed class PoolCancellationParticipant(IPoolMutationLock gate, PoolPurc
         await using var lease = await gate.AcquireAsync(id, ct); var p = await access.Owned(id, context.UserId, ct);
         if (p.OrderId != context.OrderId) return new(false, "سفارش مالی مطابقت ندارد");
         if (p.Requests.Any(x => x.VoucherStatus == PoolVoucherStatus.Redeemed)) return new(false, "ووچر مصرف‌شده قابل استرداد نیست");
+        if (p.Requests.Any(x => x.ReservationStatus is PoolReservationStatus.Reserved or PoolReservationStatus.Unknown
+            || context.PaymentState == "Paid" && x.ReservationStatus == PoolReservationStatus.Pending))
+            return new(false, "رزرو خارجی قابل لغو آنلاین نیست");
         p.BeginCancellation(); await repository.SaveAsync(ct); return new(true);
     }
 }

@@ -24,6 +24,7 @@ public sealed class PoolCatalogEntry
         long? minimum, bool selling, DateTimeOffset now)
     { Name = name; State = state; City = city; Area = area; ImageUrl = image; Gender = gender; Rating = rating;
         MinimumSaleMinor = minimum; IsSelling = selling; IsActive = true; FetchedAt = now; }
+    public void RefreshTerms(string terms) => TermsHtml = terms;
     public void RefreshSessions(string terms, DateTimeOffset now) { TermsHtml = terms; SessionsFetchedAt = now; }
     public void Deactivate() { IsActive = false; IsSelling = false; }
 }

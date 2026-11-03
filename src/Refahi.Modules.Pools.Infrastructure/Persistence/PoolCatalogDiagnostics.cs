@@ -18,6 +18,6 @@ public sealed class PoolCatalogDiagnostics(PoolsDbContext db,IOptionsMonitor<Poo
         var staleSessions=await db.Venues.CountAsync(x=>x.IsActive&&(x.SessionsFetchedAt==null||x.SessionsFetchedAt<sessionCutoff),ct);
         var lastVenue=await db.Venues.Select(x=>(DateTimeOffset?)x.FetchedAt).MaxAsync(ct);
         var lastSession=await db.Venues.Select(x=>x.SessionsFetchedAt).MaxAsync(ct);
-        return new(lastVenue==null?"NeverSynced":staleVenues>0||staleSessions>0?"Degraded":"Ready",venueCount,sessionCount,staleVenues,staleSessions,lastVenue,lastSession);
+        return new(lastVenue==null?"NeverSynced":staleVenues>0||staleSessions>0?"Degraded":"Ready",venueCount,sessionCount,staleVenues,staleSessions,lastVenue,lastSession,await db.PoolTicketGeographies.CountAsync(x=>!x.ReferenceCityId.HasValue,ct));
     }
 }

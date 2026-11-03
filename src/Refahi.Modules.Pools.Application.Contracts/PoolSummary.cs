@@ -16,5 +16,6 @@ public sealed record PoolSummary(
     decimal? MaxDiscount,
     decimal? MinimumSalePrice,
     decimal? MinimumMarketPrice,
-    string? PriceUnit
+    string? PriceUnit,
+    string? NativeStateId = null, string? NativeCityId = null
 );

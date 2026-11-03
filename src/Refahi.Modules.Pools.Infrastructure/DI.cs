@@ -35,8 +35,12 @@ public static class DI
         if (!string.IsNullOrWhiteSpace(config["DataProtection:KeysPath"]))
             protection.PersistKeysToFileSystem(new DirectoryInfo(config["DataProtection:KeysPath"]!));
         services.AddScoped<IPoolCodeProtector, PoolCodeProtector>();
-        services.AddScoped<IPoolVoucherRenderer, PoolVoucherRenderer>().AddSingleton<IPoolSessionTimeParser, PoolSessionTimeParser>()
-            .AddSingleton<IPoolReservationGateway, PoolTicketReservationGateway>();
+        services.AddScoped<IPoolVoucherRenderer, PoolVoucherRenderer>().AddSingleton<IPoolSessionTimeParser, PoolSessionTimeParser>();
+        services.AddScoped<IPoolFulfillment, PoolTicketFulfillment>();
+        services.AddScoped<IPoolCatalogProjection, PoolTicketCatalogProjection>();
+        services.AddScoped<PoolsCatalogueSource>();
+        services.AddSingleton(new Refahi.Modules.Catalogue.Application.Contracts.CatalogueSourceRegistration("pools", typeof(PoolsCatalogueSource)));
+        services.AddSingleton<PoolTicketTokenState>();
         var breaker = Policy<HttpResponseMessage>.Handle<HttpRequestException>().OrResult(x => (int)x.StatusCode >= 500)
             .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
         services.AddHttpClient<PoolTicketClient>((sp, http) =>

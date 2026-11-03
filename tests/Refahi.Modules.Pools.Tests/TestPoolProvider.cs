@@ -1,4 +1,5 @@
 using MediatR;
+using Refahi.Modules.Pools.Infrastructure.Providers.PoolTicket;
 using Refahi.Modules.Pools.Application.Contracts;
 using Refahi.Modules.Identity.Application.Contracts.AuthorizationGrants;
 namespace Refahi.Modules.Pools.Tests;
@@ -9,10 +10,10 @@ public sealed class GrantHandler(GrantState state):IRequestHandler<GetActiveAuth
 {
  public Task<IReadOnlyList<AuthorizationGrantDto>> Handle(GetActiveAuthorizationGrantsQuery r,CancellationToken ct)=>Task.FromResult<IReadOnlyList<AuthorizationGrantDto>>(state.Active&&state.User==r.UserId?[new(Guid.NewGuid(),r.UserId,"Pools",$"pool:{state.Pool:N}:redeem",null,true,DateTimeOffset.UtcNow,null,null,null)]:[]);
 }
-public sealed class TestPoolProvider:IPoolProvider
+public class TestPoolProvider:IPoolProvider
 {
  public string Key=>"poolticket";public string Name=>"test";public PoolCapabilities Capabilities=>new(true,true,false,false,false,false,false);
- public long PriceDelta;public bool FailSessions,OnlyOne,MultiPage,FailPageTwo;public string? FailPoolId;
+ public int TimeShiftMinutes;public long PriceDelta;public bool FailSessions,OnlyOne,MultiPage,FailPageTwo;public string? FailPoolId;
  public string Date{get;}=DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-dd");
  public Task<IReadOnlyList<PoolState>> StatesAsync(bool active,CancellationToken ct)=>Task.FromResult<IReadOnlyList<PoolState>>([]);
  public Task<IReadOnlyList<PoolCity>> CitiesAsync(string? state,bool active,CancellationToken ct)=>Task.FromResult<IReadOnlyList<PoolCity>>([]);
@@ -34,11 +35,29 @@ public sealed class TestPoolProvider:IPoolProvider
  public Task<PoolQuote> QuoteAsync(PoolSelection s,CancellationToken ct)
  {
   var total=s.AdultCount*500000L+s.ChildCount*250000L+PriceDelta;
-  return Task.FromResult(new PoolQuote(s.SessionRowId,s.AdultCount,s.ChildCount,total/10m,total/10m,total,"TOMAN",Date,"روز","10:00 - 12:00"));
+  var range=PoolSessionTime.Parse(Date,"10:00 - 12:00");
+  return Task.FromResult(new PoolQuote(s.SessionRowId,s.AdultCount,s.ChildCount,total/10m,total/10m,total,"TOMAN",Date,"روز","10:00 - 12:00",TimeShiftMinutes==0?null:range.Start?.AddMinutes(TimeShiftMinutes),TimeShiftMinutes==0?null:range.End?.AddMinutes(TimeShiftMinutes)));
  }
 }
 
 public sealed class AllGrantsHandler(GrantState state):IRequestHandler<GetAuthorizationGrantsByIssuerQuery,IReadOnlyList<AuthorizationGrantDto>>
 {
  public Task<IReadOnlyList<AuthorizationGrantDto>> Handle(GetAuthorizationGrantsByIssuerQuery r,CancellationToken ct)=>Task.FromResult<IReadOnlyList<AuthorizationGrantDto>>(state.Active?[new(Guid.NewGuid(),Guid.NewGuid(),"Pools",$"pool:{state.Pool:N}:redeem",null,true,DateTimeOffset.UtcNow,null,null,null)]:[]);
+}
+
+public sealed class TestOrganizationProvider : TestPoolProvider, IPoolOrganizationProvider
+{
+ public int ReserveCalls;public string? ReserveFailureCode;
+ public async Task<PoolExternalReservation> ReserveAsync(PoolSelection selection,CancellationToken ct)
+ {
+  Interlocked.Increment(ref ReserveCalls);if(ReserveFailureCode!=null)throw new PoolException("Provider response",502,ReserveFailureCode);var quote=await QuoteAsync(selection,ct);
+  return new(DateTime.UtcNow.Ticks.ToString(),"supplier-voucher","Pool","Session",selection.AdultCount,selection.ChildCount,
+   quote.SaleTotal,quote.Date,quote.Time,0);
+ }
+ public Task RegisterUserAsync(CancellationToken ct)=>Task.CompletedTask;
+ public Task<IReadOnlyList<PoolArea>> AreasAsync(string id,CancellationToken ct)=>throw new NotImplementedException();
+ public Task<PoolProviderDetails> DetailsAsync(string id,CancellationToken ct)=>throw new NotImplementedException();
+ public Task<PoolSessionAvailability> SessionInfoAsync(string pool,string row,CancellationToken ct)=>throw new NotImplementedException();
+ public Task<PoolExternalReservation> ReservationInfoAsync(string id,CancellationToken ct)=>throw new NotImplementedException();
+ public Task<PoolReservationHistory> ReservationHistoryAsync(int page,int limit,CancellationToken ct)=>throw new NotImplementedException();
 }

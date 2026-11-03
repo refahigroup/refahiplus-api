@@ -42,7 +42,7 @@ public sealed class PoolsPostgresCollection;
 public sealed class PoolPostgresTests
 {
     private static string Connection => Environment.GetEnvironmentVariable("REFAHI_POOLS_TEST_CONNECTION")!;
-    private static ServiceProvider Services()
+    private static ServiceProvider Services(bool organization = false)
     {
         Assert.Contains("test",new NpgsqlConnectionStringBuilder(Connection).Database!,StringComparison.OrdinalIgnoreCase);
         var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{
@@ -52,7 +52,10 @@ public sealed class PoolPostgresTests
         s.RegisterPoolsModule(config);
         Refahi.Modules.Orders.Application.DI.RegisterApplication(s,config);Refahi.Modules.Orders.Infrastructure.DI.RegisterInfrastructure(s,config);
         Refahi.Modules.Wallets.Application.DI.RegisterApplication(s,config);Refahi.Modules.Wallets.Infrastructure.DI.RegisterInfrastructure(s,config);
-        s.RemoveAll<IPoolProvider>();s.AddSingleton<TestPoolProvider>();s.AddScoped<IPoolProvider>(sp=>sp.GetRequiredService<TestPoolProvider>());
+        Refahi.Modules.Promotions.Application.DI.RegisterApplication(s,config);
+        Refahi.Modules.Promotions.Infrastructure.DI.RegisterInfrastructure(s,config);
+        s.RemoveAll<IPoolCatalogProjection>();
+        s.RemoveAll<IPoolProvider>();s.AddSingleton<TestPoolProvider>(organization ? new TestOrganizationProvider() : new TestPoolProvider());s.AddScoped<IPoolProvider>(sp=>sp.GetRequiredService<TestPoolProvider>());
         s.AddSingleton<TestClock>();s.AddSingleton<TimeProvider>(sp=>sp.GetRequiredService<TestClock>());
         s.AddSingleton<GrantState>();s.AddScoped<IRequestHandler<GetAuthorizationGrantsByIssuerQuery,IReadOnlyList<AuthorizationGrantDto>>,AllGrantsHandler>();s.AddScoped<IRequestHandler<GetActiveAuthorizationGrantsQuery,IReadOnlyList<AuthorizationGrantDto>>,GrantHandler>();
         s.AddTransient(typeof(IPipelineBehavior<,>),typeof(ValidationPipeline<,>));
@@ -93,7 +96,7 @@ public sealed class PoolPostgresTests
         using(var scope=services.CreateScope()){var m=scope.ServiceProvider.GetRequiredService<IMediator>();await m.Send(new SyncPoolCatalogCommand(true));await m.Send(new SyncPoolCatalogCommand(false));}
         var sessions=await Send(services,new ListPoolSessionsQuery(new(Limit:50)));
         services.GetRequiredService<GrantState>().Pool=sessions.Items[0].PoolId;
-        return sessions.Items.Take(2).Select(x=>new PoolChoice(x.Id,1,1)).ToArray();
+        return sessions.Items.Take(1).Select(x=>new PoolChoice(x.Id,1,1)).ToArray();
     }
     private static async Task<(PoolPurchaseDto Purchase,PoolPurchaseCheckoutDto Checkout)> Checkout(ServiceProvider s,Guid user)
     {
@@ -103,11 +106,60 @@ public sealed class PoolPostgresTests
     }
     private static async Task Reconcile(ServiceProvider s,Guid id){using var scope=s.CreateScope();await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new ReconcilePoolPurchaseCommand(id));}
     [PostgresFact]
-    public async Task Grouped_purchase_real_split_payment_replay_and_refund_original_allocations()
+    public async Task Organization_purchase_reserves_only_after_real_order_payment_and_replay_does_not_reserve_again()
+    {
+        await using var s=Services(true);await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);
+        var provider=(TestOrganizationProvider)s.GetRequiredService<TestPoolProvider>();var(p,c)=await Checkout(s,user);
+        Assert.Equal(0,provider.ReserveCalls);Assert.Equal("Pending",p.Requests.Single().ReservationStatus);
+        await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"paid-org"));
+        await Reconcile(s,p.Id);p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));
+        Assert.Equal("Paid",p.Status);Assert.Equal("Reserved",p.Requests.Single().ReservationStatus);Assert.Equal("supplier-voucher",p.Requests.Single().Code);Assert.False(p.CanCancel);
+        await Reconcile(s,p.Id);Assert.Equal(1,provider.ReserveCalls);
+        await Assert.ThrowsAnyAsync<Exception>(()=>Send(s,new CancelPoolPurchaseCommand(p.Id,user)));
+    }
+    [PostgresFact]
+    public async Task Definite_organization_rejection_refunds_through_orders_to_original_wallet()
+    {
+        await using var s=Services(true);await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);
+        var provider=(TestOrganizationProvider)s.GetRequiredService<TestPoolProvider>();provider.ReserveFailureCode="POOLS_PROVIDER_CREDIT_LOW";
+        var(p,c)=await Checkout(s,user);await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"paid-reject"));
+        await Reconcile(s,p.Id);await Reconcile(s,p.Id);p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.Equal("Refunded",p.Status);Assert.Equal(1,provider.ReserveCalls);
+        await using var db=new NpgsqlConnection(Connection);Assert.Equal(2000000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=wallets.Personal}));
+    }
+    [PostgresFact]
+    public async Task Unknown_organization_reserve_is_not_refunded_or_retried_after_internal_deadline()
+    {
+        await using var s=Services(true);await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);
+        var provider=(TestOrganizationProvider)s.GetRequiredService<TestPoolProvider>();provider.ReserveFailureCode="POOLS_PROVIDER_UNKNOWN";
+        var(p,c)=await Checkout(s,user);await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"paid-unknown"));
+        await Reconcile(s,p.Id);s.GetRequiredService<TestClock>().Now=p.PayableUntil.AddDays(3);await Reconcile(s,p.Id);
+        p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.Equal("Paid",p.Status);Assert.Equal("Unknown",p.Requests.Single().ReservationStatus);Assert.Null(p.Requests.Single().Code);Assert.False(p.CanCancel);Assert.Equal(1,provider.ReserveCalls);
+        await using var db=new NpgsqlConnection(Connection);Assert.Equal(2000000-p.TotalMinor,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=wallets.Personal}));
+    }
+    [PostgresFact]
+    public async Task Changed_live_explicit_session_times_block_payment_before_wallet_debit()
+    {
+        await using var s=Services(true);await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var(p,c)=await Checkout(s,user);
+        s.GetRequiredService<TestPoolProvider>().TimeShiftMinutes=60;
+        var error=await Assert.ThrowsAsync<PoolException>(()=>Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"changed-time")));
+        Assert.Equal("SESSION_TIME_CHANGED",error.Code);
+        await using var db=new NpgsqlConnection(Connection);Assert.Equal(2000000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=wallets.Personal}));
+    }
+    [PostgresFact]
+    public async Task Paid_organization_obligation_recovers_with_new_sales_and_discovery_disabled()
+    {
+        await using var s=Services(true);await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var(p,c)=await Checkout(s,user);
+        await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Personal,p.TotalMinor)],"paid-disabled"));
+        var options=s.GetRequiredService<IOptionsMonitor<PoolsOptions>>().CurrentValue;options.PurchaseEnabled=false;options.CatalogEnabled=false;
+        await Reconcile(s,p.Id);p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.Equal("Reserved",p.Requests.Single().ReservationStatus);
+        Assert.Equal(1,((TestOrganizationProvider)s.GetRequiredService<TestPoolProvider>()).ReserveCalls);
+    }
+    [PostgresFact]
+    public async Task Single_session_purchase_real_split_payment_replay_and_refund_original_allocations()
     {
         await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var (p,c)=await Checkout(s,user);
-        Assert.Equal(2,p.Requests.Count);Assert.Equal(1500000,p.TotalMinor);Assert.All(p.Requests,x=>Assert.Null(x.Code));
-        var pay=new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Org,600000),new(wallets.Personal,900000)],"pay");
+        Assert.Single(p.Requests);Assert.Equal(750000,p.TotalMinor);Assert.All(p.Requests,x=>Assert.Null(x.Code));
+        var pay=new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Org,300000),new(wallets.Personal,450000)],"pay");
         var paid=await Send(s,pay);Assert.Equal(paid.PaymentId,(await Send(s,pay with{IdempotencyKey="replay"})).PaymentId);
         await Reconcile(s,p.Id);p=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.Equal("Paid",p.Status);Assert.All(p.Requests,x=>Assert.Equal(32,x.Code!.Length));
         var codes=p.Requests.Select(x=>x.Code).ToArray();await Reconcile(s,p.Id);Assert.Equal(codes,(await Send(s,new GetPoolPurchaseQuery(p.Id,user))).Requests.Select(x=>x.Code));
@@ -184,7 +236,7 @@ public sealed class PoolPostgresTests
         async Task Cancel(){try{await Send(s,new CancelPoolPurchaseCommand(p.Id,user));}catch(Refahi.Modules.Orders.Domain.Exceptions.OrderStateConflictException){}}
         await Task.WhenAll(Consume(),Cancel()).WaitAsync(TimeSpan.FromSeconds(20));await Reconcile(s,p.Id);
         var final=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.False(final.Status=="Refunded"&&final.Requests.Any(x=>x.Status=="Redeemed"));
-        await using var db=new NpgsqlConnection(Connection);Assert.Equal(final.Status=="Refunded"?2000000:500000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=wallets.Personal}));
+        await using var db=new NpgsqlConnection(Connection);Assert.Equal(final.Status=="Refunded"?2000000:1250000,await db.ExecuteScalarAsync<long>("select available_minor from wallets.wallet_balances where wallet_id=@Id",new{Id=wallets.Personal}));
     }
     [PostgresFact]
     public async Task Keyset_recovery_pages_and_database_uniqueness_are_real_postgres_constraints()
@@ -209,7 +261,7 @@ public sealed class PoolPostgresTests
         await using var app=builder.Build();app.UseAuthentication();app.UseAuthorization();var routes=app.MapGroup("/api/pools");new Refahi.Modules.Pools.Api.Endpoints.PoolCatalogEndpoints().Map(routes);new Refahi.Modules.Pools.Api.Endpoints.PoolPurchaseEndpoints().Map(routes);await app.StartAsync();
         using var client=new HttpClient{BaseAddress=new(app.Urls.Single())};Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/pools/catalog/sessions")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/pools/catalog/sessions?gender=9")).StatusCode);
-        var request=new{Choices=choices,ExpectedTotalMinor=1500000,IdempotencyKey=Guid.NewGuid().ToString("N")};Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync("/api/pools/purchases",request)).StatusCode);
+        var request=new{Choices=choices,ExpectedTotalMinor=750000,IdempotencyKey=Guid.NewGuid().ToString("N")};Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync("/api/pools/purchases",request)).StatusCode);
         var user=Guid.NewGuid();client.DefaultRequestHeaders.Add("X-Test-User",user.ToString());var response=await client.PostAsJsonAsync("/api/pools/purchases",request);Assert.Equal(HttpStatusCode.OK,response.StatusCode);Assert.True(response.Headers.CacheControl!.NoStore);Assert.True(response.Headers.CacheControl.Private);
         using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());var id=json.RootElement.GetProperty("data").GetProperty("id").GetGuid();Assert.True(json.RootElement.GetProperty("success").GetBoolean());Assert.DoesNotContain("providerKey",await response.Content.ReadAsStringAsync());
         client.DefaultRequestHeaders.Remove("X-Test-User");client.DefaultRequestHeaders.Add("X-Test-User",Guid.NewGuid().ToString());Assert.Equal(HttpStatusCode.Forbidden,(await client.GetAsync($"/api/pools/purchases/{id}")).StatusCode);
@@ -242,7 +294,7 @@ public sealed class PoolPostgresTests
         await using var s=Services();await Migrate(s);var user=Guid.NewGuid();var wallets=await SeedWallets(user);var(p,c)=await Checkout(s,user);
         using(var scope=s.CreateScope())await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new IssuePoolVouchersCommand(p.Id));
         Assert.All((await Send(s,new GetPoolPurchaseQuery(p.Id,user))).Requests,x=>Assert.Null(x.Code));
-        await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Org,600000),new(wallets.Personal,900000)],"pay"));await Reconcile(s,p.Id);
+        await Send(s,new PayOrderCommand(c.OrderId,user,"User",[new(wallets.Org,300000),new(wallets.Personal,450000)],"pay"));await Reconcile(s,p.Id);
         s.GetRequiredService<RefundFault>().Fail=true;await Assert.ThrowsAsync<PoolException>(()=>Send(s,new CancelPoolPurchaseCommand(p.Id,user)));
         var pending=await Send(s,new GetPoolPurchaseQuery(p.Id,user));Assert.Equal("CancellationPending",pending.Status);Assert.All(pending.Requests,x=>{Assert.Null(x.Code);Assert.Equal("Revoked",x.Status);});
         s.GetRequiredService<RefundFault>().Fail=false;await Reconcile(s,p.Id);Assert.Equal("Refunded",(await Send(s,new GetPoolPurchaseQuery(p.Id,user))).Status);

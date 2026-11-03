@@ -2,7 +2,7 @@ namespace Refahi.Modules.Pools.Domain;
 
 public enum PoolPurchaseStatus { AwaitingPayment, Paid, CancellationPending, Cancelled, Refunded }
 public enum PoolVoucherStatus { Issued, Redeemed, Revoked, Expired }
-public enum PoolReservationStatus { ExternalReservationBypassed }
+public enum PoolReservationStatus { ExternalReservationBypassed, Pending, Reserved, Rejected, Unknown }
 
 public sealed class PoolPurchase
 {
@@ -26,6 +26,7 @@ public sealed class PoolPurchase
         DateTimeOffset now, DateTimeOffset payableUntil)
     {
         if (userId == Guid.Empty || string.IsNullOrWhiteSpace(key) || key.Length > 128 || requests.Count is < 1 or > 20
+            || requests.Any(x => x.ReservationStatus != PoolReservationStatus.ExternalReservationBypassed) && requests.Count != 1
             || requests.Select(x => x.SessionId).Distinct().Count() != requests.Count || requests.Any(x => x.PurchaseId != Guid.Empty || x.StartsAtUtc <= now) || payableUntil <= now || payableUntil > requests.Min(x => x.StartsAtUtc))
             throw new InvalidOperationException("اطلاعات خرید یا مهلت پرداخت معتبر نیست");
         var total = requests.Aggregate(0L, (sum, request) => checked(sum + request.TotalMinor));
@@ -57,6 +58,19 @@ public sealed class PoolPurchase
         Status = PoolPurchaseStatus.Paid; Version++;
     }
 
+    public void RecordExternalPayment()
+    {
+        if (Status == PoolPurchaseStatus.Paid) return;
+        if (Status != PoolPurchaseStatus.AwaitingPayment || !OrderId.HasValue)
+            throw new InvalidOperationException("ثبت پرداخت در این وضعیت ممکن نیست");
+        Status = PoolPurchaseStatus.Paid; Version++;
+    }
+    public void CompleteExternal(Guid requestId, PoolReservationStatus status, string? ciphertext, DateTimeOffset now)
+    {
+        if (Status != PoolPurchaseStatus.Paid) throw new InvalidOperationException("خرید پرداخت نشده است");
+        _requests.Single(x => x.Id == requestId).CompleteExternal(status, ciphertext, now); Version++;
+    }
+
     public void ExpireVouchers(DateTimeOffset now)
     {
         if (Status != PoolPurchaseStatus.Paid) return;
@@ -67,6 +81,9 @@ public sealed class PoolPurchase
 
     public void BeginCancellation()
     {
+        if (_requests.Any(x => x.ReservationStatus is PoolReservationStatus.Reserved or PoolReservationStatus.Unknown
+            || Status == PoolPurchaseStatus.Paid && x.ReservationStatus == PoolReservationStatus.Pending))
+            throw new InvalidOperationException("رزرو خارجی قابل لغو آنلاین نیست");
         if (_requests.Any(x => x.VoucherStatus == PoolVoucherStatus.Redeemed))
             throw new InvalidOperationException("سفارش دارای ووچر مصرف‌شده قابل لغو نیست");
         if (Status is PoolPurchaseStatus.Cancelled or PoolPurchaseStatus.Refunded or PoolPurchaseStatus.CancellationPending) return;
@@ -130,6 +147,24 @@ public sealed class PoolRequest
             StartsAtUtc = startsAt, EndsAtUtc = endsAt, ReservationStatus = PoolReservationStatus.ExternalReservationBypassed };
     }
 
+    public void RequireExternalReservation()
+    {
+        if (ReservationStatus != PoolReservationStatus.ExternalReservationBypassed || VoucherStatus.HasValue)
+            throw new InvalidOperationException("نوع رزرو قابل تغییر نیست");
+        ReservationStatus = PoolReservationStatus.Pending;
+    }
+    internal void CompleteExternal(PoolReservationStatus status, string? ciphertext, DateTimeOffset now)
+    {
+        if (ReservationStatus is not (PoolReservationStatus.Pending or PoolReservationStatus.Unknown)) return;
+        if (status == PoolReservationStatus.Reserved)
+        {
+            if (string.IsNullOrWhiteSpace(ciphertext)) throw new InvalidOperationException("کد رزرو معتبر نیست");
+            CodeCiphertext = ciphertext; IssuedAtUtc = now; VoucherStatus = PoolVoucherStatus.Issued;
+        }
+        else if (status is not (PoolReservationStatus.Rejected or PoolReservationStatus.Unknown)) throw new InvalidOperationException("وضعیت رزرو معتبر نیست");
+        ReservationStatus = status;
+    }
+
     internal void AssignTo(Guid purchaseId) => PurchaseId = purchaseId;
 
     internal void Issue(string hash, string ciphertext, DateTimeOffset now)
@@ -144,7 +179,7 @@ public sealed class PoolRequest
         VoucherStatus = PoolVoucherStatus.Expired; return true;
     }
     internal void Revoke() { if (VoucherStatus is PoolVoucherStatus.Issued or PoolVoucherStatus.Expired) VoucherStatus = PoolVoucherStatus.Revoked; }
-    public bool IsRedeemable(DateTimeOffset now) => VoucherStatus == PoolVoucherStatus.Issued && StartsAtUtc <= now && now < EndsAtUtc;
+    public bool IsRedeemable(DateTimeOffset now) => ReservationStatus == PoolReservationStatus.ExternalReservationBypassed && VoucherStatus == PoolVoucherStatus.Issued && StartsAtUtc <= now && now < EndsAtUtc;
     internal void Redeem(Guid operatorId, string key, string fingerprint, DateTimeOffset now)
     {
         if (!IsRedeemable(now)) throw new InvalidOperationException("ووچر در این زمان قابل مصرف نیست یا قبلاً مصرف شده است");

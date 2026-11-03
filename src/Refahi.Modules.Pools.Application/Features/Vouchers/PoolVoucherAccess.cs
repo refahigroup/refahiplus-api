@@ -11,7 +11,7 @@ public sealed class PoolVoucherAccess(IPoolPurchaseRepository repository, PoolOp
         await operators.Ensure(user, pool, ct);
         var hash = Hash(code); var p = await repository.FindByCodeAsync(hash, ct);
         var r = p?.Requests.SingleOrDefault(x => x.CodeHash == hash && x.PoolId == pool);
-        if (p == null || r == null) throw new PoolException("ووچر یافت نشد یا متعلق به این استخر نیست", 404, "VOUCHER_NOT_FOUND");
+        if (p == null || r == null || r.ReservationStatus != PoolReservationStatus.ExternalReservationBypassed) throw new PoolException("ووچر یافت نشد یا متعلق به این استخر نیست", 404, "VOUCHER_NOT_FOUND");
         return (p, r);
     }
     public PoolVoucherValidationDto View(PoolPurchase p, PoolRequest r) => new(r.Id, r.PoolId, r.PoolName, r.Date, r.Time,

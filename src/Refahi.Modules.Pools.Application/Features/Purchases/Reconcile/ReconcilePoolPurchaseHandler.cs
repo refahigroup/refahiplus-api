@@ -29,7 +29,17 @@ public sealed class ReconcilePoolPurchaseHandler(IPoolPurchaseRepository reposit
             {
                 var order = await mediator.Send(new GetOrderByIdQuery(p.OrderId.Value, p.UserId, "User"), ct);
                 if (order?.PaymentState != "Paid" || p.Status == PoolPurchaseStatus.CancellationPending)
+                {
                     await mediator.Send(new CancelOrderCommand(p.OrderId.Value, "بازیابی یا انقضای خرید استخر", $"pools-cancel:{p.Id:N}", CallerUserId: p.UserId, CallerRole: "User"), ct);
+                    var completed = await mediator.Send(new GetOrderByIdQuery(p.OrderId.Value, p.UserId, "User"), ct);
+                    await using var lease = await gate.AcquireAsync(p.Id, ct);
+                    var current = await repository.GetAsync(p.Id, ct);
+                    if (current != null && PoolOrderVerification.Matches(current, completed) && completed!.Status is "Cancelled" or "Refunded")
+                    {
+                        current.BeginCancellation(); current.CompleteCancellation(completed.PaymentState == "Refunded");
+                        await repository.SaveAsync(ct);
+                    }
+                }
                 else await mediator.Send(new IssuePoolVouchersCommand(p.Id), ct);
             }
             else await mediator.Send(new IssuePoolVouchersCommand(p.Id), ct);

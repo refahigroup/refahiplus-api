@@ -443,6 +443,157 @@ namespace Refahi.Modules.Pools.Infrastructure.Migrations
                     b.ToTable("sessions", "pools");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolTicketContent", b =>
+                {
+                    b.Property<Guid>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AttributesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DescriptionHtml")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ImagesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("NativeCityId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NativeStateId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Telephone")
+                        .HasColumnType("text");
+
+                    b.HasKey("VenueId");
+
+                    b.ToTable("poolticket_contents", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolTicketGeography", b =>
+                {
+                    b.Property<string>("CityId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CityName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ReferenceCityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ReferenceProvinceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StateId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StateName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CityId");
+
+                    b.HasIndex("ReferenceProvinceId", "ReferenceCityId");
+
+                    b.ToTable("poolticket_geographies", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolTicketProvince", b =>
+                {
+                    b.Property<string>("StateId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ReferenceProvinceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StateName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("StateId");
+
+                    b.ToTable("poolticket_provinces", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolTicketReservation", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Enter")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorCode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReservationId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VoucherCiphertext")
+                        .HasColumnType("text");
+
+                    b.HasKey("RequestId");
+
+                    b.HasIndex("ReservationId")
+                        .IsUnique()
+                        .HasFilter("\"ReservationId\" IS NOT NULL");
+
+                    b.ToTable("poolticket_reservations", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolTicketSyncState", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("poolticket_sync_states", "pools");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Pools.Infrastructure.Persistence.PoolCatalogSnapshot", b =>
                 {
                     b.Property<string>("ProviderKey")
@@ -488,6 +639,24 @@ namespace Refahi.Modules.Pools.Infrastructure.Migrations
                     b.HasOne("Refahi.Modules.Pools.Domain.PoolCatalogEntry", null)
                         .WithMany()
                         .HasForeignKey("PoolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolTicketContent", b =>
+                {
+                    b.HasOne("Refahi.Modules.Pools.Domain.PoolCatalogEntry", null)
+                        .WithOne()
+                        .HasForeignKey("Refahi.Modules.Pools.Domain.PoolTicketContent", "VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolTicketReservation", b =>
+                {
+                    b.HasOne("Refahi.Modules.Pools.Domain.PoolRequest", null)
+                        .WithOne()
+                        .HasForeignKey("Refahi.Modules.Pools.Domain.PoolTicketReservation", "RequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

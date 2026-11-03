@@ -10,7 +10,7 @@ using Refahi.Modules.Pools.Domain;
 namespace Refahi.Modules.Pools.Application.Features.Catalog.Sync;
 
 public sealed class SyncPoolCatalogHandler(IPoolProviderFactory providers, IPoolCatalogRepository repository,
-    IPoolMutationLock gate, IOptionsMonitor<PoolsOptions> options, TimeProvider clock, IServiceScopeFactory scopes) : IRequestHandler<SyncPoolCatalogCommand>
+    IPoolMutationLock gate, IOptionsMonitor<PoolsOptions> options, TimeProvider clock, IServiceScopeFactory scopes, IPoolCatalogProjection? projection = null) : IRequestHandler<SyncPoolCatalogCommand>
 {
     public async Task<Unit> Handle(SyncPoolCatalogCommand request, CancellationToken ct)
     {
@@ -40,18 +40,27 @@ public sealed class SyncPoolCatalogHandler(IPoolProviderFactory providers, IPool
                 var result = await provider.SearchAsync(new(provider.Key, Page: page, Limit: 50, ActiveOnly: false), ct);
                 foreach (var item in result.Items)
                     if (!observed.TryAdd(item.Id, item)) throw new PoolException("فهرست کامل و یکتای تأمین‌کننده دریافت نشد", 502);
-                if (result.Items.Count < 50) { completed = true; break; }
+                if (result.TotalPages.HasValue ? page >= result.TotalPages.Value : result.Items.Count < 50) { completed = true; break; }
             }
             if (!completed) throw new PoolException("فهرست کامل و یکتای تأمین‌کننده دریافت نشد", 502);
             var existing = (await repository.ProviderPoolsAsync(provider.Key, ct)).ToDictionary(x => x.ExternalId);
             foreach (var item in observed.Values)
             {
                 if (!existing.TryGetValue(item.Id, out var entry)) { entry = PoolCatalogEntry.Create(provider.Key, item.Id); await repository.AddPoolAsync(entry, ct); }
+                if (entry.FetchedAt != default && projection != null)
+                    await projection.VerifyIdentityAsync(entry.Id, entry.Name, entry.State, entry.City, item, ct);
                 entry.Refresh(item.Name, item.State, item.City, item.Area, item.ImageUrl, item.Gender, item.Rating,
                     item.MinimumSalePrice.HasValue ? PoolKeys.Minor(item.MinimumSalePrice.Value, item.PriceUnit) : null, item.IsSelling, clock.GetUtcNow());
             }
+            await repository.SaveAsync(ct);
+            if (projection != null)
+            {
+                var entries = (await repository.ProviderPoolsAsync(provider.Key, ct)).ToDictionary(x => x.ExternalId);
+                foreach (var item in observed.Values) await projection.RefreshAsync(entries[item.Id].Id, item, ct);
+            }
             foreach (var old in existing.Values.Where(x => !observed.ContainsKey(x.ExternalId))) old.Deactivate();
             await repository.SaveAsync(ct);
+            if (projection != null) await projection.CompleteAsync(provider.Key, ct);
         }
         return Unit.Value;
     }

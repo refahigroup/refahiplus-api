@@ -35,20 +35,20 @@ public sealed class PoolContractTests
     [Fact]
     public async Task Search_maps_nullable_prices_sorts_and_server_client_id()
     {
-        var handler = new StubHandler("""{"status":1,"page":1,"limit":10,"pools":[{"pool_id":12,"name":"استخر","status_sell":true,"gender":2,"state_name":"تهران","city_name":"تهران","minimum_sale_price":null}],"sort_list":[{"code":"name","title":"نام"}],"sorted_by":"name"}""");
+        var handler = new StubHandler("""{"status":1,"page":1,"limit":10,"total_pages":1,"pools":[{"pool_id":12,"name":"استخر","status_sell":true,"gender":2,"state_name":"تهران","city_name":"تهران","state_id":2,"city_id":3,"minimum_sale_price":null}],"sort_list":[{"code":"name","title":"نام"}],"sorted_by":"name"}""");
         var p = Provider(handler);
         var catalog = await p.SearchAsync(new("poolticket", CityId: "3"), default);
         Assert.Equal("12", catalog.Items.Single().Id); Assert.Null(catalog.Items.Single().MinimumSalePrice);
         Assert.Equal("name", catalog.Sorts.Single().Code); Assert.Contains("client_id=test-client", handler.Body);
-        Assert.Contains("city_id=3", handler.Body); Assert.DoesNotContain("access_token", handler.Body);
-        Assert.Equal("/api/v2/pools/1/10", handler.Path);
+        Assert.Contains("city=3", handler.Body); Assert.Contains("access_token=test-org-token", handler.Body);
+        Assert.Equal("/api/v1/org/pool/list/1/10", handler.Path);
     }
     [Theory]
     [InlineData("1", true)] [InlineData("0", false)]
     [InlineData("true", true)] [InlineData("false", false)]
     public async Task Search_accepts_numeric_and_boolean_sale_flags(string flag, bool expected)
     {
-        var json = """{"page":1,"limit":50,"status":1,"pools":[{"pool_id":2,"name":"استخر ارمغان سپید ایرانیان مشهد","lat":36.297577614645,"lng":59.60572242737,"status_sell":FLAG,"status_sell_course":1,"status_sell_pack":1,"gender":2,"comment":1,"state_name":"آذربایجان شرقی","city_name":"تبریز","area_name":"محله تبریزی ها","state_id":1,"city_id":1,"area_id":2,"default_image":"https://staging.poolticket.org/files/images/pg/35/270_160_2.webp","max_discount":30,"rating":3.3,"minimum_sale_price":700,"minimum_market_price":1000,"type_id":1,"status_sell_ticket":1}],"sort_list":[{"title":"حروف الفبا","code":"name"}],"sorted_by":"name"}""".Replace("FLAG", flag);
+        var json = """{"page":1,"limit":50,"total_pages":1,"status":1,"pools":[{"pool_id":2,"name":"استخر ارمغان سپید ایرانیان مشهد","lat":36.297577614645,"lng":59.60572242737,"status_sell":FLAG,"status_sell_course":1,"status_sell_pack":1,"gender":2,"comment":1,"state_name":"آذربایجان شرقی","city_name":"تبریز","area_name":"محله تبریزی ها","state_id":1,"city_id":1,"area_id":2,"default_image":"https://staging.poolticket.org/files/images/pg/35/270_160_2.webp","max_discount":30,"rating":3.3,"minimum_sale_price":700,"minimum_market_price":1000,"type_id":1,"status_sell_ticket":1}],"sort_list":[{"title":"حروف الفبا","code":"name"}],"sorted_by":"name"}""".Replace("FLAG", flag);
         var catalog = await Provider(new(json)).SearchAsync(new("poolticket", Page: 1, Limit: 50), default);
         var pool = Assert.Single(catalog.Items);
         Assert.Equal(expected, pool.IsSelling);
@@ -82,9 +82,9 @@ public sealed class PoolContractTests
     [Fact]
     public async Task Terms_accepts_provider_response_with_escaped_unicode_and_slash()
     {
-        var handler = new StubHandler("""{"status":1,"terms_of_use":{"content":"<p>\u0634\u0631\u0627\u06cc\u0637 \u0627\u0633\u062a\u0641\u0627\u062f\u0647<\/p>"}}""");
+        var handler = new StubHandler("""{"status":1,"pool":{"terms_of_use":"<p>\u0634\u0631\u0627\u06cc\u0637 \u0627\u0633\u062a\u0641\u0627\u062f\u0647<\/p>"}}""");
         Assert.Equal("<p>شرایط استفاده</p>", await Provider(handler).TermsAsync("72", default));
-        Assert.Equal("/api/v2/pool/terms-of-use/72", handler.Path);
+        Assert.Equal("/api/v1/org/pool/info/72", handler.Path);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public sealed class PoolContractTests
     [InlineData("\"\"")]
     public async Task Terms_without_content_returns_empty_text(string content)
     {
-        var json = """{"status":1,"terms_of_use":{"content":CONTENT}}""".Replace("CONTENT", content);
+        var json = """{"status":1,"pool":{"terms_of_use":CONTENT}}""".Replace("CONTENT", content);
         Assert.Equal("", await Provider(new(json)).TermsAsync("72", default));
     }
 
@@ -101,13 +101,13 @@ public sealed class PoolContractTests
     [InlineData(201)]
     public async Task Terms_accepts_reported_pool_88_response(int httpStatus)
     {
-        var json = """{"status":1,"terms_of_use":{"content":"<p>۲۰ دقیقه پایانی سانس به دوش&zwnj;گرفتن و تعویض لباس اختصاص دارد.</p>\r\n<p>پذیرش کودکان 5 سال به بالا امکان پذیر است.</p>\r\n<p>سانس صبحگاهی همراه با پذیرایی صبحانه است.</p>\r\n<p>سانس vip همراه با دیجی است.</p>\r\n<p>&nbsp;</p>"}}""";
+        var json = """{"status":1,"pool":{"terms_of_use":"<p>۲۰ دقیقه پایانی سانس به دوش&zwnj;گرفتن و تعویض لباس اختصاص دارد.</p>\r\n<p>پذیرش کودکان 5 سال به بالا امکان پذیر است.</p>\r\n<p>سانس صبحگاهی همراه با پذیرایی صبحانه است.</p>\r\n<p>سانس vip همراه با دیجی است.</p>\r\n<p>&nbsp;</p>"}}""";
         var handler = new StubHandler(json, (HttpStatusCode)httpStatus);
         var terms = await Provider(handler).TermsAsync("88", default);
         Assert.Contains("۲۰ دقیقه پایانی سانس", terms);
         Assert.Contains("پذیرش کودکان 5 سال به بالا", terms);
         Assert.Contains("سانس vip همراه با دیجی است.", terms);
-        Assert.Equal("/api/v2/pool/terms-of-use/88", handler.Path);
+        Assert.Equal("/api/v1/org/pool/info/88", handler.Path);
     }
 
     [Theory]
@@ -115,7 +115,7 @@ public sealed class PoolContractTests
     [InlineData(500)]
     public async Task Terms_rejects_unsuccessful_http_even_with_successful_envelope(int httpStatus)
     {
-        var handler = new StubHandler("""{"status":1,"terms_of_use":{"content":"<p>قانون</p>"}}""", (HttpStatusCode)httpStatus);
+        var handler = new StubHandler("""{"status":1,"pool":{"terms_of_use":"<p>قانون</p>"}}""", (HttpStatusCode)httpStatus);
         var error = await Assert.ThrowsAsync<PoolException>(() => Provider(handler).TermsAsync("88", default));
         Assert.Equal(502, error.Status);
     }
@@ -210,14 +210,14 @@ public sealed class PoolContractTests
     [Fact]
     public async Task Cities_sessions_terms_and_calculate_follow_documented_wire_contracts()
     {
-        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", AccessToken = "test-org-token", PriceUnit = "IRR", CalculateReadOnlyConfirmed = true });
+        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", AccessToken = "test-org-token", PriceUnit = "IRR", CalculateReadOnlyConfirmed = true, UserMobile = "09001769450" });
         var handler = new RoutingHandler();
         var p = new PoolTicketProvider(new(new HttpClient(handler) { BaseAddress = new("https://example.test/") }, options, NullLogger<PoolTicketClient>.Instance), options);
         Assert.Equal("3", (await p.CitiesAsync("2", true, default)).Single().Id);
         var row = (await p.SessionsAsync("12", default)).Single().Rows.Single(); Assert.Equal("9", row.Id); Assert.Equal(200, row.ChildPrice);
         Assert.Equal("<p>قانون</p>", await p.TermsAsync("12", default));
         var quote = await p.QuoteAsync(new("poolticket", "12", "9", 1, 2), default); Assert.Equal(500, quote.TotalMinor);
-        Assert.Contains("state_id=2", handler.Bodies["cities"]); Assert.Contains("pool=12", handler.Bodies["saens/list"]);
+        Assert.Contains("state_id=2", handler.Bodies["city/list"]); Assert.Contains("pool=12", handler.Bodies["saens/list"]);
         Assert.Contains("saens_row_id=9", handler.Bodies["reservation/calculate"]); Assert.Contains("count_child=2", handler.Bodies["reservation/calculate"]);
         Assert.DoesNotContain("coupon", handler.Bodies["reservation/calculate"]);
         options.Value.CalculateReadOnlyConfirmed = false;
@@ -226,7 +226,7 @@ public sealed class PoolContractTests
     [Fact]
     public async Task Timeout_network_and_request_cancellation_remain_distinct()
     {
-        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client" });
+        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", AccessToken = "test-org-token" });
         PoolTicketProvider Create(Exception error) => new(new(new HttpClient(new ThrowingHandler(error)) { BaseAddress = new("https://example.test/") }, options, NullLogger<PoolTicketClient>.Instance), options);
         Assert.Equal(504, (await Assert.ThrowsAsync<PoolException>(() => Create(new TaskCanceledException()).StatesAsync(true, default))).Status);
         Assert.Equal(502, (await Assert.ThrowsAsync<PoolException>(() => Create(new HttpRequestException()).StatesAsync(true, default))).Status);
@@ -249,7 +249,7 @@ public sealed class PoolContractTests
     }
     private static PoolTicketProvider Provider(StubHandler handler)
     {
-        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", AccessToken = "test-org-token", CalculateReadOnlyConfirmed = true });
+        var options = Options.Create(new PoolTicketOptions { ClientId = "test-client", AccessToken = "test-org-token", CalculateReadOnlyConfirmed = true, UserMobile = "09001769450" });
         return new(new(new HttpClient(handler) { BaseAddress = new("https://example.test/") }, options, NullLogger<PoolTicketClient>.Instance), options);
     }
     private sealed class StubHandler(string json, HttpStatusCode status = HttpStatusCode.OK, string mediaType = "application/json") : HttpMessageHandler
@@ -271,9 +271,10 @@ public sealed class PoolContractTests
             var path = rawPath.StartsWith("/api/v1/org/") ? rawPath["/api/v1/org/".Length..] : rawPath["/api/v2/".Length..]; Bodies[path] = await r.Content!.ReadAsStringAsync(ct);
             var json = path == "saens/list" && Bodies[path].Contains("gender=1") ? "{\"status\":1,\"saens\":[]}" : path switch
             {
-                "cities" => """{"status":1,"cities":[{"state_id":2,"state_name":"استان","city_id":3,"city_name":"شهر"}]}""",
+                "state/list" => """{"status":true,"states":[{"state_id":2,"state_name":"استان"}]}""",
+                "city/list" => """{"status":1,"cities":[{"state_id":2,"state_name":"استان","city_id":3,"city_name":"شهر"}]}""",
                 "saens/list" => """{"status":1,"saens":[{"saens_row_id":9,"saens_name":"روز","status":1,"remain_capacity":10,"status_sell":true,"adult_sale_status":true,"child_sale_status":true,"price_sale_adult":100,"price_sale_child":200,"price_market_adult":120,"price_market_child":220,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}]}""",
-                "pool/terms-of-use/12" => """{"status":1,"terms_of_use":{"content":"<p>قانون</p>"}}""",
+                "pool/info/12" => """{"status":1,"pool":{"terms_of_use":"<p>قانون</p>"}}""",
                 "reservation/calculate" => """{"status":1,"cart":{"saens_row_id":9,"total_sale":500,"total_market":560,"count_adult":1,"count_child":2,"start_date":"1405/07/20","start_day":"روز","time":"10:00"}}""",
                 _ => throw new InvalidOperationException(path)
             };

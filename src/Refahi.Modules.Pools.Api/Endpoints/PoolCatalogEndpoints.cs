@@ -20,7 +20,7 @@ public sealed class PoolCatalogEndpoints : IEndpoint
         Catalog(routes.MapGet("/catalog/states", (IMediator m, CancellationToken ct) => Run(() => m.Send(new GetPoolLocationsQuery(null, false), ct))), "Catalog.States");
         Catalog(routes.MapGet("/catalog/cities", (string? state, IMediator m, CancellationToken ct) => Run(() => m.Send(new GetPoolLocationsQuery(state, true), ct))), "Catalog.Cities");
         Catalog(routes.MapPost("/quotes", (QuoteRequest r, HttpContext h, IMediator m, CancellationToken ct) =>
-        { NoStore(h); return Run(() => m.Send(new QuotePoolPurchaseQuery(r.Choices), ct)); }), "Quote");
+        { NoStore(h); return Run(() => m.Send(new QuotePoolPurchaseQuery(r.Choices), ct)); }), "Quote").RequireAuthorization("UserOrAdmin");
     }
 }
 public sealed record QuoteRequest(IReadOnlyList<PoolChoice> Choices);

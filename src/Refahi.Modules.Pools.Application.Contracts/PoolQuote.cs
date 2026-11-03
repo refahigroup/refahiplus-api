@@ -10,5 +10,6 @@ public sealed record PoolQuote(
     string? PriceUnit,
     string Date,
     string Day,
-    string Time
+    string Time,
+    DateTimeOffset? StartsAtUtc = null, DateTimeOffset? EndsAtUtc = null
 );

@@ -30,7 +30,7 @@ public sealed class PoolPurchaseRepository(PoolsDbContext db, TimeProvider clock
     public async Task AddAsync(PoolPurchase purchase, CancellationToken ct) { db.Purchases.Add(purchase); await db.SaveChangesAsync(ct); }
     public async Task SaveAsync(CancellationToken ct) => await db.SaveChangesAsync(ct);
     public async Task<IReadOnlyList<Guid>> RecoveryIdsAsync(DateTimeOffset? after, Guid? afterId, CancellationToken ct) =>
-        await db.Purchases.AsNoTracking().Where(x => x.Status == PoolPurchaseStatus.AwaitingPayment || x.Status == PoolPurchaseStatus.CancellationPending || x.Status == PoolPurchaseStatus.Paid && x.Requests.Any(r => r.VoucherStatus == PoolVoucherStatus.Issued && r.EndsAtUtc <= clock.GetUtcNow()))
+        await db.Purchases.AsNoTracking().Where(x => x.Status == PoolPurchaseStatus.AwaitingPayment || x.Status == PoolPurchaseStatus.CancellationPending || x.Status == PoolPurchaseStatus.Paid && x.Requests.Any(r => r.ReservationStatus == PoolReservationStatus.Pending || r.ReservationStatus == PoolReservationStatus.Unknown || r.VoucherStatus == PoolVoucherStatus.Issued && r.EndsAtUtc <= clock.GetUtcNow()))
             .Where(x => !after.HasValue || x.CreatedAt > after || x.CreatedAt == after && x.Id.CompareTo(afterId!.Value) > 0)
             .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).Select(x => x.Id).Take(50).ToArrayAsync(ct);
 }
@@ -91,8 +91,13 @@ public sealed class PoolCatalogReader(PoolsDbContext db, IOptionsMonitor<PoolsOp
     {
         var p = await db.Venues.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.IsActive, ct); if (p == null) return null;
         var rows = await db.Sessions.AsNoTracking().Where(x => x.PoolId == id && x.IsActive).OrderBy(x => x.StartsAtUtc).ThenBy(x => x.Id).ToArrayAsync(ct);
+        var content = await db.PoolTicketContents.AsNoTracking().SingleOrDefaultAsync(x => x.VenueId == id, ct);
+        var geo = content == null ? null : await db.PoolTicketGeographies.AsNoTracking().SingleOrDefaultAsync(x => x.CityId == content.NativeCityId, ct);
         return new(Venue(p), p.TermsHtml, rows.Select(s => Session(s, p)).ToArray(), p.SessionsFetchedAt,
-            p.SessionsFetchedAt is null || p.SessionsFetchedAt < clock.GetUtcNow().AddSeconds(-2d * options.CurrentValue.SessionSyncSeconds));
+            p.SessionsFetchedAt is null || p.SessionsFetchedAt < clock.GetUtcNow().AddSeconds(-2d * options.CurrentValue.SessionSyncSeconds),
+            content?.DescriptionHtml, content?.Address, content?.Telephone,
+            content == null || string.IsNullOrWhiteSpace(content.ImagesJson) ? [] : System.Text.Json.JsonSerializer.Deserialize<string[]>(content.ImagesJson),
+            content == null || string.IsNullOrWhiteSpace(content.AttributesJson) ? [] : System.Text.Json.JsonSerializer.Deserialize<string[]>(content.AttributesJson), geo?.ReferenceProvinceId, geo?.ReferenceCityId);
     }
     public async Task<PoolSessionDto?> SessionAsync(Guid id, CancellationToken ct)
     {

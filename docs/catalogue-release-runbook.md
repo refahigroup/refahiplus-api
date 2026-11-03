@@ -109,3 +109,7 @@ Baseline gates: p95 <=2s, p99 <=4s, unexpected failures <1%, no capacity rejecti
 Publish only after security evidence, both DB fixtures, coverage and browser verification pass. The deferred Stage load test and a 24h deployment observation remain explicit operational acceptance steps. Record the exact Nginx configuration, Web peer, commit/image identity, 429/503 rates, response latency and sync health. Configure the existing monitoring stack to consume the Catalogue meter and safe Nginx log; emitting a Meter alone is not proof of collection.
 
 Keep Catalogue off in the base configuration. Enable API and Web flags only for the intended deployment, retaining both source keys and the chosen workers. On incident, disable Catalogue flags or restore the prior compatible image/Nginx configuration. Keep additive schema/history and all public/transactional identities. Never use schema downgrade or data deletion as rollback.
+
+## Pools organizational source
+
+The third source is `pools`; follow [PoolTicket Bruno alignment](poolticket-bruno-alignment.md). With eight admitted requests, set MaxConcurrency >=24. Include `sources=pools`, canonical province/city, nearby, confirmed-empty and stale/unavailable cases in readiness checks. Verify `poolticket_sync_states` completion and active-venue geographic coverage; unmatched native geography is reported separately. Local discovery is enabled for verification; real purchasing remains disabled pending a controlled upstream reservation.

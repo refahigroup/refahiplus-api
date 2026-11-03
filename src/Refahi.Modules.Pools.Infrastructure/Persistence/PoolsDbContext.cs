@@ -12,9 +12,23 @@ public sealed class PoolsDbContext(DbContextOptions<PoolsDbContext> options) : D
     public DbSet<PoolRequest> Requests => Set<PoolRequest>();
     public DbSet<PoolCatalogEntry> Venues => Set<PoolCatalogEntry>();
     public DbSet<PoolSessionEntry> Sessions => Set<PoolSessionEntry>();
+    public DbSet<PoolTicketGeography> PoolTicketGeographies => Set<PoolTicketGeography>();
+    public DbSet<PoolTicketContent> PoolTicketContents => Set<PoolTicketContent>();
+    public DbSet<PoolTicketSyncState> PoolTicketSyncStates => Set<PoolTicketSyncState>();
+    public DbSet<PoolTicketReservation> PoolTicketReservations => Set<PoolTicketReservation>();
+    public DbSet<PoolTicketProvince> PoolTicketProvinces => Set<PoolTicketProvince>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema(Schema);
+        var reservation = model.Entity<PoolTicketReservation>(); reservation.ToTable("poolticket_reservations"); reservation.HasKey(x => x.RequestId);
+        reservation.HasOne<PoolRequest>().WithOne().HasForeignKey<PoolTicketReservation>(x => x.RequestId);
+        reservation.HasIndex(x => x.ReservationId).IsUnique().HasFilter("\"ReservationId\" IS NOT NULL");
+        var province = model.Entity<PoolTicketProvince>(); province.ToTable("poolticket_provinces"); province.HasKey(x => x.StateId);
+        var geo = model.Entity<PoolTicketGeography>(); geo.ToTable("poolticket_geographies"); geo.HasKey(x => x.CityId);
+        geo.HasIndex(x => new { x.ReferenceProvinceId, x.ReferenceCityId });
+        var content = model.Entity<PoolTicketContent>(); content.ToTable("poolticket_contents"); content.HasKey(x => x.VenueId);
+        content.HasOne<PoolCatalogEntry>().WithOne().HasForeignKey<PoolTicketContent>(x => x.VenueId);
+        var sync = model.Entity<PoolTicketSyncState>(); sync.ToTable("poolticket_sync_states"); sync.HasKey(x => x.Key);
         var b = model.Entity<PoolBooking>(); b.ToTable("bookings"); b.HasKey(x => x.Id);
         b.Property(x => x.Id).ValueGeneratedNever();
         b.Property(x => x.ProviderKey).HasMaxLength(32); b.Property(x => x.IdempotencyKey).HasMaxLength(128);

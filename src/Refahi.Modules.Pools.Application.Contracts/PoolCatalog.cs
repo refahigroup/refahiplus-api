@@ -5,5 +5,6 @@ public sealed record PoolCatalog(
     int Page,
     int Limit,
     IReadOnlyList<PoolSort> Sorts,
-    string? SortedBy
+    string? SortedBy,
+    int? TotalPages = null
 );

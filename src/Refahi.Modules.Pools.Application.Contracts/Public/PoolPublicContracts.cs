@@ -10,7 +10,10 @@ public sealed record PoolSessionDto(Guid Id, Guid PoolId, string PoolName, strin
     long AdultMinor, long ChildMinor, bool AdultEnabled, bool ChildEnabled, bool IsSelling, bool CanPurchase,
     string DescriptionHtml, string TermsHtml, DateTimeOffset FetchedAt);
 public sealed record PoolVenueDetailsDto(PoolVenueDto Pool, string TermsHtml, IReadOnlyList<PoolSessionDto> Sessions,
-    DateTimeOffset? SessionsFetchedAt = null, bool SessionsStale = false);
+    DateTimeOffset? SessionsFetchedAt = null, bool SessionsStale = false,
+    string? DescriptionHtml = null, string? Address = null, string? Telephone = null,
+    IReadOnlyList<string>? Images = null, IReadOnlyList<string>? Attributes = null,
+    int? ProvinceId = null, int? CityId = null);
 public sealed record PoolLocationDto(string Id, string Name);
 public sealed record PoolCatalogFilter(string? Search = null, string? State = null, string? City = null, int? Gender = null,
     string Sort = "name", int Page = 1, int Limit = 10, Guid? PoolId = null, DateOnly? Date = null);
@@ -64,7 +67,6 @@ public interface IPoolCodeProtector
     string Unprotect(string ciphertext);
 }
 public interface IPoolVoucherRenderer { Task<byte[]> RenderAsync(PoolPurchaseDto purchase, CancellationToken ct); }
-public interface IPoolReservationGateway { Task<bool> ReserveAsync(Guid requestId, CancellationToken ct); }
 public sealed record LegacyPoolBooking(Guid Id, Guid UserId, Guid? OrderId);
 public interface ILegacyPoolStore
 {
@@ -75,6 +77,6 @@ public interface ILegacyPoolStore
 }
 
 public sealed record PoolCatalogDiagnosticsDto(string Status, int VenueCount, int SessionCount, int StaleVenues, int StaleSessions,
-    DateTimeOffset? LastVenueSyncUtc, DateTimeOffset? LastSessionSyncUtc);
+    DateTimeOffset? LastVenueSyncUtc, DateTimeOffset? LastSessionSyncUtc, int UnmappedGeographies = 0);
 public sealed record GetPoolCatalogDiagnosticsQuery() : IRequest<PoolCatalogDiagnosticsDto>;
 public interface IPoolCatalogDiagnostics { Task<PoolCatalogDiagnosticsDto> ReadAsync(CancellationToken ct); }

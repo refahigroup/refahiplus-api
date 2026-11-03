@@ -41,28 +41,25 @@ public sealed class PoolRecoveryWorker(IServiceScopeFactory scopes, IOptionsMoni
     {
         while (!ct.IsCancellationRequested)
         {
-            if (options.CurrentValue.CatalogEnabled)
+            DateTimeOffset? after = null; Guid? afterId = null;
+            try
             {
-                DateTimeOffset? after = null; Guid? afterId = null;
-                try
+                while (!ct.IsCancellationRequested)
                 {
-                    while (!ct.IsCancellationRequested)
+                    using var scope = scopes.CreateScope(); var repo = scope.ServiceProvider.GetRequiredService<IPoolPurchaseRepository>();
+                    var ids = await repo.RecoveryIdsAsync(after, afterId, ct); if (ids.Count == 0) break;
+                    var last = await repo.GetAsync(ids[^1], ct); after = last!.CreatedAt; afterId = last.Id;
+                    foreach (var id in ids)
                     {
-                        using var scope = scopes.CreateScope(); var repo = scope.ServiceProvider.GetRequiredService<IPoolPurchaseRepository>();
-                        var ids = await repo.RecoveryIdsAsync(after, afterId, ct); if (ids.Count == 0) break;
-                        var last = await repo.GetAsync(ids[^1], ct); after = last!.CreatedAt; afterId = last.Id;
-                        foreach (var id in ids)
-                        {
-                            using var item = scopes.CreateScope();
-                            try { await item.ServiceProvider.GetRequiredService<IMediator>().Send(new ReconcilePoolPurchaseCommand(id), ct); }
-                            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                            catch (Exception ex) { logger.LogWarning("Pool purchase recovery pending. PurchaseId={PurchaseId} ErrorType={ErrorType}", id, ex.GetType().Name); }
-                        }
+                        using var item = scopes.CreateScope();
+                        try { await item.ServiceProvider.GetRequiredService<IMediator>().Send(new ReconcilePoolPurchaseCommand(id), ct); }
+                        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                        catch (Exception ex) { logger.LogWarning("Pool purchase recovery pending. PurchaseId={PurchaseId} ErrorType={ErrorType}", id, ex.GetType().Name); }
                     }
                 }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                catch (Exception ex) { logger.LogWarning("Pool recovery cycle failed. ErrorType={ErrorType}", ex.GetType().Name); }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception ex) { logger.LogWarning("Pool recovery cycle failed. ErrorType={ErrorType}", ex.GetType().Name); }
             await Task.Delay(TimeSpan.FromSeconds(options.CurrentValue.WorkerSeconds), clock, ct);
         }
     }
