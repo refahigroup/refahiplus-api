@@ -266,6 +266,10 @@ docker_build_push:
       mkdir -p artifacts/catalogue-release
       docker run --rm --network none --entrypoint dotnet "$IMAGE_VER" --list-runtimes > artifacts/catalogue-release/runtime.txt
       docker image inspect "$IMAGE_VER" --format '{{json .Id}}' > artifacts/catalogue-release/image-id.json
+      # BuildKit can cache the base layers without registering the image tag locally.
+      if ! docker image inspect registry.refahi.xyz/platform/ci-images/aspnet:10.0 > /dev/null 2>&1; then
+        docker pull registry.refahi.xyz/platform/ci-images/aspnet:10.0
+      fi
       docker image inspect registry.refahi.xyz/platform/ci-images/aspnet:10.0 --format '{{json .RepoDigests}}' > artifacts/catalogue-release/runtime-image-digests.json
 
       echo "=== Switch Registry Credentials ==="
