@@ -37,7 +37,7 @@ Pinned fixes: Microsoft.OpenApi 2.7.5; Cryptography.Pkcs and Cryptography.Xml 10
 
 Both runtime Dockerfiles and the generated GitLab runtime Dockerfiles reject ASP.NET Core older than 10.0.13. The private `aspnet:10.0` image must therefore be serviced before an image build can pass. Update the private build image as appropriate; do not remove the gate to make an old image pass. Docker jobs save runtime versions, the built image ID and runtime-image RepoDigests. Registry publication retains the normal tagged/digest identities.
 
-Run the audit on the actual restored graph and inspect Linux publish dependencies:
+CI retains NuGet auditing during restore and saves the audit report. For an optional full local verification, run the tests first, then audit the restored graph and inspect Linux publish dependencies:
 
 ```sh
 dotnet list Refahi.Backend.slnx package --vulnerable --include-transitive --format json > artifacts/catalogue-release/security-audit.json
@@ -48,7 +48,7 @@ python3 tools/verify-catalogue-release.py \
   --require-integration --output artifacts/catalogue-release/evidence.json
 ```
 
-The verifier understands NuGet's omitted-framework representation of a clean project. Missing/malformed evidence, feed diagnostic logs, moderate/high/critical vulnerabilities, unapproved published versions, failed tests or missing/skipped required PostgreSQL fixtures fail the release. Existing nullable warnings alone do not fail it.
+The local verifier understands NuGet's omitted-framework representation of a clean project. Missing/malformed evidence, feed diagnostic logs, moderate/high/critical vulnerabilities, unapproved published versions, failed tests or missing/skipped required PostgreSQL fixtures fail this optional verification. CI no longer runs this test-evidence gate. Existing nullable warnings alone do not fail the build.
 
 ## Read-only coverage check
 
@@ -83,11 +83,11 @@ Do not directly update LastSuccess/Observed timestamps, Status, Published or IsP
 
 GitLab is the release authority. Merge Requests run validation; only pushes to main/staging/dev build/push images and notify deployment. GitHub workflows are manual build checks without registry publication.
 
-Backend CI runs Wallets, Catalogue, Hotels, Entertainments, Orders, Flights, Store and SupplyChain. PostgreSQL 16 is disposable. Explicit Hotel/Entertainment connections use job-specific database names. `CI=true` plus `REFAHI_DISPOSABLE_CI_DATABASE=true` permits only the CI host `postgres:5432`; local Entertainment fixtures still require loopback:55442. Other hosts, invalid prefixes and insufficient CREATE DATABASE permission fail before fixture mutation. There is no fallback to application settings.
+As of 2026-11-04, automated test execution is removed from both GitLab pipelines at the user's request because of server resource and network limits. This includes .NET and Node suites, the Catalogue browser job, Python test/evidence verification, and the Cinema PDF smoke test during image creation. The test-only PostgreSQL service and test-result publication dependencies are removed. CI continues to build, audit NuGet dependencies, publish and push images.
 
-The two historical migration fixtures must appear as Passed in TRX. They verify upgrade/replay and identity preservation. Wallets receives its explicit existing test connection too. Backend evidence verification must succeed before Docker publication.
+Test suites and browser scripts remain available for local/manual execution. Disposable database guards still apply when running migration fixtures: explicitly configured test databases only, with no fallback to application settings. The full local evidence verifier still requires both historical migration fixtures to pass when `--require-integration` is supplied.
 
-Web CI retains all solution and Node tests and adds a published-output Chromium job at 390px/1440px with service workers allowed/blocked. It covers both sources, SSR, cancellation/history/pagination, empty results, partial responses without warnings, 429, 503 and timeout/manual retry. Expected error responses must not trigger automatic retries. Fixtures use no live supplier credentials.
+The API runtime still installs Chromium for Cinema PDF generation; this is an application dependency. The Web pipeline no longer pulls the Playwright browser image or installs a browser for testing.
 
 ## Deferred Stage load test
 
@@ -106,6 +106,6 @@ Baseline gates: p95 <=2s, p99 <=4s, unexpected failures <1%, no capacity rejecti
 
 ## Release and rollback
 
-Publish only after security evidence, both DB fixtures, coverage and browser verification pass. The deferred Stage load test and a 24h deployment observation remain explicit operational acceptance steps. Record the exact Nginx configuration, Web peer, commit/image identity, 429/503 rates, response latency and sync health. Configure the existing monitoring stack to consume the Catalogue meter and safe Nginx log; emitting a Meter alone is not proof of collection.
+The automated publication path requires successful build/publish and NuGet checks; test results are no longer a pipeline prerequisite. Coverage checks, the deferred Stage load test and a 24h deployment observation remain separate operational acceptance steps. Record the exact Nginx configuration, Web peer, commit/image identity, 429/503 rates, response latency and sync health. Configure the existing monitoring stack to consume the Catalogue meter and safe Nginx log; emitting a Meter alone is not proof of collection.
 
 Keep Catalogue off in the base configuration. Enable API and Web flags only for the intended deployment, retaining both source keys and the chosen workers. On incident, disable Catalogue flags or restore the prior compatible image/Nginx configuration. Keep additive schema/history and all public/transactional identities. Never use schema downgrade or data deletion as rollback.

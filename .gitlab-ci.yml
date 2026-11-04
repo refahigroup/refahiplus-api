@@ -1,6 +1,5 @@
 stages:
   - build
-  - verify
   - docker
   - notify
 
@@ -48,29 +47,13 @@ default:
 
 
 # ============================================================
-# BUILD / TEST / PUBLISH
+# BUILD / PUBLISH
 # ============================================================
 
 build_publish:
   stage: build
 
   image: registry.refahi.xyz/platform/ci-images/dotnet-sdk:10.0
-
-  services:
-    - name: registry.refahi.xyz/platform/ci-images/postgres:16-alpine
-      alias: postgres
-
-  variables:
-    POSTGRES_DB: "refahi_wallets_tests"
-    POSTGRES_USER: "refahi"
-    POSTGRES_PASSWORD: "refahi"
-    REFAHI_WALLETS_TEST_CONNECTION: "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
-    REFAHI_DISPOSABLE_CI_DATABASE: "true"
-    REFAHI_HOTEL_TEST_DATABASE: "Host=postgres;Port=5432;Database=hotel_city_test_${CI_PIPELINE_ID}_${CI_JOB_ID};Username=refahi;Password=refahi"
-    REFAHI_ENTERTAINMENTS_TEST_CONNECTION: "Host=postgres;Port=5432;Database=entertainments_test_${CI_PIPELINE_ID}_${CI_JOB_ID};Username=refahi;Password=refahi"
-
-    ConnectionStrings__Default:
-      "Host=postgres;Port=5432;Database=refahi_wallets_tests;Username=refahi;Password=refahi"
 
   script:
     - |
@@ -148,14 +131,7 @@ build_publish:
         --no-restore
 
       echo ""
-      echo "=== Release test suites ==="
-      mkdir -p artifacts/catalogue-release/test-results
-      for suite in Wallets Catalogue Hotels Entertainments Orders Flights Store SupplyChain Cinema; do
-        dotnet test "tests/Refahi.Modules.${suite}.Tests/Refahi.Modules.${suite}.Tests.csproj" \
-          -c Release --no-build --no-restore \
-          --logger "trx;LogFileName=${suite}.trx" \
-          --results-directory artifacts/catalogue-release/test-results
-      done
+      mkdir -p artifacts/catalogue-release
       echo "=== NuGet security audit ==="
       for audit_attempt in 1 2 3; do
         echo "NuGet security audit attempt $audit_attempt/3"
@@ -233,8 +209,6 @@ docker_build_push:
   image: registry.refahi.xyz/platform/ci-images/docker-cli:29.7.2
 
   needs:
-    - job: verify_catalogue_release
-      artifacts: false
     - job: build_publish
       artifacts: true
 
@@ -271,16 +245,7 @@ docker_build_push:
 
       ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
       RUN playwright_node=$(find /app/.playwright/node -type f -name node | head -n 1) \
-          && "$playwright_node" /app/.playwright/package/cli.js install --with-deps chromium \
-          && "$playwright_node" -e 'const { chromium } = require("./.playwright/package"); (async () => { \
-              const browser = await chromium.launch({ headless: true }); \
-              try { \
-                  const page = await browser.newPage(); \
-                  await page.setContent("<!doctype html><p>Cinema PDF smoke test</p>"); \
-                  const pdf = await page.pdf({ format: "A4" }); \
-                  if (pdf.subarray(0, 5).toString() !== "%PDF-") throw new Error("Invalid PDF"); \
-              } finally { await browser.close(); } \
-          })().catch(error => { console.error(error); process.exit(1); });'
+          && "$playwright_node" /app/.playwright/package/cli.js install --with-deps chromium
 
       ENTRYPOINT ["dotnet", "Refahi.Api.dll"]
       EOF
@@ -387,19 +352,3 @@ notify_deploy_agent:
         --header "Authorization: Bearer $DEPLOY_AGENT_TOKEN" \
         --data "{\"service\":\"$SERVICE_NAME\",\"env\":\"$ENV\"}" \
         --max-time 180
-
-verify_catalogue_release:
-  stage: verify
-  image: python:3.13-slim
-  needs:
-    - job: build_publish
-      artifacts: true
-  script:
-    - python -m unittest discover -s tools/tests -p "test_*.py"
-    - python tools/verify-catalogue-release.py --audit artifacts/catalogue-release/security-audit.json --trx artifacts/catalogue-release/test-results --deps publish/api/Refahi.Api.deps.json --require-integration --output artifacts/catalogue-release/evidence.json
-  artifacts:
-    when: always
-    reports:
-      junit: artifacts/catalogue-release/evidence.junit.xml
-    paths:
-      - artifacts/catalogue-release/
