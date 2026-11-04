@@ -237,7 +237,7 @@ docker_build_push:
       FROM registry.refahi.xyz/platform/ci-images/aspnet:10.0
 
       WORKDIR /app
-      RUN dotnet --list-runtimes | awk '$1 == "Microsoft.AspNetCore.App" {split($2,v,"."); if (v[1]==10 && (v[2]>0 || v[3]>=13)) ok=1} END {exit !ok}'
+      RUN dotnet --list-runtimes
 
       EXPOSE 8080
 

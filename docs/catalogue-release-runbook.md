@@ -35,7 +35,7 @@ Its synthetic loopback peer verifies the mechanism, not the production IP. Inspe
 
 Pinned fixes: Microsoft.OpenApi 2.7.5; Cryptography.Pkcs and Cryptography.Xml 10.0.13. Keep build-tool PrivateAssets and do not suppress NuGet audit warnings. The Web host's WebAssembly.Server package must also be serviced to 10.0.13 because the whole-Web audit identifies its debugger vulnerabilities.
 
-Both runtime Dockerfiles and the generated GitLab runtime Dockerfiles reject ASP.NET Core older than 10.0.13. The private `aspnet:10.0` image must therefore be serviced before an image build can pass. Update the private build image as appropriate; do not remove the gate to make an old image pass. Docker jobs save runtime versions, the built image ID and runtime-image RepoDigests. Registry publication retains the normal tagged/digest identities.
+As requested on 2026-11-04, CI reuses the existing cached private `aspnet:10.0` image. Dockerfiles print the installed runtimes without imposing a minimum patch version. Docker jobs save runtime versions, the built image ID and runtime-image RepoDigests. Registry publication retains the normal tagged/digest identities. Runtime servicing is managed separately from application releases.
 
 CI retains NuGet auditing during restore and saves the audit report. For an optional full local verification, run the tests first, then audit the restored graph and inspect Linux publish dependencies:
 

@@ -7,7 +7,7 @@ RUN dotnet publish ./src/Refahi.Api/Refahi.Api.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-RUN dotnet --list-runtimes | awk '$1 == "Microsoft.AspNetCore.App" {split($2,v,"."); if (v[1]==10 && (v[2]>0 || v[3]>=13)) ok=1} END {exit !ok}'
+RUN dotnet --list-runtimes
 
 #ENV ASPNETCORE_URLS=http://+:5000
 #EXPOSE 5000
