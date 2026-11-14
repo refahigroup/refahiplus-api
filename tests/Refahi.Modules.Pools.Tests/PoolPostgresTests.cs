@@ -167,8 +167,16 @@ public sealed class PoolPostgresTests
         options.CatalogEnabled = false;
         options.PurchaseEnabled = false;
 
+        var storedPurchase = await Send(services, new GetPoolPurchaseQuery(purchase.Id, user));
+        Assert.False(storedPurchase.CanCheckout);
+        Assert.True(storedPurchase.CanCancel);
+
         var quoteError = await Assert.ThrowsAsync<PoolException>(() => Send(services, new QuotePoolPurchaseQuery(choices)));
         Assert.Equal("CATALOG_DISABLED", quoteError.Code);
+        options.CatalogEnabled = true;
+        var salesError = await Assert.ThrowsAsync<PoolException>(() => Send(services, new QuotePoolPurchaseQuery(choices)));
+        Assert.Equal("PURCHASE_DISABLED", salesError.Code);
+        options.CatalogEnabled = false;
         var purchaseError = await Assert.ThrowsAsync<PoolException>(() => Send(services,
             new CreatePoolPurchaseCommand(user, choices, purchase.TotalMinor, "disabled-sale")));
         Assert.Equal("PURCHASE_DISABLED", purchaseError.Code);

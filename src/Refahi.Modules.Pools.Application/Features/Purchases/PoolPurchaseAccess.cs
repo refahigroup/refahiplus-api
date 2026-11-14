@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Options;
 using Refahi.Modules.Pools.Application.Contracts;
 using Refahi.Modules.Pools.Application.Contracts.Public;
 using Refahi.Modules.Pools.Domain;
 
 namespace Refahi.Modules.Pools.Application.Features.Purchases;
-public sealed class PoolPurchaseAccess(IPoolPurchaseRepository repository, IPoolCodeProtector protector, TimeProvider clock)
+public sealed class PoolPurchaseAccess(IPoolPurchaseRepository repository, IPoolCodeProtector protector, TimeProvider clock,
+    IOptionsMonitor<PoolsOptions> options)
 {
     public async Task<PoolPurchase> Owned(Guid id, Guid user, CancellationToken ct)
     {
@@ -14,7 +16,8 @@ public sealed class PoolPurchaseAccess(IPoolPurchaseRepository repository, IPool
     public PoolPurchaseDto View(PoolPurchase p)
     {
         var now = clock.GetUtcNow();
-        return new(p.Id, p.OrderId, p.OrderNumber, p.Version, p.TotalMinor, PoolPublicStates.Purchase(p.Status), p.PayableUntil, p.CanPay(now),
+        return new(p.Id, p.OrderId, p.OrderNumber, p.Version, p.TotalMinor, PoolPublicStates.Purchase(p.Status), p.PayableUntil,
+            options.CurrentValue.PurchaseEnabled && p.CanPay(now),
             (p.Status is PoolPurchaseStatus.AwaitingPayment or PoolPurchaseStatus.Paid) && !p.Requests.Any(r => r.VoucherStatus == PoolVoucherStatus.Redeemed || r.ReservationStatus is PoolReservationStatus.Reserved or PoolReservationStatus.Unknown || p.Status == PoolPurchaseStatus.Paid && r.ReservationStatus == PoolReservationStatus.Pending),
             p.Requests.Select(r => new PoolVoucherDto(r.Id, r.SessionId, r.PoolId, r.PoolName, r.Date, r.Time, r.AdultCount, r.ChildCount,
                 r.TotalMinor, r.StartsAtUtc, r.EndsAtUtc, r.ReservationStatus.ToString(),
