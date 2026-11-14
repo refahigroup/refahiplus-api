@@ -14,6 +14,7 @@ using Refahi.Api.Services.Path;
 using Refahi.Modules.Charge.Api;
 using Refahi.Modules.Cinema.Api;
 using Refahi.Modules.Commerce.Api;
+using Refahi.Modules.Pools.Api;
 using Refahi.Modules.Flights.Api;
 using Refahi.Modules.Hotels.Api;
 using Refahi.Modules.Identity.Api;
@@ -128,6 +129,7 @@ builder
     .RegisterChargeModule(builder.Configuration)
     .RegisterCommerceModule(builder.Configuration)
     .RegisterCinemaModule(builder.Configuration)
+    .RegisterPoolsModule(builder.Configuration)
     .RegisterPromotionsModule(builder.Configuration)
     .RegisterEntertainmentsModule(builder.Configuration);
 
@@ -211,6 +213,7 @@ app.UseReferencesModule("/api/references")
     .UsePaymentGatewayModule("/api/payment-gateway")
     .UseChargeModule("/api/charge")
     .UseCommerceModule("/api/commerce")
+    .UsePoolsModule("/api/pools")
     .UseCinemaModule("/api/cinema")
     .UsePromotionsModule("/api/promotions")
     .UseEntertainmentsModule("/api/entertainments");

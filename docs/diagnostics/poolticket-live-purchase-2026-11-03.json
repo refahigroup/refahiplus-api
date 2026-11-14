@@ -1,0 +1,21 @@
+{
+  "purchaseId": "2457aaa9-a7d8-4467-b3d5-dd9dee1e4976",
+  "orderId": "3e8f8260-e2bf-40f8-ae36-71df16ee9df8",
+  "orderNumber": "ORD-261103-84F660",
+  "poolName": "استخر دانشگاه آزاد مشهد",
+  "sessionName": "سانس سرپوشیده آقایان",
+  "amountMinor": 1100000,
+  "reservationStatus": "Reserved",
+  "paymentStatus": "Paid",
+  "voucherPresent": true,
+  "canCancel": false,
+  "reservationId": "1573",
+  "unit": "TOMAN",
+  "testWalletBalanceMinor": 0,
+  "paymentReplayUnchangedBalance": true,
+  "pdfBytes": 75376,
+  "privateResponseNoStore": true,
+  "voucherMatchesProviderInfo": true,
+  "upstreamReservationCount": 1,
+  "upstreamHost": "staging.poolticket.org"
+}

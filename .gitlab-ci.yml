@@ -87,7 +87,7 @@ build_publish:
       echo "========================================"
       echo " RefahiPlus API Build"
       echo "========================================"
-      echo "Branch: $CI_COMMIT_BRANCH"
+      echo "Branch: ${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-${CI_COMMIT_BRANCH:-unknown}}"
       echo "Commit: $CI_COMMIT_SHA"
       echo "Environment: $ENV"
       echo "Version: $BUILD_VERSION"
