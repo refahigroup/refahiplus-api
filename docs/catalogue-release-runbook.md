@@ -109,3 +109,13 @@ Baseline gates: p95 <=2s, p99 <=4s, unexpected failures <1%, no capacity rejecti
 The automated publication path requires successful build/publish and NuGet checks; test results are no longer a pipeline prerequisite. Coverage checks, the deferred Stage load test and a 24h deployment observation remain separate operational acceptance steps. Record the exact Nginx configuration, Web peer, commit/image identity, 429/503 rates, response latency and sync health. Configure the existing monitoring stack to consume the Catalogue meter and safe Nginx log; emitting a Meter alone is not proof of collection.
 
 Keep Catalogue off in the base configuration. Enable API and Web flags only for the intended deployment, retaining both source keys and the chosen workers. On incident, disable Catalogue flags or restore the prior compatible image/Nginx configuration. Keep additive schema/history and all public/transactional identities. Never use schema downgrade or data deletion as rollback.
+
+## Pools integration rollout
+
+For this release, verify the effective Stage and Production settings before rollout:
+
+- `Catalogue:EnabledSources` contains only `entertainments` and `hotels`. Remove any indexed override such as `Catalogue__EnabledSources__2=pools`. Keep `MaxConcurrency=16` for eight admitted requests and two sources. Preserve each environment's existing `Catalogue:Enabled` value.
+- `Pools:CatalogEnabled=false` and `Pools:PurchaseEnabled=false` disable automatic sync, quotes and new purchases. API startup still applies Pools migrations. Direct reads use stored data, and the recovery worker can reconcile existing purchases, including fulfilling already-paid orders.
+- Run the readiness check above with the deployment's effective configuration. With Catalogue enabled, verify both existing sources in search and location responses and check that `/api/catalogue/items?sources=pools` returns HTTP 400.
+
+A future activation requires Pools readiness checks and effective capacity for three sources (at least 24 at eight admitted requests). See [PoolTicket Bruno alignment](poolticket-bruno-alignment.md) for provider verification.
