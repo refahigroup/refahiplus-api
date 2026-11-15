@@ -39,7 +39,10 @@ public sealed class CinemaDiscoveryTests
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var provider = Provider(client, cache);
 
-        var result = await provider.ReadDiscoveryAsync(Now, 14, default);
+        var result = await provider.ReadDiscoveryAsync(Now.AddHours(9), 14, default);
+        Assert.Equal(2, stub.ScheduleQueries.Count);
+        Assert.All(stub.ScheduleQueries, query =>
+            Assert.EndsWith("&starts_from=2026-11-17&starts_to=2026-12-01", query));
         Assert.Equal("علي نیک‌نام", Assert.Single(Assert.Single(result.Films).Credits!).Artist.Name);
         Assert.Equal(2, result.Sessions.Length);
         Assert.All(result.Sessions, x => Assert.Equal(TimeSpan.Zero, x.StartsAt.Offset));
@@ -150,6 +153,7 @@ public sealed class CinemaDiscoveryTests
 
     private sealed class FeedHandler : HttpMessageHandler
     {
+        public List<string> ScheduleQueries { get; } = [];
         public bool BreakSecondPage { get; set; }
         public bool HideSecondSchedule { get; set; }
         public bool IncludeHomonym { get; set; }
@@ -158,6 +162,8 @@ public sealed class CinemaDiscoveryTests
         {
             var uri = request.RequestUri!;
             var path = uri.AbsolutePath;
+            if (path == "/api/v1/reseller/schedules")
+                ScheduleQueries.Add(uri.Query);
             var page = uri.Query.Contains("page=2&", StringComparison.Ordinal) ? 2 : 1;
             var film = new { id = Film };
             var starts = new DateTimeOffset(2026, 11, 16, 23, 10, 0, TimeSpan.Zero);

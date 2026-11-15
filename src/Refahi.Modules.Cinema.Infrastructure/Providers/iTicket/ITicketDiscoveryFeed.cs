@@ -16,6 +16,8 @@ internal sealed record ITicketDiscoveryFeed(ITicketFilm[] Films, ITicketVenue[] 
 
 public sealed partial class ITicketCinemaProvider
 {
+    private static readonly TimeZoneInfo DiscoveryTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
+
     internal async Task<ITicketDiscoveryFeed> ReadDiscoveryAsync(DateTimeOffset now, int horizonDays, CancellationToken ct)
     {
         var categories = Settings.CinemaCategories.Concat(Settings.ArtCategories).Distinct().ToArray();
@@ -33,10 +35,12 @@ public sealed partial class ITicketCinemaProvider
                 films.TryAdd(S(row, "id"), kind);
         }
 
-        var range = "&starts_from=" + E(now.ToString("O", CultureInfo.InvariantCulture))
-            + "&starts_to=" + E(now.AddDays(horizonDays).ToString("O", CultureInfo.InvariantCulture));
+        var localStart = TimeZoneInfo.ConvertTime(now, DiscoveryTimeZone);
+        var localEnd = TimeZoneInfo.ConvertTime(now.AddDays(horizonDays), DiscoveryTimeZone);
+        var range = "&starts_from=" + localStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            + "&starts_to=" + localEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var rows = await ReadPagesAsync(page =>
-            $"reseller/schedules?page={page}&per_page=24{CategoryFilter(categories)}{range}", ct);
+            $"reseller/schedules?page={page}&per_page=250{CategoryFilter(categories)}{range}", ct);
         var sessions = rows.Select(MapDiscoverySession)
             .Where(row => films.ContainsKey(row.FilmId) && row.StartsAt > now && row.StartsAt <= now.AddDays(horizonDays))
             .ToArray();
