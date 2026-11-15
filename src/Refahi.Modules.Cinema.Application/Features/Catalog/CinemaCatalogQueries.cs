@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Refahi.Modules.Cinema.Application.Features.Catalog;
 
-public sealed record CinemaCitiesQuery : IRequest<IReadOnlyList<CinemaCity>>;
+public sealed record CinemaCitiesQuery(bool Canonical = false) : IRequest<IReadOnlyList<CinemaCity>>;
 public sealed record CinemaLandingQuery(int? City) : IRequest<CinemaLanding>;
 public sealed record CinemaShowsQuery(string Kind, int? City, string? Search, int Page) : IRequest<CinemaCatalog>;
 public sealed record CinemaShowQuery(string Id) : IRequest<CinemaShow>;
@@ -70,42 +70,69 @@ public sealed class CinemaSessionsValidator : AbstractValidator<CinemaSessionsQu
     }
 }
 
-public sealed class CinemaCatalogHandlers(ICinemaProviderFactory factory, IOptions<CinemaOptions> options, CinemaMediaPublisher? media = null) :
+public sealed class CinemaCatalogHandlers(ICinemaProviderFactory factory, IOptions<CinemaOptions> options,
+    CinemaMediaPublisher? media = null, ICinemaDiscoveryReader? discovery = null) :
     IRequestHandler<CinemaCitiesQuery, IReadOnlyList<CinemaCity>>, IRequestHandler<CinemaLandingQuery, CinemaLanding>, IRequestHandler<CinemaShowsQuery, CinemaCatalog>, IRequestHandler<CinemaShowQuery, CinemaShow>,
     IRequestHandler<CinemaPlacesQuery, IReadOnlyList<CinemaDisplayDay>>, IRequestHandler<CinemaSessionsQuery, IReadOnlyList<CinemaSession>>,
     IRequestHandler<CinemaSeatsQuery, CinemaSeatMap>, IRequestHandler<CinemaStatusesQuery, CinemaSeatStatuses>
 {
     private readonly CinemaMediaPublisher publicMedia = media ?? new();
 
-    private ICinemaProvider Provider()
+    private const string LegacyProvider = "iticket";
+
+    private ICinemaProvider Provider(string? key = null)
+    {
+        EnsureEnabled();
+        return factory.Get(key ?? options.Value.ProviderKey);
+    }
+
+    private void EnsureEnabled()
     {
         if (!options.Value.CatalogEnabled)
             throw new CinemaException("سرویس سینما هنوز فعال نشده است", 503);
+    }
 
-        return factory.Get(options.Value.ProviderKey);
+    private ICinemaDiscoveryReader Discovery()
+    {
+        EnsureEnabled();
+        return discovery ?? throw new CinemaException("کاتالوگ سینما در دسترس نیست", 503);
     }
 
     public Task<IReadOnlyList<CinemaCity>> Handle(CinemaCitiesQuery r, CancellationToken ct) =>
-        Provider().CitiesAsync(ct);
+        r.Canonical ? Discovery().CitiesAsync(ct) : Provider().CitiesAsync(ct);
 
     public async Task<CinemaLanding> Handle(CinemaLandingQuery r, CancellationToken ct) =>
         await publicMedia.PublishAsync(await Provider().LandingAsync(r.City, ct), options.Value.ProviderKey, ct);
     public async Task<CinemaCatalog> Handle(CinemaShowsQuery r, CancellationToken ct) =>
         await publicMedia.PublishAsync(await Provider().ShowsAsync(r.Kind, r.City, r.Search, r.Page, ct), options.Value.ProviderKey, ct);
     public async Task<CinemaShow> Handle(CinemaShowQuery r, CancellationToken ct) =>
-        await publicMedia.PublishAsync(await Provider().ShowAsync(r.Id, ct), options.Value.ProviderKey, ct);
+        Guid.TryParseExact(r.Id, "D", out var show) ? await Discovery().ShowAsync(show, ct)
+            : await publicMedia.PublishAsync(await Provider(LegacyProvider).ShowAsync(r.Id, ct), LegacyProvider, ct);
 
     public async Task<IReadOnlyList<CinemaDisplayDay>> Handle(CinemaPlacesQuery r, CancellationToken ct) =>
-        await publicMedia.PublishAsync(await Provider().PlacesAsync(r.Show, r.City, r.Search, ct), options.Value.ProviderKey, ct);
+        Guid.TryParseExact(r.Show, "D", out var show) ? await Discovery().PlacesAsync(show, r.City, r.Search, ct)
+            : await publicMedia.PublishAsync(await Provider(LegacyProvider).PlacesAsync(r.Show, r.City, r.Search, ct), LegacyProvider, ct);
 
     public Task<IReadOnlyList<CinemaSession>> Handle(CinemaSessionsQuery r, CancellationToken ct) =>
-        Provider().SessionsAsync(r.Show, r.Place, r.Date, ct);
+        Guid.TryParseExact(r.Show, "D", out var show)
+            ? Discovery().SessionsAsync(show, Guid.TryParseExact(r.Place, "D", out var place) ? place
+                : throw new CinemaException("شناسه محل معتبر نیست", 400), r.Date, ct)
+            : Provider(LegacyProvider).SessionsAsync(r.Show, r.Place, r.Date, ct);
 
-    public async Task<CinemaSeatMap> Handle(CinemaSeatsQuery r, CancellationToken ct) =>
-        await publicMedia.PublishAsync(await Provider().SeatsAsync(r.Schedule, ct), options.Value.ProviderKey, ct);
+    public async Task<CinemaSeatMap> Handle(CinemaSeatsQuery r, CancellationToken ct)
+    {
+        EnsureEnabled();
+        var schedule = await CinemaScheduleIdentity.ResolveAsync(r.Schedule, discovery, ct);
+        var map = await factory.Get(schedule.ProviderKey).SeatsAsync(schedule.ExternalId, ct);
+        return await publicMedia.PublishAsync(map with { ScheduleId = r.Schedule }, schedule.ProviderKey, ct);
+    }
 
-    public Task<CinemaSeatStatuses> Handle(CinemaStatusesQuery r, CancellationToken ct) =>
-        Provider().StatusAsync(r.Schedule, ct);
+    public async Task<CinemaSeatStatuses> Handle(CinemaStatusesQuery r, CancellationToken ct)
+    {
+        EnsureEnabled();
+        var schedule = await CinemaScheduleIdentity.ResolveAsync(r.Schedule, discovery, ct);
+        return await factory.Get(schedule.ProviderKey).StatusAsync(schedule.ExternalId, ct);
+    }
 }
 
 public sealed class CinemaShowValidator : AbstractValidator<CinemaShowQuery>
@@ -144,7 +171,7 @@ public sealed class CinemaSeatsValidator : AbstractValidator<CinemaSeatsQuery>
     public CinemaSeatsValidator() 
     { 
         RuleFor(x => x.Schedule)
-            .Matches("^[0-9A-Za-z]{26}$")
+            .Must(CinemaScheduleIdentity.IsValid)
             .WithMessage("شناسه سانس معتبر نیست");
     } 
 }
@@ -154,7 +181,7 @@ public sealed class CinemaStatusesValidator : AbstractValidator<CinemaStatusesQu
     public CinemaStatusesValidator() 
     {
          RuleFor(x => x.Schedule)
-            .Matches("^[0-9A-Za-z]{26}$")
+            .Must(CinemaScheduleIdentity.IsValid)
             .WithMessage("شناسه سانس معتبر نیست"); 
     } 
 }

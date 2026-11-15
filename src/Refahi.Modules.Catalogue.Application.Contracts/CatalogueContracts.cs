@@ -19,6 +19,7 @@ public sealed record CatalogueCity(int Id, string Name, string ProvinceName, int
 public sealed record CatalogueProvince(int Id, string Name);
 public sealed record CatalogueLocationsResponse(IReadOnlyList<CatalogueProvince> Provinces, IReadOnlyList<CatalogueCity> Cities, bool IsPartial, IReadOnlyList<CatalogueSourceStatus> Sources);
 public sealed record CatalogueSourceResult(IReadOnlyList<CatalogueItem> Items, int? TotalCount, bool IsPartial);
+public sealed record CatalogueSourceCities(IReadOnlyList<CatalogueCity> Cities, bool IsPartial);
 public sealed record CatalogueSourceStatus(string Source, string Status);
 public sealed record CatalogueResponse(IReadOnlyList<CatalogueItem> Items, int Page, int PageSize, int? TotalCount, bool HasMore, bool IsPartial, IReadOnlyList<CatalogueSourceStatus> Sources);
 public sealed record CatalogueSourceRegistration(string Key, Type Implementation);
@@ -26,6 +27,7 @@ public interface ICatalogueSource
 {
  Task<CatalogueSourceResult> SearchAsync(CatalogueQuery query, int take, CancellationToken ct);
  Task<IReadOnlyList<CatalogueCity>> CitiesAsync(CancellationToken ct);
+ async Task<CatalogueSourceCities> ReadCitiesAsync(CancellationToken ct) => new(await CitiesAsync(ct), false);
 }
 public sealed class CatalogueUnavailableException : Exception
 {

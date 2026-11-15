@@ -20,13 +20,14 @@ public sealed class CinemaProviderSettings
     public string[] ConfirmedStatuses { get; set; } = ["confirmed"];
     public string[] CancelledStatuses { get; set; } = ["cancelled", "canceled"];
     public string[] ExpiredStatuses { get; set; } = ["expired", "reservation_expired"];
+    public string[] DiscoveryAvailableStatuses { get; set; } = ["available"];
 }
 public sealed class CinemaProviderFactory(IEnumerable<ICinemaProvider> providers) : ICinemaProviderFactory
 {
     public ICinemaProvider Get(string key) => providers.SingleOrDefault(p => p.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
         ?? throw new CinemaException("تأمین‌کننده سینما تنظیم نشده است", 503);
 }
-public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<CinemaProviderSettings> settings,
+public sealed partial class ITicketCinemaProvider(IiTicketClient client, IOptions<CinemaProviderSettings> settings,
     IOptions<iTicketOptions> connection, IMemoryCache cache, ILogger<ITicketCinemaProvider> logger) : ICinemaProvider
 {
     // Shared across request-scoped provider instances; striped locks coalesce enrichment reads.
@@ -154,16 +155,18 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
         var path=$"schedules/shows/{E(show)}/places/{E(place)}/sessions"+(date==null?"":"?date="+E(date));
         return Items(await Read(path,ct,true)).Select(MapSession).ToArray();
     }
-    private static CinemaSession MapSession(JsonElement x)
+    private CinemaSession MapSession(JsonElement x)
     {
-        var a=A(x); var currency=S(a,"currency_code");
+        var a=A(x); var currency=S(a,"currency_code"); var status=S(a,"status");
+        if (Settings.DiscoveryAvailableStatuses.Contains(status, StringComparer.OrdinalIgnoreCase)) status = "available";
         return new(S(x,"id"),S(a,"hall_name"),Date(a,"starts_at")??throw new CinemaException("زمان سانس معتبر نیست",502),
-            Date(a,"purchase_end_at"),S(a,"status"),(int)N(a,"available_count"),
+            Date(a,"purchase_end_at"),status,(int)N(a,"available_count"),
             NullableNumber(a,"price") is long price?Money(price,currency):null,
             Items(P(a,"prices")).Select(x=>Money(Number(x),currency)).ToArray(),S(a,"session_label"));
     }
     public async Task<CinemaSeatMap> SeatsAsync(string schedule,CancellationToken ct)
     {
+        ValidateSchedule(schedule);
         var a=A(Resource(await Read("schedules/"+E(schedule)+"/seats",ct)));
         var schema=P(a,"schema"); var columns=Items(P(schema,"seat")).Select(x=>x.GetString()??"").ToArray();
         var statuses=Items(P(schema,"status")).Select(x=>x.GetString()??"").ToArray();
@@ -190,6 +193,7 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
     }
     public async Task<CinemaSeatStatuses> StatusAsync(string schedule,CancellationToken ct)
     {
+        ValidateSchedule(schedule);
         var a=A(Resource(await Read("schedules/"+E(schedule)+"/seats/status",ct)));
         var names=Items(P(P(a,"schema"),"status")).Select(Text).ToArray();var result=new Dictionary<string,string>();
         var seats=P(a,"seats");if(seats.ValueKind==JsonValueKind.Object)foreach(var p in seats.EnumerateObject())
@@ -197,7 +201,17 @@ public sealed class ITicketCinemaProvider(IiTicketClient client, IOptions<Cinema
         return new(result);
     }
     public async Task<CinemaReservation> ReserveAsync(string schedule,IReadOnlyList<string> seats,CinemaCustomer customer,CancellationToken ct)
-        => MutationReservation(await Mutate("reseller/orders/reserve",new{data=new{type="reseller-orders",attributes=new{schedule_id=schedule,seat_ids=seats,customer=new{mobile=customer.Mobile,first_name=customer.Name}}}},ct));
+    {
+        ValidateSchedule(schedule);
+        if (seats.Any(id => !CinemaScheduleIdentity.IsLegacyId(id)))
+            throw new CinemaException("شناسه صندلی معتبر نیست", 400);
+        return MutationReservation(await Mutate("reseller/orders/reserve",new{data=new{type="reseller-orders",attributes=new{schedule_id=schedule,seat_ids=seats,customer=new{mobile=customer.Mobile,first_name=customer.Name}}}},ct));
+    }
+    private static void ValidateSchedule(string schedule)
+    {
+        if (!CinemaScheduleIdentity.IsLegacyId(schedule))
+            throw new CinemaException("شناسه سانس معتبر نیست", 400);
+    }
     public async Task<CinemaReservation> GetReservationAsync(string id,CancellationToken ct)=>Reservation(await Read("reseller/orders/"+E(id),ct));
     public async Task<CinemaReservation> ConfirmAsync(string id,CancellationToken ct)=>MutationReservation(await Mutate("reseller/orders/"+E(id)+"/confirm",null,ct));
     public async Task CancelAsync(string id,CancellationToken ct)

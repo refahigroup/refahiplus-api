@@ -113,3 +113,9 @@ Keep Catalogue off in the base configuration. Enable API and Web flags only for 
 ## Pools integration rollout
 
 For Aabsar rollout, enable Pools:Providers:Aabsar:CatalogueEnabled, add pools to the target's Catalogue:EnabledSources and use capacity of at least 24 for eight admitted requests across three sources. Keep current PoolTicket settings in each environment. Readiness verifies Aabsar freshness, mapped geography and saleable products. See the [Pools runbook](pools-architecture-api-runbook.md) for purchase verification, guarded Commerce retirement and recovery.
+
+## Cinema rollout
+
+Deploy the API Cinema migration first. On Stage enable `Cinema:CatalogEnabled` and `Cinema:Discovery:WorkerEnabled` and warm the PostgreSQL publication with the public source excluded. Verify reseller read access, film and venue coverage, cast searches, initial sync duration, approved mappings, and sale status and date semantics. Verify an iTicket seating and checkout journey with approved Stage data. Deploy the compatible Web before enabling `Cinema:Discovery:CatalogueEnabled` and adding `cinema` to the target's `Catalogue:EnabledSources`.
+
+Review capacity using the number of enabled sources. Eight admitted requests across three enabled sources require at least 24 concurrent executions. Run readiness against the intended configuration after migration. Cinema reports last success/attempt, film/venue/screening counts, unmapped venues and pending identity mappings. Missing, stale or failed publications and pending identity mappings fail this gate. Exercise per-source artist/venue searches and representative detail links. Remove `cinema` from the enabled sources on incident and retain data and public UUIDs for existing links.

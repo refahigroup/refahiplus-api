@@ -142,7 +142,6 @@ namespace Refahi.Modules.Cinema.Infrastructure.Migrations
             modelBuilder.Entity("Refahi.Modules.Cinema.Domain.CinemaProviderAttempt", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CinemaOrderId")
@@ -169,6 +168,257 @@ namespace Refahi.Modules.Cinema.Infrastructure.Migrations
                     b.ToTable("provider_attempts", "cinema");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaCredit", b =>
+                {
+                    b.Property<Guid>("FilmId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("FilmId", "PersonId");
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("film_credits", "cinema");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaFilm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AgeGroup")
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<string[]>("Aliases")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Cover")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DescriptionHtml")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<string[]>("Genres")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Poster")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ReleaseYear")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SummaryHtml")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SummaryText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("films", "cinema");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaPerson", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<string[]>("Aliases")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Portrait")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("people", "cinema");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaVenue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<string[]>("Aliases")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<int?>("CityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CityName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Image")
+                        .HasColumnType("text");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ProvinceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProvinceName")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CityId");
+
+                    b.ToTable("venues", "cinema");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.ITicketDiscoveryState", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Failed")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastSuccessAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PendingMappings")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UnmappedVenues")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("iticket_discovery_state", "cinema");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.ITicketGeography", b =>
+                {
+                    b.Property<int>("ExternalCityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExternalProvinceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProvinceId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ExternalCityId");
+
+                    b.ToTable("iticket_geographies", "cinema");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.ITicketMapping", b =>
+                {
+                    b.Property<string>("Kind")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CanonicalId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Kind", "ExternalId");
+
+                    b.ToTable("iticket_mappings", "cinema");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.ITicketScreening", b =>
+                {
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExternalFilmId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExternalVenueId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("FilmId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Published")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("PurchaseEndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("PurchaseStartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ExternalId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("VenueId");
+
+                    b.HasIndex("Published", "StartsAt");
+
+                    b.HasIndex("FilmId", "VenueId", "StartsAt");
+
+                    b.ToTable("iticket_screenings", "cinema");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Cinema.Domain.CinemaProviderAttempt", b =>
                 {
                     b.HasOne("Refahi.Modules.Cinema.Domain.CinemaOrder", null)
@@ -178,9 +428,46 @@ namespace Refahi.Modules.Cinema.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaCredit", b =>
+                {
+                    b.HasOne("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaFilm", null)
+                        .WithMany("Credits")
+                        .HasForeignKey("FilmId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaPerson", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.ITicketScreening", b =>
+                {
+                    b.HasOne("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaFilm", null)
+                        .WithMany()
+                        .HasForeignKey("FilmId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaVenue", null)
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Refahi.Modules.Cinema.Domain.CinemaOrder", b =>
                 {
                     b.Navigation("Attempts");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Cinema.Infrastructure.Persistence.CinemaFilm", b =>
+                {
+                    b.Navigation("Credits");
                 });
 #pragma warning restore 612, 618
         }
