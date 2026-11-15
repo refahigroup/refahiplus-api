@@ -3,16 +3,20 @@ using Microsoft.Extensions.Options;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Pools.Application.Contracts;
 namespace Refahi.Modules.Pools.Application.Features.Purchases.Checkout;
-public sealed class PoolOrderSourceValidator(PoolPurchaseAccess access, IOptionsMonitor<PoolsOptions> options, TimeProvider clock) : INotificationHandler<ValidateOrderSourceNotification>
+public sealed class PoolOrderSourceValidator(PoolPurchaseAccess access, IOptionsMonitor<PoolsOptions> options, TimeProvider clock, AabsarLifecycle? aabsar = null) : INotificationHandler<ValidateOrderSourceNotification>
 {
     public async Task Handle(ValidateOrderSourceNotification n, CancellationToken ct)
     {
         var r = n.Order;
+        if (r.SourceModule.Equals("Commerce", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(r.ReferenceType, "CommerceOrder", StringComparison.OrdinalIgnoreCase))
+            throw new PoolException("مسیر ثبت این سفارش بازنشسته شده است", 400, "ORDER_SOURCE_RETIRED");
+
         if (!r.SourceModule.Equals("Pools", StringComparison.OrdinalIgnoreCase) && r.ReferenceType is not ("PoolPurchase" or "PoolBooking")) return;
-        if (!options.CurrentValue.PurchaseEnabled || r.SourceModule != "Pools" || r.ReferenceType != "PoolPurchase" || r.SourceReferenceId is not Guid id)
+        if (r.SourceModule != "Pools" || r.ReferenceType != "PoolPurchase" || r.SourceReferenceId is not Guid id)
             throw new PoolException("مرجع سفارش استخر معتبر نیست");
         var p = await access.Owned(id, r.UserId, ct);
-        if (!p.CanPay(clock.GetUtcNow()) || p.OrderId.HasValue || r.Items.Count != p.Requests.Count || r.Items.Select(x => x.SourceItemId).Distinct().Count() != p.Requests.Count
+        if (!(p.IsAabsar ? aabsar?.SalesEnabled == true : options.CurrentValue.PurchaseEnabled) || !p.CanPay(clock.GetUtcNow()) || p.OrderId.HasValue || r.Items.Count != p.Requests.Count || r.Items.Select(x => x.SourceItemId).Distinct().Count() != p.Requests.Count
             || r.IdempotencyKey != PoolKeys.Order(id) || r.PayableUntil != p.PayableUntil || r.SagaId != p.Id
             || r.ShippingFeeMinor != 0 || r.DiscountCodeAmountMinor != 0 || r.ShippingAddressId != null || r.ShippingAddressSnapshotJson != null
             || r.DeliveryDate != null || r.DeliveryTimeSlot != 0 || r.DiscountCode != null || r.FinancialSnapshot != null
@@ -21,7 +25,7 @@ public sealed class PoolOrderSourceValidator(PoolPurchaseAccess access, IOptions
         foreach (var item in r.Items)
         {
             var request = p.Requests.SingleOrDefault(x => x.Id == item.SourceItemId);
-            if (request == null || item.Quantity != 1 || item.UnitPriceMinor != request.TotalMinor || item.DiscountAmountMinor != 0
+            if (request == null || item.Quantity != request.OrderQuantity || item.UnitPriceMinor != request.OrderUnitPrice || item.DiscountAmountMinor != 0
                 || item.CategoryCode != PoolKeys.Category || item.DeliveryMethod != 0)
                 throw new PoolException("آیتم سفارش مالی معتبر نیست", 409, "ORDER_SOURCE_MISMATCH");
         }

@@ -39,6 +39,7 @@ def effective(flat):
     registered = ["hotels"]
     if all(flag(key) for key in ["Entertainments:Enabled", "Entertainments:CatalogueEnabled", "Entertainments:Providers:TouristPanel:Enabled"]):
         registered.append("entertainments")
+    registered.append("pools")
     sources = array("Catalogue:EnabledSources") if "catalogue:enabledsources" in flat or any(k.startswith("catalogue:enabledsources:") for k in flat) else registered
     local = array("Hotels:StaticContent:ReadScopes") if flag("Hotels:StaticContent:ReadEnabled") else []
     local = [{"snapptrip":"SnappTrip", "lamasoo":"Lamasoo"}.get(scope.partition(":")[0].lower(), scope.partition(":")[0])+":"+scope.partition(":")[2] for scope in local]
@@ -50,11 +51,14 @@ def effective(flat):
     config = dict(sources=sources, providers=providers, local_scopes=local,
                   hotel_max_age_days=int(get("Hotels:Discovery:MaxAgeDays", "7")),
                   entertainment_max_age_days=int(get("Entertainments:MaxDiscoveryAgeDays", "7")),
+                  aabsar=flag("Pools:Providers:Aabsar:CatalogueEnabled"),
+                  poolticket=flag("Pools:CatalogEnabled"),
+                  aabsar_max_age_seconds=2 * int(get("Pools:Providers:Aabsar:CatalogCacheSeconds", "120")),
                   account_key=hashlib.sha256(account.encode()).hexdigest())
     errors = []
     if not flag("Catalogue:Enabled"): errors.append("catalogue_disabled")
     if not sources: errors.append("no_sources")
-    if set(sources) - {"hotels", "entertainments"}: errors.append("unsupported_source")
+    if set(sources) - {"hotels", "entertainments", "pools"}: errors.append("unsupported_source")
     if config["hotel_max_age_days"] < 1 or config["entertainment_max_age_days"] < 1: errors.append("invalid_freshness")
     if "hotels" in sources and not (flag("Hotels:Discovery:WorkerEnabled") or flag("Hotels:StaticContent:WorkerEnabled")):
         errors.append("hotel_worker_disabled")
@@ -62,6 +66,12 @@ def effective(flat):
     if "entertainments" in sources and not flag("Entertainments:Enabled"): errors.append("entertainment_module_disabled")
     if "entertainments" in sources and not flag("Entertainments:CatalogueEnabled"): errors.append("entertainment_catalogue_disabled")
     if "entertainments" in sources and not flag("Entertainments:DiscoveryWorkerEnabled"): errors.append("entertainment_worker_disabled")
+    if "pools" in sources and not (config["aabsar"] or config["poolticket"]):
+        errors.append("pools_providers_disabled")
+    if config["aabsar"] and (not flag("Pools:Providers:Aabsar:Enabled") or not get("Pools:Providers:Aabsar:AccessToken")):
+        errors.append("aabsar_provider_not_configured")
+    if int(get("Catalogue:MaxConcurrency", "16")) < len(sources) * int(get("Catalogue:MaxConcurrentRequests", "8")):
+        errors.append("catalogue_capacity")
     return config, errors
 
 

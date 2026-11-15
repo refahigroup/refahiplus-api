@@ -30,7 +30,7 @@ public sealed class PoolQuoteResolver(IPoolCatalogRepository catalog, IPoolProvi
             var request = PoolRequest.Create(session.Id, pool.Id, pool.ProviderKey, pool.ExternalId, session.ExternalRowId,
                 JsonSerializer.Serialize(new { pool = new { pool.Name, pool.State, pool.City, pool.ImageUrl }, session = new { session.Name, session.Date, session.Time, session.TermsHtml }, choice, quote }),
                 pool.Name, quote.Date, quote.Time, choice.AdultCount, choice.ChildCount, quote.TotalMinor.Value, starts, ends);
-            if (provider is IPoolOrganizationProvider) request.RequireExternalReservation();
+            if (provider.Capabilities.Reserve) request.RequireExternalReservation();
             result.Add(request);
         }
         return result;

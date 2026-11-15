@@ -4,7 +4,7 @@ using Refahi.Modules.Pools.Application.Contracts.Public;
 using Refahi.Modules.Pools.Domain;
 namespace Refahi.Modules.Pools.Application.Features.Purchases.Cancel;
 public sealed class PoolCancellationParticipant(IPoolMutationLock gate, PoolPurchaseAccess access, IPoolPurchaseRepository repository,
-    ILegacyPoolStore legacy) : IOrderCancellationParticipant
+    ILegacyPoolStore legacy, AabsarLifecycle? aabsar = null) : IOrderCancellationParticipant
 {
     public string SourceModule => "Pools";
     public async Task<OrderCancellationPreparation> PrepareAsync(OrderCancellationContext context, CancellationToken ct)
@@ -14,6 +14,12 @@ public sealed class PoolCancellationParticipant(IPoolMutationLock gate, PoolPurc
         if (context.ReferenceType != "PoolPurchase") return new(false, "نوع مرجع خرید معتبر نیست");
         await using var lease = await gate.AcquireAsync(id, ct); var p = await access.Owned(id, context.UserId, ct);
         if (p.OrderId != context.OrderId) return new(false, "سفارش مالی مطابقت ندارد");
+        if (p.IsAabsar)
+        {
+            if (aabsar is null) return new(false, "سرویس لغو آبسار آماده نیست");
+            var reason = await aabsar.CancelAsync(p, context.PaymentState == "Paid", ct);
+            if (reason is not null) return new(false, reason);
+        }
         if (p.Requests.Any(x => x.VoucherStatus == PoolVoucherStatus.Redeemed)) return new(false, "ووچر مصرف‌شده قابل استرداد نیست");
         if (p.Requests.Any(x => x.ReservationStatus is PoolReservationStatus.Reserved or PoolReservationStatus.Unknown
             || context.PaymentState == "Paid" && x.ReservationStatus == PoolReservationStatus.Pending))

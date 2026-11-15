@@ -103,6 +103,46 @@ public sealed class PoolOrganizationPersistenceTests
         var nearby=await source.SearchAsync(query with{Location="nearby",CityId=null,ProvinceId=null,Latitude=35,Longitude=51},10,default);
         Assert.All(nearby.Items,x=>Assert.Equal(0d,x.DistanceMeters));
     }
+    [PostgresFact]
+    public async Task Aabsar_catalogue_returns_each_product_with_stable_link_and_reports_unready_poolticket()
+    {
+        await Seed();
+        await using var db = Db();
+        var marker = Guid.NewGuid().ToString("N");
+        var now = DateTimeOffset.UtcNow;
+        var venue = await db.AabsarVenues.FindAsync(1);
+        if (venue is null) { venue = AabsarVenue.Create(); db.Add(venue); }
+        venue.Publish(8199, 81, now);
+        var products = new[] { AabsarProduct.Create(marker + "-1"), AabsarProduct.Create(marker + "-2") };
+        foreach (var product in products)
+        {
+            product.Publish("بلیط " + marker);
+            db.Add(product);
+            var showtime = AabsarShowtime.Create(product.EventId + "-session", product.Id);
+            showtime.Publish("سانس", now.AddDays(1), null, 2, 2000, 1000, null, null);
+            db.Add(showtime);
+        }
+        var sync = await db.PoolTicketSyncStates.FindAsync("venues");
+        if (sync is not null) sync.Complete(now.AddDays(-8));
+        await db.SaveChangesAsync();
+        var source = new PoolsCatalogueSource(db, new Media(), new Monitor(), TimeProvider.System, new AabsarMonitor());
+        var query = new CatalogueQuery(Q: marker, CityId: 8199, ProvinceId: 81);
+        var result = await source.SearchAsync(query, 10, default);
+        Assert.True(result.IsPartial);
+        Assert.Equal(2, result.TotalCount);
+        Assert.All(products, p => Assert.Contains(result.Items, x => x.DetailPath == $"/pools/aabsar/products/{p.Id:D}" &&
+            x.Price!.AmountMinor == 1000 && x.Id == $"pools:{p.Id:N}"));
+        Assert.Empty((await source.SearchAsync(query with { CityId = 1 }, 10, default)).Items);
+    }
+
+    private sealed class AabsarMonitor : IOptionsMonitor<Refahi.Modules.Pools.Infrastructure.Providers.Aabsar.Options.AabsarOptions>
+    {
+        public Refahi.Modules.Pools.Infrastructure.Providers.Aabsar.Options.AabsarOptions CurrentValue { get; } =
+            new() { Enabled = true, CatalogueEnabled = true };
+        public Refahi.Modules.Pools.Infrastructure.Providers.Aabsar.Options.AabsarOptions Get(string? name) => CurrentValue;
+        public IDisposable? OnChange(Action<Refahi.Modules.Pools.Infrastructure.Providers.Aabsar.Options.AabsarOptions, string?> listener) => null;
+    }
+
     private sealed class Monitor:IOptionsMonitor<PoolsOptions>
     {
         public PoolsOptions CurrentValue{get;}=new(){CatalogEnabled=true};public PoolsOptions Get(string? name)=>CurrentValue;

@@ -20,13 +20,6 @@
     <Project Path="src/Refahi.Modules.Charge.Domain/Refahi.Modules.Charge.Domain.csproj" Id="204b9a73-5671-4da4-a5c2-92bb5ba665f0" />
     <Project Path="src/Refahi.Modules.Charge.Infrastructure/Refahi.Modules.Charge.Infrastructure.csproj" Id="2dcad94f-358a-499e-86ba-d1727d29b345" />
   </Folder>
-  <Folder Name="/01_Modules/Commerce/">
-    <Project Path="src/Refahi.Modules.Commerce.Api/Refahi.Modules.Commerce.Api.csproj" Id="b957cca7-7ecb-4e6c-aec4-8d1ca5ab319f" />
-    <Project Path="src/Refahi.Modules.Commerce.Application.Contracts/Refahi.Modules.Commerce.Application.Contracts.csproj" Id="13360e95-eb04-4b45-b65f-8c31691f63b6" />
-    <Project Path="src/Refahi.Modules.Commerce.Application/Refahi.Modules.Commerce.Application.csproj" Id="bcffd21f-9b0d-4031-9ab6-f83db0d41fb8" />
-    <Project Path="src/Refahi.Modules.Commerce.Domain/Refahi.Modules.Commerce.Domain.csproj" />
-    <Project Path="src/Refahi.Modules.Commerce.Infrastructure/Refahi.Modules.Commerce.Infrastructure.csproj" Id="f524376b-8421-4972-a920-4488a503e5a3" />
-  </Folder>
   <Folder Name="/01_Modules/Entertainments/" Id="0ec676e0-7340-838c-76f9-c3f3673170d4">
     <Project Path="src/Refahi.Modules.Entertainments.Api/Refahi.Modules.Entertainments.Api.csproj" Id="8f235d8e-390e-4bc3-b80e-47f661fb3e7a" />
     <Project Path="src/Refahi.Modules.Entertainments.Application.Contracts/Refahi.Modules.Entertainments.Application.Contracts.csproj" Id="eba241e2-784e-466b-8d09-904d2234f68c" />
@@ -128,7 +121,6 @@
   </Folder>
   <Folder Name="/02_Tests/">
     <Project Path="tests/Refahi.Modules.Charge.Tests/Refahi.Modules.Charge.Tests.csproj" />
-    <Project Path="tests/Refahi.Modules.Commerce.Tests/Refahi.Modules.Commerce.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Flights.Tests/Refahi.Modules.Flights.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Hotels.Tests/Refahi.Modules.Hotels.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Identity.Tests/Refahi.Modules.Identity.Tests.csproj" />

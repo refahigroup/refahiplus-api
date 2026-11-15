@@ -37,10 +37,10 @@ public sealed record ReconcilePoolPurchaseCommand(Guid Id) : IRequest;
 public sealed record IssuePoolVouchersCommand(Guid Id) : IRequest;
 public sealed record PoolPurchaseCheckoutDto(Guid PurchaseId, Guid OrderId, string OrderNumber, long TotalMinor);
 public sealed record PoolVoucherDto(Guid RequestId, Guid SessionId, Guid PoolId, string PoolName, string Date, string Time,
-    int AdultCount, int ChildCount, long TotalMinor, DateTimeOffset StartsAtUtc, DateTimeOffset EndsAtUtc,
+    int AdultCount, int ChildCount, long TotalMinor, DateTimeOffset StartsAtUtc, DateTimeOffset? EndsAtUtc,
     string ReservationStatus, string? Status, string? Code, DateTimeOffset? RedeemedAtUtc);
 public sealed record PoolPurchaseDto(Guid Id, Guid? OrderId, string? OrderNumber, long Version, long TotalMinor,
-    string Status, DateTimeOffset PayableUntil, bool CanCheckout, bool CanCancel, IReadOnlyList<PoolVoucherDto> Requests);
+    string Status, DateTimeOffset PayableUntil, bool CanCheckout, bool CanCancel, IReadOnlyList<PoolVoucherDto> Requests, string? Provider = null);
 public sealed record ValidatePoolVoucherQuery(Guid OperatorId, Guid PoolId, string Code) : IRequest<PoolVoucherValidationDto>;
 public sealed record RedeemPoolVoucherCommand(Guid OperatorId, Guid PoolId, string Code, string IdempotencyKey) : IRequest<PoolVoucherValidationDto>;
 public sealed record PoolVoucherValidationDto(Guid RequestId, Guid PoolId, string PoolName, string Date, string Time,

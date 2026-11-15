@@ -6,7 +6,7 @@ using Refahi.Modules.Pools.Application.Contracts;
 using Refahi.Modules.Pools.Domain;
 namespace Refahi.Modules.Pools.Application.Features.Purchases.Payments;
 public sealed class PoolPaymentParticipant(IPoolMutationLock gate, PoolPurchaseAccess access, PoolQuoteResolver quotes,
-    IOptionsMonitor<PoolsOptions> options, TimeProvider clock, IMediator mediator) : IOrderPaymentParticipant
+    IOptionsMonitor<PoolsOptions> options, TimeProvider clock, IMediator mediator, AabsarLifecycle? aabsar = null) : IOrderPaymentParticipant
 {
     public string SourceModule => "Pools";
     public async Task<string?> GetUnavailableReasonAsync(OrderPaymentContext context, CancellationToken ct)
@@ -15,7 +15,7 @@ public sealed class PoolPaymentParticipant(IPoolMutationLock gate, PoolPurchaseA
         {
             if (context.SourceReferenceId is not Guid id) return "مرجع خرید موجود نیست";
             var p = await access.Owned(id, context.UserId, ct);
-            return options.CurrentValue.PurchaseEnabled && p.OrderId == context.OrderId && p.TotalMinor == context.TotalMinor && p.CanPay(clock.GetUtcNow()) ? null : "خرید قابل پرداخت نیست";
+            return (p.IsAabsar ? aabsar?.SalesEnabled == true : options.CurrentValue.PurchaseEnabled) && p.OrderId == context.OrderId && p.TotalMinor == context.TotalMinor && p.CanPay(clock.GetUtcNow()) ? null : "خرید قابل پرداخت نیست";
         }
         catch (PoolException ex) { return ex.Message; }
     }
@@ -26,11 +26,12 @@ public sealed class PoolPaymentParticipant(IPoolMutationLock gate, PoolPurchaseA
         try
         {
             var p = await access.Owned(id, context.UserId, ct);
-            if (!options.CurrentValue.PurchaseEnabled || p.OrderId != context.OrderId || p.TotalMinor != context.TotalMinor || !p.CanPay(clock.GetUtcNow()))
+            if (!(p.IsAabsar ? aabsar?.SalesEnabled == true : options.CurrentValue.PurchaseEnabled) || p.OrderId != context.OrderId || p.TotalMinor != context.TotalMinor || !p.CanPay(clock.GetUtcNow()))
                 throw new PoolException("خرید قابل پرداخت نیست", 409, "PURCHASE_UNAVAILABLE");
             var order = await mediator.Send(new GetOrderByIdQuery(context.OrderId, context.UserId, "User"), ct);
             if (!PoolOrderVerification.Matches(p, order)) throw new PoolException("آیتم‌ها و مبلغ سفارش مطابقت ندارند",409,"ORDER_SOURCE_MISMATCH");
-            await quotes.ValidateAsync(p, ct);
+            if (p.IsAabsar) await aabsar!.ValidateAsync(p, ct);
+            else await quotes.ValidateAsync(p, ct);
             if (!p.CanPay(clock.GetUtcNow())) throw new PoolException("مهلت پرداخت پایان یافته است",409,"PURCHASE_EXPIRED");
             return lease;
         }

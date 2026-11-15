@@ -81,3 +81,8 @@ Unavailable-search diagnostics: SearchAsync preserves each failed source excepti
 ## Production hardening — 2026-11-02
 
 Catalogue now has a separate concurrency admission policy with unified 429/Retry-After responses; source capacity is checked at startup. Partialness stays in API contracts and operational evidence, and is intentionally not shown to customers on either search surface. Stage supplier keys are intentional; production keys are supplied on the server. See [the release runbook](catalogue-release-runbook.md) for Nginx socket-IP rate limiting, read-only coverage checks, security evidence, mandatory disposable PostgreSQL fixtures and CI/browser gates. The Stage load scenario is prepared but execution is deferred at the user's request. No route/render-mode changes or new migrations were introduced.
+
+
+## Pools provider discovery
+
+Pools supplies one Catalogue result per Aabsar product and one per PoolTicket venue. Both projections use the same global ordering and canonical References geography. The initial rollout enables Aabsar with the pools source and keeps the existing PoolTicket environment switches. See the [release runbook](catalogue-release-runbook.md) for the environment readiness gate.

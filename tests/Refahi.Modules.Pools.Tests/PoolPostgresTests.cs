@@ -23,6 +23,9 @@ using Refahi.Modules.Pools.Application.Contracts;
 using Refahi.Modules.Pools.Domain;
 using Refahi.Modules.Pools.Application.Contracts.Public;
 using Refahi.Modules.Identity.Application.Contracts.AuthorizationGrants;
+using Refahi.Modules.Identity.Application.Contracts.Queries;
+using Refahi.Modules.Media.Application.Contracts.External;
+using Refahi.Modules.Pools.Application.Features.Purchases;
 using Refahi.Modules.Pools.Infrastructure.Persistence;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.IntegrationEvents;
@@ -42,7 +45,7 @@ public sealed class PoolsPostgresCollection;
 public sealed class PoolPostgresTests
 {
     private static string Connection => Environment.GetEnvironmentVariable("REFAHI_POOLS_TEST_CONNECTION")!;
-    private static ServiceProvider Services(bool organization = false)
+    private static ServiceProvider Services(bool organization = false, IAabsarGateway? aabsar = null)
     {
         Assert.Contains("test",new NpgsqlConnectionStringBuilder(Connection).Database!,StringComparison.OrdinalIgnoreCase);
         var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{
@@ -50,6 +53,16 @@ public sealed class PoolPostgresTests
             ["Pools:PoolTicket:PriceUnit"]="TOMAN"}).Build();
         var s=new ServiceCollection();s.AddSingleton<RefundFault>();s.AddLogging();s.AddSingleton<IConfiguration>(config);s.AddSingleton<IHostEnvironment>(new TestEnvironment("Test"));
         s.RegisterPoolsModule(config);
+        if (aabsar is not null)
+        {
+            s.RemoveAll<IAabsarGateway>();
+            s.AddSingleton(aabsar);
+            s.AddSingleton<IExternalMediaService, AabsarMediaFixture>();
+            s.AddScoped<IRequestHandler<GetUserPurchaseContactQuery, UserPurchaseContactDto?>, AabsarContactFixture>();
+            config["Pools:Providers:Aabsar:Enabled"] = "true";
+            config["Pools:Providers:Aabsar:CatalogueEnabled"] = "true";
+            config["Pools:Providers:Aabsar:AccessToken"] = "fixture";
+        }
         Refahi.Modules.Orders.Application.DI.RegisterApplication(s,config);Refahi.Modules.Orders.Infrastructure.DI.RegisterInfrastructure(s,config);
         Refahi.Modules.Wallets.Application.DI.RegisterApplication(s,config);Refahi.Modules.Wallets.Infrastructure.DI.RegisterInfrastructure(s,config);
         Refahi.Modules.Promotions.Application.DI.RegisterApplication(s,config);
@@ -105,6 +118,171 @@ public sealed class PoolPostgresTests
         return(p,await Send(s,new CheckoutPoolPurchaseCommand(p.Id,user,p.Version,p.TotalMinor)));
     }
     private static async Task Reconcile(ServiceProvider s,Guid id){using var scope=s.CreateScope();await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new ReconcilePoolPurchaseCommand(id));}
+    [PostgresFact]
+    public async Task Aabsar_cart_review_validates_shared_capacity_and_replays_without_removing_changed_lines()
+    {
+        await using var services = Services(aabsar: new AabsarFixture());
+        await Migrate(services);
+        var user = Guid.NewGuid();
+        var prepared = await SeedAabsarPurchase(services, user);
+        var request = prepared.Requests.First();
+        using (var scope = services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PoolsDbContext>();
+            var venue = await db.AabsarVenues.FindAsync(1);
+            if (venue is null) { venue = AabsarVenue.Create(); db.Add(venue); }
+            venue.Publish(8199, 81, scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow());
+            await db.SaveChangesAsync();
+        }
+
+        async Task<T> Call<T>(Func<AabsarCheckout, Task<T>> action)
+        {
+            using var scope = services.CreateScope();
+            return await action(scope.ServiceProvider.GetRequiredService<AabsarCheckout>());
+        }
+
+        var input = new AabsarCartItemInput("aabsar", "aabsar", request.PoolId.ToString("D"), request.SessionId.ToString("D"),
+            "adult", 2, 100_000);
+        var cart = await Call(c => c.AddAsync(user, input, default));
+        var adult = Assert.Single(cart.Items);
+        await Assert.ThrowsAsync<PoolException>(() => Call(c => c.AddAsync(user,
+            input with { PurchaseOptionKey = "child", Quantity = 9, ExpectedUnitPriceMinor = 50_000 }, default)));
+        cart = await Call(c => c.AddAsync(user,
+            input with { PurchaseOptionKey = "child", Quantity = 1, ExpectedUnitPriceMinor = 50_000 }, default));
+        var payload = new AabsarCheckoutInput("review", cart.CheckoutVersions["aabsar"]);
+        var review = await Call(c => c.StartAsync(user, payload, default));
+        Assert.Equal(250_000, review.TotalAmountMinor);
+        Assert.Equal(review.Id, (await Call(c => c.StartAsync(user, payload, default))).Id);
+        await Assert.ThrowsAsync<PoolException>(() => Call(c => c.GetAsync(Guid.NewGuid(), review.Id, default)));
+        await Call(c => c.UpdateAsync(user, adult.Id, 3, default));
+        var checkout = await Call(c => c.ConfirmAsync(user, review.Id, review.Version, default));
+        Assert.Equal(checkout.OrderId, (await Call(c => c.ConfirmAsync(user, review.Id, review.Version, default))).OrderId);
+        var remaining = Assert.Single((await Call(c => c.CartAsync(user, default))).Items);
+        Assert.Equal(adult.Id, remaining.Id);
+        Assert.Equal(3, remaining.Quantity);
+    }
+
+    private sealed class AabsarContactFixture : IRequestHandler<GetUserPurchaseContactQuery, UserPurchaseContactDto?>
+    {
+        public Task<UserPurchaseContactDto?> Handle(GetUserPurchaseContactQuery input, CancellationToken ct) =>
+            Task.FromResult<UserPurchaseContactDto?>(new(input.UserId, "نام نمونه", "09123456789"));
+    }
+
+    private sealed class AabsarMediaFixture : IExternalMediaService
+    {
+        public Task<string?> GetPublicUrlAsync(string source, ExternalMediaOrigin? origin, CancellationToken ct)
+            => Task.FromResult<string?>(source);
+        public Task<IReadOnlyList<string>> GetPublicUrlsAsync(IEnumerable<string> sources, ExternalMediaOrigin? origin, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<string>>(sources.ToArray());
+    }
+
+    [PostgresFact]
+    public async Task Aabsar_batch_preserves_lines_and_refunds_original_wallets_once()
+    {
+        var gateway = new AabsarFixture();
+        await using var services = Services(aabsar: gateway);
+        await Migrate(services);
+        var user = Guid.NewGuid();
+        var wallets = await SeedWallets(user);
+        var purchase = await SeedAabsarPurchase(services, user);
+
+        var checkout = await Send(services, new CheckoutPoolPurchaseCommand(purchase.Id, user, purchase.Version, purchase.TotalMinor));
+        await Send(services, new PayOrderCommand(checkout.OrderId, user, "User",
+            [new(wallets.Org, 150_000), new(wallets.Personal, purchase.TotalMinor - 150_000)], "aabsar-pay"));
+        await Reconcile(services, purchase.Id);
+        await Reconcile(services, purchase.Id);
+        Assert.Equal(1, gateway.IssueCalls);
+        Assert.Equal(2, gateway.Selections.Count);
+        Assert.Contains(gateway.Selections, x => x.AdultCount == 2 && x.ChildCount == 1);
+        var order = await Send(services, new GetOrderByIdQuery(checkout.OrderId, user, "User"));
+        Assert.Equal(3, order!.Items.Count);
+        Assert.Contains(order.Items, x => x.Quantity == 2 && x.UnitPriceMinor == 100_000);
+
+        await Send(services, new CancelPoolPurchaseCommand(purchase.Id, user));
+        await Reconcile(services, purchase.Id);
+        Assert.Equal(1, gateway.CancelCalls);
+        order = await Send(services, new GetOrderByIdQuery(checkout.OrderId, user, "User"));
+        Assert.Equal("Refunded", order!.PaymentState);
+        await using var db = new NpgsqlConnection(Connection);
+        var balances = await db.QueryAsync<long>(
+            "select available_minor from wallets.wallet_balances where wallet_id in (@Org, @Personal)", new { wallets.Org, wallets.Personal });
+        Assert.All(balances, balance => Assert.Equal(2_000_000, balance));
+    }
+
+    [PostgresFact]
+    public async Task Aabsar_ambiguous_issue_is_not_resent_or_refunded()
+    {
+        var gateway = new AabsarFixture { Unknown = true };
+        await using var services = Services(aabsar: gateway);
+        await Migrate(services);
+        var user = Guid.NewGuid();
+        var wallets = await SeedWallets(user);
+        var purchase = await SeedAabsarPurchase(services, user);
+        var checkout = await Send(services, new CheckoutPoolPurchaseCommand(purchase.Id, user, purchase.Version, purchase.TotalMinor));
+        await Send(services, new PayOrderCommand(checkout.OrderId, user, "User",
+            [new(wallets.Personal, purchase.TotalMinor)], "aabsar-unknown"));
+        await Reconcile(services, purchase.Id);
+        await Reconcile(services, purchase.Id);
+        Assert.Equal(1, gateway.IssueCalls);
+        Assert.Equal(0, gateway.CancelCalls);
+        var order = await Send(services, new GetOrderByIdQuery(checkout.OrderId, user, "User"));
+        Assert.Equal("Paid", order!.PaymentState);
+        using var scope = services.CreateScope();
+        var operation = await scope.ServiceProvider.GetRequiredService<IAabsarRepository>().FulfillmentAsync(purchase.Id, default);
+        Assert.Equal(AabsarOperation.IssueUnknown, operation!.Status);
+    }
+
+    private static async Task<PoolPurchase> SeedAabsarPurchase(ServiceProvider services, Guid user)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PoolsDbContext>();
+        var now = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+        var product = AabsarProduct.Create(Guid.NewGuid().ToString("N"));
+        product.Publish("آبسار");
+        db.AabsarProducts.Add(product);
+        var first = AabsarShowtime.Create(Guid.NewGuid().ToString("N"), product.Id);
+        var second = AabsarShowtime.Create(Guid.NewGuid().ToString("N"), product.Id);
+        first.Publish("سانس اول", now.AddDays(1), null, 10, 100_000, 50_000, null, null);
+        second.Publish("سانس دوم", now.AddDays(2), null, 10, 100_000, 50_000, null, null);
+        db.AabsarShowtimes.AddRange(first, second);
+        var p = PoolPurchase.Create(user, Guid.NewGuid().ToString("N"), "fixture",
+            [PoolRequest.CreateAabsar(first.Id, product.Id, "آبسار", "2026-12-01", "10:00", "adult", 2, 100_000, first.StartsAt),
+             PoolRequest.CreateAabsar(first.Id, product.Id, "آبسار", "2026-12-01", "10:00", "child", 1, 50_000, first.StartsAt),
+             PoolRequest.CreateAabsar(second.Id, product.Id, "آبسار", "2026-12-02", "10:00", "adult", 1, 100_000, second.StartsAt)],
+            now, now.AddMinutes(30));
+        var protector = scope.ServiceProvider.GetRequiredService<IPoolCodeProtector>();
+        db.AabsarFulfillments.Add(AabsarFulfillment.Create(p.Id,
+            protector.Protect(JsonSerializer.Serialize(new AabsarContact("نام نمونه", "09123456789"))), "[]"));
+        await scope.ServiceProvider.GetRequiredService<IPoolPurchaseRepository>().AddAsync(p, default);
+        return p;
+    }
+
+    private sealed class AabsarFixture : IAabsarGateway
+    {
+        public AabsarSaleOptions Options => new(true, 90);
+        public int IssueCalls { get; private set; }
+        public int CancelCalls { get; private set; }
+        public bool Unknown { get; init; }
+        public IReadOnlyList<AabsarSelection> Selections { get; private set; } = [];
+        public Task<AabsarLiveQuote> QuoteAsync(string id, CancellationToken ct) => Task.FromResult(new AabsarLiveQuote(10, 100_000, 50_000, null, null));
+        public Task<AabsarReceipt?> IssueAsync(AabsarContact contact, IReadOnlyList<AabsarSelection> lines, CancellationToken ct)
+        {
+            IssueCalls++;
+            Selections = lines;
+            if (Unknown) throw new HttpRequestException();
+            var children = lines.Sum(x => x.ChildCount);
+            var tickets = Enumerable.Range(0, children + lines.Sum(x => x.AdultCount))
+                .Select(i => new AabsarTicket(Guid.NewGuid(), i < children, $"code-{i}")).ToArray();
+            return Task.FromResult<AabsarReceipt?>(new("provider-order", tickets));
+        }
+        public Task<bool> CancelAsync(string orderCode, int adults, int children, CancellationToken ct)
+        {
+            CancelCalls++;
+            Assert.Equal((3, 1), (adults, children));
+            return Task.FromResult(true);
+        }
+    }
+
     [PostgresFact]
     public async Task Organization_purchase_reserves_only_after_real_order_payment_and_replay_does_not_reserve_again()
     {

@@ -13,7 +13,6 @@ using Refahi.Api.Services.Notification;
 using Refahi.Api.Services.Path;
 using Refahi.Modules.Charge.Api;
 using Refahi.Modules.Cinema.Api;
-using Refahi.Modules.Commerce.Api;
 using Refahi.Modules.Pools.Api;
 using Refahi.Modules.Flights.Api;
 using Refahi.Modules.Hotels.Api;
@@ -127,7 +126,6 @@ builder
     .RegisterSupplyChainModule(builder.Configuration)
     .RegisterPaymentGatewayModule(builder.Configuration)
     .RegisterChargeModule(builder.Configuration)
-    .RegisterCommerceModule(builder.Configuration)
     .RegisterCinemaModule(builder.Configuration)
     .RegisterPoolsModule(builder.Configuration)
     .RegisterPromotionsModule(builder.Configuration)
@@ -193,8 +191,8 @@ app.MapHealthChecks(
     new HealthCheckOptions { Predicate = registration => registration.Name == "eniac" }
 );
 app.MapHealthChecks(
-    "/api/health/commerce/aabsar",
-    new HealthCheckOptions { Predicate = registration => registration.Name == "commerce-aabsar" }
+    "/api/health/pools/aabsar",
+    new HealthCheckOptions { Predicate = registration => registration.Name == "pools-aabsar" }
 );
 
 // Map module endpoints
@@ -212,7 +210,6 @@ app.UseReferencesModule("/api/references")
     .UseSupplyChainModule("/api/supply-chain")
     .UsePaymentGatewayModule("/api/payment-gateway")
     .UseChargeModule("/api/charge")
-    .UseCommerceModule("/api/commerce")
     .UsePoolsModule("/api/pools")
     .UseCinemaModule("/api/cinema")
     .UsePromotionsModule("/api/promotions")

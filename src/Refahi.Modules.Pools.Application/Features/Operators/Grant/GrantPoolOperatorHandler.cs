@@ -11,7 +11,7 @@ public sealed class GrantPoolOperatorHandler(IMediator mediator, IPoolCatalogRep
     {
         if (r.UserId == Guid.Empty || r.ActorId == Guid.Empty || (await catalog.PoolAsync(r.PoolId, ct))?.IsActive != true)
             throw new PoolException("کاربر یا استخر معتبر نیست", 400);
-        if (await mediator.Send(new GetUserCommerceContactQuery(r.UserId), ct) == null) throw new PoolException("کاربر یافت نشد", 404);
+        if (await mediator.Send(new GetUserPurchaseContactQuery(r.UserId), ct) == null) throw new PoolException("کاربر یافت نشد", 404);
         var grant = await mediator.Send(new UpsertAuthorizationGrantCommand(r.UserId, PoolKeys.GrantIssuer, PoolOperatorAccess.Value(r.PoolId), null, r.ActorId), ct);
         return new(grant.Id, grant.UserId, r.PoolId);
     }

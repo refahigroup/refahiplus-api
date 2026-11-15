@@ -19,6 +19,8 @@ public static class DI
         services.AddScoped<PoolPurchaseAccess>().AddScoped<PoolQuoteResolver>().AddScoped<PoolOperatorAccess>().AddScoped<PoolVoucherAccess>();
         services.AddScoped<IOrderPaymentParticipant, PoolPaymentParticipant>().AddScoped<IOrderCancellationParticipant, PoolCancellationParticipant>();
         services.AddMediatR(typeof(DI).Assembly).AddValidatorsFromAssembly(typeof(DI).Assembly);
+        services.AddScoped<Refahi.Modules.Pools.Application.Features.Purchases.AabsarCheckout>();
+        services.AddScoped<Refahi.Modules.Pools.Application.Features.Purchases.AabsarLifecycle>();
         return services;
     }
 }

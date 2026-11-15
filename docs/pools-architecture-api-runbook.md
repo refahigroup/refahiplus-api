@@ -114,3 +114,15 @@ The placeholder reservation gateway has been removed. New paid organizational pu
 ## Historical validation result — 2026-10-13
 
 Both full Solutions build successfully (frontend zero warnings/errors; backend existing warnings outside Pools). Pools backend:43 passed, zero skipped, including real isolated PostgreSQL and Chromium PDF. Pools frontend:16 passed, zero skipped, including browser/PWA. Orders13, Wallets10 and Shell24 tests passed. EF reports no pending model changes. No Checkout/Profile standalone test project exists; shared checkout and Profile route registration are covered by browser tests/build. No live PoolTicket call or production activation was performed.
+
+
+## Aabsar and Commerce retirement
+
+Pools owns Aabsar catalogue, cart, purchase and encrypted supplier receipts. Global Catalogue serves one result per product from the local Pools snapshot. The REST surface is /api/pools/aabsar and the health probe is /api/health/pools/aabsar.
+
+- Configure Pools__Providers__Aabsar__AccessToken in the secret store and persist the shared Data Protection key ring. Enable the provider and its catalogue with Pools__Providers__Aabsar__Enabled and Pools__Providers__Aabsar__CatalogueEnabled. Keep Pools__Providers__Aabsar__PurchaseEnabled off through staging checks. PoolTicket gates stay independent.
+- Before opening sales, verify live quote identity and amounts in IRR, a staged mixed-age multi-session issue, ticket counts and cancellation acknowledgement. Review source-scoped Commerce campaigns with the Promotions owner. New orders use Pools with category entertainment.waterpark.
+- Stop old Commerce writers and run deployment/commerce-retirement-preflight.sql against the target database. Expect zero Commerce records and references in Orders. A guarded migration removes the empty schema. Any unexpected rows or dependent objects abort the migration.
+- Enable the pools source and set Catalogue:MaxConcurrency to at least MaxConcurrentRequests multiplied by the enabled source count. Run tools/verify-catalogue-readiness.py against effective deployment settings. Monitor sync freshness, PoolPurchase and Order IDs, ambiguous outcomes and issue latency.
+- For ambiguous operations, investigate with the provider. Use AdminOnly POST /api/pools/aabsar/admin/operations/{purchaseId}/resolve with outcome fulfilled, notcreated, cancelled or notcancelled and evidence. Supply an order code and all typed ticket codes for fulfilled. A confirmed rejection or cancellation is compensated by Pools recovery through Orders.
+- During an incident, stop catalogue and new sales with the respective Aabsar switches. Keep provider credentials and recovery available for outstanding purchases. Once Pools purchases exist, rollback must retain compatible Pools recovery and the current schema.

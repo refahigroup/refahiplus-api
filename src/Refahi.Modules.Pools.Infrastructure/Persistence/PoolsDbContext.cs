@@ -6,6 +6,11 @@ namespace Refahi.Modules.Pools.Infrastructure.Persistence;
 public sealed class PoolsDbContext(DbContextOptions<PoolsDbContext> options) : DbContext(options)
 {
     public const string Schema = "pools";
+    public DbSet<AabsarCart> AabsarCarts => Set<AabsarCart>();
+    public DbSet<AabsarFulfillment> AabsarFulfillments => Set<AabsarFulfillment>();
+    public DbSet<AabsarVenue> AabsarVenues => Set<AabsarVenue>();
+    public DbSet<AabsarProduct> AabsarProducts => Set<AabsarProduct>();
+    public DbSet<AabsarShowtime> AabsarShowtimes => Set<AabsarShowtime>();
     public DbSet<PoolBooking> Bookings => Set<PoolBooking>();
     public DbSet<PoolCatalogSnapshot> Catalog => Set<PoolCatalogSnapshot>();
     public DbSet<PoolPurchase> Purchases => Set<PoolPurchase>();
@@ -20,6 +25,32 @@ public sealed class PoolsDbContext(DbContextOptions<PoolsDbContext> options) : D
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema(Schema);
+        var cart = model.Entity<AabsarCart>();
+        cart.ToTable("aabsar_carts");
+        cart.Property(x => x.Id).ValueGeneratedNever();
+        cart.Property(x => x.Version).IsRowVersion();
+        cart.HasIndex(x => x.UserId).IsUnique();
+        cart.HasMany(x => x.Items).WithOne().HasForeignKey(x => x.CartId);
+        cart.Navigation(x => x.Items).HasField("_items");
+        var cartItem = model.Entity<AabsarCartItem>();
+        cartItem.ToTable("aabsar_cart_items");
+        cartItem.Property(x => x.Id).ValueGeneratedNever();
+        cartItem.HasIndex(x => new { x.CartId, x.OfferKey, x.PurchaseOptionKey }).IsUnique();
+        var fulfillment = model.Entity<AabsarFulfillment>();
+        fulfillment.ToTable("aabsar_fulfillments").HasKey(x => x.PurchaseId);
+        fulfillment.HasOne<PoolPurchase>().WithOne().HasForeignKey<AabsarFulfillment>(x => x.PurchaseId);
+        model.Entity<AabsarVenue>().ToTable("aabsar_venues").Property(x => x.Id).ValueGeneratedNever();
+        var product = model.Entity<AabsarProduct>();
+        product.ToTable("aabsar_products");
+        product.Property(x => x.Id).ValueGeneratedNever();
+        product.Property(x => x.EventId).HasMaxLength(300);
+        product.HasIndex(x => x.EventId).IsUnique();
+        var showtime = model.Entity<AabsarShowtime>();
+        showtime.ToTable("aabsar_showtimes");
+        showtime.Property(x => x.Id).ValueGeneratedNever();
+        showtime.Property(x => x.ShowtimeId).HasMaxLength(300);
+        showtime.HasIndex(x => x.ShowtimeId).IsUnique();
+        showtime.HasOne<AabsarProduct>().WithMany().HasForeignKey(x => x.ProductId);
         var reservation = model.Entity<PoolTicketReservation>(); reservation.ToTable("poolticket_reservations"); reservation.HasKey(x => x.RequestId);
         reservation.HasOne<PoolRequest>().WithOne().HasForeignKey<PoolTicketReservation>(x => x.RequestId);
         reservation.HasIndex(x => x.ReservationId).IsUnique().HasFilter("\"ReservationId\" IS NOT NULL");

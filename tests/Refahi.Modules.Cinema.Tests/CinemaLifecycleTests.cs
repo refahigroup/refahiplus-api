@@ -287,7 +287,7 @@ public sealed class CinemaLifecycleTests
         {
             object? result = request switch
             {
-                GetUserCommerceContactQuery q => new UserCommerceContactDto(q.UserId, "کاربر", "09123456789"),
+                GetUserPurchaseContactQuery q => new UserPurchaseContactDto(q.UserId, "کاربر", "09123456789"),
                 CreateOrderCommand c => CreateOrder(c),
                 GetOrderByIdQuery q => new OrderDto(id, "R-1", repository.Order!.UserId, 115000, 0, 0, null, Discount, 115000 - Discount, "Confirmed", Paid ? "Paid" : "Pending", "Cinema", repository.Order.Id, "CinemaOrder", null, null, null, 0, [], DateTimeOffset.UtcNow, SourceAmountMinor: 115000),
                 _ => null
