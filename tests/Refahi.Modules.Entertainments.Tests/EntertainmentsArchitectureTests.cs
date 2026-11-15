@@ -21,6 +21,6 @@ public sealed class EntertainmentsArchitectureTests
         Assert.Contains(db.Model.GetEntityTypes(), x => x.GetTableName() == "touristpanel_programs");
         Assert.DoesNotContain(db.Model.GetEntityTypes(), x => x.GetTableName()!.StartsWith("provider_"));
         var commerce = Path.Combine(root.FullName, "src", "Refahi.Modules.Commerce.Infrastructure", "DI.cs");
-        Assert.DoesNotContain("AddTouristPanelProvider", File.ReadAllText(commerce));
+        Assert.False(File.Exists(commerce));
     }
 }

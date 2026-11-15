@@ -9,6 +9,7 @@ public sealed class PoolPurchase
     private PoolPurchase() { }
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
+    public bool IsAabsar => Requests.Any(x => x.ProviderKey == "aabsar");
     public string IdempotencyKey { get; private set; } = "";
     public string Fingerprint { get; private set; } = "";
     public Guid? OrderId { get; private set; }
@@ -25,9 +26,9 @@ public sealed class PoolPurchase
     public static PoolPurchase Create(Guid userId, string key, string fingerprint, IReadOnlyList<PoolRequest> requests,
         DateTimeOffset now, DateTimeOffset payableUntil)
     {
-        if (userId == Guid.Empty || string.IsNullOrWhiteSpace(key) || key.Length > 128 || requests.Count is < 1 or > 20
-            || requests.Any(x => x.ReservationStatus != PoolReservationStatus.ExternalReservationBypassed) && requests.Count != 1
-            || requests.Select(x => x.SessionId).Distinct().Count() != requests.Count || requests.Any(x => x.PurchaseId != Guid.Empty || x.StartsAtUtc <= now) || payableUntil <= now || payableUntil > requests.Min(x => x.StartsAtUtc))
+        if (userId == Guid.Empty || string.IsNullOrWhiteSpace(key) || key.Length > 128 || requests.Count < 1 || requests.Count > (requests.All(x => x.ProviderKey == "aabsar") ? 100 : 20)
+            || requests.Any(x => x.ReservationStatus != PoolReservationStatus.ExternalReservationBypassed && x.ProviderKey != "aabsar") && requests.Count != 1
+            || requests.Select(x => x.ProviderKey).Distinct().Count() != 1 || requests.Select(x => (x.SessionId, x.TicketType)).Distinct().Count() != requests.Count || requests.Any(x => x.PurchaseId != Guid.Empty || x.StartsAtUtc <= now) || payableUntil <= now || payableUntil > requests.Min(x => x.StartsAtUtc))
             throw new InvalidOperationException("اطلاعات خرید یا مهلت پرداخت معتبر نیست");
         var total = requests.Aggregate(0L, (sum, request) => checked(sum + request.TotalMinor));
         var purchase = new PoolPurchase { Id = Guid.NewGuid(), UserId = userId, IdempotencyKey = key,
@@ -79,6 +80,23 @@ public sealed class PoolPurchase
         if (changed) Version++;
     }
 
+    public void FinishAabsarIssuance(PoolReservationStatus status)
+    {
+        if (!IsAabsar || Status != PoolPurchaseStatus.Paid ||
+            status is not (PoolReservationStatus.Reserved or PoolReservationStatus.Unknown or PoolReservationStatus.Rejected))
+            throw new InvalidOperationException("وضعیت صدور معتبر نیست");
+        foreach (var request in _requests) request.FinishAabsarIssuance(status);
+        Version++;
+    }
+
+    public void ConfirmAabsarCancellation()
+    {
+        if (!IsAabsar || Status != PoolPurchaseStatus.Paid)
+            throw new InvalidOperationException("وضعیت لغو معتبر نیست");
+        foreach (var request in _requests) request.FinishAabsarIssuance(PoolReservationStatus.Rejected);
+        BeginCancellation();
+    }
+
     public void BeginCancellation()
     {
         if (_requests.Any(x => x.ReservationStatus is PoolReservationStatus.Reserved or PoolReservationStatus.Unknown
@@ -114,6 +132,9 @@ public sealed class PoolRequest
     public Guid SessionId { get; private set; }
     public Guid PoolId { get; private set; }
     public string ProviderKey { get; private set; } = "";
+    public string? TicketType { get; private set; }
+    public int OrderQuantity => TicketType is null ? 1 : AdultCount + ChildCount;
+    public long OrderUnitPrice => TotalMinor / OrderQuantity;
     public string ExternalPoolId { get; private set; } = "";
     public string ExternalRowId { get; private set; } = "";
     public string SnapshotJson { get; private set; } = "";
@@ -124,7 +145,7 @@ public sealed class PoolRequest
     public int ChildCount { get; private set; }
     public long TotalMinor { get; private set; }
     public DateTimeOffset StartsAtUtc { get; private set; }
-    public DateTimeOffset EndsAtUtc { get; private set; }
+    public DateTimeOffset? EndsAtUtc { get; private set; }
     public PoolReservationStatus ReservationStatus { get; private set; }
     public PoolVoucherStatus? VoucherStatus { get; private set; }
     public string? CodeHash { get; private set; }
@@ -147,6 +168,21 @@ public sealed class PoolRequest
             StartsAtUtc = startsAt, EndsAtUtc = endsAt, ReservationStatus = PoolReservationStatus.ExternalReservationBypassed };
     }
 
+    public static PoolRequest CreateAabsar(Guid sessionId, Guid productId, string title, string date, string time,
+        string type, int quantity, long unitPrice, DateTimeOffset startsAt)
+    {
+        if (type is not ("adult" or "child") || quantity is < 1 or > 100 || unitPrice <= 0)
+            throw new InvalidOperationException("نوع یا قیمت بلیت معتبر نیست");
+        return new PoolRequest
+        {
+            Id = Guid.NewGuid(), SessionId = sessionId, PoolId = productId, ProviderKey = "aabsar",
+            PoolName = title, Date = date, Time = time, TicketType = type,
+            AdultCount = type == "adult" ? quantity : 0, ChildCount = type == "child" ? quantity : 0,
+            TotalMinor = checked(unitPrice * quantity), StartsAtUtc = startsAt,
+            ReservationStatus = PoolReservationStatus.Pending
+        };
+    }
+
     public void RequireExternalReservation()
     {
         if (ReservationStatus != PoolReservationStatus.ExternalReservationBypassed || VoucherStatus.HasValue)
@@ -164,6 +200,8 @@ public sealed class PoolRequest
         else if (status is not (PoolReservationStatus.Rejected or PoolReservationStatus.Unknown)) throw new InvalidOperationException("وضعیت رزرو معتبر نیست");
         ReservationStatus = status;
     }
+
+    internal void FinishAabsarIssuance(PoolReservationStatus status) => ReservationStatus = status;
 
     internal void AssignTo(Guid purchaseId) => PurchaseId = purchaseId;
 

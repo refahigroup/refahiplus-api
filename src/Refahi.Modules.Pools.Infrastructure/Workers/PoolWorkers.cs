@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Refahi.Modules.Pools.Application.Contracts;
 using Refahi.Modules.Pools.Application.Contracts.Public;
 using Refahi.Modules.Pools.Domain;
+using Refahi.Modules.Pools.Infrastructure.Providers.Aabsar.Options;
 namespace Refahi.Modules.Pools.Infrastructure.Workers;
 
 public sealed class PoolCatalogWorker(IServiceScopeFactory scopes, IOptionsMonitor<PoolsOptions> options, TimeProvider clock,
@@ -35,10 +36,11 @@ public sealed class PoolCatalogWorker(IServiceScopeFactory scopes, IOptionsMonit
 }
 
 public sealed class PoolRecoveryWorker(IServiceScopeFactory scopes, IOptionsMonitor<PoolsOptions> options, TimeProvider clock,
-    ILogger<PoolRecoveryWorker> logger) : BackgroundService
+    ILogger<PoolRecoveryWorker> logger, IOptionsMonitor<AabsarOptions> aabsar) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        var nextRedaction = DateTimeOffset.MinValue;
         while (!ct.IsCancellationRequested)
         {
             DateTimeOffset? after = null; Guid? afterId = null;
@@ -47,6 +49,13 @@ public sealed class PoolRecoveryWorker(IServiceScopeFactory scopes, IOptionsMoni
                 while (!ct.IsCancellationRequested)
                 {
                     using var scope = scopes.CreateScope(); var repo = scope.ServiceProvider.GetRequiredService<IPoolPurchaseRepository>();
+                    var now = clock.GetUtcNow();
+                    if (after is null && now >= nextRedaction)
+                    {
+                        await scope.ServiceProvider.GetRequiredService<IAabsarRepository>().RedactContactsAsync(
+                            now.AddDays(-aabsar.CurrentValue.RecipientRetentionDays), ct);
+                        nextRedaction = now.AddHours(1);
+                    }
                     var ids = await repo.RecoveryIdsAsync(after, afterId, ct); if (ids.Count == 0) break;
                     var last = await repo.GetAsync(ids[^1], ct); after = last!.CreatedAt; afterId = last.Id;
                     foreach (var id in ids)

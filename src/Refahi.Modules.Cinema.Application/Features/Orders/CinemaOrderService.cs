@@ -67,7 +67,7 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
         var old = await repository.FindAsync(user, key, ct);
         if (old != null)
         { if (old.Fingerprint != fingerprint) throw new CinemaException("کلید درخواست قبلاً برای سفارش دیگری استفاده شده است"); return await PublicViewAsync(old, ct); }
-        var customer = await mediator.Send(new GetUserCommerceContactQuery(user), ct);
+        var customer = await mediator.Send(new GetUserPurchaseContactQuery(user), ct);
         if (customer?.MobileNumber is not string mobile || !System.Text.RegularExpressions.Regex.IsMatch(mobile, "^09[0-9]{9}$"))
             throw new CinemaException("شماره همراه معتبر در حساب کاربری ثبت نشده است", 400);
         var provider = factory.Get(options.Value.ProviderKey); var map = await provider.SeatsAsync(schedule, ct);

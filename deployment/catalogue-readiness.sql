@@ -77,6 +77,35 @@ mappings AS (
  CASE WHEN pending_details>0 THEN 'pending_details' END,
  CASE WHEN expected_mappings<>valid_mappings THEN 'invalid_mapping' END],NULL))) row
  FROM entertainment_counts
-), reports AS (SELECT row FROM hotel_report UNION ALL SELECT row FROM entertainment_report)
+), aabsar_report AS (
+ SELECT jsonb_build_object('source','pools','provider','aabsar','scope','isfahan',
+   'cityId',v."CityId",'lastSuccessUtc',v."PublishedAt",'published',products.total,
+   'reasons',to_jsonb(array_remove(ARRAY[
+     CASE WHEN v."Id" IS NULL THEN 'missing_sync' END,
+     CASE WHEN v."PublishedAt" < CURRENT_TIMESTAMP-make_interval(secs=>(cfg.c->>'aabsar_max_age_seconds')::int)
+       THEN 'expired_data' END,
+     CASE WHEN v."Id" IS NOT NULL AND (city."Id" IS NULL OR province."Id" IS NULL) THEN 'invalid_mapping' END,
+     CASE WHEN products.total = 0 THEN 'missing_products' END], NULL))) row
+ FROM cfg LEFT JOIN pools.aabsar_venues v ON true
+ LEFT JOIN "references".cities city ON city."Id"=v."CityId" AND city."ProvinceId"=v."ProvinceId" AND city."IsActive"
+ LEFT JOIN "references".provinces province ON province."Id"=v."ProvinceId" AND province."IsActive"
+ CROSS JOIN LATERAL (
+    SELECT count(DISTINCT p."Id") total FROM pools.aabsar_products p JOIN pools.aabsar_showtimes s ON s."ProductId"=p."Id"
+    WHERE p."IsActive" AND s."IsActive" AND s."Capacity">0 AND s."StartsAt">CURRENT_TIMESTAMP
+      AND (s."AdultPrice">0 OR s."ChildPrice">0)
+ ) products
+ WHERE (cfg.c->'sources') ? 'pools' AND (cfg.c->>'aabsar')::boolean
+), poolticket_report AS (
+ SELECT jsonb_build_object('source','pools','provider','poolticket','scope','venues',
+   'lastSuccessUtc',s."CompletedAt",
+   'reasons',to_jsonb(array_remove(ARRAY[
+     CASE WHEN s."CompletedAt" IS NULL THEN 'missing_sync' END,
+     CASE WHEN s."CompletedAt" < CURRENT_TIMESTAMP-interval '7 days' THEN 'expired_data' END], NULL))) row
+ FROM cfg LEFT JOIN pools.poolticket_sync_states s ON s."Key"='venues'
+ WHERE (cfg.c->'sources') ? 'pools' AND (cfg.c->>'poolticket')::boolean
+), reports AS (
+ SELECT row FROM hotel_report UNION ALL SELECT row FROM entertainment_report
+ UNION ALL SELECT row FROM aabsar_report UNION ALL SELECT row FROM poolticket_report
+)
 SELECT jsonb_build_object('observedAtUtc',CURRENT_TIMESTAMP,'scopes',coalesce(jsonb_agg(row ORDER BY row->>'source',row->>'provider',row->>'scope'),'[]')) FROM reports;
 ROLLBACK;

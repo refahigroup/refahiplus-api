@@ -23,6 +23,232 @@ namespace Refahi.Modules.Pools.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarCart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("aabsar_carts", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarCartItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CartId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("ExpectedUnitPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OfferKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OfferTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OptionTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("OriginalUnitPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ProductImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProductKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProductTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PurchaseOptionKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SellerKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SellerTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CartId", "OfferKey", "PurchaseOptionKey")
+                        .IsUnique();
+
+                    b.ToTable("aabsar_cart_items", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarFulfillment", b =>
+                {
+                    b.Property<Guid>("PurchaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancelFingerprint")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CartSnapshot")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContactCiphertext")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EvidenceFingerprint")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IssueFingerprint")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReceiptCiphertext")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PurchaseId");
+
+                    b.ToTable("aabsar_fulfillments", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarProduct", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .IsUnique();
+
+                    b.ToTable("aabsar_products", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarShowtime", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("AdultOldPrice")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("AdultPrice")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("ChildOldPrice")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ChildPrice")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ShowtimeId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VendorName")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ShowtimeId")
+                        .IsUnique();
+
+                    b.ToTable("aabsar_showtimes", "pools");
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarVenue", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProvinceId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("aabsar_venues", "pools");
+                });
+
             modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolBooking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -289,7 +515,7 @@ namespace Refahi.Modules.Pools.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset>("EndsAtUtc")
+                    b.Property<DateTimeOffset?>("EndsAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ExternalPoolId")
@@ -341,6 +567,9 @@ namespace Refahi.Modules.Pools.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("StartsAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TicketType")
+                        .HasColumnType("text");
 
                     b.Property<string>("Time")
                         .IsRequired()
@@ -616,6 +845,33 @@ namespace Refahi.Modules.Pools.Infrastructure.Migrations
                     b.ToTable("catalog_snapshots", "pools");
                 });
 
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarCartItem", b =>
+                {
+                    b.HasOne("Refahi.Modules.Pools.Domain.AabsarCart", null)
+                        .WithMany("Items")
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarFulfillment", b =>
+                {
+                    b.HasOne("Refahi.Modules.Pools.Domain.PoolPurchase", null)
+                        .WithOne()
+                        .HasForeignKey("Refahi.Modules.Pools.Domain.AabsarFulfillment", "PurchaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarShowtime", b =>
+                {
+                    b.HasOne("Refahi.Modules.Pools.Domain.AabsarProduct", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolProviderAttempt", b =>
                 {
                     b.HasOne("Refahi.Modules.Pools.Domain.PoolBooking", null)
@@ -659,6 +915,11 @@ namespace Refahi.Modules.Pools.Infrastructure.Migrations
                         .HasForeignKey("Refahi.Modules.Pools.Domain.PoolTicketReservation", "RequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Refahi.Modules.Pools.Domain.AabsarCart", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Refahi.Modules.Pools.Domain.PoolBooking", b =>

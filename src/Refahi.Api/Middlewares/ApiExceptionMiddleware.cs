@@ -4,7 +4,6 @@ using System.Net;
 using FluentValidation;
 using Refahi.Modules.Hotels.Domain.Aggregates.BookingAgg.Enums;
 using Refahi.Modules.Flights.Application.Contracts.Providers;
-using Refahi.Modules.Commerce.Domain;
 using Refahi.Modules.Orders.Domain.Exceptions;
 using Refahi.Modules.References.Domain.Exceptions;
 using Refahi.Modules.Store.Application.Contracts.Vouchers;
@@ -109,11 +108,6 @@ public sealed class ApiExceptionMiddleware
         {
             context.Response.StatusCode = 409;
             await context.Response.WriteAsJsonAsync(ApiResponseHelper.Error(ex.Message, statusCode: 409));
-        }
-        catch (CommerceDomainException ex)
-        {
-            _logger.LogWarning("Commerce domain rule violation. Code={Code}", ex.ErrorCode);
-            await HandleDomainExceptionAsync(context, ex.Message);
         }
         catch (OrderStateConflictException ex)
         {

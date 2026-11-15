@@ -23,6 +23,6 @@ public sealed class PoolPurchaseAccess(IPoolPurchaseRepository repository, IPool
                 r.TotalMinor, r.StartsAtUtc, r.EndsAtUtc, r.ReservationStatus.ToString(),
                 r.VoucherStatus == PoolVoucherStatus.Issued && now >= r.EndsAtUtc ? "Expired" : PoolPublicStates.Voucher(r.VoucherStatus),
                 p.Status == PoolPurchaseStatus.Paid && (r.VoucherStatus is PoolVoucherStatus.Issued or PoolVoucherStatus.Redeemed or PoolVoucherStatus.Expired) && r.CodeCiphertext != null
-                    ? protector.Unprotect(r.CodeCiphertext) : null, r.RedeemedAtUtc)).ToArray());
+                    ? protector.Unprotect(r.CodeCiphertext) : null, r.RedeemedAtUtc)).ToArray(), p.IsAabsar ? "aabsar" : null);
     }
 }

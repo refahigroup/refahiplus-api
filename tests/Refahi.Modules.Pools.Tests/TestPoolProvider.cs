@@ -12,7 +12,7 @@ public sealed class GrantHandler(GrantState state):IRequestHandler<GetActiveAuth
 }
 public class TestPoolProvider:IPoolProvider
 {
- public string Key=>"poolticket";public string Name=>"test";public PoolCapabilities Capabilities=>new(true,true,false,false,false,false,false);
+ public string Key=>"poolticket";public string Name=>"test";public virtual PoolCapabilities Capabilities=>new(true,true,false,false,false,false,false);
  public int TimeShiftMinutes;public long PriceDelta;public bool FailSessions,OnlyOne,MultiPage,FailPageTwo;public string? FailPoolId;
  public string Date{get;}=DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-dd");
  public Task<IReadOnlyList<PoolState>> StatesAsync(bool active,CancellationToken ct)=>Task.FromResult<IReadOnlyList<PoolState>>([]);
@@ -47,6 +47,7 @@ public sealed class AllGrantsHandler(GrantState state):IRequestHandler<GetAuthor
 
 public sealed class TestOrganizationProvider : TestPoolProvider, IPoolOrganizationProvider
 {
+    public override PoolCapabilities Capabilities => base.Capabilities with { Reserve = true };
  public int ReserveCalls;public string? ReserveFailureCode;
  public async Task<PoolExternalReservation> ReserveAsync(PoolSelection selection,CancellationToken ct)
  {

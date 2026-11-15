@@ -30,7 +30,7 @@ public sealed class PoolPurchaseRepository(PoolsDbContext db, TimeProvider clock
     public async Task AddAsync(PoolPurchase purchase, CancellationToken ct) { db.Purchases.Add(purchase); await db.SaveChangesAsync(ct); }
     public async Task SaveAsync(CancellationToken ct) => await db.SaveChangesAsync(ct);
     public async Task<IReadOnlyList<Guid>> RecoveryIdsAsync(DateTimeOffset? after, Guid? afterId, CancellationToken ct) =>
-        await db.Purchases.AsNoTracking().Where(x => x.Status == PoolPurchaseStatus.AwaitingPayment || x.Status == PoolPurchaseStatus.CancellationPending || x.Status == PoolPurchaseStatus.Paid && x.Requests.Any(r => r.ReservationStatus == PoolReservationStatus.Pending || r.ReservationStatus == PoolReservationStatus.Unknown || r.VoucherStatus == PoolVoucherStatus.Issued && r.EndsAtUtc <= clock.GetUtcNow()))
+        await db.Purchases.AsNoTracking().Where(x => x.Status == PoolPurchaseStatus.AwaitingPayment || x.Status == PoolPurchaseStatus.CancellationPending || x.Status == PoolPurchaseStatus.Paid && (db.AabsarFulfillments.Any(f => f.PurchaseId == x.Id && f.Status == AabsarOperation.Cancelling) || x.Requests.Any(r => r.ReservationStatus == PoolReservationStatus.Pending || r.ReservationStatus == PoolReservationStatus.Unknown || r.VoucherStatus == PoolVoucherStatus.Issued && r.EndsAtUtc <= clock.GetUtcNow())))
             .Where(x => !after.HasValue || x.CreatedAt > after || x.CreatedAt == after && x.Id.CompareTo(afterId!.Value) > 0)
             .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).Select(x => x.Id).Take(50).ToArrayAsync(ct);
 }

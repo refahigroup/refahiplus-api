@@ -7,7 +7,7 @@ using Refahi.Modules.Pools.Application.Contracts.Public;
 using Refahi.Modules.Pools.Domain;
 namespace Refahi.Modules.Pools.Application.Features.Purchases.Issue;
 public sealed class IssuePoolVouchersHandler(IPoolPurchaseRepository repository, IPoolMutationLock gate,
-    IPoolCodeProtector protector, IMediator mediator, TimeProvider clock, ILogger<IssuePoolVouchersHandler> logger, IPoolFulfillment? fulfillment = null) : IRequestHandler<IssuePoolVouchersCommand>
+    IPoolCodeProtector protector, IMediator mediator, TimeProvider clock, ILogger<IssuePoolVouchersHandler> logger, IPoolFulfillment? fulfillment = null, AabsarLifecycle? aabsar = null) : IRequestHandler<IssuePoolVouchersCommand>
 {
     public async Task<Unit> Handle(IssuePoolVouchersCommand r, CancellationToken ct)
     {
@@ -18,6 +18,11 @@ public sealed class IssuePoolVouchersHandler(IPoolPurchaseRepository repository,
         await using var lease = await gate.AcquireAsync(r.Id, ct);
         p = await repository.GetAsync(r.Id, ct);
         if (p == null || p.OrderId != orderId || p.Status is not (PoolPurchaseStatus.AwaitingPayment or PoolPurchaseStatus.Paid)) return Unit.Value;
+        if (p.IsAabsar)
+        {
+            await (aabsar ?? throw new PoolException("سرویس آبسار آماده نیست", 503)).IssueAsync(p, ct);
+            return Unit.Value;
+        }
         if (p.Requests.Any(x => x.ReservationStatus != PoolReservationStatus.ExternalReservationBypassed))
         {
             if (fulfillment == null) throw new PoolException("سرویس رزرو آماده نیست", 503);

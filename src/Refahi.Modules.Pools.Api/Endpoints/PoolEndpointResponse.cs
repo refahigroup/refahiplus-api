@@ -20,6 +20,8 @@ internal static class PoolEndpointResponse
     {
         try { return Results.Ok(ApiResponseHelper.Success(await work())); }
         catch (PoolException ex) { return Error(ex); }
+        catch (Refahi.Modules.Pools.Domain.AabsarCartException ex) { return Error(new PoolException(ex.Message, 409, ex.Code)); }
+        catch (OverflowException) { return Error(new PoolException("مبلغ خرید معتبر نیست", 400, "INVALID_PRICE")); }
         catch (ValidationException ex) { return Results.Json(ApiResponseHelper.ValidationError(ex.Errors.GroupBy(x => x.PropertyName).ToDictionary(x => x.Key, x => x.Select(e => e.ErrorMessage).ToArray())), statusCode: 400); }
         catch (InvalidOperationException) { return Error(new PoolException("عملیات در وضعیت فعلی مجاز نیست", 409, "STATE_CONFLICT")); }
     }

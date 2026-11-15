@@ -24,7 +24,7 @@ Run these in separate PowerShell terminals from the backend repository:
 
 Stop each process with Ctrl+C in its terminal. Scripts refuse occupied ports. If code changes, stop the relevant process and rebuild `Refahi.Backend.slnx` or the frontend's `Refahi.Clients.Solution.sln` before restarting. Scripts use existing Debug build output. Environment overrides apply to their PowerShell process and child app only, not machine settings or Production files.
 
-Both hotel providers' purchase capabilities are disabled. Unconfigured Commerce providers are disabled for this session; SMS notifications use in-memory delivery. Hotel search and image GET requests are real read-only supplier calls. Lamaso is not configured in Development; a complete Lamaso search test requires its real read credentials and approved image hostnames.
+Both hotel providers' purchase capabilities are disabled. Aabsar is disabled for this session; SMS notifications use in-memory delivery. Hotel search and image GET requests are real read-only supplier calls. Lamaso is not configured in Development; a complete Lamaso search test requires its real read credentials and approved image hostnames.
 
 ## Sample images
 

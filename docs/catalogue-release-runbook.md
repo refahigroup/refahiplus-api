@@ -112,10 +112,4 @@ Keep Catalogue off in the base configuration. Enable API and Web flags only for 
 
 ## Pools integration rollout
 
-For this release, verify the effective Stage and Production settings before rollout:
-
-- `Catalogue:EnabledSources` contains only `entertainments` and `hotels`. Remove any indexed override such as `Catalogue__EnabledSources__2=pools`. Keep `MaxConcurrency=16` for eight admitted requests and two sources. Preserve each environment's existing `Catalogue:Enabled` value.
-- `Pools:CatalogEnabled=false` and `Pools:PurchaseEnabled=false` disable automatic sync, quotes and new purchases. API startup still applies Pools migrations. Direct reads use stored data, and the recovery worker can reconcile existing purchases, including fulfilling already-paid orders.
-- Run the readiness check above with the deployment's effective configuration. With Catalogue enabled, verify both existing sources in search and location responses and check that `/api/catalogue/items?sources=pools` returns HTTP 400.
-
-A future activation requires Pools readiness checks and effective capacity for three sources (at least 24 at eight admitted requests). See [PoolTicket Bruno alignment](poolticket-bruno-alignment.md) for provider verification.
+For Aabsar rollout, enable Pools:Providers:Aabsar:CatalogueEnabled, add pools to the target's Catalogue:EnabledSources and use capacity of at least 24 for eight admitted requests across three sources. Keep current PoolTicket settings in each environment. Readiness verifies Aabsar freshness, mapped geography and saleable products. See the [Pools runbook](pools-architecture-api-runbook.md) for purchase verification, guarded Commerce retirement and recovery.
