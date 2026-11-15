@@ -22,6 +22,22 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
         var attempt=model.Entity<CinemaProviderAttempt>();attempt.ToTable("provider_attempts");attempt.HasKey(x=>x.Id);
         // Attempt IDs are assigned by the domain, including attempts added to existing orders.
         attempt.Property(x=>x.Id).ValueGeneratedNever();
+        model.Entity<CinemaFilm>().ToTable("films").HasMany(x => x.Credits)
+            .WithOne().HasForeignKey(x => x.FilmId);
+        model.Entity<CinemaPerson>().ToTable("people");
+        model.Entity<CinemaCredit>().ToTable("film_credits").HasKey(x => new { x.FilmId, x.PersonId });
+        model.Entity<CinemaVenue>().ToTable("venues").HasIndex(x => x.CityId);
+        model.Entity<ITicketMapping>().ToTable("iticket_mappings").HasKey(x => new { x.Kind, x.ExternalId });
+        model.Entity<ITicketGeography>().ToTable("iticket_geographies").HasKey(x => x.ExternalCityId);
+        model.Entity<ITicketGeography>().Property(x => x.ExternalCityId).ValueGeneratedNever();
+        var screenings = model.Entity<ITicketScreening>().ToTable("iticket_screenings");
+        screenings.HasKey(x => x.ExternalId);
+        screenings.HasIndex(x => x.Id).IsUnique();
+        screenings.HasIndex(x => new { x.Published, x.StartsAt });
+        screenings.HasIndex(x => new { x.FilmId, x.VenueId, x.StartsAt });
+        screenings.HasOne<CinemaFilm>().WithMany().HasForeignKey(x => x.FilmId);
+        screenings.HasOne<CinemaVenue>().WithMany().HasForeignKey(x => x.VenueId);
+        model.Entity<ITicketDiscoveryState>().ToTable("iticket_discovery_state").Property(x => x.Id).ValueGeneratedNever();
     }
 }
 public sealed class CinemaOrderRepository(CinemaDbContext db) : ICinemaOrderRepository

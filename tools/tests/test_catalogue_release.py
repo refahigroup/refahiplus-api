@@ -103,11 +103,27 @@ sleep() { :; }
 
     def test_source_registration_flags_are_part_of_readiness(self):
         config, errors = readiness.effective({})
-        self.assertEqual(["hotels"], config["sources"])
+        self.assertEqual(["hotels", "pools"], config["sources"])
         config, errors = readiness.effective({"catalogue:enabledsources:0": "entertainments"})
         self.assertIn("entertainment_module_disabled", errors)
         self.assertIn("entertainment_catalogue_disabled", errors)
         self.assertIn("entertainment_provider_disabled", errors)
+
+    def test_cinema_readiness_checks_public_registration_and_worker_settings(self):
+        flat = {"catalogue:enabled": "true", "catalogue:enabledsources:0": "cinema"}
+        _, errors = readiness.effective(flat)
+        self.assertEqual(
+            {"cinema_source_disabled", "cinema_worker_disabled", "cinema_iticket_not_configured", "cinema_categories_not_configured"},
+            set(errors),
+        )
+        flat.update({
+            "cinema:catalogenabled": "true", "cinema:discovery:catalogueenabled": "true",
+            "cinema:discovery:workerenabled": "true", "iticket:accesstoken": "test",
+            "cinema:iticket:cinemacategories:0": "film", "cinema:iticket:artcategories:0": "art",
+        })
+        config, errors = readiness.effective(flat)
+        self.assertEqual([], errors)
+        self.assertEqual(["cinema"], config["sources"])
 
 
 if __name__ == "__main__": unittest.main()

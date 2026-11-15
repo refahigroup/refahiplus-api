@@ -14,7 +14,8 @@ using Refahi.Modules.Orders.Application.Contracts.Queries;
 namespace Refahi.Modules.Cinema.Application.Features.Orders;
 
 public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinemaProviderFactory factory,
-    ICinemaMutationLock gate, IMediator mediator, IOptions<CinemaOptions> options, ILogger<CinemaOrderService> logger, CinemaMediaPublisher? media = null)
+    ICinemaMutationLock gate, IMediator mediator, IOptions<CinemaOptions> options, ILogger<CinemaOrderService> logger,
+    CinemaMediaPublisher? media = null, ICinemaDiscoveryReader? discovery = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public static CinemaSeatMap Snapshot(CinemaOrder order) => JsonSerializer.Deserialize<CinemaSeatMap>(order.SnapshotJson, Json)!;
@@ -63,24 +64,32 @@ public sealed class CinemaOrderService(ICinemaOrderRepository repository, ICinem
         if (!options.Value.PurchaseEnabled) throw new CinemaException("خرید بلیط هنوز فعال نشده است", 503);
         var lockId = new Guid(SHA256.HashData(Encoding.UTF8.GetBytes($"{user:N}:{key}"))[..16]);
         await using var lease = await gate.AcquireAsync(lockId, ct);
-        var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(schedule + ":" + string.Join(",", seats.Order()))));
+        var canonical = Guid.TryParseExact(schedule, "D", out var publicId);
+        if (canonical) schedule = publicId.ToString("D");
+        var input = canonical ? JsonSerializer.Serialize(new { schedule, seats = seats.Order(StringComparer.Ordinal) }, Json)
+            : schedule + ":" + string.Join(",", seats.Order());
+        var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input)));
         var old = await repository.FindAsync(user, key, ct);
         if (old != null)
         { if (old.Fingerprint != fingerprint) throw new CinemaException("کلید درخواست قبلاً برای سفارش دیگری استفاده شده است"); return await PublicViewAsync(old, ct); }
         var customer = await mediator.Send(new GetUserPurchaseContactQuery(user), ct);
         if (customer?.MobileNumber is not string mobile || !System.Text.RegularExpressions.Regex.IsMatch(mobile, "^09[0-9]{9}$"))
             throw new CinemaException("شماره همراه معتبر در حساب کاربری ثبت نشده است", 400);
-        var provider = factory.Get(options.Value.ProviderKey); var map = await provider.SeatsAsync(schedule, ct);
-        var live = await provider.StatusAsync(schedule, ct);
+        var reference = await CinemaScheduleIdentity.ResolveAsync(schedule, discovery, ct);
+        var provider = factory.Get(reference.ProviderKey);
+        var map = await provider.SeatsAsync(reference.ExternalId, ct);
+        var live = await provider.StatusAsync(reference.ExternalId, ct);
         if (map.StartsAt <= DateTimeOffset.UtcNow || map.PurchaseEndAt <= DateTimeOffset.UtcNow)
             throw new CinemaException("فروش این سانس پایان یافته است");
         if (seats.Any(id => !map.Seats.Any(s => s.Id == id && s.IsBookable) || !live.Seats.TryGetValue(id, out var status) || status != "available"))
             throw new CinemaException("یک یا چند صندلی دیگر قابل رزرو نیست؛ نقشه را تازه کنید");
-        var order = CinemaOrder.Create(user, provider.Key, schedule, key, fingerprint, JsonSerializer.Serialize(map, Json), JsonSerializer.Serialize(seats, Json), map.Show.Kind == "theater" ? "theater" : "cinema");
+        var order = CinemaOrder.Create(user, provider.Key, reference.ExternalId, key, fingerprint,
+            JsonSerializer.Serialize(map with { ScheduleId = schedule }, Json), JsonSerializer.Serialize(seats, Json),
+            map.Show.Kind == "theater" ? "theater" : "cinema");
         var attempt = order.BeginAttempt("reserve"); await repository.AddAsync(order, ct);
         try
         {
-            var result = await provider.ReserveAsync(schedule, seats, new(mobile, customer.FullName), ct);
+            var result = await provider.ReserveAsync(reference.ExternalId, seats, new(mobile, customer.FullName), ct);
             order.RecordProviderReference(result.Id);
             var deadline = result.ExpiresAt;
             if (map.PurchaseEndAt.HasValue && (!deadline.HasValue || map.PurchaseEndAt < deadline)) deadline = map.PurchaseEndAt;

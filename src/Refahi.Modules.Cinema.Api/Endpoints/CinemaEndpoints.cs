@@ -19,7 +19,7 @@ public sealed class CinemaEndpoints : IEndpoint
     public void Map(object app)
     {
         if(app is not IEndpointRouteBuilder routes)return;
-        Public(routes.MapGet("/cities",(HttpContext h,IMediator m,CancellationToken ct)=>Run(h,()=>m.Send(new CinemaCitiesQuery(),ct))),"Cities");
+        Public(routes.MapGet("/cities",(bool? canonical,HttpContext h,IMediator m,CancellationToken ct)=>Run(h,()=>m.Send(new CinemaCitiesQuery(canonical == true),ct))),"Cities");
         Public(routes.MapGet("/landing",(int? city,HttpContext h,IMediator m,CancellationToken ct)=>Run(h,()=>m.Send(new CinemaLandingQuery(city),ct))),"Landing");
         Public(routes.MapGet("/shows",(string? kind,int? city,string? search,int? page,HttpContext h,IMediator m,CancellationToken ct)=>Run(h,()=>m.Send(new CinemaShowsQuery(kind??"cinema",city,search,page??1),ct))),"Shows");
         Public(routes.MapGet("/shows/{showId}",(string showId,HttpContext h,IMediator m,CancellationToken ct)=>Run(h,()=>m.Send(new CinemaShowQuery(showId),ct))),"Show");

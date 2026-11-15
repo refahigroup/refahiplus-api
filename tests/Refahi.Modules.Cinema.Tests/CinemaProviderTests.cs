@@ -48,7 +48,7 @@ public sealed class CinemaProviderTests
     [Fact]public async Task Unknown_status_index_is_blocked()
     {
         var p=Provider(new StubHandler("""{"data":{"attributes":{"schema":{"status":["available","reserved","sold","blocked"]},"seats":{"a":99,"b":1,"c":null}}}}"""));
-        var result=await p.StatusAsync("schedule",default);Assert.Equal("blocked",result.Seats["a"]);Assert.Equal("reserved",result.Seats["b"]);Assert.Equal("blocked",result.Seats["c"]);
+        var result=await p.StatusAsync("01ktm9ahefk1ntpw59hh60w65y",default);Assert.Equal("blocked",result.Seats["a"]);Assert.Equal("reserved",result.Seats["b"]);Assert.Equal("blocked",result.Seats["c"]);
     }
     [Fact]public async Task Mutating_transport_timeout_is_ambiguous_and_not_retried()
     {
@@ -58,7 +58,7 @@ public sealed class CinemaProviderTests
     [Fact]public async Task Malformed_success_preserves_known_provider_reference_for_reconciliation()
     {
         var handler=new StubHandler("""{"data":{"id":"known-provider-order","attributes":{"currency_code":"USD","status":"reserved"}}}""");
-        var error=await Assert.ThrowsAsync<CinemaProviderAmbiguousException>(()=>Provider(handler).ReserveAsync("schedule",["seat"],new("09123456789","آزمایشی"),default));
+        var error=await Assert.ThrowsAsync<CinemaProviderAmbiguousException>(()=>Provider(handler).ReserveAsync("01ktm9ahefk1ntpw59hh60w65y",["01ktm9ahkpd6ax7k6t0c6z6f92"],new("09123456789","آزمایشی"),default));
         Assert.Equal("known-provider-order",error.ProviderOrderId);Assert.Equal(1,handler.Calls);
     }
     [Fact]

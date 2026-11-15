@@ -15,10 +15,13 @@ public sealed class ReserveCinemaOrderValidator : AbstractValidator<ReserveCinem
     public ReserveCinemaOrderValidator()
     {
         RuleFor(x=>x.UserId).NotEmpty().WithMessage("شناسه کاربر معتبر نیست");
-        RuleFor(x=>x.ScheduleId).Matches("^[0-9A-Za-z]{26}$").WithMessage("شناسه سانس معتبر نیست");
+        RuleFor(x=>x.ScheduleId).Must(CinemaScheduleIdentity.IsValid).WithMessage("شناسه سانس معتبر نیست");
         RuleFor(x=>x.IdempotencyKey).NotEmpty().MaximumLength(128).WithMessage("کلید درخواست معتبر نیست");
         RuleFor(x=>x.SeatIds).NotEmpty().Must(s=>s!=null&&s.Distinct().Count()==s.Length).WithMessage("صندلی تکراری یا خالی مجاز نیست");
-        RuleForEach(x=>x.SeatIds).Matches("^[0-9A-Za-z]{26}$").WithMessage("شناسه صندلی معتبر نیست");
+        RuleForEach(x=>x.SeatIds).NotEmpty().MaximumLength(190).Must(id=>id is not null && !id.Any(char.IsControl))
+            .WithMessage("شناسه صندلی معتبر نیست");
+        When(x=>CinemaScheduleIdentity.IsLegacyId(x.ScheduleId), () =>
+            RuleForEach(x=>x.SeatIds).Must(CinemaScheduleIdentity.IsLegacyId).WithMessage("شناسه صندلی معتبر نیست"));
     }
 }
 public sealed class CheckoutCinemaOrderValidator : AbstractValidator<CheckoutCinemaOrderCommand>

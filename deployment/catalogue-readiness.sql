@@ -103,9 +103,31 @@ mappings AS (
      CASE WHEN s."CompletedAt" < CURRENT_TIMESTAMP-interval '7 days' THEN 'expired_data' END], NULL))) row
  FROM cfg LEFT JOIN pools.poolticket_sync_states s ON s."Key"='venues'
  WHERE (cfg.c->'sources') ? 'pools' AND (cfg.c->>'poolticket')::boolean
+), cinema_report AS (
+ SELECT jsonb_build_object('source','cinema','provider','iticket','scope','cinema-and-art',
+   'lastSuccessUtc', s."LastSuccessAt", 'lastAttemptUtc',s."LastAttemptAt",
+   'published',coverage.films,'venues',coverage.venues,'screenings',coverage.screenings,
+   'unmappedVenues',s."UnmappedVenues",'pendingMappings',s."PendingMappings",
+   'reasons',to_jsonb(array_remove(ARRAY[
+     CASE WHEN s."LastSuccessAt" IS NULL THEN 'missing_sync' END,
+     CASE WHEN s."Failed" THEN 'sync_failed' END,
+     CASE WHEN s."LastSuccessAt" < CURRENT_TIMESTAMP-make_interval(mins=>(cfg.c->>'cinema_stale_minutes')::int)
+       THEN 'stale_data' END,
+     CASE WHEN s."PendingMappings">0 THEN 'pending_mappings' END], NULL))) row
+ FROM cfg LEFT JOIN cinema.iticket_discovery_state s ON s."Id"=1
+ CROSS JOIN LATERAL (
+   SELECT count(DISTINCT r."FilmId") films,count(DISTINCT r."VenueId") venues,count(*) screenings
+   FROM cinema.iticket_screenings r
+   WHERE r."Published" AND r."StartsAt">CURRENT_TIMESTAMP
+     AND r."StartsAt"<=CURRENT_TIMESTAMP+make_interval(days=>(cfg.c->>'cinema_horizon_days')::int)
+     AND (r."PurchaseStartsAt" IS NULL OR r."PurchaseStartsAt"<=CURRENT_TIMESTAMP)
+     AND (r."PurchaseEndsAt" IS NULL OR r."PurchaseEndsAt">CURRENT_TIMESTAMP)
+ ) coverage
+ WHERE (cfg.c->'sources') ? 'cinema'
 ), reports AS (
  SELECT row FROM hotel_report UNION ALL SELECT row FROM entertainment_report
  UNION ALL SELECT row FROM aabsar_report UNION ALL SELECT row FROM poolticket_report
+ UNION ALL SELECT row FROM cinema_report
 )
 SELECT jsonb_build_object('observedAtUtc',CURRENT_TIMESTAMP,'scopes',coalesce(jsonb_agg(row ORDER BY row->>'source',row->>'provider',row->>'scope'),'[]')) FROM reports;
 ROLLBACK;

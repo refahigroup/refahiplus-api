@@ -40,6 +40,9 @@ def effective(flat):
     if all(flag(key) for key in ["Entertainments:Enabled", "Entertainments:CatalogueEnabled", "Entertainments:Providers:TouristPanel:Enabled"]):
         registered.append("entertainments")
     registered.append("pools")
+    cinema_registered = flag("Cinema:CatalogEnabled") and flag("Cinema:Discovery:CatalogueEnabled")
+    if cinema_registered:
+        registered.append("cinema")
     sources = array("Catalogue:EnabledSources") if "catalogue:enabledsources" in flat or any(k.startswith("catalogue:enabledsources:") for k in flat) else registered
     local = array("Hotels:StaticContent:ReadScopes") if flag("Hotels:StaticContent:ReadEnabled") else []
     local = [{"snapptrip":"SnappTrip", "lamasoo":"Lamasoo"}.get(scope.partition(":")[0].lower(), scope.partition(":")[0])+":"+scope.partition(":")[2] for scope in local]
@@ -54,11 +57,13 @@ def effective(flat):
                   aabsar=flag("Pools:Providers:Aabsar:CatalogueEnabled"),
                   poolticket=flag("Pools:CatalogEnabled"),
                   aabsar_max_age_seconds=2 * int(get("Pools:Providers:Aabsar:CatalogCacheSeconds", "120")),
+                  cinema_stale_minutes=int(get("Cinema:Discovery:StaleMinutes", "15")),
+                  cinema_horizon_days=int(get("Cinema:Discovery:HorizonDays", "14")),
                   account_key=hashlib.sha256(account.encode()).hexdigest())
     errors = []
     if not flag("Catalogue:Enabled"): errors.append("catalogue_disabled")
     if not sources: errors.append("no_sources")
-    if set(sources) - {"hotels", "entertainments", "pools"}: errors.append("unsupported_source")
+    if set(sources) - {"hotels", "entertainments", "pools", "cinema"}: errors.append("unsupported_source")
     if config["hotel_max_age_days"] < 1 or config["entertainment_max_age_days"] < 1: errors.append("invalid_freshness")
     if "hotels" in sources and not (flag("Hotels:Discovery:WorkerEnabled") or flag("Hotels:StaticContent:WorkerEnabled")):
         errors.append("hotel_worker_disabled")
@@ -70,6 +75,12 @@ def effective(flat):
         errors.append("pools_providers_disabled")
     if config["aabsar"] and (not flag("Pools:Providers:Aabsar:Enabled") or not get("Pools:Providers:Aabsar:AccessToken")):
         errors.append("aabsar_provider_not_configured")
+    if "cinema" in sources:
+        if not cinema_registered: errors.append("cinema_source_disabled")
+        if not flag("Cinema:Discovery:WorkerEnabled"): errors.append("cinema_worker_disabled")
+        if not get("iTicket:AccessToken"): errors.append("cinema_iticket_not_configured")
+        if not (array("Cinema:iTicket:CinemaCategories") and array("Cinema:iTicket:ArtCategories")):
+            errors.append("cinema_categories_not_configured")
     if int(get("Catalogue:MaxConcurrency", "16")) < len(sources) * int(get("Catalogue:MaxConcurrentRequests", "8")):
         errors.append("catalogue_capacity")
     return config, errors

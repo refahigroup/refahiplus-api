@@ -55,13 +55,14 @@ public sealed class CatalogueService(ICatalogueExecutor executor, ISender? sende
  public async Task<IReadOnlyList<CatalogueCity>> CitiesAsync(CancellationToken ct) => (await LocationsAsync(ct)).Cities;
  public async Task<CatalogueLocationsResponse> LocationsAsync(CancellationToken ct) {
  var results=await Task.WhenAll(executor.Keys.Select(async key=> {
- try { return (key, cities:await executor.ExecuteAsync(key,(s,t)=>s.CitiesAsync(t),ct)); }
+ try { return (key, coverage:await executor.ExecuteAsync(key,(s,t)=>s.ReadCitiesAsync(t),ct)); }
  catch(OperationCanceledException) when(ct.IsCancellationRequested){throw;}
- catch{return (key,cities:(IReadOnlyList<CatalogueCity>?)null);}}));
- if(results.All(x=>x.cities is null)) throw new CatalogueUnavailableException();
- var cities=results.Where(x=>x.cities!=null).SelectMany(x=>x.cities!).DistinctBy(x=>x.Id).OrderBy(x=>CatalogueText.Normalize(x.Name),CatalogueText.Comparer).ToArray();
+ catch{return (key,coverage:(CatalogueSourceCities?)null);}}));
+ if(results.All(x=>x.coverage is null)) throw new CatalogueUnavailableException();
+ var cities=results.Where(x=>x.coverage!=null).SelectMany(x=>x.coverage!.Cities).DistinctBy(x=>x.Id).OrderBy(x=>CatalogueText.Normalize(x.Name),CatalogueText.Comparer).ToArray();
  var provinces=cities.Where(x=>x.ProvinceId>0).DistinctBy(x=>x.ProvinceId).Select(x=>new CatalogueProvince(x.ProvinceId,x.ProvinceName)).OrderBy(x=>CatalogueText.Normalize(x.Name),CatalogueText.Comparer).ToArray();
- return new(provinces,cities,results.Any(x=>x.cities is null),results.Select(x=>new CatalogueSourceStatus(x.key,x.cities is null?"unavailable":"ready")).ToArray());
+ return new(provinces,cities,results.Any(x=>x.coverage is null || x.coverage.IsPartial),
+     results.Select(x=>new CatalogueSourceStatus(x.key,x.coverage is null?"unavailable":x.coverage.IsPartial?"partial":"ready")).ToArray());
  }
  private string[] Select(string[]? selected) { var keys=selected is {Length:>0}?selected.Distinct().ToArray():executor.Keys.ToArray(); if(keys.Any(x=>!executor.Keys.Contains(x))) throw new ValidationException("منبع کاتالوگ معتبر نیست."); return keys; }
 }

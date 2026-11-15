@@ -86,3 +86,7 @@ Catalogue now has a separate concurrency admission policy with unified 429/Retry
 ## Pools provider discovery
 
 Pools supplies one Catalogue result per Aabsar product and one per PoolTicket venue. Both projections use the same global ordering and canonical References geography. The initial rollout enables Aabsar with the pools source and keeps the existing PoolTicket environment switches. See the [release runbook](catalogue-release-runbook.md) for the environment readiness gate.
+
+## Cinema provider discovery
+
+`CinemaCatalogueSource` reads Cinema-owned films, credits and venues and projects currently active screenings from provider-specific inventories. A film can match a normalized artist name or a matching venue in the requested geography and appears once in the results. Stable film and venue UUIDs reach the existing Cinema detail route. Screenings keep their own provider identity for live detail and purchase. See the [Cinema implementation](cinema-implementation.md) and the [release runbook](catalogue-release-runbook.md).

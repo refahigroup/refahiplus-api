@@ -6,6 +6,7 @@ using Refahi.Modules.Cinema.Domain;
 using Refahi.Modules.Cinema.Application.Contracts;
 using Refahi.Modules.Cinema.Application.Features.Catalog;
 using Refahi.Modules.Cinema.Application.Features.Orders;
+using Refahi.Modules.Cinema.Infrastructure.Providers.iTicket;
 using Refahi.Modules.Identity.Application.Contracts.Queries;
 using Refahi.Modules.Orders.Application.Contracts.Commands;
 using Refahi.Modules.Orders.Application.Contracts.Queries;
@@ -236,11 +237,69 @@ public sealed class CinemaLifecycleTests
         f.Mediator.Paid = true; f.Mediator.Discount = 10000; await f.Service.FinalizeAsync(r.Id, default);
         Assert.Equal(1, f.Provider.ConfirmCalls); Assert.Equal("Issued", f.Repository.Order!.IssuanceStatus);
     }
+    [Fact]
+    public async Task Canonical_schedule_routes_seats_reservation_confirmation_and_cancellation_to_its_provider()
+    {
+        var first = new Provider();
+        var second = new Provider("second");
+        var factory = new CinemaProviderFactory([first, second]);
+        var firstKey = Guid.NewGuid().ToString("D");
+        var secondKey = Guid.NewGuid().ToString("D");
+        var discovery = new Discovery(Guid.Parse(firstKey), Guid.Parse(secondKey));
+        var fixture = new Fixture(factory: factory, discovery: discovery);
+        var catalog = new CinemaCatalogHandlers(factory, Options.Create(new CinemaOptions
+            { CatalogEnabled = true, ProviderKey = "second" }), discovery: discovery);
+        Assert.Equal(secondKey, (await catalog.Handle(new CinemaSeatsQuery(secondKey), default)).ScheduleId);
+        await catalog.Handle(new CinemaStatusesQuery(secondKey), default);
+        Assert.Equal(1, second.SeatMapCalls);
+        Assert.Equal(1, second.StatusCalls);
+        Assert.Equal(0, first.SeatMapCalls);
+        Assert.Equal(Schedule, (await catalog.Handle(new CinemaSeatsQuery(Schedule), default)).ScheduleId);
+        Assert.Equal(1, first.SeatMapCalls);
+
+        var reservation = await fixture.Service.ReserveAsync(fixture.User, secondKey, [Seat], "canonical", default);
+        var retry = await fixture.Service.ReserveAsync(fixture.User, secondKey.ToUpperInvariant(), [Seat], "canonical", default);
+        Assert.Equal(reservation.Id, retry.Id);
+        Assert.Equal("second", fixture.Repository.Order!.ProviderKey);
+        Assert.Equal(Schedule, fixture.Repository.Order.ScheduleId);
+        await Assert.ThrowsAsync<CinemaException>(() =>
+            fixture.Service.ReserveAsync(fixture.User, firstKey, [Seat], "canonical", default));
+        Assert.Equal(1, second.ReserveCalls);
+        Assert.Equal(0, first.ReserveCalls);
+
+        await fixture.Service.CheckoutAsync(reservation.Id, fixture.User, reservation.Version, reservation.TotalMinor, default);
+        fixture.Mediator.Paid = true;
+        await fixture.Service.FinalizeAsync(reservation.Id, default);
+        Assert.Equal(1, second.ConfirmCalls);
+        Assert.True(fixture.Repository.Order.HasTicket);
+        Assert.True(await fixture.Service.CancelProviderAsync(fixture.Repository.Order, default));
+        Assert.Equal(1, second.CancelCalls);
+        Assert.Equal(0, first.ConfirmCalls + first.CancelCalls);
+    }
+
+    private sealed class Discovery(Guid first, Guid second) : ICinemaDiscoveryReader
+    {
+        public Task<CinemaScheduleReference?> FindScheduleAsync(Guid schedule, CancellationToken ct) =>
+            Task.FromResult<CinemaScheduleReference?>(schedule == first ? new("iticket", Schedule)
+                : schedule == second ? new("second", Schedule) : null);
+        public Task<IReadOnlyList<CinemaCity>> CitiesAsync(CancellationToken ct) => throw new NotSupportedException();
+        public Task<CinemaShow> ShowAsync(Guid show, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<CinemaDisplayDay>> PlacesAsync(Guid show, int? city, string? search, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<CinemaSession>> SessionsAsync(Guid show, Guid place, string? date, CancellationToken ct) => throw new NotSupportedException();
+    }
+
     private sealed class Fixture
     {
         public Guid User = Guid.NewGuid(); public Repo Repository = new(); public Provider Provider = new(); public Mediator Mediator;
         public CinemaOrderService Service;
-        public Fixture(bool cancellationEnabled = true, CinemaMediaPublisher? media = null) { Mediator = new(Repository); Service = new(Repository, Provider, new Gate(), Mediator, Options.Create(new CinemaOptions { PurchaseEnabled = true, CancellationEnabled = cancellationEnabled }), NullLogger<CinemaOrderService>.Instance, media); }
+        public Fixture(bool cancellationEnabled = true, CinemaMediaPublisher? media = null, ICinemaProviderFactory? factory = null,
+            ICinemaDiscoveryReader? discovery = null)
+        {
+            Mediator = new(Repository);
+            Service = new(Repository, factory ?? Provider, new Gate(), Mediator,
+                Options.Create(new CinemaOptions { PurchaseEnabled = true, CancellationEnabled = cancellationEnabled }),
+                NullLogger<CinemaOrderService>.Instance, media, discovery);
+        }
         public Task<CinemaOrderView> Reserve() => Service.ReserveAsync(User, Schedule, [Seat], "key", default);
     }
     private sealed class Repo : ICinemaOrderRepository
@@ -258,17 +317,25 @@ public sealed class CinemaLifecycleTests
         public async Task<IAsyncDisposable> AcquireAsync(Guid id, CancellationToken ct) { await semaphore.WaitAsync(ct); return new Lease(semaphore); }
         private sealed class Lease(SemaphoreSlim semaphore) : IAsyncDisposable { public ValueTask DisposeAsync() { semaphore.Release(); return ValueTask.CompletedTask; } }
     }
-    private sealed class Provider : ICinemaProvider, ICinemaProviderFactory
+    private sealed class Provider(string key = "iticket") : ICinemaProvider, ICinemaProviderFactory
     {
-        public string Key => "iticket"; public ICinemaProvider Get(string key) => this;
-        public int ReserveCalls, ConfirmCalls, CancelCalls; public bool AmbiguousReserve, AmbiguousConfirm, AmbiguousCancel, MissingTicketCode, RejectCancel;
+        public string Key => key; public ICinemaProvider Get(string key) => this;
+        public int ReserveCalls, ConfirmCalls, CancelCalls, SeatMapCalls, StatusCalls; public bool AmbiguousReserve, AmbiguousConfirm, AmbiguousCancel, MissingTicketCode, RejectCancel;
         public string Status { get => status; set => status = value; }
         public DateTimeOffset? Expiry = DateTimeOffset.UtcNow.AddMinutes(10); private string status = "reserved";
         private CinemaReservation Reservation() => new("provider", MissingTicketCode ? "" : "ticket", status, Expiry, 100000, 0, 10000, 5000, 115000, MissingTicketCode ? null : "samfa", 1);
         public bool IsReserved(string s) => s == "reserved"; public bool IsConfirmed(string s) => s == "confirmed"; public bool IsCancelled(string s) => s == "cancelled";
         public bool IsExpired(string s) => s is "expired" or "reservation_expired";
-        public Task<CinemaSeatMap> SeatsAsync(string schedule, CancellationToken ct) => Task.FromResult(new CinemaSeatMap(schedule, new("show", "فیلم", "cinema", null, null, null, null, 90, null, []), new("place", "سینما", null, null), "سالن", DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(1), [new(Seat, "block", "1", "1", 0, 0, 100000, "available", true, null)]));
-        public Task<CinemaSeatStatuses> StatusAsync(string schedule, CancellationToken ct) => Task.FromResult(new CinemaSeatStatuses(new Dictionary<string, string> { { Seat, "available" } }));
+        public Task<CinemaSeatMap> SeatsAsync(string schedule, CancellationToken ct)
+        {
+            SeatMapCalls++;
+            return Task.FromResult(new CinemaSeatMap(schedule, new("show", "فیلم", "cinema", null, null, null, null, 90, null, []), new("place", "سینما", null, null), "سالن", DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(1), [new(Seat, "block", "1", "1", 0, 0, 100000, "available", true, null)]));
+        }
+        public Task<CinemaSeatStatuses> StatusAsync(string schedule, CancellationToken ct)
+        {
+            StatusCalls++;
+            return Task.FromResult(new CinemaSeatStatuses(new Dictionary<string, string> { { Seat, "available" } }));
+        }
         public Task<CinemaReservation> ReserveAsync(string schedule, IReadOnlyList<string> seats, CinemaCustomer customer, CancellationToken ct) { ReserveCalls++; if (AmbiguousReserve) throw new CinemaProviderAmbiguousException(new TimeoutException()); return Task.FromResult(Reservation()); }
         public Task<CinemaReservation> GetReservationAsync(string id, CancellationToken ct) => Task.FromResult(Reservation());
         public Task<CinemaReservation> ConfirmAsync(string id, CancellationToken ct) { ConfirmCalls++; status = "confirmed"; if (AmbiguousConfirm) throw new CinemaProviderAmbiguousException(new TimeoutException()); return Task.FromResult(Reservation()); }
