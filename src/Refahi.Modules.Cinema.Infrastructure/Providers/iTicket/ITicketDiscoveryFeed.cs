@@ -16,6 +16,9 @@ internal sealed record ITicketDiscoveryFeed(ITicketFilm[] Films, ITicketVenue[] 
 
 public sealed partial class ITicketCinemaProvider
 {
+    private static readonly TimeZoneInfo DiscoveryTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
+    private const string InvalidDiscoveryData = "داده همگام‌سازی سینما کامل یا معتبر نیست";
+
     internal async Task<ITicketDiscoveryFeed> ReadDiscoveryAsync(DateTimeOffset now, int horizonDays, CancellationToken ct)
     {
         var categories = Settings.CinemaCategories.Concat(Settings.ArtCategories).Distinct().ToArray();
@@ -33,12 +36,19 @@ public sealed partial class ITicketCinemaProvider
                 films.TryAdd(S(row, "id"), kind);
         }
 
-        var range = "&starts_from=" + E(now.ToString("O", CultureInfo.InvariantCulture))
-            + "&starts_to=" + E(now.AddDays(horizonDays).ToString("O", CultureInfo.InvariantCulture));
-        var rows = await ReadPagesAsync(page =>
-            $"reseller/schedules?page={page}&per_page=24{CategoryFilter(categories)}{range}", ct);
-        var sessions = rows.Select(MapDiscoverySession)
-            .Where(row => films.ContainsKey(row.FilmId) && row.StartsAt > now && row.StartsAt <= now.AddDays(horizonDays))
+        var horizon = now.AddDays(horizonDays);
+        var localStart = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, DiscoveryTimeZone).DateTime);
+        var localEnd = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(horizon, DiscoveryTimeZone).DateTime);
+        var categoryFilter = CategoryFilter(categories);
+        var scheduleRows = new List<JsonElement>();
+        for (var date = localStart; date <= localEnd; date = date.AddDays(1))
+        {
+            var day = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            scheduleRows.AddRange(await ReadPagesAsync(page =>
+                $"reseller/schedules?page={page}&per_page=500{categoryFilter}&starts_from={day}&starts_to={day}", ct));
+        }
+        var sessions = scheduleRows.DistinctBy(row => S(row, "id"), StringComparer.Ordinal).Select(MapDiscoverySession)
+            .Where(row => films.ContainsKey(row.FilmId) && row.StartsAt > now && row.StartsAt <= horizon)
             .ToArray();
 
         var placeIds = sessions.Select(s => s.PlaceId).ToHashSet(StringComparer.Ordinal);
@@ -110,6 +120,16 @@ public sealed partial class ITicketCinemaProvider
 
     private async Task<List<JsonElement>> ReadPagesAsync(Func<int, string> path, CancellationToken ct)
     {
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var rows = await TryReadPagesAsync(path, ct);
+            if (rows is not null) return rows;
+        }
+        throw new CinemaException(InvalidDiscoveryData, 502);
+    }
+
+    private async Task<List<JsonElement>?> TryReadPagesAsync(Func<int, string> path, CancellationToken ct)
+    {
         var rows = new List<JsonElement>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
         int? lastPage = null, total = null;
@@ -121,19 +141,19 @@ public sealed partial class ITicketCinemaProvider
             var reportedLast = N(meta, "last_page");
             var reportedTotal = N(meta, "total", -1);
             Check(data.ValueKind == JsonValueKind.Array && N(meta, "current_page") == page
-                && reportedLast >= page && reportedLast <= 10000 && reportedTotal is >= 0 and <= 240000);
+                && reportedLast is >= 1 and <= 10000 && reportedTotal is >= 0 and <= 240000);
             lastPage ??= (int)reportedLast;
             total ??= (int)reportedTotal;
-            Check(lastPage == reportedLast && total == reportedTotal);
+            if (lastPage != reportedLast || total != reportedTotal) return null;
             foreach (var row in Items(data))
             {
                 var id = S(row, "id");
-                Check(CinemaScheduleIdentity.IsLegacyId(id) && ids.Add(id));
+                Check(CinemaScheduleIdentity.IsLegacyId(id));
+                if (!ids.Add(id)) return null;
                 rows.Add(row);
             }
         }
-        Check(rows.Count == total);
-        return rows;
+        return rows.Count == total ? rows : null;
     }
 
     private ITicketSession MapDiscoverySession(JsonElement row)
@@ -175,6 +195,6 @@ public sealed partial class ITicketCinemaProvider
 
     private static void Check(bool valid)
     {
-        if (!valid) throw new CinemaException("داده همگام‌سازی سینما کامل یا معتبر نیست", 502);
+        if (!valid) throw new CinemaException(InvalidDiscoveryData, 502);
     }
 }

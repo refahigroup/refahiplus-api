@@ -34,12 +34,16 @@ public sealed class CinemaDiscoveryTests
     [Fact]
     public async Task Adapter_reads_all_pages_and_rejects_incomplete_pagination()
     {
-        using var stub = new FeedHandler();
+        using var stub = new FeedHandler { ChangeSecondPageOnce = true };
         using var client = new HttpClient(stub) { BaseAddress = new("https://example.test/api/v1/") };
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var provider = Provider(client, cache);
 
-        var result = await provider.ReadDiscoveryAsync(Now, 14, default);
+        var result = await provider.ReadDiscoveryAsync(Now.AddHours(9), 14, default);
+        Assert.Equal(18, stub.ScheduleQueries.Count);
+        Assert.All(stub.ScheduleQueries.Take(4), query =>
+            Assert.EndsWith("&starts_from=2026-11-17&starts_to=2026-11-17", query));
+        Assert.EndsWith("&starts_from=2026-12-01&starts_to=2026-12-01", stub.ScheduleQueries[^1]);
         Assert.Equal("علي نیک‌نام", Assert.Single(Assert.Single(result.Films).Credits!).Artist.Name);
         Assert.Equal(2, result.Sessions.Length);
         Assert.All(result.Sessions, x => Assert.Equal(TimeSpan.Zero, x.StartsAt.Offset));
@@ -150,6 +154,8 @@ public sealed class CinemaDiscoveryTests
 
     private sealed class FeedHandler : HttpMessageHandler
     {
+        public List<string> ScheduleQueries { get; } = [];
+        public bool ChangeSecondPageOnce { get; set; }
         public bool BreakSecondPage { get; set; }
         public bool HideSecondSchedule { get; set; }
         public bool IncludeHomonym { get; set; }
@@ -158,7 +164,11 @@ public sealed class CinemaDiscoveryTests
         {
             var uri = request.RequestUri!;
             var path = uri.AbsolutePath;
+            if (path == "/api/v1/reseller/schedules")
+                ScheduleQueries.Add(uri.Query);
             var page = uri.Query.Contains("page=2&", StringComparison.Ordinal) ? 2 : 1;
+            var changedPage = path == "/api/v1/reseller/schedules" && page == 2 && ChangeSecondPageOnce;
+            if (changedPage) ChangeSecondPageOnce = false;
             var film = new { id = Film };
             var starts = new DateTimeOffset(2026, 11, 16, 23, 10, 0, TimeSpan.Zero);
             object Session(string id, string venue, string filmId = Film) => new { id, attributes = new { show_id = filmId, place_id = venue,
@@ -172,7 +182,9 @@ public sealed class CinemaDiscoveryTests
                 "/api/v1/shows" when uri.Query.Contains(Art, StringComparison.Ordinal) => Page(1, 1, 0),
                 "/api/v1/shows" when IncludeHomonym => Page(1, 1, 2, film, new { id = Homonym }),
                 "/api/v1/shows" => Page(1, 1, 1, film),
+                "/api/v1/reseller/schedules" when !uri.Query.Contains("starts_from=2026-11-17", StringComparison.Ordinal) => Page(1, 1, 0),
                 "/api/v1/reseller/schedules" when page == 2 && BreakSecondPage => new { data = Array.Empty<object>() },
+                "/api/v1/reseller/schedules" when changedPage => Page(2, 2, 3, Session(SecondSchedule, UnmappedVenue)),
                 "/api/v1/reseller/schedules" when page == 2 => Page(2, 2, 2, Session(SecondSchedule, UnmappedVenue)),
                 "/api/v1/reseller/schedules" when IncludeHomonym => Page(1, 1, 2, Session(Schedule, Venue),
                     Session(HomonymSchedule, Venue, Homonym)),
