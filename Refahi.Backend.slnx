@@ -134,9 +134,17 @@
     <Project Path="tests/Refahi.Modules.Wallets.Tests/Refahi.Modules.Wallets.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Refahi.Modules.Bus.Tests/Refahi.Modules.Bus.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Catalogue.Tests/Refahi.Modules.Catalogue.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Cinema.Tests/Refahi.Modules.Cinema.Tests.csproj" />
     <Project Path="tests/Refahi.Modules.Entertainments.Tests/Refahi.Modules.Entertainments.Tests.csproj" />
+  </Folder>
+  <Folder Name="/01_Modules/Bus/">
+    <Project Path="src/Refahi.Modules.Bus.Api/Refahi.Modules.Bus.Api.csproj" />
+    <Project Path="src/Refahi.Modules.Bus.Application.Contracts/Refahi.Modules.Bus.Application.Contracts.csproj" />
+    <Project Path="src/Refahi.Modules.Bus.Application/Refahi.Modules.Bus.Application.csproj" />
+    <Project Path="src/Refahi.Modules.Bus.Domain/Refahi.Modules.Bus.Domain.csproj" />
+    <Project Path="src/Refahi.Modules.Bus.Infrastructure/Refahi.Modules.Bus.Infrastructure.csproj" />
   </Folder>
 <Folder Name="/01_Modules/Catalogue/" Id="f3826ddd-2a1b-9199-9f6c-8cfcbff74908">
   <Project Path="src/Refahi.Modules.Catalogue.Api/Refahi.Modules.Catalogue.Api.csproj" />
