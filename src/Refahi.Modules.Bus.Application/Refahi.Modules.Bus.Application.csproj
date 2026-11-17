@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Refahi.Modules.Bus.Domain/Refahi.Modules.Bus.Domain.csproj" />
+    <ProjectReference Include="../Refahi.Modules.Bus.Application.Contracts/Refahi.Modules.Bus.Application.Contracts.csproj" />
+    <ProjectReference Include="../Refahi.Modules.References.Application.Contracts/Refahi.Modules.References.Application.Contracts.csproj" />
+    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+  </ItemGroup>
+</Project>

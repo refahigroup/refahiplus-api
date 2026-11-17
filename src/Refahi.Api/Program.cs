@@ -15,6 +15,7 @@ using Refahi.Modules.Charge.Api;
 using Refahi.Modules.Cinema.Api;
 using Refahi.Modules.Pools.Api;
 using Refahi.Modules.Flights.Api;
+using Refahi.Modules.Bus.Api;
 using Refahi.Modules.Hotels.Api;
 using Refahi.Modules.Identity.Api;
 using Refahi.Modules.Media.Api;
@@ -120,6 +121,7 @@ builder
     .RegisterOrganizationsModule(builder.Configuration)
     .RegisterWalletsModule(builder.Configuration)
     .RegisterFlightsModule(builder.Configuration)
+    .RegisterBusModule(builder.Configuration)
     .RegisterHotelsModule(builder.Configuration)
     .RegisterStoreModule(builder.Configuration)
     .RegisterOrdersModule(builder.Configuration)
@@ -204,6 +206,7 @@ app.UseReferencesModule("/api/references")
     .UseOrganizationsModule("/api/organizations")
     .UseWalletsModule("/api/wallets")
     .UseFlightsModule("/api/flights")
+    .UseBusModule()
     .UseHotelModule("/api/hotels")
     .UseStoreModule("/api/store")
     .UseOrdersModule("/api/orders")
